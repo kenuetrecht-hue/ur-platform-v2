@@ -1,0 +1,81 @@
+CREATE TABLE `emailVerificationAudit` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`userId` int NOT NULL,
+	`email` varchar(320) NOT NULL,
+	`token` varchar(255) NOT NULL,
+	`status` enum('sent','verified','expired') NOT NULL DEFAULT 'sent',
+	`sentAt` timestamp NOT NULL DEFAULT (now()),
+	`verifiedAt` timestamp,
+	`expiresAt` timestamp NOT NULL,
+	`ipAddress` varchar(45),
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `emailVerificationAudit_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `kycVerification` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`userId` int NOT NULL,
+	`ageVerified` boolean NOT NULL DEFAULT false,
+	`ageVerifiedAt` timestamp,
+	`idVerificationStatus` enum('pending','verified','rejected') NOT NULL DEFAULT 'pending',
+	`idFrontUrl` varchar(512),
+	`idBackUrl` varchar(512),
+	`idVerificationId` varchar(255),
+	`idVerifiedAt` timestamp,
+	`facialVerificationStatus` enum('pending','verified','rejected') NOT NULL DEFAULT 'pending',
+	`selfieUrl` varchar(512),
+	`facialMatchConfidence` decimal(5,2),
+	`facialVerificationId` varchar(255),
+	`facialVerifiedAt` timestamp,
+	`emailVerified` boolean NOT NULL DEFAULT false,
+	`emailVerificationToken` varchar(255),
+	`emailVerificationTokenExpiresAt` timestamp,
+	`emailVerifiedAt` timestamp,
+	`kycStatus` enum('pending','verified','rejected') NOT NULL DEFAULT 'pending',
+	`rejectionReason` text,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `kycVerification_id` PRIMARY KEY(`id`),
+	CONSTRAINT `kycVerification_userId_unique` UNIQUE(`userId`)
+);
+--> statement-breakpoint
+CREATE TABLE `launchPromotionTiers` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`userId` int NOT NULL,
+	`registrationIndex` int NOT NULL,
+	`tier` enum('tier_1','tier_2','tier_3') NOT NULL,
+	`tier1DiscountPercentage` decimal(5,2),
+	`tier1DiscountDurationDays` int,
+	`tier2DiscountPercentage` decimal(5,2),
+	`tier2DiscountDurationDays` int,
+	`tier3DiscountPercentage` decimal(5,2),
+	`tier3DiscountDurationDays` int,
+	`lifetimeDrawingEntries` int NOT NULL DEFAULT 0,
+	`genesisClock24HourStartTime` timestamp NOT NULL,
+	`genesisClock24HourEndTime` timestamp NOT NULL,
+	`genesisClock24HourActive` boolean NOT NULL DEFAULT true,
+	`freeDayOfServiceActive` boolean NOT NULL DEFAULT true,
+	`freeDayOfServiceExpiresAt` timestamp NOT NULL,
+	`discountStartDate` timestamp NOT NULL,
+	`discountEndDate` timestamp NOT NULL,
+	`discountActive` boolean NOT NULL DEFAULT true,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `launchPromotionTiers_id` PRIMARY KEY(`id`),
+	CONSTRAINT `launchPromotionTiers_userId_unique` UNIQUE(`userId`)
+);
+--> statement-breakpoint
+CREATE TABLE `platformFeeTracking` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`userId` int NOT NULL,
+	`currentPlatformFeePercentage` decimal(5,2) NOT NULL DEFAULT '15.00',
+	`genesisClock24HourActive` boolean NOT NULL DEFAULT false,
+	`genesisClock24HourEndTime` timestamp,
+	`activePromotionTier` enum('tier_1','tier_2','tier_3','none') NOT NULL DEFAULT 'none',
+	`promotionDiscountPercentage` decimal(5,2) NOT NULL DEFAULT '0.00',
+	`promotionEndDate` timestamp,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `platformFeeTracking_id` PRIMARY KEY(`id`),
+	CONSTRAINT `platformFeeTracking_userId_unique` UNIQUE(`userId`)
+);

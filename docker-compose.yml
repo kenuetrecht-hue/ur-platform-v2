@@ -1,0 +1,154 @@
+version: "3.8"
+
+services:
+  # ============================================================================
+  # PostgreSQL Database
+  # ============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: ur-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-uruser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-urpassword}
+      POSTGRES_DB: ${DB_NAME:-urdb}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-uruser}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ur-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Redis Cache
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: ur-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ur-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Backend API Server
+  # ============================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ur-backend
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgresql://${DB_USER:-uruser}:${DB_PASSWORD:-urpassword}@postgres:5432/${DB_NAME:-urdb}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      API_PORT: 3001
+      API_HOST: 0.0.0.0
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://localhost:8081}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./server:/app/server
+      - ./lib:/app/lib
+    networks:
+      - ur-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ============================================================================
+  # Frontend Development Server (Optional)
+  # ============================================================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: ur-frontend
+    environment:
+      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:3001}
+      REACT_APP_WS_URL: ${REACT_APP_WS_URL:-ws://localhost:3001}
+      REACT_APP_ENV: ${NODE_ENV:-development}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./app:/app/app
+      - ./components:/app/components
+      - ./lib:/app/lib
+      - ./hooks:/app/hooks
+    networks:
+      - ur-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Adminer (Database Management UI - Development Only)
+  # ============================================================================
+  adminer:
+    image: adminer:latest
+    container_name: ur-adminer
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - ur-network
+    restart: unless-stopped
+    profiles:
+      - dev
+
+  # ============================================================================
+  # Redis Commander (Redis Management UI - Development Only)
+  # ============================================================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: ur-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - ur-network
+    restart: unless-stopped
+    profiles:
+      - dev
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  ur-network:
+    driver: bridge
