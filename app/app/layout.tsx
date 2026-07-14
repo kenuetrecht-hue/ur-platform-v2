@@ -327,9 +327,7 @@ function RootLayoutContent() {
 function RootLayoutWithAuth() {
   return (
     <OnboardingProvider>
-      <AuthProvider>
         <RootLayoutContent />
-      </AuthProvider>
     </OnboardingProvider>
   );
 }
