@@ -12,7 +12,6 @@ import {
 } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, createTRPCClient } from "@/lib/trpc";
-import { AuthProvider } from "@/lib/auth-context";
 import { SecureAuthProvider } from "@/lib/secure-auth-context";
 import { OnboardingProvider } from "@/lib/onboarding-context";
 
@@ -35,31 +34,29 @@ export default function RootLayout() {
   const [trpcClient] = useState(() => createTRPCClient());
 
   return (
-    <AuthProvider>
-      <SecureAuthProvider>
-        <OnboardingProvider>
-          <ThemeProvider>
-            <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-              <GestureHandlerRootView style={{ flex: 1 }}>
-                <trpc.Provider client={trpcClient} queryClient={queryClient}>
-                  <QueryClientProvider client={queryClient}>
-                    <Stack
-                      screenOptions={{
-                        headerShown: false,
-                      }}
-                    >
-                      <Stack.Screen name="index" />
-                      <Stack.Screen name="login" />
-                      <Stack.Screen name="(tabs)" />
-                    </Stack>
-                    <StatusBar style="auto" />
-                  </QueryClientProvider>
-                </trpc.Provider>
-              </GestureHandlerRootView>
-            </SafeAreaProvider>
-          </ThemeProvider>
-        </OnboardingProvider>
-      </SecureAuthProvider>
-    </AuthProvider>
+    <SecureAuthProvider>
+      <OnboardingProvider>
+        <ThemeProvider>
+          <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <trpc.Provider client={trpcClient} queryClient={queryClient}>
+                <QueryClientProvider client={queryClient}>
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                    }}
+                  >
+                    <Stack.Screen name="index" />
+                    <Stack.Screen name="login" />
+                    <Stack.Screen name="(tabs)" />
+                  </Stack>
+                  <StatusBar style="auto" />
+                </QueryClientProvider>
+              </trpc.Provider>
+            </GestureHandlerRootView>
+          </SafeAreaProvider>
+        </ThemeProvider>
+      </OnboardingProvider>
+    </SecureAuthProvider>
   );
 }
