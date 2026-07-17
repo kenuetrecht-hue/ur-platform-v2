@@ -12,7 +12,7 @@ import {
 } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, createTRPCClient } from "@/lib/trpc";
-import { SecureAuthProvider } from "@/lib/secure-auth-context";
+import { AuthProvider } from "@/lib/auth-context";
 import { OnboardingProvider } from "@/lib/onboarding-context";
 
 export const unstable_settings = {
@@ -34,7 +34,7 @@ export default function RootLayout() {
   const [trpcClient] = useState(() => createTRPCClient());
 
   return (
-    <SecureAuthProvider>
+    <AuthProvider>
       <OnboardingProvider>
         <ThemeProvider>
           <SafeAreaProvider initialMetrics={initialWindowMetrics}>
@@ -45,7 +45,11 @@ export default function RootLayout() {
                     screenOptions={{
                       headerShown: false,
                     }}
-                  />
+                  >
+                    <Stack.Screen name="index" />
+                    <Stack.Screen name="login" />
+                    <Stack.Screen name="(tabs)" />
+                  </Stack>
                   <StatusBar style="auto" />
                 </QueryClientProvider>
               </trpc.Provider>
@@ -53,6 +57,6 @@ export default function RootLayout() {
           </SafeAreaProvider>
         </ThemeProvider>
       </OnboardingProvider>
-    </SecureAuthProvider>
+    </AuthProvider>
   );
 }
