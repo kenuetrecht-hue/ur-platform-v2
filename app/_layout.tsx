@@ -15,6 +15,9 @@ import { trpc, createTRPCClient } from "@/lib/trpc";
 import { AuthProvider } from "@/lib/auth-context";
 import { OnboardingProvider } from "@/lib/onboarding-context";
 
+// Temporary fix for displayName error
+import 'react-native-safe-area-context/src/SafeAreaContext';
+
 export const unstable_settings = {
   initialRouteName: "index",
 };
@@ -46,9 +49,8 @@ export default function RootLayout() {
                       headerShown: false,
                     }}
                   >
-                    <Stack.Screen name="index" />
-                    <Stack.Screen name="login" />
-                    <Stack.Screen name="(tabs)" />
+                    {/* The (tabs) group will handle its own navigation and screens */}
+                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   </Stack>
                   <StatusBar style="auto" />
                 </QueryClientProvider>
