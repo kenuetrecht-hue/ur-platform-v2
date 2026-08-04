@@ -6,6 +6,7 @@ import type { Request } from "express";
 import { SignJWT, jwtVerify } from "jose";
 import type { User } from "../../drizzle/schema";
 import * as db from "../db";
+import { authenticateSupabaseToken } from "../supabase-auth";
 import { ENV } from "./env";
 import type {
   ExchangeTokenRequest,
@@ -232,53 +233,61 @@ class SDKServer {
   }
 
   async authenticateRequest(req: Request): Promise<User> {
-    // Regular authentication flow
     const authHeader = req.headers.authorization || req.headers.Authorization;
-    let token: string | undefined;
+    let bearerToken: string | undefined;
     if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
-      token = authHeader.slice("Bearer ".length).trim();
+      bearerToken = authHeader.slice("Bearer ".length).trim();
     }
 
     const cookies = this.parseCookies(req.headers.cookie);
-    const sessionCookie = token || cookies.get(COOKIE_NAME);
-    const session = await this.verifySession(sessionCookie);
+    const sessionToken = bearerToken || cookies.get(COOKIE_NAME);
 
-    if (!session) {
-      throw ForbiddenError("Invalid session cookie");
+    if (!sessionToken) {
+      throw ForbiddenError("Missing authentication token");
     }
 
-    const sessionUserId = session.openId;
-    const signedInAt = new Date();
-    let user = await db.getUserByOpenId(sessionUserId);
+    const session = await this.verifySession(sessionToken);
 
-    // If user not in DB, sync from OAuth server automatically
-    if (!user) {
-      try {
-        const userInfo = await this.getUserInfoWithJwt(sessionCookie ?? "");
-        await db.upsertUser({
-          openId: userInfo.openId,
-          name: userInfo.name || null,
-          email: userInfo.email ?? null,
-          loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
-          lastSignedIn: signedInAt,
-        });
-        user = await db.getUserByOpenId(userInfo.openId);
-      } catch (error) {
-        console.error("[Auth] Failed to sync user from OAuth:", error);
-        throw ForbiddenError("Failed to sync user info");
+    if (session) {
+      const sessionUserId = session.openId;
+      const signedInAt = new Date();
+      let user = await db.getUserByOpenId(sessionUserId);
+
+      if (!user) {
+        try {
+          const userInfo = await this.getUserInfoWithJwt(sessionToken);
+          await db.upsertUser({
+            openId: userInfo.openId,
+            name: userInfo.name || null,
+            email: userInfo.email ?? null,
+            loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+            lastSignedIn: signedInAt,
+          });
+          user = await db.getUserByOpenId(userInfo.openId);
+        } catch (error) {
+          console.error("[Auth] Failed to sync user from OAuth:", error);
+          throw ForbiddenError("Failed to sync user info");
+        }
       }
+
+      if (!user) {
+        throw ForbiddenError("User not found");
+      }
+
+      await db.upsertUser({
+        openId: user.openId,
+        lastSignedIn: signedInAt,
+      });
+
+      return user;
     }
 
-    if (!user) {
-      throw ForbiddenError("User not found");
+    const supabaseUser = await authenticateSupabaseToken(sessionToken);
+    if (supabaseUser) {
+      return supabaseUser;
     }
 
-    await db.upsertUser({
-      openId: user.openId,
-      lastSignedIn: signedInAt,
-    });
-
-    return user;
+    throw ForbiddenError("Invalid session token");
   }
 }
 

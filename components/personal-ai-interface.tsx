@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -8,9 +8,13 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  StyleSheet,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import PersonalAIAssistant, { PersonalAIProfile, WebSearchResult } from "@/lib/personal-ai-assistant";
+import PersonalAIAssistant, {
+  PersonalAIProfile,
+  WebSearchResult,
+} from "@/lib/personal-ai-assistant";
 
 interface PersonalAIInterfaceProps {
   creatorId: string;
@@ -80,19 +84,14 @@ export function PersonalAIInterface({ creatorId, onClose }: PersonalAIInterfaceP
 
     setLoading(true);
 
-    // Add user message
     const userMessage = inputText;
     setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
     setInputText("");
 
     try {
-      // Process voice command
       const response = await ai.processVoiceCommand(userMessage);
-
-      // Add AI response
       setMessages((prev) => [...prev, { role: "ai", text: response.text }]);
 
-      // If search intent, perform search
       if (response.actions.includes("search_web")) {
         const query = userMessage.replace(/search|find/i, "").trim();
         const results = await ai.searchWeb(query);
@@ -100,7 +99,6 @@ export function PersonalAIInterface({ creatorId, onClose }: PersonalAIInterfaceP
         setShowSearch(true);
       }
 
-      // Show suggestions
       if (response.suggestions.length > 0) {
         setTimeout(() => {
           setMessages((prev) => [
@@ -125,7 +123,6 @@ export function PersonalAIInterface({ creatorId, onClose }: PersonalAIInterfaceP
       setLoading(false);
     }
 
-    // Scroll to bottom
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
@@ -155,40 +152,51 @@ export function PersonalAIInterface({ creatorId, onClose }: PersonalAIInterfaceP
   };
 
   return (
-    <View className="flex-1 bg-background">
-      {/* Header */}
-      <View className="bg-primary p-4 gap-2">
-        <View className="flex-row items-center justify-between">
-          <Text className="text-xl font-bold text-background">ContentMate</Text>
-          {onClose && (
-            <TouchableOpacity onPress={onClose} className="p-2">
-              <Text className="text-lg text-background">✕</Text>
+    <View style={styles.root}>
+      <View style={[styles.header, { backgroundColor: colors.primary }]}>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>ContentMate</Text>
+          {onClose ? (
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Text style={styles.headerTitle}>✕</Text>
             </TouchableOpacity>
-          )}
+          ) : null}
         </View>
-        <Text className="text-sm text-background opacity-90">Your personal AI content assistant</Text>
+        <Text style={styles.headerSubtitle}>Your personal AI content assistant</Text>
       </View>
 
-      {/* Messages */}
       <ScrollView
         ref={scrollViewRef}
-        className="flex-1 p-4 gap-3"
-        contentContainerStyle={{ flexGrow: 1 }}
+        style={styles.messagesScroll}
+        contentContainerStyle={styles.messagesContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         {messages.map((msg, idx) => (
           <View
             key={idx}
-            className={`gap-2 ${msg.role === "user" ? "items-end" : "items-start"}`}
+            style={[
+              styles.messageRow,
+              msg.role === "user" ? styles.messageRowUser : styles.messageRowAi,
+            ]}
           >
             <View
-              className={`max-w-xs rounded-lg p-3 ${
-                msg.role === "user" ? "bg-primary" : "bg-surface border border-border"
-              }`}
+              style={[
+                styles.messageBubble,
+                msg.role === "user"
+                  ? { backgroundColor: colors.primary }
+                  : {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                    },
+              ]}
             >
               <Text
-                className={`text-base ${
-                  msg.role === "user" ? "text-background" : "text-foreground"
-                }`}
+                style={[
+                  styles.messageText,
+                  { color: msg.role === "user" ? "#fff" : colors.foreground },
+                ]}
               >
                 {msg.text}
               </Text>
@@ -196,38 +204,63 @@ export function PersonalAIInterface({ creatorId, onClose }: PersonalAIInterfaceP
           </View>
         ))}
 
-        {loading && (
-          <View className="items-start gap-2">
-            <View className="bg-surface border border-border rounded-lg p-3">
+        {loading ? (
+          <View style={styles.messageRowAi}>
+            <View
+              style={[
+                styles.messageBubble,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                },
+              ]}
+            >
               <ActivityIndicator color={colors.primary} />
             </View>
           </View>
-        )}
+        ) : null}
 
-        {/* Search Results */}
-        {showSearch && searchResults.length > 0 && (
-          <View className="gap-2 mt-4">
-            <Text className="text-sm font-bold text-foreground">Search Results:</Text>
+        {showSearch && searchResults.length > 0 ? (
+          <View style={styles.searchResults}>
+            <Text style={[styles.searchTitle, { color: colors.foreground }]}>
+              Search Results:
+            </Text>
             {searchResults.map((result, idx) => (
               <TouchableOpacity
                 key={idx}
                 onPress={() => handleSearchResult(result)}
-                className="bg-surface border border-border rounded-lg p-3 gap-1"
+                style={[
+                  styles.searchResultCard,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
               >
-                <Text className="font-semibold text-foreground text-sm">{result.title}</Text>
-                <Text className="text-xs text-muted">{result.source}</Text>
-                <Text className="text-xs text-foreground">{result.snippet}</Text>
+                <Text
+                  style={[styles.searchResultTitle, { color: colors.foreground }]}
+                >
+                  {result.title}
+                </Text>
+                <Text style={[styles.searchResultMeta, { color: colors.muted }]}>
+                  {result.source}
+                </Text>
+                <Text style={[styles.searchResultSnippet, { color: colors.foreground }]}>
+                  {result.snippet}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
-        )}
+        ) : null}
       </ScrollView>
 
-      {/* Quick Actions */}
-      {messages.length === 1 && (
-        <View className="px-4 py-3 gap-2 border-t border-border">
-          <Text className="text-xs font-semibold text-muted uppercase">Quick Actions</Text>
-          <View className="flex-row flex-wrap gap-2">
+      {messages.length === 1 ? (
+        <View style={[styles.quickActions, { borderTopColor: colors.border }]}>
+          <Text style={[styles.quickActionsLabel, { color: colors.muted }]}>
+            QUICK ACTIONS
+          </Text>
+          <View style={styles.quickActionsRow}>
             {[
               "Search web",
               "Edit video",
@@ -238,20 +271,42 @@ export function PersonalAIInterface({ creatorId, onClose }: PersonalAIInterfaceP
               <TouchableOpacity
                 key={action}
                 onPress={() => handleQuickAction(action)}
-                className="bg-surface border border-border rounded-full px-3 py-2"
+                style={[
+                  styles.quickActionChip,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
               >
-                <Text className="text-xs font-semibold text-foreground">{action}</Text>
+                <Text style={[styles.quickActionText, { color: colors.foreground }]}>
+                  {action}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
-      )}
+      ) : null}
 
-      {/* Input */}
-      <View className="p-4 gap-3 border-t border-border bg-surface">
-        <View className="flex-row gap-2 items-end">
+      <View
+        style={[
+          styles.inputArea,
+          {
+            borderTopColor: colors.border,
+            backgroundColor: colors.surface,
+          },
+        ]}
+      >
+        <View style={styles.inputRow}>
           <TextInput
-            className="flex-1 bg-background border border-border rounded-lg p-3 text-foreground"
+            style={[
+              styles.textInput,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+                color: colors.foreground,
+              },
+            ]}
             placeholder="Tell me what you need..."
             placeholderTextColor={colors.muted}
             value={inputText}
@@ -262,15 +317,171 @@ export function PersonalAIInterface({ creatorId, onClose }: PersonalAIInterfaceP
           <TouchableOpacity
             onPress={handleSendMessage}
             disabled={loading || !inputText.trim()}
-            className="bg-primary rounded-lg p-3 items-center justify-center"
+            style={[styles.sendButton, { backgroundColor: colors.primary }]}
           >
-            <Text className="text-lg">🎤</Text>
+            <Text style={styles.sendButtonText}>🎤</Text>
           </TouchableOpacity>
         </View>
-        <Text className="text-xs text-muted">
-          💡 Tip: Ask me to search, edit, create, or suggest content ideas!
+        <Text style={[styles.inputHint, { color: colors.muted }]}>
+          Tip: Ask me to search, edit, create, or suggest content ideas!
         </Text>
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    minHeight: 0,
+    width: "100%",
+    overflow: "hidden",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 4,
+    flexShrink: 0,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.9)",
+  },
+  closeButton: {
+    padding: 4,
+  },
+  messagesScroll: {
+    flex: 1,
+    minHeight: 0,
+  },
+  messagesContent: {
+    padding: 16,
+    gap: 12,
+    flexGrow: 1,
+  },
+  messageRow: {
+    width: "100%",
+  },
+  messageRowUser: {
+    alignItems: "flex-end",
+  },
+  messageRowAi: {
+    alignItems: "flex-start",
+  },
+  messageBubble: {
+    maxWidth: "85%",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  messageText: {
+    fontSize: 15,
+    lineHeight: 22,
+    flexShrink: 1,
+  },
+  searchResults: {
+    width: "100%",
+    gap: 8,
+    marginTop: 8,
+  },
+  searchTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  searchResultCard: {
+    width: "100%",
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    gap: 4,
+  },
+  searchResultTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  searchResultMeta: {
+    fontSize: 11,
+  },
+  searchResultSnippet: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  quickActions: {
+    flexShrink: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    gap: 8,
+  },
+  quickActionsLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+  },
+  quickActionsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  quickActionChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  quickActionText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  inputArea: {
+    flexShrink: 0,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
+    borderTopWidth: 1,
+    gap: 8,
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+  },
+  textInput: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 120,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sendButtonText: {
+    fontSize: 18,
+  },
+  inputHint: {
+    fontSize: 11,
+    lineHeight: 16,
+  },
+});

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "./use-auth";
+import { useAuth } from "@/lib/auth-context";
 import { trpc } from "@/lib/trpc";
 
 export interface DailySignInState {
@@ -17,12 +17,11 @@ export interface DailySignInState {
 }
 
 /**
- * Hook to handle daily sign-in loyalty points award
- * Automatically triggers on first app load each day
- * Returns loyalty points state and ticket info
+ * Hook to handle daily sign-in loyalty points award.
+ * Uses the authenticated server user from the Supabase bearer token.
  */
 export function useDailySignIn() {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [state, setState] = useState<DailySignInState>({
     loading: true,
@@ -36,21 +35,16 @@ export function useDailySignIn() {
     setShowModal,
   });
 
+  const awardMutation = trpc.loyalty.awardDailySignIn.useMutation();
+
   useEffect(() => {
-    if (!isAuthenticated || !user) {
+    if (!isAuthenticated) {
       setState((prev) => ({ ...prev, loading: false }));
       return;
     }
 
-    const awardDailyPoints = async () => {
-      try {
-        setState((prev) => ({ ...prev, loading: true, error: null }));
-
-        // Call backend to award daily sign-in points
-        const result = await (trpc.loyalty.awardDailySignIn as any)({
-          userId: user.id,
-        });
-
+    awardMutation.mutate(undefined, {
+      onSuccess: (result) => {
         setState((prev) => ({
           ...prev,
           loading: false,
@@ -59,20 +53,23 @@ export function useDailySignIn() {
           alreadyEarnedToday: result.alreadyEarnedToday,
           totalPoints: result.totalPoints,
           totalSignIns: result.totalSignIns,
+          error: null,
         }));
-      } catch (error) {
+      },
+      onError: (error) => {
         setState((prev) => ({
           ...prev,
           loading: false,
-          error: error instanceof Error ? error.message : "Failed to award points",
+          error: error.message || "Failed to award points",
         }));
-      }
-    };
+      },
+    });
+    // Only run when auth state becomes true
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
-    awardDailyPoints();
-  }, [isAuthenticated, user]);
-
-  const { ticketState, revealLoading, claimLoading, revealTicket, claimPrize } = useScratchOffTicket(state.ticketId);
+  const { ticketState, revealLoading, claimLoading, revealTicket, claimPrize } =
+    useScratchOffTicket(state.ticketId);
 
   return {
     ...state,
@@ -88,6 +85,8 @@ export function useDailySignIn() {
  * Hook to handle scratch-off ticket reveal and claim
  */
 export function useScratchOffTicket(ticketId: number | null) {
+  const revealMutation = trpc.loyalty.revealTicket.useMutation();
+  const claimMutation = trpc.loyalty.claimPrize.useMutation();
   const [revealLoading, setRevealLoading] = useState(false);
   const [claimLoading, setClaimLoading] = useState(false);
   const [ticketState, setTicketState] = useState<{
@@ -103,7 +102,7 @@ export function useScratchOffTicket(ticketId: number | null) {
 
     try {
       setRevealLoading(true);
-      const result = await (trpc.loyalty.revealTicket as any)({ ticketId });
+      const result = await revealMutation.mutateAsync({ ticketId });
       setTicketState({
         status: "revealed",
         prizeType: result.prizeType,
@@ -124,7 +123,7 @@ export function useScratchOffTicket(ticketId: number | null) {
 
     try {
       setClaimLoading(true);
-      await (trpc.loyalty.claimPrize as any)({ ticketId });
+      await claimMutation.mutateAsync({ ticketId });
       setTicketState((prev) => ({ ...prev, status: "claimed" }));
     } catch (error) {
       console.error("Failed to claim prize:", error);
@@ -146,37 +145,15 @@ export function useScratchOffTicket(ticketId: number | null) {
  * Hook to get user's loyalty points summary
  */
 export function useLoyaltyPointsSummary() {
-  const { user, isAuthenticated } = useAuth();
-  const [summary, setSummary] = useState({
-    totalPoints: 0,
-    totalSignIns: 0,
-    totalPointsEarned: 0,
-    loading: true,
+  const { isAuthenticated } = useAuth();
+  const summaryQuery = trpc.loyalty.getSummary.useQuery(undefined, {
+    enabled: isAuthenticated,
   });
 
-  useEffect(() => {
-    if (!isAuthenticated || !user) {
-      setSummary((prev) => ({ ...prev, loading: false }));
-      return;
-    }
-
-    const fetchSummary = async () => {
-      try {
-        const result = await (trpc.loyalty.getSummary as any)({ userId: user.id });
-        setSummary({
-          totalPoints: result.totalPoints,
-          totalSignIns: result.totalSignIns,
-          totalPointsEarned: result.totalPointsEarned,
-          loading: false,
-        });
-      } catch (error) {
-        console.error("Failed to fetch loyalty summary:", error);
-        setSummary((prev) => ({ ...prev, loading: false }));
-      }
-    };
-
-    fetchSummary();
-  }, [isAuthenticated, user]);
-
-  return summary;
+  return {
+    totalPoints: summaryQuery.data?.totalPoints ?? 0,
+    totalSignIns: summaryQuery.data?.totalSignIns ?? 0,
+    totalPointsEarned: summaryQuery.data?.totalPointsEarned ?? 0,
+    loading: summaryQuery.isLoading,
+  };
 }

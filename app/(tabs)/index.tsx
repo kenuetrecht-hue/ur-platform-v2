@@ -1,161 +1,101 @@
-import { useEffect, useState, useCallback } from "react";
-import { View, Text, ScrollView, FlatList, Pressable, RefreshControl, Modal, Platform } from "react-native";
-import { router, useFocusEffect } from "expo-router";
-import * as Haptics from "expo-haptics";
-import { ScreenContainer } from "@/components/screen-container";
-import { Avatar, TierBadge, VerifiedBadge, Card, SectionHeader, URMark } from "@/components/ur-ui";
-import { PromotionalBanner } from "@/components/promotional-banner";
-import { useColors } from "@/hooks/use-colors";
+import { ScrollView, View, Text, Pressable } from "react-native";
 import { useAuth } from "@/lib/auth-context";
-import { Creator, getCreators, User, TIERS } from "@/lib/store";
+import { useColors } from "@/hooks/use-colors";
+import { ScreenContainer } from "@/components/screen-container";
+import { TabScreenHeader } from "@/components/tab-screen-header";
+import { WarningBanner } from "@/components/warning-banner";
+import { LaunchPromotionBanner } from "@/components/launch-promotion-banner";
+import { DailyLoyaltyBanner } from "@/components/daily-loyalty-banner";
+import { DemoSection } from "@/components/demo-section";
+import { useDailySignIn } from "@/hooks/use-daily-signin";
+import { consolidatedNavigation } from "@/lib/consolidated-navigation";
+import { useRouter } from "expo-router";
 
 export default function HomeScreen() {
+  const { user } = useAuth();
   const colors = useColors();
-  const { isAuthenticated, loading: authLoading, user } = useAuth();
-  const [creators, setCreators] = useState<Creator[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
+  const dailySignIn = useDailySignIn();
+  const homeTab = consolidatedNavigation.getTab("home");
 
-  // Load creators on mount
-  useEffect(() => {
-    const loadCreators = async () => {
-      try {
-        const data = await getCreators();
-        setCreators(data);
-      } catch (error) {
-        console.error("Failed to load creators:", error);
-      }
-    };
-    loadCreators();
-  }, []);
-
-  // Refresh on focus
-  useFocusEffect(
-    useCallback(() => {
-      const refresh = async () => {
-        setRefreshing(true);
-        try {
-          const data = await getCreators();
-          setCreators(data);
-        } catch (error) {
-          console.error("Refresh failed:", error);
-        } finally {
-          setRefreshing(false);
-        }
-      };
-      refresh();
-    }, [])
-  );
-
-  // If still loading auth, show loading screen
-  if (authLoading) {
-    return (
-      <ScreenContainer>
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <Text style={{ color: colors.foreground, fontSize: 16 }}>Loading...</Text>
-        </View>
-      </ScreenContainer>
-    );
-  }
-
-  // If not authenticated, show login prompt
-  if (!isAuthenticated) {
-    return (
-      <ScreenContainer>
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", gap: 16 }}>
-          <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "600" }}>Welcome to UR Platform</Text>
-          <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center" }}>Sign in to access your dashboard</Text>
-          <Pressable
-            onPress={() => router.push("/login")}
-            style={({ pressed }) => [
-              { backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, opacity: pressed ? 0.8 : 1 }
-            ]}
-          >
-            <Text style={{ color: "white", fontWeight: "600" }}>Sign In</Text>
-          </Pressable>
-        </View>
-      </ScreenContainer>
-    );
-  }
-
-  // Authenticated - show dashboard
   return (
-    <ScreenContainer className="p-0">
+    <ScreenContainer className="bg-background">
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {}} tintColor={colors.primary} />}
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={{ backgroundColor: colors.surface, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <View>
-              <Text style={{ color: colors.foreground, fontSize: 24, fontWeight: "700" }}>Welcome, {user?.name || "User"}</Text>
-              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>Your UR Platform Dashboard</Text>
+        <WarningBanner variant="compact" />
+        <LaunchPromotionBanner />
+
+        <DailyLoyaltyBanner
+          totalPoints={dailySignIn.totalPoints}
+          pointsEarnedToday={
+            dailySignIn.alreadyEarnedToday ? 0 : dailySignIn.pointsAwarded
+          }
+          totalSignIns={dailySignIn.totalSignIns}
+          hasNewTicket={!!dailySignIn.ticketId}
+        />
+
+        <TabScreenHeader
+          icon="🏠"
+          title={`Welcome${user?.name ? `, ${user.name}` : ""}`}
+          subtitle="Your creator hub — trending content, daily rewards, and quick actions."
+        />
+
+        <View style={{ paddingHorizontal: 16, gap: 12 }}>
+          <DemoSection
+            title="Quick Actions"
+            description="Jump into the most-used areas of the platform."
+            icon="⚡"
+            variant="info"
+          >
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+              {[
+                { label: "Create Content", route: "/(tabs)/create" as const },
+                { label: "Discover", route: "/(tabs)/discover" as const },
+                { label: "AI Assistant", route: "/(tabs)/messages" as const },
+              ].map((action) => (
+                <Pressable
+                  key={action.label}
+                  onPress={() => router.push(action.route)}
+                  style={{
+                    backgroundColor: colors.primary,
+                    borderRadius: 20,
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                  }}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
+                    {action.label}
+                  </Text>
+                </Pressable>
+              ))}
             </View>
-            <URMark size={40} />
-          </View>
-        </View>
+          </DemoSection>
 
-        {/* Stats Cards */}
-        <View style={{ paddingHorizontal: 16, paddingVertical: 16, gap: 12 }}>
-          {/* Points Card */}
-          <Card>
-            <View style={{ gap: 8 }}>
-              <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "500" }}>LOYALTY POINTS</Text>
-              <Text style={{ color: colors.foreground, fontSize: 28, fontWeight: "700" }}>{user?.points || 0}</Text>
-            </View>
-          </Card>
+          {homeTab?.subMenu?.map((item) => (
+            <DemoSection
+              key={item.id}
+              title={item.label}
+              description={`Explore ${item.label.toLowerCase()} on UR Platform.`}
+              icon="📈"
+            >
+              <Text style={{ color: colors.muted, fontSize: 14, marginTop: 4 }}>
+                Content feeds and recommendations coming soon.
+              </Text>
+            </DemoSection>
+          ))}
 
-          {/* Tier Card */}
-          <Card>
-            <View style={{ gap: 8 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "500" }}>YOUR TIER</Text>
-                <TierBadge tier={user?.tier || "bronze"} />
-              </View>
-              <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "600" }}>{(user?.tier || "bronze").toUpperCase()}</Text>
-            </View>
-          </Card>
-        </View>
-
-        {/* Creators Section */}
-        <View style={{ paddingHorizontal: 16, paddingVertical: 16 }}>
-          <SectionHeader title="Featured Creators" />
-          <FlatList
-            data={creators.slice(0, 5)}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            renderItem={({ item }) => <CreatorCard creator={item} />}
-            ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-          />
-        </View>
-
-        {/* Promotional Banner */}
-        <View style={{ paddingHorizontal: 16, paddingVertical: 16 }}>
-          <PromotionalBanner />
+          {dailySignIn.error ? (
+            <DemoSection
+              title="Loyalty Status"
+              description={dailySignIn.error}
+              icon="🎁"
+              variant="warning"
+            />
+          ) : null}
         </View>
       </ScrollView>
     </ScreenContainer>
-  );
-}
-
-function CreatorCard({ creator }: { creator: Creator }) {
-  const colors = useColors();
-  return (
-    <Pressable onPress={() => router.push(`/creator/${creator.id}`)} style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}>
-      <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.border, flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Avatar uri={creator.photo} size={48} ring />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600", flex: 1 }} numberOfLines={1}>{creator.name}</Text>
-            {creator.verified && <VerifiedBadge size={12} />}
-          </View>
-          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }} numberOfLines={1}>{creator.bio}</Text>
-        </View>
-        <View style={{ alignItems: "flex-end", gap: 2 }}>
-          <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700" }}>${creator.monthlyPrice.toFixed(2)}</Text>
-          <Text style={{ color: colors.muted, fontSize: 11 }}>per month</Text>
-        </View>
-      </View>
-    </Pressable>
   );
 }

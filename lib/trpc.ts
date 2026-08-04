@@ -3,6 +3,7 @@ import { httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
 import type { AppRouter } from "@/server/routers";
 import { getApiBaseUrl } from "@/constants/oauth";
+import { getAccessToken } from "@/lib/auth-storage";
 import * as Auth from "@/lib/_core/auth";
 
 /**
@@ -26,8 +27,13 @@ export function createTRPCClient() {
         // tRPC v11: transformer MUST be inside httpBatchLink, not at root
         transformer: superjson,
         async headers() {
-          const token = await Auth.getSessionToken();
-          return token ? { Authorization: `Bearer ${token}` } : {};
+          const supabaseToken = await getAccessToken();
+          if (supabaseToken) {
+            return { Authorization: `Bearer ${supabaseToken}` };
+          }
+
+          const sessionToken = await Auth.getSessionToken();
+          return sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {};
         },
         // Custom fetch to include credentials for cookie-based auth
         fetch(url, options) {

@@ -104,19 +104,17 @@ export const appRouter = router({
 
   stamps: stampsPersistenceRouter,
   loyalty: router({
-    awardDailySignIn: protectedProcedure
-      .input(z.object({ userId: z.number() }))
-      .mutation(async ({ input }) => {
-        const result = await db.awardDailySignInPoints(input.userId);
-        const loyaltyRecord = await db.getLoyaltyPoints(input.userId);
-        return {
-          pointsAwarded: result.alreadyEarnedToday ? 0 : 200,
-          ticketId: result.ticketId,
-          alreadyEarnedToday: result.alreadyEarnedToday,
-          totalPoints: loyaltyRecord?.totalPoints || 0,
-          totalSignIns: loyaltyRecord?.totalSignIns || 0,
-        };
-      }),
+    awardDailySignIn: protectedProcedure.mutation(async ({ ctx }) => {
+      const result = await db.awardDailySignInPoints(ctx.user.id);
+      const loyaltyRecord = await db.getLoyaltyPoints(ctx.user.id);
+      return {
+        pointsAwarded: result.alreadyEarnedToday ? 0 : 200,
+        ticketId: result.ticketId,
+        alreadyEarnedToday: result.alreadyEarnedToday,
+        totalPoints: loyaltyRecord?.totalPoints || 0,
+        totalSignIns: loyaltyRecord?.totalSignIns || 0,
+      };
+    }),
 
     revealTicket: protectedProcedure
       .input(z.object({ ticketId: z.number() }))
@@ -136,16 +134,14 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    getSummary: protectedProcedure
-      .input(z.object({ userId: z.number() }))
-      .query(async ({ input }) => {
-        const loyaltyRecord = await db.getLoyaltyPoints(input.userId);
-        return {
-          totalPoints: loyaltyRecord?.totalPoints || 0,
-          totalSignIns: loyaltyRecord?.totalSignIns || 0,
-          totalPointsEarned: loyaltyRecord?.totalPointsEarned || 0,
-        };
-      }),
+    getSummary: protectedProcedure.query(async ({ ctx }) => {
+      const loyaltyRecord = await db.getLoyaltyPoints(ctx.user.id);
+      return {
+        totalPoints: loyaltyRecord?.totalPoints || 0,
+        totalSignIns: loyaltyRecord?.totalSignIns || 0,
+        totalPointsEarned: loyaltyRecord?.totalPointsEarned || 0,
+      };
+    }),
   }),
 });
 

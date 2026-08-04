@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+/**
+ * @deprecated Use `@/lib/auth-context` instead. This duplicate provider is unused.
+ */
 import * as SecureStore from "expo-secure-store";
 import { router, useSegments } from "expo-router";
 import { supabase } from "@/lib/supabase";

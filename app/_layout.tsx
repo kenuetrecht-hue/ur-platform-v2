@@ -13,10 +13,9 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, createTRPCClient } from "@/lib/trpc";
 import { AuthProvider } from "@/lib/auth-context";
-import { OnboardingProvider } from "@/lib/onboarding-context";
+import { AuthRouteGuard } from "@/components/auth-route-guard";
 
-// Temporary fix for displayName error
-import 'react-native-safe-area-context/src/SafeAreaContext';
+import "react-native-safe-area-context/src/SafeAreaContext";
 
 export const unstable_settings = {
   initialRouteName: "index",
@@ -37,28 +36,21 @@ export default function RootLayout() {
   const [trpcClient] = useState(() => createTRPCClient());
 
   return (
-    <AuthProvider>
-      <OnboardingProvider>
-        <ThemeProvider>
-          <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              <trpc.Provider client={trpcClient} queryClient={queryClient}>
-                <QueryClientProvider client={queryClient}>
-                  <Stack
-                    screenOptions={{
-                      headerShown: false,
-                    }}
-                  >
-                    {/* The (tabs) group will handle its own navigation and screens */}
-                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                  </Stack>
-                  <StatusBar style="auto" />
-                </QueryClientProvider>
-              </trpc.Provider>
-            </GestureHandlerRootView>
-          </SafeAreaProvider>
-        </ThemeProvider>
-      </OnboardingProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <trpc.Provider client={trpcClient} queryClient={queryClient}>
+            <QueryClientProvider client={queryClient}>
+              <AuthProvider>
+                <AuthRouteGuard>
+                  <Stack screenOptions={{ headerShown: false }} />
+                </AuthRouteGuard>
+              </AuthProvider>
+              <StatusBar style="auto" />
+            </QueryClientProvider>
+          </trpc.Provider>
+        </GestureHandlerRootView>
+      </SafeAreaProvider>
+    </ThemeProvider>
   );
 }

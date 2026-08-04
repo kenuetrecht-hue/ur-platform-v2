@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+/**
+ * @deprecated Use `@/lib/auth-context` instead. References tRPC routes that do not exist.
+ */
 import * as SecureStore from "expo-secure-store";
 import { trpc } from "./trpc";
 

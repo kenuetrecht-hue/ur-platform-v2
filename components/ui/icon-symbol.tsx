@@ -15,7 +15,10 @@ const MAPPING = {
   // Tab bar icons
   "house.fill": "home",
   "magnifyingglass": "search",
+  "compass.fill": "explore",
+  "pencil.circle.fill": "add-circle",
   "bubble.left.fill": "chat",
+  "bubble.right.fill": "chat",
   "creditcard.fill": "credit-card",
   "gift.fill": "card-giftcard",
   "person.fill": "person",
