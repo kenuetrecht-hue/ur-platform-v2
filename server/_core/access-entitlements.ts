@@ -7,8 +7,10 @@
 import { randomUUID } from "crypto";
 import { TRPCError } from "@trpc/server";
 import { isOwnerEmail } from "./owner-auth";
+import { hasActiveAiSubscription, getActiveAiSubscription } from "./ai-subscription-service";
+import { hasLoyaltyTextAccess } from "./loyalty-streak-service";
 
-export type AccessSource = "owner" | "owner_grant" | "membership" | "none";
+export type AccessSource = "owner" | "owner_grant" | "membership" | "ai_subscription" | "loyalty" | "none";
 
 export type PlatformFeature = "ai_chat" | "ai_learn" | "ai_hive" | "ai_sandbox";
 
@@ -84,6 +86,8 @@ export type AccessStatus = {
   grantExpiresAt?: string;
   membershipPlan?: string;
   membershipExpiresAt?: string;
+  aiSubscriptionPlan?: string;
+  aiSubscriptionExpiresAt?: string;
 };
 
 export function getAccessStatus(params: {
@@ -124,6 +128,8 @@ export function assertAiEntitled(params: {
   email?: string | null;
   isPlatformOwner: boolean;
   feature?: PlatformFeature;
+  /** When set, per-AI subscription to this specialist also grants access. */
+  creatorId?: string;
 }): AccessStatus {
   if (params.isPlatformOwner) {
     return { hasAiAccess: true, source: "owner" };
@@ -138,11 +144,28 @@ export function assertAiEntitled(params: {
 
   const status = getAccessStatus(params);
 
+  if (!status.hasAiAccess && params.creatorId && params.userId != null) {
+    const uid = String(params.userId);
+    if (hasActiveAiSubscription(uid, params.email, params.creatorId)) {
+      const sub = getActiveAiSubscription(uid, params.creatorId);
+      return {
+        hasAiAccess: true,
+        source: "ai_subscription",
+        aiSubscriptionPlan: sub?.plan,
+        aiSubscriptionExpiresAt: sub?.expiresAt,
+      };
+    }
+    if (hasLoyaltyTextAccess(uid, params.creatorId)) {
+      return { hasAiAccess: true, source: "loyalty" };
+    }
+  }
+
   if (!status.hasAiAccess) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message:
-        "AI access requires a membership or stamps. Contact the platform owner if you were offered complimentary access.",
+      message: params.creatorId
+        ? "Subscribe to this AI specialist, or use loyalty points for simple text chat."
+        : "AI access requires a membership or subscription. Contact the platform owner if you were offered complimentary access.",
     });
   }
 

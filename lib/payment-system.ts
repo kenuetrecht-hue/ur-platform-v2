@@ -63,10 +63,10 @@ export class PaymentSystem {
   private readonly POINTS_PER_DOLLAR = 100;
   private readonly SUBSCRIPTION_PRICES: Record<SubscriptionTier, number> = {
     free: 0,
-    daily: 4.99,
-    weekly: 19.99,
-    monthly: 49.99,
-    yearly: 399.99,
+    daily: 5.99,
+    weekly: 9.99,
+    monthly: 14.99,
+    yearly: 149.99,
   };
 
   constructor() {

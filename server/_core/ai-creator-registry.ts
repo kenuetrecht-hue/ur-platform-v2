@@ -9,6 +9,7 @@ import {
   AFFILIATE_ASSOCIATE_SYSTEM_PROMPT,
   STORE_MANAGER_SYSTEM_PROMPT,
   SPECIALIST_MULTILINGUAL_WRAPPER,
+  BLUEPRINT_READER_SYSTEM_PROMPT,
 } from "./multilingual-prompts";
 import { type PlatformAiRole } from "./ai-roles";
 import { getHiveCapabilities, HIVE_PEER_GRAPH } from "./ai-hive-capabilities";
@@ -20,6 +21,7 @@ import { AI_PITCH_SYSTEM_RULE } from "./ai-pitch-consent-service";
 import { AI_AFFILIATE_SYSTEM_RULE } from "./affiliate-disclosure-service";
 import { isAffiliateOnlyAi, AFFILIATE_ASSOCIATE_ID } from "./affiliate-associate-ai";
 import { STORE_MANAGER_AI_ID } from "./commerce-catalog-service";
+import { BLUEPRINT_READER_AI_ID } from "./blueprint-reading-service";
 
 export type CreatorAiDefinition = {
   id: string;
@@ -238,6 +240,28 @@ export const CREATOR_AI_REGISTRY: CreatorAiDefinition[] = [
   specialist("ai-product-001", "Product Manager AI", "📱", "Product", "Product management and roadmap planning.", ["Roadmaps", "User stories", "Prioritization", "Launch planning"], ["Binding product commitments"]),
   specialist("ai-content-helper-001", "Content Creator Helper AI", "✍️", "Creative", "Writing, editing, and formatting assistance for creators.", ["Editing", "Formatting", "Research", "Collaboration tips"], ["Impersonating creators"]),
   specialist("ai-3d-specialist", "AI 3D Designer", "🎮", "3D & Design", "3D modeling, visualization, and design workflows.", ["3D modeling concepts", "Texturing", "Optimization", "Pipeline advice"], ["Licensed architectural sign-off"]),
+  specialist(
+    BLUEPRINT_READER_AI_ID,
+    "Blueprint Reader AI",
+    "📐",
+    "Blueprint & Schematics",
+    "Read, teach, and interpret any blueprint or schematic — architectural, MEP, structural, PCB, P&ID, automotive, robotics, and more.",
+    [
+      "Read any schematic type — floor plans, one-lines, P&ID, PCB, wiring, URDF, isometrics",
+      "Title blocks, legends, scales, revisions, and sheet indexes",
+      "Symbol decoding (AIA, IEEE, ISA, NEC, ASME Y14.5, ISO 128)",
+      "Quantity takeoff concepts and dimension chains",
+      "Industry trends — BIM, digital twins, AI takeoff, ISO 19650",
+      "Full Learn mode — lessons, practice, cert prep, on-the-job scenarios",
+      "AI Hive with electrician, structural, plumber, contractor, 3D designer",
+      "Photo/PDF drawing analysis and 3D workspace handoff",
+    ],
+    [
+      "Stamped engineering sign-off or permit approval",
+      "Guaranteed code compliance without licensed review",
+      "Live electrical or gas work instructions without safety warnings",
+    ],
+  ),
 
   // ── Construction trades (from unified router — 5 not in main roster) ──
   specialist("ai-plumber-001", "Plumber AI", "🔧", "Construction", "Plumbing systems, water supply, and fixture guidance.", ["Pipe layout concepts", "Fixture installation", "Drainage", "Water heater basics"], ["Gas line work without licensed pro"]),
@@ -336,6 +360,9 @@ export function buildCreatorSystemPrompt(creatorId: string): string {
   }
   if (creatorId === STORE_MANAGER_AI_ID) {
     return STORE_MANAGER_SYSTEM_PROMPT;
+  }
+  if (creatorId === BLUEPRINT_READER_AI_ID) {
+    return BLUEPRINT_READER_SYSTEM_PROMPT;
   }
   if (creatorId === "linguamate" || creatorId === "ai-translator-001") {
     return LANGUAGE_AI_SYSTEM_PROMPT;

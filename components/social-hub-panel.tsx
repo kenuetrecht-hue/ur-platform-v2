@@ -10,29 +10,32 @@ import {
   Switch,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import { useAuth } from "@/lib/auth-context";
 import { trpc } from "@/lib/trpc";
 import { TransactionHistoryList } from "@/components/transaction-history-list";
 import { FriendVideoCallPanel } from "@/components/friend-video-call-panel";
 import { SocialFeedPanel } from "@/components/social-feed-panel";
+import { SocialHubTabBar, type SocialHubTab } from "@/components/social-hub-tab-bar";
+import { InternetCenterMailPanel } from "@/components/internet-center-mail-panel";
+import { brandHighlightSurface } from "@/lib/brand-theme";
 
-type Tab = "feed" | "friends" | "messages" | "creators" | "activity";
+type Tab = SocialHubTab;
 
 export function SocialHubPanel() {
   const colors = useColors();
-  const { user } = useAuth();
-  const myUserId = user?.id != null ? String(user.id) : "";
   const utils = trpc.useUtils();
   const [tab, setTab] = useState<Tab>("feed");
   const [friendEmail, setFriendEmail] = useState("");
-  const [chatWith, setChatWith] = useState<string | null>(null);
-  const [messageBody, setMessageBody] = useState("");
   const [creatorUserId, setCreatorUserId] = useState("");
   const [creatorName, setCreatorName] = useState("");
+  const [mailComposeTo, setMailComposeTo] = useState<string | undefined>();
   const [videoRoomId, setVideoRoomId] = useState<string | null>(null);
+  const [videoFriendId, setVideoFriendId] = useState<string | null>(null);
   const [videoIsCaller, setVideoIsCaller] = useState(true);
 
   const dash = trpc.social.dashboard.useQuery();
+  const incomingCalls = trpc.social.incomingVideoCalls.useQuery(undefined, {
+    refetchInterval: 5000,
+  });
   const activity = trpc.social.myActivitySummary.useQuery();
   const txs = trpc.partnerDashboard.myTransactions.useQuery({ limit: 15 });
 
@@ -44,13 +47,6 @@ export function SocialHubPanel() {
   });
   const acceptFriend = trpc.social.acceptFriendRequest.useMutation({
     onSuccess: () => void utils.social.dashboard.invalidate(),
-  });
-  const sendMsg = trpc.social.sendMessage.useMutation({
-    onSuccess: () => {
-      setMessageBody("");
-      void utils.social.listMessages.invalidate();
-      void utils.social.dashboard.invalidate();
-    },
   });
   const subscribe = trpc.social.subscribeCreator.useMutation({
     onSuccess: () => {
@@ -65,17 +61,6 @@ export function SocialHubPanel() {
   const rideAlong = trpc.social.setRideAlong.useMutation({
     onSuccess: () => void utils.social.dashboard.invalidate(),
   });
-  const startVideo = trpc.social.createVideoCall.useMutation({
-    onSuccess: (room) => {
-      setVideoRoomId(room.id);
-      setVideoIsCaller(true);
-    },
-  });
-
-  const threadMessages = trpc.social.listMessages.useQuery(
-    { withUserId: chatWith ?? "" },
-    { enabled: Boolean(chatWith) },
-  );
 
   if (dash.isLoading) {
     return <ActivityIndicator color={colors.primary} style={{ margin: 24 }} />;
@@ -86,51 +71,85 @@ export function SocialHubPanel() {
   const subs = dash.data?.subscriptions ?? [];
   const subscribers = dash.data?.subscribers ?? [];
 
-  const peerLabel = (userId: string) =>
-    friends.find((f) => f.peerUserId === userId)?.peerEmail ?? `User ${userId.slice(0, 8)}…`;
-
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "feed", label: "Feed" },
-    { id: "friends", label: "Friends" },
-    { id: "messages", label: "Messages" },
-    { id: "creators", label: "Creators" },
-    { id: "activity", label: "Activity" },
-  ];
+  const unreadMail = dash.data?.unreadMailCount ?? 0;
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabRow}>
-        {tabs.map((t) => (
-          <Pressable
-            key={t.id}
-            onPress={() => {
-              setTab(t.id);
-              if (t.id !== "messages") setChatWith(null);
+      <SocialHubTabBar
+        active={tab}
+        onChange={setTab}
+        messageBadge={unreadMail}
+        pendingFriends={pending.length}
+      />
+
+      {(incomingCalls.data ?? []).filter((r) => r.status === "ringing").length > 0 ? (
+        <View style={{ paddingHorizontal: 16, paddingTop: 8, gap: 8 }}>
+          {(incomingCalls.data ?? [])
+            .filter((r) => r.status === "ringing")
+            .map((call) => (
+              <View
+                key={call.id}
+                style={[
+                  styles.card,
+                  {
+                    borderColor: colors.primary,
+                    backgroundColor: `${colors.primary}15`,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  },
+                ]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.foreground, fontWeight: "800" }}>📹 Incoming video call</Text>
+                  <Text style={{ color: colors.muted, fontSize: 11 }}>
+                    From friend · tap Answer to join
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => {
+                    setVideoRoomId(call.id);
+                    setVideoFriendId(call.callerUserId);
+                    setVideoIsCaller(false);
+                    setTab("mail");
+                  }}
+                  style={[styles.btn, { backgroundColor: colors.primary, marginTop: 0, paddingVertical: 8, paddingHorizontal: 14 }]}
+                >
+                  <Text style={styles.btnText}>Answer</Text>
+                </Pressable>
+              </View>
+            ))}
+        </View>
+      ) : null}
+
+      {videoRoomId && videoFriendId ? (
+        <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+          <FriendVideoCallPanel
+            roomId={videoRoomId}
+            friendUserId={videoFriendId}
+            isCaller={videoIsCaller}
+            onClose={() => {
+              setVideoRoomId(null);
+              setVideoFriendId(null);
             }}
-            style={[
-              styles.tab,
-              {
-                backgroundColor: tab === t.id ? colors.primary : colors.surface,
-                borderColor: tab === t.id ? colors.primary : colors.border,
-              },
-            ]}
-          >
-            <Text style={{ color: tab === t.id ? "#fff" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
-              {t.label}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+          />
+        </View>
+      ) : null}
 
       {tab === "feed" ? (
         <SocialFeedPanel />
+      ) : tab === "mail" ? (
+        <InternetCenterMailPanel
+          initialComposeTo={mailComposeTo}
+          onComposeToConsumed={() => setMailComposeTo(undefined)}
+        />
       ) : (
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 32 }}>
         {tab === "friends" ? (
           <>
-            <Text style={[styles.title, { color: colors.foreground }]}>Add friends</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>Address book</Text>
             <Text style={{ color: colors.muted, fontSize: 12 }}>
-              Like Facebook — connect with people on UR Platform by email.
+              Add friends by email, then send them mail from the Internet Center.
             </Text>
             <TextInput
               value={friendEmail}
@@ -174,103 +193,15 @@ export function SocialHubPanel() {
                 <Pressable
                   key={f.id}
                   onPress={() => {
-                    setChatWith(f.peerUserId);
-                    setTab("messages");
+                    setMailComposeTo(f.peerEmail);
+                    setTab("mail");
                   }}
                   style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}
                 >
                   <Text style={{ color: colors.foreground, fontWeight: "700" }}>{f.peerEmail}</Text>
-                  <Text style={{ color: colors.muted, fontSize: 11 }}>Tap to message</Text>
+                  <Text style={{ color: colors.muted, fontSize: 11 }}>Tap to compose mail</Text>
                 </Pressable>
               ))
-            )}
-          </>
-        ) : null}
-
-        {tab === "messages" ? (
-          <>
-            {!chatWith ? (
-              <>
-                <Text style={[styles.title, { color: colors.foreground }]}>Conversations</Text>
-                {(dash.data?.threads ?? []).length === 0 ? (
-                  <Text style={{ color: colors.muted }}>Message a friend from the Friends tab.</Text>
-                ) : (
-                  dash.data?.threads.map((t) => (
-                    <Pressable
-                      key={t.withUserId}
-                      onPress={() => setChatWith(t.withUserId)}
-                      style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}
-                    >
-                      <Text style={{ color: colors.foreground, fontWeight: "700" }}>{peerLabel(t.withUserId)}</Text>
-                      <Text style={{ color: colors.muted, fontSize: 12 }} numberOfLines={1}>
-                        {t.lastMessage.body}
-                      </Text>
-                      {t.unreadCount > 0 ? (
-                        <Text style={{ color: colors.primary, fontSize: 11 }}>{t.unreadCount} unread</Text>
-                      ) : null}
-                    </Pressable>
-                  ))
-                )}
-              </>
-            ) : (
-              <>
-                <Pressable onPress={() => setChatWith(null)}>
-                  <Text style={{ color: colors.primary, fontWeight: "600" }}>← Back</Text>
-                </Pressable>
-                {videoRoomId ? (
-                  <FriendVideoCallPanel
-                    roomId={videoRoomId}
-                    friendUserId={chatWith}
-                    isCaller={videoIsCaller}
-                    onClose={() => setVideoRoomId(null)}
-                  />
-                ) : (
-                  <Pressable
-                    onPress={() => startVideo.mutate({ friendUserId: chatWith })}
-                    disabled={startVideo.isPending}
-                    style={[styles.btn, { backgroundColor: colors.primary }]}
-                  >
-                    <Text style={styles.btnText}>
-                      {startVideo.isPending ? "Starting…" : "📹 Video chat"}
-                    </Text>
-                  </Pressable>
-                )}
-                {(threadMessages.data ?? []).map((m) => {
-                  const isMine = m.senderUserId === myUserId;
-                  return (
-                  <View
-                    key={m.id}
-                    style={{
-                      alignSelf: isMine ? "flex-end" : "flex-start",
-                      maxWidth: "85%",
-                      backgroundColor: isMine ? colors.primary : colors.surface,
-                      borderRadius: 12,
-                      padding: 10,
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                    }}
-                  >
-                    <Text style={{ color: isMine ? "#fff" : colors.foreground }}>{m.body}</Text>
-                  </View>
-                  );
-                })}
-                <TextInput
-                  value={messageBody}
-                  onChangeText={setMessageBody}
-                  placeholder="Type a message…"
-                  placeholderTextColor={colors.muted}
-                  style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
-                />
-                <Pressable
-                  disabled={!messageBody.trim() || sendMsg.isPending}
-                  onPress={() =>
-                    sendMsg.mutate({ recipientUserId: chatWith, body: messageBody.trim() })
-                  }
-                  style={[styles.btn, { backgroundColor: colors.primary }]}
-                >
-                  <Text style={styles.btnText}>Send</Text>
-                </Pressable>
-              </>
             )}
           </>
         ) : null}
@@ -354,7 +285,12 @@ export function SocialHubPanel() {
 
         {tab === "activity" ? (
           <>
-            <View style={[styles.card, { borderColor: colors.primary, backgroundColor: `${colors.primary}10` }]}>
+            <View
+              style={[
+                styles.card,
+                brandHighlightSurface(colors),
+              ]}
+            >
               <Text style={{ color: colors.foreground, fontWeight: "800" }}>Your UR activity</Text>
               <Text style={{ color: colors.muted, fontSize: 13, marginTop: 6 }}>
                 Loyalty: {activity.data?.loyaltyPoints ?? 0} pts · Friends:{" "}
@@ -386,11 +322,15 @@ export function SocialHubPanel() {
 }
 
 const styles = StyleSheet.create({
-  tabRow: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
-  tab: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 8 },
   title: { fontSize: 16, fontWeight: "800" },
-  input: { borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
+  input: {
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
   btn: { borderRadius: 10, padding: 14, alignItems: "center" },
   btnText: { color: "#fff", fontWeight: "700" },
-  card: { borderRadius: 12, borderWidth: 1, padding: 14, gap: 4 },
+  card: { borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, padding: 14, gap: 4 },
 });

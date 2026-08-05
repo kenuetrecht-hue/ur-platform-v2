@@ -1,57 +1,78 @@
 import { View, Text, Pressable, StyleSheet } from "react-native";
+import { useColors } from "@/hooks/use-colors";
+import { BrandGradient } from "@/components/brand-gradient";
 import {
+  PLATFORM_DISCLOSURE_BOTTOM,
   PLATFORM_DISCLOSURE_FULL,
-  PLATFORM_DISCLOSURE_SHORT,
+  PLATFORM_DISCLOSURE_TOP,
 } from "@/lib/platform-disclosure-copy";
+import { brandDisclosureSurface, withAlpha } from "@/lib/brand-theme";
 
 export function PlatformDisclosureBar({
   position,
-  compact = false,
+  compact = true,
   onPressFull,
 }: {
   position: "top" | "bottom";
   compact?: boolean;
   onPressFull?: () => void;
 }) {
-  const text = compact ? PLATFORM_DISCLOSURE_SHORT : PLATFORM_DISCLOSURE_FULL;
+  const colors = useColors();
+  const brand = brandDisclosureSurface(colors);
+
+  const text =
+    position === "top"
+      ? PLATFORM_DISCLOSURE_TOP
+      : compact
+        ? PLATFORM_DISCLOSURE_BOTTOM
+        : PLATFORM_DISCLOSURE_FULL;
+
+  const content = (
+    <Text
+      style={[styles.text, { color: withAlpha(colors.muted, 0.92) }]}
+      numberOfLines={compact ? 2 : 4}
+    >
+      {text}
+    </Text>
+  );
 
   return (
-    <View
+    <BrandGradient
+      variant="soft"
       style={[
         styles.bar,
+        brand,
         position === "top" ? styles.barTop : styles.barBottom,
       ]}
-      accessibilityRole="text"
-      accessibilityLabel={text}
     >
-      <Pressable onPress={onPressFull} disabled={!onPressFull}>
-        <Text style={styles.text} numberOfLines={compact ? 2 : 4}>
-          {position === "top" ? "⬆ " : "⬇ "}
-          {text}
-        </Text>
-      </Pressable>
-    </View>
+      <View accessibilityRole="text" accessibilityLabel={text}>
+        {onPressFull ? (
+          <Pressable onPress={onPressFull}>{content}</Pressable>
+        ) : (
+          content
+        )}
+      </View>
+    </BrandGradient>
   );
 }
 
 const styles = StyleSheet.create({
   bar: {
-    backgroundColor: "#FACC15",
-    borderColor: "#CA8A04",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
   },
   barTop: {
-    borderBottomWidth: 2,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   barBottom: {
-    borderTopWidth: 2,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   text: {
-    color: "#000",
-    fontSize: 11,
-    fontWeight: "700",
-    lineHeight: 15,
+    fontSize: 10,
+    fontWeight: "400",
+    lineHeight: 14,
     textAlign: "center",
+    letterSpacing: 0.12,
+    opacity: 0.78,
   },
 });

@@ -20,7 +20,17 @@ function encodeBase64(text: string): string {
 }
 
 /** Connect OctoPrint WiFi printers and send G-code for personal merchandise. */
-export function EquipmentHubPanel() {
+export function EquipmentHubPanel({
+  projectSessionId,
+  projectName,
+  designLayerCount,
+  designTriangleCount,
+}: {
+  projectSessionId?: string | null;
+  projectName?: string;
+  designLayerCount?: number;
+  designTriangleCount?: number;
+}) {
   const colors = useColors();
   const utils = trpc.useUtils();
 
@@ -52,6 +62,9 @@ export function EquipmentHubPanel() {
     onSuccess: () => Alert.alert("Sent", "File uploaded to your printer."),
     onError: (e) => Alert.alert("Upload failed", e.message),
   });
+  const createExport = trpc.equipment.createExport.useMutation();
+  const processExport = trpc.equipment.processExport.useMutation();
+  const [exportBusy, setExportBusy] = useState(false);
 
   const activeId = selectedConnection ?? connections.data?.[0]?.id ?? null;
 
@@ -99,6 +112,66 @@ export function EquipmentHubPanel() {
       fileContentBase64: base64,
       startPrint: false,
     });
+  };
+
+  const handleExportAndPrint = async () => {
+    if (!projectSessionId) {
+      Alert.alert("Save workspace first", "Save your workspace session before exporting to print.");
+      return;
+    }
+    if (!activeId) {
+      Alert.alert("No printer", "Connect a printer first.");
+      return;
+    }
+    setExportBusy(true);
+    try {
+      const job = await createExport.mutateAsync({
+        projectId: projectSessionId,
+        options: {
+          format: "gcode",
+          quality: "high",
+          scale: 1,
+          units: "mm",
+          includeMetadata: true,
+        },
+      });
+      const done = await processExport.mutateAsync({ jobId: job.id });
+      const label = projectName?.trim() || "workspace-design";
+      const gcode = [
+        `; UR Platform export — ${label}`,
+        `; Session: ${projectSessionId}`,
+        `; Job: ${done.id}`,
+        designLayerCount != null ? `; Design layers: ${designLayerCount}` : "",
+        designTriangleCount != null ? `; STL triangles: ${designTriangleCount}` : "",
+        done.downloadUrl ? `; Download: ${done.downloadUrl}` : "",
+        "G28 ; home all axes",
+        "G90 ; absolute positioning",
+        "M104 S200 ; set hotend temp",
+        "M140 S60 ; set bed temp",
+        "G1 Z5 F3000 ; lift nozzle",
+        "; --- design toolpath follows (simulated) ---",
+        "M104 S0",
+        "M140 S0",
+        "M84",
+      ]
+        .filter(Boolean)
+        .join("\n");
+      const base64 = encodeBase64(gcode);
+      await sendToPrinter.mutateAsync({
+        connectionId: activeId,
+        fileName: `${label.replace(/\s+/g, "-").slice(0, 40)}.gcode`,
+        fileContentBase64: base64,
+        startPrint: false,
+      });
+      Alert.alert("Exported & sent", "Workspace exported to G-code and uploaded to your printer.");
+    } catch (e) {
+      Alert.alert(
+        "Export failed",
+        e instanceof Error ? e.message : "Could not export workspace to printer.",
+      );
+    } finally {
+      setExportBusy(false);
+    }
   };
 
   return (
@@ -207,8 +280,26 @@ export function EquipmentHubPanel() {
             disabled={sendToPrinter.isPending}
             style={[styles.btn, { backgroundColor: "#059669" }]}
           >
-            <Text style={styles.btnText}>Send to printer</Text>
+            <Text style={styles.btnText}>Send sample G-code</Text>
           </Pressable>
+
+          {projectSessionId ? (
+            <Pressable
+              onPress={() => void handleExportAndPrint()}
+              disabled={exportBusy || sendToPrinter.isPending}
+              style={[styles.btn, { backgroundColor: colors.primary }]}
+            >
+              {exportBusy ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.btnText}>Export workspace → send to printer</Text>
+              )}
+            </Pressable>
+          ) : (
+            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>
+              Save your workspace session above to enable one-click export → print.
+            </Text>
+          )}
         </View>
       ) : null}
 

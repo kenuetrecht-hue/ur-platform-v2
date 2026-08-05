@@ -7,15 +7,21 @@ import {
   TextInput,
   ActivityIndicator,
   StyleSheet,
+  Platform,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
 import { EquipmentHubPanel } from "@/components/equipment-hub-panel";
+import { WorkspaceBabylonViewport } from "@/components/workspace-babylon-viewport";
+import { WorkspaceDesignLayersPanel } from "@/components/workspace-design-layers-panel";
+import { BlueprintReaderPanel } from "@/components/blueprint-reader-panel";
 import { CreatorAIInterface } from "@/components/creator-ai-interface";
 import { AIDisclosureWrapper } from "@/components/ai-disclosure-wrapper";
 import { AiSpecialistPicker } from "@/components/ai-specialist-picker";
 import { useColors } from "@/hooks/use-colors";
+import { useWorkspaceDesign } from "@/hooks/use-workspace-design";
+import { designLayerSummary } from "@/lib/workspace-design-utils";
 import { trpc } from "@/lib/trpc";
 import { AI_CREATOR_CATALOG } from "@/lib/ai-creator-catalog";
 
@@ -28,9 +34,9 @@ const PROJECT_TYPES = [
   { id: "general" as const, label: "General", emoji: "✨" },
 ];
 
-/** Categories that collaborate in the 3D workspace. */
 const WORKSPACE_CATEGORIES = new Set([
   "3D & Design",
+  "Blueprint & Schematics",
   "Technology",
   "Construction",
   "Engineering",
@@ -60,9 +66,10 @@ export default function Workspace3DScreen() {
   const [projectType, setProjectType] = useState<(typeof PROJECT_TYPES)[number]["id"]>("merchandise");
   const [projectName, setProjectName] = useState("My merchandise design");
   const [description, setDescription] = useState("");
-  const [activeAiId, setActiveAiId] = useState("ai-3d-specialist");
+  const [activeAiId, setActiveAiId] = useState("ai-blueprint-reader-001");
   const [sessionId, setSessionId] = useState<string | null>(null);
 
+  const designApi = useWorkspaceDesign(sessionId);
   const activeAi = workspaceAis.find((a) => a.id === activeAiId) ?? workspaceAis[0];
 
   useEffect(() => {
@@ -86,6 +93,7 @@ export default function Workspace3DScreen() {
         description,
         activeAiIds: [activeAiId, ...peerIds],
       });
+      await designApi.flushSave();
       return sessionId;
     }
     const created = await createSession.mutateAsync({
@@ -96,7 +104,19 @@ export default function Workspace3DScreen() {
     });
     setSessionId(created.id);
     return created.id;
-  }, [sessionId, projectName, description, projectType, activeAiId, workspaceAis, createSession, updateSession]);
+  }, [
+    sessionId,
+    projectName,
+    description,
+    projectType,
+    activeAiId,
+    workspaceAis,
+    createSession,
+    updateSession,
+    designApi,
+  ]);
+
+  const viewportHeight = Platform.OS === "web" ? 440 : 280;
 
   return (
     <>
@@ -105,27 +125,38 @@ export default function Workspace3DScreen() {
         <ScrollView contentContainerStyle={{ paddingBottom: 40, gap: 14 }}>
           <TabScreenHeader
             icon="🎮"
-            title="3D Workspace & Print Lab"
-            subtitle="Design merchandise with multiple AIs, then send to your 3D printer."
+            title="3D Component Builder"
+            subtitle="Babylon.js canvas · STL upload · layered design · AI collaboration · print export"
           />
 
           <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 16 }}>
             <Text style={{ color: colors.primary, fontWeight: "600" }}>← Back</Text>
           </Pressable>
 
-          <View style={[styles.viewport, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={{ fontSize: 28, textAlign: "center" }}>🧊</Text>
-            <Text style={{ color: colors.foreground, fontWeight: "700", textAlign: "center" }}>
-              Shared 3D canvas
+          {Platform.OS === "web" ? (
+            <Text style={{ color: colors.muted, fontSize: 11, paddingHorizontal: 16, lineHeight: 16 }}>
+              Drag to orbit · scroll to zoom · click meshes to select layers · upload STL up to 8 MB
             </Text>
-            <Text style={{ color: colors.muted, fontSize: 12, textAlign: "center", lineHeight: 18 }}>
-              {projectName || "Untitled project"}
-              {description ? `\n${description}` : ""}
-            </Text>
-            <Text style={{ color: colors.muted, fontSize: 11, textAlign: "center", marginTop: 8 }}>
-              Invite specialists below — they collaborate here when asked.
-            </Text>
-          </View>
+          ) : null}
+
+          <Pressable onPress={() => router.push("/playroom")} style={{ paddingHorizontal: 16 }}>
+            <Text style={{ color: colors.primary, fontWeight: "600" }}>🎪 Open AI Playroom →</Text>
+          </Pressable>
+
+          <BlueprintReaderPanel />
+
+          <WorkspaceBabylonViewport
+            design={designApi.design}
+            selectedLayerId={designApi.selectedLayerId}
+            onSelectLayer={designApi.setSelectedLayerId}
+            specialists={workspaceAis}
+            selectedAiId={activeAiId}
+            onSelectAi={setActiveAiId}
+            projectName={projectName}
+            height={viewportHeight}
+          />
+
+          <WorkspaceDesignLayersPanel designApi={designApi} sessionSaved={Boolean(sessionId)} />
 
           <View style={{ paddingHorizontal: 16, gap: 8 }}>
             <Text style={[styles.section, { color: colors.foreground }]}>Project type</Text>
@@ -183,7 +214,9 @@ export default function Workspace3DScreen() {
               {createSession.isPending || updateSession.isPending ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={{ color: "#fff", fontWeight: "700" }}>Save workspace session</Text>
+                <Text style={{ color: "#fff", fontWeight: "700" }}>
+                  {sessionId ? "Save session & design" : "Create session & save design"}
+                </Text>
               )}
             </Pressable>
           </View>
@@ -211,14 +244,19 @@ export default function Workspace3DScreen() {
                   creatorId={activeAi.id}
                   creatorName={activeAi.name}
                   creatorAvatar={activeAi.avatar}
-                  welcomeMessage={`3D workspace active — ${projectName}. I'm ${activeAi.name}. Ask me to design, optimize for printing, or prepare files for your printer.`}
+                  welcomeMessage={`3D builder active — ${projectName} with ${designApi.design.layers.length} layers. I'm ${activeAi.name}. Ask me to optimize meshes, suggest print settings, or refine your design.`}
                 />
               </AIDisclosureWrapper>
             ) : null}
           </View>
 
           <View style={{ paddingHorizontal: 16 }}>
-            <EquipmentHubPanel />
+            <EquipmentHubPanel
+              projectSessionId={sessionId}
+              projectName={projectName}
+              designLayerCount={designApi.design.layers.length}
+              designTriangleCount={designLayerSummary(designApi.design).totalTriangles}
+            />
           </View>
         </ScrollView>
       </ScreenContainer>
@@ -227,15 +265,6 @@ export default function Workspace3DScreen() {
 }
 
 const styles = StyleSheet.create({
-  viewport: {
-    marginHorizontal: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 24,
-    minHeight: 140,
-    justifyContent: "center",
-    gap: 4,
-  },
   section: { fontSize: 15, fontWeight: "700" },
   chip: {
     borderRadius: 12,

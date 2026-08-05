@@ -19,6 +19,10 @@ import {
   isGameTeachingCreator,
 } from "../_core/game-dev-teaching-curriculum";
 import {
+  getBlueprintSelfPacedPath,
+  isBlueprintTeachingCreator,
+} from "../_core/blueprint-teaching-curriculum";
+import {
   createPracticeQuestionSet,
   getLearningProgress,
   recordLessonComplete,
@@ -84,6 +88,17 @@ export const aiLearningRouter = router({
                 advanced: getGameSelfPacedPath("advanced"),
               },
               tagline: "Learn game development on your own — from jam games to massive worlds.",
+            }
+          : {}),
+        ...(isBlueprintTeachingCreator(def.id)
+          ? {
+              blueprintAcademy: true,
+              selfPacedPaths: {
+                beginner: getBlueprintSelfPacedPath("beginner"),
+                intermediate: getBlueprintSelfPacedPath("intermediate"),
+                advanced: getBlueprintSelfPacedPath("advanced"),
+              },
+              tagline: "Learn to read any blueprint — any schematic type, any industry trend.",
             }
           : {}),
       };

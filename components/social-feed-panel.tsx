@@ -17,6 +17,8 @@ import { useAuth } from "@/lib/auth-context";
 import { trpc } from "@/lib/trpc";
 import { SOCIAL_POST_DISCLOSURE, PLATFORM_DISCLOSURE_SHORT } from "@/lib/platform-disclosure-copy";
 import { SocialPostAssistantBar } from "@/components/social-post-assistant-bar";
+import { brandDisclosureSurface, brandHighlightSurface, brandGradientPair, withAlpha } from "@/lib/brand-theme";
+import { LinearGradient } from "expo-linear-gradient";
 
 type FeedSort = "latest" | "top" | "friends";
 
@@ -226,42 +228,56 @@ export function SocialFeedPanel() {
     { id: "top", label: "Top" },
     { id: "friends", label: "Friends" },
   ];
+  const [gradStart, gradEnd] = brandGradientPair(colors);
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={[styles.disclosureBar, { backgroundColor: `${colors.primary}10`, borderColor: colors.border }]}>
-        <Text style={{ color: colors.muted, fontSize: 10, lineHeight: 14 }}>{PLATFORM_DISCLOSURE_SHORT}</Text>
+      <View style={[styles.disclosureBar, brandDisclosureSurface(colors)]}>
+        <Text style={{ color: withAlpha(colors.secondary, 0.85), fontSize: 10, lineHeight: 14 }}>
+          {PLATFORM_DISCLOSURE_SHORT}
+        </Text>
       </View>
 
       {stats.data ? (
-        <View style={[styles.statsRow, { borderColor: colors.border }]}>
+        <View style={[styles.statsRow, { borderColor: withAlpha(colors.secondary, 0.15) }]}>
           <Text style={{ color: colors.muted, fontSize: 11 }}>
             {stats.data.postCount} posts · {stats.data.totalLikesReceived} likes · {stats.data.friendCount} friends
           </Text>
         </View>
       ) : null}
 
+      <View style={[styles.sortBar, brandHighlightSurface(colors)]}>
+        {sorts.map((s) => {
+          const active = sort === s.id && !hashtag;
+          return (
+            <Pressable
+              key={s.id}
+              onPress={() => {
+                setSort(s.id);
+                setHashtag(undefined);
+              }}
+              style={styles.sortTab}
+            >
+              {active ? (
+                <LinearGradient
+                  colors={[gradStart, gradEnd]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.sortTabInner}
+                >
+                  <Text style={styles.sortTabTextActive}>{s.label}</Text>
+                </LinearGradient>
+              ) : (
+                <View style={styles.sortTabInner}>
+                  <Text style={[styles.sortTabText, { color: colors.foreground }]}>{s.label}</Text>
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
+      </View>
+
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-        {sorts.map((s) => (
-          <Pressable
-            key={s.id}
-            onPress={() => {
-              setSort(s.id);
-              setHashtag(undefined);
-            }}
-            style={[
-              styles.chip,
-              {
-                backgroundColor: sort === s.id && !hashtag ? colors.primary : colors.surface,
-                borderColor: sort === s.id && !hashtag ? colors.primary : colors.border,
-              },
-            ]}
-          >
-            <Text style={{ color: sort === s.id && !hashtag ? "#fff" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
-              {s.label}
-            </Text>
-          </Pressable>
-        ))}
         {(trending.data ?? []).map((t) => (
           <Pressable
             key={t.tag}
@@ -269,14 +285,19 @@ export function SocialFeedPanel() {
             style={[
               styles.chip,
               {
-                backgroundColor: hashtag === t.tag.replace("#", "") ? colors.primary : colors.surface,
-                borderColor: hashtag === t.tag.replace("#", "") ? colors.primary : colors.border,
+                backgroundColor: hashtag === t.tag.replace("#", "")
+                  ? withAlpha(colors.primary, 0.14)
+                  : colors.surface,
+                borderColor:
+                  hashtag === t.tag.replace("#", "")
+                    ? withAlpha(colors.secondary, 0.35)
+                    : withAlpha(colors.border, 0.8),
               },
             ]}
           >
             <Text
               style={{
-                color: hashtag === t.tag.replace("#", "") ? "#fff" : colors.primary,
+                color: hashtag === t.tag.replace("#", "") ? colors.secondary : colors.primary,
                 fontWeight: "600",
                 fontSize: 11,
               }}
@@ -383,10 +404,29 @@ export function SocialFeedPanel() {
 }
 
 const styles = StyleSheet.create({
-  disclosureBar: { paddingHorizontal: 14, paddingVertical: 8, borderBottomWidth: 1 },
+  disclosureBar: { paddingHorizontal: 14, paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth },
   statsRow: { paddingHorizontal: 16, paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth },
+  sortBar: {
+    flexDirection: "row",
+    marginHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 4,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 4,
+    gap: 4,
+  },
+  sortTab: { flex: 1 },
+  sortTabInner: {
+    borderRadius: 9,
+    paddingVertical: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sortTabText: { fontSize: 12, fontWeight: "600" },
+  sortTabTextActive: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   chipRow: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
-  chip: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 },
+  chip: { borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 12, paddingVertical: 6 },
   composer: { marginHorizontal: 16, marginBottom: 8, borderRadius: 14, borderWidth: 1, padding: 12, gap: 8 },
   composerInput: { borderWidth: 1, borderRadius: 10, padding: 12, minHeight: 80, fontSize: 15, textAlignVertical: "top" },
   urlInput: { borderWidth: 1, borderRadius: 10, padding: 10, fontSize: 13 },

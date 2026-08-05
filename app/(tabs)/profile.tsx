@@ -5,12 +5,12 @@ import { useAuth } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
-import { WarningBanner } from "@/components/warning-banner";
 import { CreatorOnboardingFlow } from "@/components/creator-onboarding-flow";
 import { consolidatedNavigation } from "@/lib/consolidated-navigation";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { trpc } from "@/lib/trpc";
 import { CustomLinkCard } from "@/components/transaction-history-list";
+import { LoyaltyTrackingPanel } from "@/components/loyalty-tracking-panel";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -53,8 +53,6 @@ export default function ProfileScreen() {
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
       >
-        <WarningBanner variant="compact" />
-
         <TabScreenHeader
           icon="👤"
           title="Profile"
@@ -147,6 +145,8 @@ export default function ProfileScreen() {
             />
           ) : null}
 
+          <LoyaltyTrackingPanel />
+
           <Pressable
             onPress={() => router.push("/(tabs)/messages")}
             style={{
@@ -187,7 +187,7 @@ export default function ProfileScreen() {
             </Pressable>
           ) : null}
 
-          {!canAccessAdminDashboard && (user?.role === "creator" || user?.role === "affiliate" || user?.role === "worker") ? (
+          {!canAccessAdminDashboard ? (
             <Pressable
               onPress={() => router.push("/creator-dashboard")}
               style={{
@@ -202,7 +202,7 @@ export default function ProfileScreen() {
                 🎬 Content Creator Dashboard
               </Text>
               <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4, lineHeight: 18 }}>
-                Schedule paid live classes, track transactions and earnings.
+                Schedule paid live classes, merch store, earnings, and creator tools.
               </Text>
             </Pressable>
           ) : null}

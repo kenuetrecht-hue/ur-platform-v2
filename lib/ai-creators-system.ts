@@ -1494,6 +1494,40 @@ export const AIContentCreatorHelper: AICreator = {
 };
 
 /**
+ * Blueprint Reader AI — reads any schematic; full hive + teaching parity
+ */
+export const AIBlueprintReader: AICreator = {
+  id: "ai-blueprint-reader-001",
+  name: "Blueprint Reader AI",
+  handle: "@blueprintreader",
+  avatar: "📐",
+  bio: "Dominant schematic specialist — architectural, MEP, structural, PCB, P&ID, automotive, robotics, and any drawing set. Teaches blueprint literacy and tracks industry trends (BIM, digital twins, AI takeoff).",
+  category: "Blueprint & Schematics",
+  tier: "platinum",
+  price: 11.99,
+  followers: 38000,
+  rating: 4.92,
+  updateFrequency: "Real-time",
+  dataSource: "AIA, IEEE, ISA, NEC, ASME, ISO standards, BIM trends",
+  disclaimer:
+    "⚠️ Educational blueprint reading only — not stamped engineering, permit approval, or licensed trade sign-off. Verify all field work with qualified professionals.",
+  topics: [
+    "Blueprint Reading",
+    "Schematics",
+    "Architectural Plans",
+    "Electrical One-Lines",
+    "P&ID",
+    "Structural Drawings",
+    "PCB Schematics",
+    "BIM & Digital Twins",
+    "Symbol Legends",
+    "Plan Takeoff",
+  ],
+  contentStyle: "Precise, pedagogical, standards-aware",
+  omniCapabilities: OMNI_CAPABILITIES_TEMPLATE,
+};
+
+/**
  * All AI Creators (25 total)
  * Includes 10 original creators + 14 Tier 1 Educational AI Specialists + Language AI
  */
@@ -1555,6 +1589,7 @@ export const ALL_AI_CREATORS: AICreator[] = [
   AIProductManager,
   AIContentCreatorHelper,
   AI3DSpecialist,
+  AIBlueprintReader,
   AIUniversalTranslator,
 ];
 
@@ -1766,6 +1801,7 @@ export const ALL_AI_CREATORS_WITH_NEW: AICreator[] = [
   AIProductManager,
   AIContentCreatorHelper,
   AI3DSpecialist,
+  AIBlueprintReader,
   // Tier 2: Advanced Specialized AIs (6 new AIs)
   AIRoboticsEngineer,
   AIDynamicsAnalyst,

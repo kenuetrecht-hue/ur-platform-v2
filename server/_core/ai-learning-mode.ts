@@ -24,6 +24,7 @@ import {
 import { sanitizeChatHistory, sanitizeUserText } from "./input-sanitize";
 import { isOwnerOnlyPlatformAi } from "./platform-ops-ai";
 import { assertAiEntitled } from "./access-entitlements";
+import { assertAndConsumeAiUsage } from "./ai-usage-meter";
 import {
   buildCoderTeachingPromptAddition,
   getCoderTeachingModules,
@@ -34,6 +35,11 @@ import {
   getGameTeachingModules,
   isGameTeachingCreator,
 } from "./game-dev-teaching-curriculum";
+import {
+  buildBlueprintTeachingPromptAddition,
+  getBlueprintTeachingModules,
+  isBlueprintTeachingCreator,
+} from "./blueprint-teaching-curriculum";
 
 export type LearningLevel = "beginner" | "intermediate" | "advanced";
 
@@ -135,6 +141,13 @@ const CATEGORY_MODULES: Record<string, Omit<LearningModule, "id">[]> = {
     { title: "3D modeling basics", description: "Meshes, materials, and topology." },
     { title: "Pipeline & export", description: "Print-ready and game-ready workflows." },
   ],
+  "Blueprint & Schematics": [
+    { title: "Drawing set fundamentals", description: "Title blocks, scales, revisions, sheet indexes." },
+    { title: "Symbol & legend literacy", description: "Decode any discipline's symbols and line weights." },
+    { title: "Multi-discipline coordination", description: "Read A/E/P/M sets together — catch clashes early." },
+    { title: "Modern trends (BIM & digital twins)", description: "Where blueprint reading is heading industry-wide." },
+    { title: "Trade exam plan reading", description: "Apprentice and inspector-style drawing tests.", certificationPrep: true },
+  ],
   Platform: [
     { title: "Platform workflows", description: "Core UR creator platform skills." },
     { title: "Best practices", description: "Tips for getting the most from the platform." },
@@ -187,6 +200,9 @@ export function getCurriculumForCreator(def: CreatorAiDefinition): LearningModul
   }
   if (isGameTeachingCreator(def.id)) {
     return getGameTeachingModules();
+  }
+  if (isBlueprintTeachingCreator(def.id)) {
+    return getBlueprintTeachingModules();
   }
 
   const fromCategory = CATEGORY_MODULES[def.category] ?? DEFAULT_MODULES;
@@ -242,6 +258,7 @@ EDUCATIONAL LEARNING MODE (Tier 1 Educational AI)
 ${modeInstructions[mode]}
 ${isCoderTeachingCreator(def.id) ? `\n\n${buildCoderTeachingPromptAddition(level, mode, topic)}` : ""}
 ${isGameTeachingCreator(def.id) ? `\n\n${buildGameTeachingPromptAddition(level, mode, topic)}` : ""}
+${isBlueprintTeachingCreator(def.id) ? `\n\n${buildBlueprintTeachingPromptAddition(level, mode, topic)}` : ""}
 
 Rules:
 - Educational and recreational purposes only — not licensed professional advice.
@@ -284,7 +301,18 @@ export async function handleCreatorLearningSession(params: {
     email: params.userEmail,
     isPlatformOwner: params.isPlatformOwner,
     feature: "ai_learn",
+    creatorId: params.creatorId,
   });
+
+  if (!params.isPlatformOwner) {
+    assertAndConsumeAiUsage({
+      userId: params.userId,
+      email: params.userEmail,
+      creatorId: params.creatorId,
+      isPlatformOwner: false,
+      isLearnMode: true,
+    });
+  }
 
   const def = getCreatorAi(params.creatorId)!;
 

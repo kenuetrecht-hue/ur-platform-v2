@@ -136,17 +136,44 @@ export function CreatorStorePanel() {
       {products.length === 0 ? (
         <Text style={{ color: colors.muted }}>No products yet — design something and list it!</Text>
       ) : (
-        products.map((p) => (
-          <View key={p.id} style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-            <Text style={{ color: colors.foreground, fontWeight: "700" }}>{p.title}</Text>
-            <Text style={{ color: colors.muted, fontSize: 12 }} numberOfLines={2}>
-              {p.description}
-            </Text>
-            <Text style={{ color: colors.primary, fontWeight: "700" }}>
-              ${(p.priceCents / 100).toFixed(2)} · {p.orders} sold · {p.status}
-            </Text>
-          </View>
-        ))
+        products.map((p) => {
+          const pendingApproval = p.approval === "pending" || p.status === "paused";
+          const badge =
+            p.approval === "pending"
+              ? "⏳ Pending owner approval"
+              : p.approval === "rejected"
+                ? "❌ Rejected"
+                : p.status === "paused"
+                  ? "⏸ Paused"
+                  : p.approval === "approved"
+                    ? "✅ Approved"
+                    : null;
+          return (
+            <View
+              key={p.id}
+              style={[
+                styles.card,
+                {
+                  borderColor: pendingApproval ? "#f59e0b" : colors.border,
+                  backgroundColor: pendingApproval ? "#fef3c712" : colors.surface,
+                },
+              ]}
+            >
+              <Text style={{ color: colors.foreground, fontWeight: "700" }}>{p.title}</Text>
+              <Text style={{ color: colors.muted, fontSize: 12 }} numberOfLines={2}>
+                {p.description}
+              </Text>
+              <Text style={{ color: colors.primary, fontWeight: "700" }}>
+                ${(p.priceCents / 100).toFixed(2)} · {p.orders} sold · {p.status}
+              </Text>
+              {badge ? (
+                <Text style={{ color: pendingApproval ? "#d97706" : colors.muted, fontSize: 11, fontWeight: "600" }}>
+                  {badge}
+                </Text>
+              ) : null}
+            </View>
+          );
+        })
       )}
     </ScrollView>
   );

@@ -262,6 +262,7 @@ export type Workspace3DSession = {
   activeAiIds: string[];
   createdAt: string;
   updatedAt: string;
+  designVersion?: number;
 };
 
 const workspaceSessions = new Map<string, Workspace3DSession>();

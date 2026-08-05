@@ -3,7 +3,6 @@ import { useAuth } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
-import { WarningBanner } from "@/components/warning-banner";
 import { LaunchPromotionBanner } from "@/components/launch-promotion-banner";
 import { DailyLoyaltyBanner } from "@/components/daily-loyalty-banner";
 import { DemoSection } from "@/components/demo-section";
@@ -26,16 +25,20 @@ export default function HomeScreen() {
         contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
-        <WarningBanner variant="compact" />
         <LaunchPromotionBanner />
 
         <DailyLoyaltyBanner
           totalPoints={dailySignIn.totalPoints}
           pointsEarnedToday={
-            dailySignIn.alreadyEarnedToday ? 0 : dailySignIn.pointsAwarded
+            dailySignIn.alreadyClaimedToday
+              ? 0
+              : dailySignIn.pointsAwardedToday + dailySignIn.welcomeBonusAwarded
           }
           totalSignIns={dailySignIn.totalSignIns}
-          hasNewTicket={!!dailySignIn.ticketId}
+          currentStreakDays={dailySignIn.currentStreakDays}
+          milestoneUnlocked={dailySignIn.milestoneUnlocked}
+          nextMilestone={dailySignIn.nextMilestone}
+          alreadyClaimedToday={dailySignIn.alreadyClaimedToday}
         />
 
         <TabScreenHeader
@@ -72,12 +75,36 @@ export default function HomeScreen() {
                   onPress: () => router.push("/(tabs)/create"),
                 },
                 {
+                  label: "Blueprint Reader AI",
+                  onPress: () =>
+                    router.push({
+                      pathname: "/(tabs)/ais",
+                      params: { ai: "ai-blueprint-reader-001" },
+                    }),
+                },
+                {
+                  label: "AI Playroom",
+                  onPress: () => router.push("/playroom"),
+                },
+                {
+                  label: "3D Workspace",
+                  onPress: () => router.push("/3d-workspace"),
+                },
+                {
+                  label: "Creator Dashboard",
+                  onPress: () => router.push("/creator-dashboard"),
+                },
+                {
                   label: "UR Shop",
                   onPress: () => router.push("/shop"),
                 },
                 {
                   label: "Social Feed",
                   onPress: () => router.push("/(tabs)/messages"),
+                },
+                {
+                  label: "Affiliate Dashboard",
+                  onPress: () => router.push("/affiliate-dashboard"),
                 },
                 {
                   label: "Discover",
@@ -111,20 +138,29 @@ export default function HomeScreen() {
             <SocialFeedPreview />
           </DemoSection>
 
-          {homeTab?.subMenu?.map((item) => (
-            <DemoSection
-              key={item.id}
-              title={item.label}
-              description={`Explore ${item.label.toLowerCase()} on UR Platform.`}
-              icon="📈"
-            >
-              <Pressable onPress={() => router.push("/(tabs)/messages")}>
-                <Text style={{ color: colors.primary, fontSize: 14, marginTop: 4, fontWeight: "600" }}>
-                  View in Social Feed →
-                </Text>
-              </Pressable>
-            </DemoSection>
-          ))}
+          {homeTab?.subMenu?.map((item) => {
+            const routeById: Record<string, string> = {
+              trending: "/(tabs)/discover",
+              following: "/(tabs)/messages",
+              recommended: "/(tabs)/discover",
+              categories: "/shop",
+            };
+            const target = routeById[item.id] ?? "/(tabs)/discover";
+            return (
+              <DemoSection
+                key={item.id}
+                title={item.label}
+                description={`Explore ${item.label.toLowerCase()} on UR Platform.`}
+                icon="📈"
+              >
+                <Pressable onPress={() => router.push(target as never)}>
+                  <Text style={{ color: colors.primary, fontSize: 14, marginTop: 4, fontWeight: "600" }}>
+                    Open {item.label} →
+                  </Text>
+                </Pressable>
+              </DemoSection>
+            );
+          })}
 
           {dailySignIn.error ? (
             <DemoSection

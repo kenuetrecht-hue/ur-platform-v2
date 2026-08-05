@@ -3,6 +3,7 @@ import { Stack, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
 import { PlatformOpsConsole } from "@/components/platform-ops-console";
+import { CommerceOpsPanel } from "@/components/commerce-ops-panel";
 import { AdminDashboard } from "@/components/admin-dashboard";
 import { useAuth } from "@/lib/auth-context";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
@@ -107,6 +108,7 @@ export default function OwnerOpsScreen() {
                 </View>
               ) : null}
             </View>
+            {isPlatformOwner ? <CommerceOpsPanel /> : null}
             <PlatformOpsConsole isPlatformOwner={isPlatformOwner} />
           </ScrollView>
         ) : denied ? (

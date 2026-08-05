@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/lib/auth-context";
 
 type LanguageMode = "chat" | "translate" | "learn";
 
@@ -39,6 +40,12 @@ const LEARN_LEVELS = ["beginner", "intermediate", "advanced"] as const;
 
 export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
   const colors = useColors();
+  const { isAuthenticated } = useAuth();
+  const subAccess = trpc.aiSubscription.getAccess.useQuery(
+    { creatorId: "linguamate" },
+    { enabled: isAuthenticated },
+  );
+  const canChat = !isAuthenticated ? false : Boolean(subAccess.data?.hasAccess);
   const [mode, setMode] = useState<LanguageMode>("chat");
   const [targetLanguage, setTargetLanguage] = useState("Spanish");
   const [learnLevel, setLearnLevel] =
@@ -78,7 +85,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
   const sendMessage = useCallback(
     async (rawText: string) => {
       const userMessage = rawText.trim().slice(0, 4000);
-      if (!userMessage || loading) return;
+      if (!userMessage || loading || !canChat) return;
 
       setLoading(true);
       setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
@@ -134,6 +141,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
       targetLanguage,
       teachMutation,
       translateMutation,
+      canChat,
     ],
   );
 
@@ -361,17 +369,17 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
             onChangeText={setInputText}
             multiline
             maxLength={4000}
-            editable={!loading}
+            editable={!loading && canChat}
             onSubmitEditing={() => void sendMessage(inputText)}
           />
           <TouchableOpacity
             onPress={() => void sendMessage(inputText)}
-            disabled={loading || !inputText.trim()}
+            disabled={loading || !inputText.trim() || !canChat}
             style={[
               styles.sendButton,
               {
                 backgroundColor: "#0d9488",
-                opacity: loading || !inputText.trim() ? 0.5 : 1,
+                opacity: loading || !inputText.trim() || !canChat ? 0.5 : 1,
               },
             ]}
           >
@@ -379,7 +387,9 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
           </TouchableOpacity>
         </View>
         <Text style={[styles.inputHint, { color: colors.muted }]}>
-          Gemini 1.5 Flash · speaks & understands 100+ languages
+          {canChat
+            ? "Gemini 1.5 Flash · speaks & understands 100+ languages"
+            : "Subscribe to LinguaMate above to start translating and learning."}
         </Text>
       </View>
     </View>

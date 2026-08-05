@@ -27,6 +27,10 @@ import { aiLiveSessionRouter } from "./routers/ai-live-session-router";
 import { partnerDashboardRouter } from "./routers/partner-dashboard-router";
 import { socialRouter } from "./routers/social-router";
 import { commerceRouter } from "./routers/commerce-router";
+import { blueprintReaderRouter } from "./routers/blueprint-reader-router";
+import { aiSubscriptionRouter } from "./routers/ai-subscription-router";
+import { aiTalkRouter } from "./routers/ai-talk-router";
+import { loyaltyRouter } from "./routers/loyalty-router";
 import { destroyAllSessionsForUser } from "./_core/forge-session-manager";
 
 export const appRouter = router({
@@ -166,58 +170,10 @@ export const appRouter = router({
   partnerDashboard: partnerDashboardRouter,
   social: socialRouter,
   commerce: commerceRouter,
-  loyalty: router({
-    awardDailySignIn: secureProcedure("loyalty").mutation(async ({ ctx }) => {
-      const result = await db.awardDailySignInPoints(ctx.user.id);
-      const loyaltyRecord = await db.getLoyaltyPoints(ctx.user.id);
-      return {
-        pointsAwarded: result.alreadyEarnedToday ? 0 : 200,
-        ticketId: result.ticketId,
-        alreadyEarnedToday: result.alreadyEarnedToday,
-        totalPoints: loyaltyRecord?.totalPoints || 0,
-        totalSignIns: loyaltyRecord?.totalSignIns || 0,
-      };
-    }),
-
-    revealTicket: secureProcedure("loyalty")
-      .input(z.object({ ticketId: z.number().int().positive() }))
-      .mutation(async ({ input, ctx }) => {
-        try {
-          const existing = await db.getScratchOffTicket(input.ticketId);
-          assertOwnedResource(existing?.userId, ctx.user.id);
-          const ticket = await db.revealScratchOffTicket(input.ticketId);
-          return {
-            prizeType: ticket.prizeType,
-            loyaltyPointsReward: ticket.loyaltyPointsReward,
-            drawingEntryCount: ticket.drawingEntryCount,
-          };
-        } catch (error) {
-          mapServiceErrorToTrpc(error);
-        }
-      }),
-
-    claimPrize: secureProcedure("loyalty")
-      .input(z.object({ ticketId: z.number().int().positive() }))
-      .mutation(async ({ input, ctx }) => {
-        try {
-          const existing = await db.getScratchOffTicket(input.ticketId);
-          assertOwnedResource(existing?.userId, ctx.user.id);
-          await db.claimScratchOffPrize(input.ticketId);
-          return { success: true };
-        } catch (error) {
-          mapServiceErrorToTrpc(error);
-        }
-      }),
-
-    getSummary: secureProcedure("loyalty").query(async ({ ctx }) => {
-      const loyaltyRecord = await db.getLoyaltyPoints(ctx.user.id);
-      return {
-        totalPoints: loyaltyRecord?.totalPoints || 0,
-        totalSignIns: loyaltyRecord?.totalSignIns || 0,
-        totalPointsEarned: loyaltyRecord?.totalPointsEarned || 0,
-      };
-    }),
-  }),
+  blueprintReader: blueprintReaderRouter,
+  aiSubscription: aiSubscriptionRouter,
+  aiTalk: aiTalkRouter,
+  loyalty: loyaltyRouter,
 });
 
 export type AppRouter = typeof appRouter;

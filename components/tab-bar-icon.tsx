@@ -1,5 +1,7 @@
+import { View } from "react-native";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { brandTabActiveSurface } from "@/lib/brand-theme";
 import type { ComponentProps } from "react";
 
 type TabIconName =
@@ -17,13 +19,25 @@ interface TabBarIconProps {
 
 export function TabBarIcon({ name, focused }: TabBarIconProps) {
   const colors = useColors();
+  const active = brandTabActiveSurface(colors);
 
   return (
-    <IconSymbol
-      name={name as ComponentProps<typeof IconSymbol>["name"]}
-      size={24}
-      color={focused ? colors.primary : colors.muted}
-    />
+    <View
+      style={{
+        alignItems: "center",
+        justifyContent: "center",
+        width: 44,
+        height: 30,
+        borderRadius: 15,
+        ...(focused ? active : null),
+      }}
+    >
+      <IconSymbol
+        name={name as ComponentProps<typeof IconSymbol>["name"]}
+        size={22}
+        color={focused ? colors.primary : colors.muted}
+      />
+    </View>
   );
 }
 

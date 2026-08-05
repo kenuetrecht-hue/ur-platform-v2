@@ -36,6 +36,7 @@ export const AI_CREATOR_CATALOG: AiCreatorCatalogEntry[] = [
   { id: "ai-product-001", name: "Product Manager AI", avatar: "📱", category: "Product", mission: "Product management and roadmap planning." },
   { id: "ai-content-helper-001", name: "Content Creator Helper AI", avatar: "✍️", category: "Creative", mission: "Writing, editing, and formatting assistance for creators." },
   { id: "ai-3d-specialist", name: "AI 3D Designer", avatar: "🎮", category: "3D & Design", mission: "3D modeling, visualization, and design workflows." },
+  { id: "ai-blueprint-reader-001", name: "Blueprint Reader AI", avatar: "📐", category: "Blueprint & Schematics", mission: "Read, teach, and interpret any blueprint or schematic — any discipline, any trend." },
   { id: "ai-plumber-001", name: "Plumber AI", avatar: "🔧", category: "Construction", mission: "Plumbing systems, water supply, and fixture guidance." },
   { id: "ai-welder-001", name: "AI Welder", avatar: "🔥", category: "Construction", mission: "Welding techniques, materials, and safety." },
   { id: "ai-roofer-001", name: "Roofer AI", avatar: "🏗️", category: "Construction", mission: "Roofing systems, materials, and installation." },

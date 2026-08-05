@@ -13,7 +13,14 @@ import {
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
-import { ALLOWED_SESSION_DURATIONS, durationLabel } from "@/lib/ai-session-constants";
+import {
+  ALLOWED_SESSION_DURATIONS,
+  CREATOR_MIN_PRICE_CENTS_PER_MINUTE,
+  MAX_SESSION_ATTENDEES,
+  SESSION_CAPACITY_PRESETS,
+  computeSessionTicketCents,
+  durationLabel,
+} from "@/lib/ai-session-constants";
 import { TransactionHistoryList, CustomLinkCard } from "@/components/transaction-history-list";
 import { CreatorPayoutSetupPanel } from "@/components/creator-payout-setup-panel";
 import { CreatorSocialShareBar, CreatorPromoCard } from "@/components/creator-social-share";
@@ -73,6 +80,8 @@ export function ContentCreatorDashboardPanel() {
   const [title, setTitle] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [duration, setDuration] = useState<(typeof ALLOWED_SESSION_DURATIONS)[number]>(60);
+  const [maxAttendees, setMaxAttendees] = useState("5000");
+  const [pricePerMin, setPricePerMin] = useState("0.20");
 
   const dash = trpc.partnerDashboard.creatorDashboard.useQuery();
   const ais = trpc.partnerDashboard.listAvailableAis.useQuery(undefined, {
@@ -268,6 +277,10 @@ export function ContentCreatorDashboardPanel() {
               <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 15 }}>
                 Schedule a live class
               </Text>
+              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6, lineHeight: 18 }}>
+                $0.20/min is the floor — charge whatever you want above that. Ticket = duration × your
+                rate.
+              </Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -276,7 +289,10 @@ export function ContentCreatorDashboardPanel() {
                 {(ais.data ?? []).map((ai) => (
                   <Pressable
                     key={ai.creatorAiId}
-                    onPress={() => setSelectedAi(ai.creatorAiId)}
+                    onPress={() => {
+                      setSelectedAi(ai.creatorAiId);
+                      setPricePerMin(ai.pricePerMinuteUsd);
+                    }}
                     style={[
                       styles.chip,
                       {
@@ -364,16 +380,120 @@ export function ContentCreatorDashboardPanel() {
                 placeholderTextColor={colors.muted}
                 style={[styles.input, { borderColor: colors.border, color: colors.foreground, marginTop: 8 }]}
               />
+              <Text style={{ color: colors.muted, fontSize: 11, marginTop: 10, marginBottom: 4 }}>
+                Rate per minute — floor $0.20, no ceiling
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+                {["0.20", "0.50", "1.00", "2.00", "5.00"].map((rate) => (
+                  <Pressable
+                    key={rate}
+                    onPress={() => setPricePerMin(rate)}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: pricePerMin === rate ? colors.primary : colors.background,
+                        borderColor: pricePerMin === rate ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: pricePerMin === rate ? "#fff" : colors.foreground,
+                        fontSize: 11,
+                        fontWeight: "700",
+                      }}
+                    >
+                      ${rate}/min
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <TextInput
+                value={pricePerMin}
+                onChangeText={setPricePerMin}
+                keyboardType="decimal-pad"
+                placeholder="Custom rate (USD/min, min $0.20)"
+                placeholderTextColor={colors.muted}
+                style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+              />
+              {(() => {
+                const rateCents = Math.max(
+                  CREATOR_MIN_PRICE_CENTS_PER_MINUTE,
+                  Math.round(parseFloat(pricePerMin) * 100) || CREATOR_MIN_PRICE_CENTS_PER_MINUTE,
+                );
+                const ticketCents = computeSessionTicketCents(duration, rateCents);
+                return (
+                  <Text style={{ color: colors.muted, fontSize: 11, marginTop: 6 }}>
+                    Ticket preview: ${(ticketCents / 100).toFixed(2)} ({duration} min @ $
+                    {(rateCents / 100).toFixed(2)}/min)
+                  </Text>
+                );
+              })()}
+              <Text style={{ color: colors.muted, fontSize: 11, marginTop: 10, marginBottom: 4 }}>
+                Room capacity (1–{MAX_SESSION_ATTENDEES.toLocaleString()} seats)
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+                {SESSION_CAPACITY_PRESETS.map((cap) => (
+                  <Pressable
+                    key={cap}
+                    onPress={() => setMaxAttendees(String(cap))}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor:
+                          parseInt(maxAttendees, 10) === cap ? colors.primary : colors.background,
+                        borderColor:
+                          parseInt(maxAttendees, 10) === cap ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: parseInt(maxAttendees, 10) === cap ? "#fff" : colors.foreground,
+                        fontSize: 11,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {cap.toLocaleString()}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <TextInput
+                value={maxAttendees}
+                onChangeText={setMaxAttendees}
+                keyboardType="number-pad"
+                placeholder={`Custom capacity (1–${MAX_SESSION_ATTENDEES.toLocaleString()})`}
+                placeholderTextColor={colors.muted}
+                style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+              />
               <Pressable
                 disabled={!selectedAi || !startsAt || schedule.isPending}
-                onPress={() =>
+                onPress={() => {
+                  const cap = Math.min(
+                    MAX_SESSION_ATTENDEES,
+                    Math.max(1, parseInt(maxAttendees, 10) || 1),
+                  );
+                  const rateCents = Math.max(
+                    CREATOR_MIN_PRICE_CENTS_PER_MINUTE,
+                    Math.round(parseFloat(pricePerMin) * 100) || CREATOR_MIN_PRICE_CENTS_PER_MINUTE,
+                  );
+                  if (parseFloat(pricePerMin) * 100 < CREATOR_MIN_PRICE_CENTS_PER_MINUTE) {
+                    Alert.alert(
+                      "Minimum rate",
+                      "$0.20 per minute is the floor — set a higher rate if you like.",
+                    );
+                    return;
+                  }
                   schedule.mutate({
                     creatorAiId: selectedAi,
                     startsAt,
                     title: title.trim() || undefined,
                     durationMinutes: duration,
-                  })
-                }
+                    maxAttendees: cap,
+                    priceCentsPerMinute: rateCents,
+                  });
+                }}
                 style={[
                   styles.btn,
                   {

@@ -87,7 +87,7 @@ describe("Premium AI voice/video", () => {
     expect(hasCreatorVoiceAccess("c1")).toBe(true);
     purchaseAffiliateVoicePack({ userId: "aff-v", userEmail: "aff@test.com" });
     expect(hasAffiliateVoiceAccess("aff-v")).toBe(true);
-    purchaseAiVideoTalkPack({ userId: "u3", userEmail: "u3@test.com" });
+    purchaseAiVideoTalkPack({ userId: "u3", userEmail: "u3@test.com", billingStateCode: "FL" });
     expect(hasAiVideoTalkAccess("u3")).toBe(true);
   });
 });

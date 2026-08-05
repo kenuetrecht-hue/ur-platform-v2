@@ -3,7 +3,6 @@ import { ScrollView, View, Text, Pressable, Modal } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
-import { WarningBanner } from "@/components/warning-banner";
 import { DemoSection } from "@/components/demo-section";
 import { PersonalAIChat } from "@/components/personal-ai-chat";
 import { VoiceChatInterface } from "@/components/voice-chat-interface";
@@ -34,8 +33,6 @@ export default function CreateScreen() {
         contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
-        <WarningBanner variant="compact" />
-
         <TabScreenHeader
           icon="✏️"
           title="Create"

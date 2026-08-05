@@ -18,6 +18,7 @@ import {
   updateWorkspaceSession,
   validateExportForEquipment,
 } from "../_core/equipment-service";
+import { getSessionDesign, saveSessionDesign } from "../_core/workspace-design-service";
 import {
   ConnectivityTypeSchema,
 } from "../equipment-integration";
@@ -224,6 +225,33 @@ export const equipmentRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Workspace session not found." });
       }
       return session;
+    }),
+
+  getDesignState: secureProcedure("equipment")
+    .input(z.object({ sessionId: z.string().min(4).max(128) }))
+    .query(({ ctx, input }) => {
+      const session = getWorkspaceSession(String(ctx.user.id), input.sessionId);
+      if (!session) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Workspace session not found." });
+      }
+      return getSessionDesign(input.sessionId);
+    }),
+
+  saveDesignState: secureProcedure("equipment")
+    .input(
+      z.object({
+        sessionId: z.string().min(4).max(128),
+        design: z.unknown(),
+      }),
+    )
+    .mutation(({ ctx, input }) => {
+      const session = getWorkspaceSession(String(ctx.user.id), input.sessionId);
+      if (!session) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Workspace session not found." });
+      }
+      const saved = saveSessionDesign(input.sessionId, input.design);
+      updateWorkspaceSession(String(ctx.user.id), input.sessionId, {});
+      return saved;
     }),
 
   supportedExportFormats: secureProcedure("equipment").query(() => ({

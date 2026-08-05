@@ -164,7 +164,11 @@ export const aiCreatorChatRouter = router({
           email: ctx.user.email,
           isPlatformOwner: ctx.isPlatformOwner,
           feature: "ai_chat",
+          creatorId: input.creatorId,
         });
+        if (!ctx.isPlatformOwner) {
+          consumePremiumMinute({ userId, kind: "ai_talk", creatorId: input.creatorId });
+        }
       }
 
       const personaKey = CREATOR_VOICE_PERSONA[input.creatorId];
@@ -258,14 +262,23 @@ export const aiCreatorChatRouter = router({
 
   assertVideoTalkAccess: secureProcedure("aiCreators")
     .input(z.object({ creatorId: creatorIdSchema }))
-    .mutation(({ ctx }) => {
+    .mutation(({ ctx, input }) => {
+      assertAiEntitled({
+        userId: ctx.user.id,
+        email: ctx.user.email,
+        isPlatformOwner: ctx.isPlatformOwner,
+        feature: "ai_chat",
+        creatorId: input.creatorId,
+      });
       if (!hasAiVideoTalkAccess(String(ctx.user.id)) && !ctx.isPlatformOwner) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "Purchase an AI video talk pack to start video chat with this specialist.",
+          message: "Purchase AI talk time to start voice or video chat with this specialist.",
         });
       }
-      consumePremiumMinute({ userId: String(ctx.user.id), kind: "ai_video_talk" });
+      if (!ctx.isPlatformOwner) {
+        consumePremiumMinute({ userId: String(ctx.user.id), kind: "ai_talk", creatorId: input.creatorId });
+      }
       return { allowed: true as const };
     }),
 });

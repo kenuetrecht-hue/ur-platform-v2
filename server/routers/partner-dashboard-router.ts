@@ -22,7 +22,10 @@ import {
   cancelLiveSession,
   getLiveSession,
 } from "../_core/ai-live-session-service";
-import { listAiSessionPrograms } from "../_core/ai-session-programming";
+import {
+  listAiSessionPrograms,
+  CREATOR_MIN_PRICE_CENTS_PER_MINUTE,
+} from "../_core/ai-session-programming";
 import {
   getOrCreateUserLink,
   getUserLink,
@@ -188,6 +191,12 @@ export const partnerDashboardRouter = router({
         title: z.string().max(200).optional(),
         durationMinutes: z
           .union([z.literal(15), z.literal(30), z.literal(45), z.literal(60)])
+          .optional(),
+        maxAttendees: z.number().int().min(1).max(10_000).optional(),
+        priceCentsPerMinute: z
+          .number()
+          .int()
+          .min(CREATOR_MIN_PRICE_CENTS_PER_MINUTE)
           .optional(),
       }),
     )
@@ -407,6 +416,7 @@ export const partnerDashboardRouter = router({
     purchaseAiVideoTalkPack({
       userId: String(ctx.user.id),
       userEmail: ctx.user.email ?? "",
+      billingStateCode: "FL",
     }),
   ),
 });

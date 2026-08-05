@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { SOCIAL_POST_DISCLOSURE } from "@/lib/platform-disclosure-copy";
+import { usePlatformOwner } from "@/lib/use-platform-owner";
 
 type Product = {
   id: string;
@@ -63,6 +64,7 @@ function ProductCard({ product, onBuy }: { product: Product; onBuy: () => void }
 export function PlatformShopPanel() {
   const colors = useColors();
   const router = useRouter();
+  const { isPlatformOwner } = usePlatformOwner();
   const utils = trpc.useUtils();
   const shop = trpc.commerce.platformShop.useQuery();
   const creatorShops = trpc.commerce.listCreatorShops.useQuery();
@@ -105,14 +107,16 @@ export function PlatformShopPanel() {
         </Text>
       </Pressable>
 
-      <Pressable
-        onPress={() => rotate.mutate({ storeId: shop.data!.store.id })}
-        style={[styles.rotateBtn, { borderColor: colors.border }]}
-      >
-        <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 12 }}>
-          {rotate.isPending ? "Rotating…" : "🔄 Owner: rotate catalog (archive weak SKUs)"}
-        </Text>
-      </Pressable>
+      {isPlatformOwner ? (
+        <Pressable
+          onPress={() => rotate.mutate({ storeId: shop.data!.store.id })}
+          style={[styles.rotateBtn, { borderColor: colors.border }]}
+        >
+          <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 12 }}>
+            {rotate.isPending ? "Rotating…" : "🔄 Owner: rotate catalog (archive weak SKUs)"}
+          </Text>
+        </Pressable>
+      ) : null}
 
       <Text style={{ color: colors.foreground, fontWeight: "800" }}>Platform picks</Text>
       {(shop.data?.products ?? []).map((p) => (

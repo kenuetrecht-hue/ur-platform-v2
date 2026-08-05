@@ -29,6 +29,7 @@ import { sanitizeChatHistory, sanitizeUserText } from "./input-sanitize";
 import { mapServiceErrorToTrpc } from "./service-errors";
 import { isOwnerOnlyPlatformAi, canChatOwnerOpsAi } from "./platform-ops-ai";
 import { assertAiEntitled } from "./access-entitlements";
+import { assertAndConsumeAiUsage } from "./ai-usage-meter";
 import {
   createOpsIncident,
   inferIncidentFromOpsChat,
@@ -45,6 +46,10 @@ import {
   buildStoreManagerContext,
 } from "./commerce-catalog-service";
 import { getAffiliateProfile } from "./partner-program-service";
+import {
+  BLUEPRINT_READER_AI_ID,
+  buildBlueprintReaderContextForChat,
+} from "./blueprint-reading-service";
 
 export type AiChatContext = {
   userId: string | number;
@@ -139,6 +144,7 @@ export async function handleCreatorAiChat(params: {
       email: params.ctx.userEmail,
       isPlatformOwner: params.ctx.isPlatformOwner,
       feature: "ai_chat",
+      creatorId: params.creatorId,
     });
   } else {
     assertAiEntitled({
@@ -146,6 +152,7 @@ export async function handleCreatorAiChat(params: {
       email: params.ctx.userEmail,
       isPlatformOwner: params.ctx.isPlatformOwner,
       feature: "ai_chat",
+      creatorId: params.creatorId,
     });
   }
 
@@ -166,6 +173,16 @@ export async function handleCreatorAiChat(params: {
     const useHive =
       !isAffiliateOnlyAi(params.creatorId) &&
       (params.useHiveConsult === true || isComplexHiveProblem(message));
+
+    if (!params.ctx.isPlatformOwner && !isAffiliateOnlyAi(params.creatorId)) {
+      assertAndConsumeAiUsage({
+        userId,
+        email: params.ctx.userEmail,
+        creatorId: params.creatorId,
+        isPlatformOwner: false,
+        useHive,
+      });
+    }
 
     let rawReply: string;
     let model: string;
@@ -197,6 +214,9 @@ export async function handleCreatorAiChat(params: {
           userId,
           isPlatformOwner: params.ctx.isPlatformOwner,
         })}`;
+      }
+      if (params.creatorId === BLUEPRINT_READER_AI_ID) {
+        basePrompt += `\n\n${buildBlueprintReaderContextForChat(userId)}`;
       }
 
       let systemPrompt: string;

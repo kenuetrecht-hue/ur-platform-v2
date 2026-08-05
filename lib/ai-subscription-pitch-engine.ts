@@ -194,8 +194,8 @@ class AISubscriptionPitchEngine {
   private estimateValue(tier: 'silver' | 'gold' | 'platinum'): number {
     const tierValues: Record<string, number> = {
       silver: 9.99,
-      gold: 24.99,
-      platinum: 99.99,
+      gold: 14.99,
+      platinum: 49.99,
     };
     return tierValues[tier];
   }

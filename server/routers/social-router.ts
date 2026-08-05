@@ -4,9 +4,13 @@ import {
   acceptFriendRequest,
   getSocialDashboard,
   listDirectMessages,
+  listInboxMail,
+  listSentMail,
+  markMailRead,
   registerSocialUser,
   sendDirectMessage,
   sendFriendRequest,
+  sendPlatformMail,
   setRideAlongPreference,
   subscribeToCreator,
   unsubscribeFromCreator,
@@ -116,6 +120,46 @@ export const socialRouter = router({
         withUserId: input.withUserId,
         limit: input.limit,
       }),
+    ),
+
+  listInbox: secureProcedure("social")
+    .input(z.object({ limit: z.number().int().min(1).max(100).optional() }).optional())
+    .query(({ ctx, input }) => {
+      socialUser(ctx);
+      return listInboxMail(String(ctx.user.id), input?.limit);
+    }),
+
+  listSent: secureProcedure("social")
+    .input(z.object({ limit: z.number().int().min(1).max(100).optional() }).optional())
+    .query(({ ctx, input }) => {
+      socialUser(ctx);
+      return listSentMail(String(ctx.user.id), input?.limit);
+    }),
+
+  sendMail: secureProcedure("social")
+    .input(
+      z.object({
+        toEmail: z.string().email(),
+        subject: z.string().min(1).max(120),
+        body: z.string().min(1).max(2000),
+      }),
+    )
+    .mutation(({ ctx, input }) => {
+      const userId = socialUser(ctx);
+      return sendPlatformMail({
+        senderUserId: userId,
+        senderEmail: ctx.user.email ?? "",
+        senderName: ctx.user.name ?? "UR Member",
+        toEmail: input.toEmail,
+        subject: input.subject,
+        body: input.body,
+      });
+    }),
+
+  markMailRead: secureProcedure("social")
+    .input(z.object({ messageId: z.string().uuid() }))
+    .mutation(({ ctx, input }) =>
+      markMailRead({ userId: String(ctx.user.id), messageId: input.messageId }),
     ),
 
   subscribeCreator: secureProcedure("social")

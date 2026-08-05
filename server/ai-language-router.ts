@@ -6,6 +6,8 @@ import {
 import { assertUserCanUseAi, enforceAiGuardrails } from "./_core/ai-guardrails";
 import { assertNoAiTakeoverInMessage } from "./_core/ai-control";
 import { assertMessageWithinAiRole } from "./_core/ai-roles";
+import { assertAiEntitled } from "./_core/access-entitlements";
+import { assertAndConsumeAiUsage } from "./_core/ai-usage-meter";
 import {
   sanitizeChatHistory,
   sanitizeLanguageLabel,
@@ -14,6 +16,32 @@ import {
 import { LANGUAGE_AI_SYSTEM_PROMPT } from "./_core/multilingual-prompts";
 import { mapServiceErrorToTrpc } from "./_core/service-errors";
 import { secureProcedure, router, TRPCError } from "./_core/trpc";
+
+function assertLinguamateEntitled(ctx: {
+  user: { id: string | number; email?: string | null };
+  isPlatformOwner: boolean;
+}) {
+  assertAiEntitled({
+    userId: ctx.user.id,
+    email: ctx.user.email,
+    isPlatformOwner: ctx.isPlatformOwner,
+    feature: "ai_chat",
+    creatorId: "linguamate",
+  });
+}
+
+function consumeLinguamateMessage(ctx: {
+  user: { id: string | number; email?: string | null };
+  isPlatformOwner: boolean;
+}) {
+  if (ctx.isPlatformOwner) return;
+  assertAndConsumeAiUsage({
+    userId: String(ctx.user.id),
+    email: ctx.user.email,
+    creatorId: "linguamate",
+    isPlatformOwner: false,
+  });
+}
 
 const chatHistorySchema = z.array(
   z.object({
@@ -42,6 +70,8 @@ export const aiLanguageRouter = router({
       }
 
       try {
+        assertLinguamateEntitled(ctx);
+        consumeLinguamateMessage(ctx);
         assertUserCanUseAi(String(ctx.user.id), ctx.isPlatformOwner);
 
         const message = sanitizeUserText(input.message, 4000);
@@ -91,6 +121,8 @@ export const aiLanguageRouter = router({
       }
 
       try {
+        assertLinguamateEntitled(ctx);
+        consumeLinguamateMessage(ctx);
         assertUserCanUseAi(String(ctx.user.id), ctx.isPlatformOwner);
 
         const text = sanitizeUserText(input.text, 4000);
@@ -163,6 +195,8 @@ ${text}
       }
 
       try {
+        assertLinguamateEntitled(ctx);
+        consumeLinguamateMessage(ctx);
         assertUserCanUseAi(String(ctx.user.id), ctx.isPlatformOwner);
 
         const targetLanguage = sanitizeLanguageLabel(input.targetLanguage);

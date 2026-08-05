@@ -4,7 +4,7 @@ import { OWNER_OPS_AI_IDS, OWNER_PLATFORM_OPS_CATALOG } from "./owner-platform-o
 /** Public specialist IDs (excludes owner-only ops AIs). */
 export const PUBLIC_CATALOG_IDS = AI_CREATOR_CATALOG.map((c) => c.id);
 
-/** All 45 IDs: 42 public + 3 owner ops. */
+/** All 46 IDs: 43 public + 3 owner ops. */
 export const FULL_CATALOG_IDS = [
   ...OWNER_OPS_AI_IDS,
   ...PUBLIC_CATALOG_IDS.filter((id) => !OWNER_OPS_AI_IDS.includes(id)),

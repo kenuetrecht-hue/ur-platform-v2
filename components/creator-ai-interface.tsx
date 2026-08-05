@@ -56,9 +56,19 @@ export function CreatorAIInterface({
 
   const chatMutation = trpc.aiCreators.sendMessage.useMutation();
   const voiceMutation = trpc.aiCreators.synthesizeVoice.useMutation();
-  const premium = trpc.partnerDashboard.premiumMediaStatus.useQuery();
-  const buyVideo = trpc.partnerDashboard.purchaseAiVideoTalk.useMutation({
-    onSuccess: () => void premium.refetch(),
+  const premium = trpc.aiCreators.premiumMediaStatus.useQuery();
+  const talkStatus = trpc.aiTalk.getStatus.useQuery();
+  const buyTalk = trpc.aiTalk.purchase.useMutation({
+    onSuccess: () => {
+      void premium.refetch();
+      void talkStatus.refetch();
+    },
+  });
+  const buyVideo = trpc.aiTalk.purchase.useMutation({
+    onSuccess: () => {
+      void premium.refetch();
+      void talkStatus.refetch();
+    },
   });
   const buyAffiliateVoice = trpc.partnerDashboard.purchaseAffiliateVoice.useMutation({
     onSuccess: () => void premium.refetch(),
@@ -69,7 +79,9 @@ export function CreatorAIInterface({
   const handoffs = trpc.aiCreators.getHandoffs.useQuery({ creatorId });
   const exportChat = trpc.aiCreators.exportChat.useMutation();
   const isAssociateAi = creatorId === AFFILIATE_ASSOCIATE_ID;
-  const supportsVoice = isForgeSpecialist(creatorId) || isAssociateAi;
+  const talkMinutes = talkStatus.data?.minutesRemaining ?? premium.data?.talkMinutesRemaining ?? 0;
+  const hasTalkTime = talkMinutes > 0;
+  const supportsVoice = isForgeSpecialist(creatorId) || isAssociateAi || hasTalkTime;
   const hasPaidVoice =
     isAssociateAi
       ? Boolean(premium.data?.affiliateVoice)
@@ -147,6 +159,13 @@ export function CreatorAIInterface({
         setVoiceStatus(error instanceof Error ? error.message : "Could not purchase voice pack");
         return;
       }
+    } else if (!isAssociateAi && !hasTalkTime) {
+      try {
+        await buyTalk.mutateAsync({ packId: "standard_20" });
+      } catch (error) {
+        setVoiceStatus(error instanceof Error ? error.message : "Could not purchase talk time");
+        return;
+      }
     }
 
     setVoiceStatus(null);
@@ -169,19 +188,19 @@ export function CreatorAIInterface({
     } catch (error) {
       setVoiceStatus(error instanceof Error ? error.message : "Voice failed");
     }
-  }, [buyAffiliateVoice, creatorId, hasPaidVoice, isAssociateAi, messages, voiceMutation]);
+  }, [buyAffiliateVoice, buyTalk, creatorId, hasPaidVoice, hasTalkTime, isAssociateAi, messages, voiceMutation]);
 
   const startVideoTalk = useCallback(async () => {
     try {
-      if (!premium.data?.aiVideoTalk) {
-        await buyVideo.mutateAsync();
+      if (!hasTalkTime) {
+        await buyVideo.mutateAsync({ packId: "standard_20" });
       }
       await assertVideo.mutateAsync({ creatorId });
       setVideoActive(true);
     } catch (error) {
       setVoiceStatus(error instanceof Error ? error.message : "Video talk unavailable");
     }
-  }, [assertVideo, buyVideo, creatorId, premium.data?.aiVideoTalk]);
+  }, [assertVideo, buyVideo, creatorId, hasTalkTime]);
 
   return (
     <View style={styles.root}>
@@ -266,7 +285,9 @@ export function CreatorAIInterface({
                 ? hasPaidVoice
                   ? "🎙️ Hear Associate AI (voice pack active)"
                   : `🎙️ Pay $${premium.data?.affiliateVoicePriceUsd ?? "2.99"} — speak with Associate AI`
-                : "🎙️ Voice — hear last reply (pair programming)"}
+                : hasTalkTime
+                  ? `🎙️ Voice — ${talkMinutes} min left`
+                  : "🎙️ Voice — buy talk time ($10 / 30 min)"}
           </Text>
           {voiceStatus ? (
             <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>{voiceStatus}</Text>
@@ -285,9 +306,9 @@ export function CreatorAIInterface({
             ? "📹 Video talk ON — tap to end"
             : buyVideo.isPending || assertVideo.isPending
               ? "Starting video…"
-              : premium.data?.aiVideoTalk
-                ? "📹 Video talk with AI (pack active)"
-                : `📹 Video talk — $${premium.data?.aiVideoTalkPriceUsd ?? "4.99"}`}
+              : hasTalkTime
+                ? `📹 Video talk (${talkMinutes} min left)`
+                : `📹 Video talk — $${premium.data?.aiTalkStandardPriceUsd ?? "10.00"} / 30 min`}
         </Text>
       </TouchableOpacity>
       ) : null}

@@ -1,3 +1,4 @@
+import { View } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
 import { SocialHubPanel } from "@/components/social-hub-panel";
@@ -6,11 +7,13 @@ export default function MessagesScreen() {
   return (
     <ScreenContainer className="bg-background">
       <TabScreenHeader
-        icon="💬"
+        icon="🌐"
         title="Social Hub"
-        subtitle="Public feed, friends, DMs, creator follows, and video chat — free posting for everyone."
+        subtitle="Internet Center mail, public feed, friends & creators"
       />
-      <SocialHubPanel />
+      <View style={{ flex: 1, minHeight: 0 }}>
+        <SocialHubPanel />
+      </View>
     </ScreenContainer>
   );
 }

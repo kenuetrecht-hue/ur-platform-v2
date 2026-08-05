@@ -26,6 +26,9 @@ export type DirectMessage = {
   senderUserId: string;
   recipientUserId: string;
   body: string;
+  subject?: string;
+  senderEmail?: string;
+  recipientEmail?: string;
   createdAt: string;
   readAt?: string;
 };
@@ -150,20 +153,29 @@ export function sendDirectMessage(params: {
   senderUserId: string;
   recipientUserId: string;
   body: string;
+  subject?: string;
+  senderEmail?: string;
+  recipientEmail?: string;
+  requireFriend?: boolean;
 }): DirectMessage {
   const body = params.body.trim().slice(0, 2000);
   if (!body) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Message cannot be empty." });
   }
 
-  const friends = listFriends(params.senderUserId);
-  const isFriend = friends.some((f) => f.peerUserId === params.recipientUserId);
-  if (!isFriend) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "You can only message accepted friends.",
-    });
+  const requireFriend = params.requireFriend !== false;
+  if (requireFriend) {
+    const friends = listFriends(params.senderUserId);
+    const isFriend = friends.some((f) => f.peerUserId === params.recipientUserId);
+    if (!isFriend) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "You can only message accepted friends.",
+      });
+    }
   }
+
+  const subject = (params.subject ?? "Message from UR Internet Center").trim().slice(0, 120);
 
   const msg: DirectMessage = {
     id: randomUUID(),
@@ -171,10 +183,73 @@ export function sendDirectMessage(params: {
     senderUserId: params.senderUserId,
     recipientUserId: params.recipientUserId,
     body,
+    subject,
+    senderEmail: params.senderEmail,
+    recipientEmail: params.recipientEmail,
     createdAt: new Date().toISOString(),
   };
   messages.push(msg);
   return msg;
+}
+
+/** Send internal platform mail to any registered UR member by email address. */
+export function sendPlatformMail(params: {
+  senderUserId: string;
+  senderEmail: string;
+  senderName: string;
+  toEmail: string;
+  subject: string;
+  body: string;
+}): DirectMessage {
+  const toUserId = resolveUserIdByEmail(params.toEmail);
+  if (!toUserId) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "No UR member found with that email. They need a UR Platform account first.",
+    });
+  }
+  if (toUserId === params.senderUserId) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "You cannot email yourself." });
+  }
+
+  const subject = params.subject.trim().slice(0, 120) || "Hello from UR Internet Center";
+
+  return sendDirectMessage({
+    senderUserId: params.senderUserId,
+    recipientUserId: toUserId,
+    body: params.body,
+    subject,
+    senderEmail: params.senderEmail.toLowerCase().trim(),
+    recipientEmail: params.toEmail.toLowerCase().trim(),
+    requireFriend: false,
+  });
+}
+
+export function listInboxMail(userId: string, limit = 50): DirectMessage[] {
+  return messages
+    .filter((m) => m.recipientUserId === userId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, limit);
+}
+
+export function listSentMail(userId: string, limit = 50): DirectMessage[] {
+  return messages
+    .filter((m) => m.senderUserId === userId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, limit);
+}
+
+export function markMailRead(params: { userId: string; messageId: string }): DirectMessage {
+  const msg = messages.find((m) => m.id === params.messageId);
+  if (!msg || msg.recipientUserId !== params.userId) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Message not found." });
+  }
+  msg.readAt = new Date().toISOString();
+  return msg;
+}
+
+export function countUnreadMail(userId: string): number {
+  return messages.filter((m) => m.recipientUserId === userId && !m.readAt).length;
 }
 
 export function listDirectMessages(params: {
@@ -288,5 +363,6 @@ export function getSocialDashboard(userId: string) {
     subscriptions: listCreatorSubscriptions(userId),
     subscribers: listCreatorSubscribers(userId),
     threads: listMessageThreads(userId),
+    unreadMailCount: countUnreadMail(userId),
   };
 }

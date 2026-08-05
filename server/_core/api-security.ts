@@ -26,6 +26,9 @@ export type ApiNamespace =
   | "forgeAgent"
   | "social"
   | "commerce"
+  | "blueprintReader"
+  | "aiSubscription"
+  | "aiTalk"
   | "default";
 
 type WindowBucket = {
@@ -65,6 +68,10 @@ const NAMESPACE_USER_LIMITS: Record<ApiNamespace, number> = {
   gameDevSandbox: 120,
   forgeAgent: 60,
   social: 90,
+  commerce: 80,
+  blueprintReader: 90,
+  aiSubscription: 40,
+  aiTalk: 40,
   default: 500,
 };
 

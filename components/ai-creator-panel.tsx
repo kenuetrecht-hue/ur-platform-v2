@@ -22,6 +22,8 @@ import { GameForgeLearnPanel } from "@/components/game-forge-learn-panel";
 import { isForgeSpecialist, forgeLearnLabel } from "@/lib/forge-specialists";
 
 import { AiLiveSessionsPanel } from "@/components/ai-live-sessions-panel";
+import { AiSubscriptionPanel } from "@/components/ai-subscription-panel";
+import { AiTalkTimePanel } from "@/components/ai-talk-time-panel";
 
 type SurfaceMode = "chat" | "learn" | "build" | "live";
 type LearnLevel = "beginner" | "intermediate" | "advanced";
@@ -92,6 +94,7 @@ export function AiCreatorPanel({
   if (creatorId === "linguamate") {
     return (
       <View style={styles.root}>
+        <AiSubscriptionPanel creatorId="linguamate" creatorName="LinguaMate" />
         <LanguageAIInterface />
       </View>
     );
@@ -105,8 +108,21 @@ export function AiCreatorPanel({
     !isOwnerOps &&
     (liveEnabled.data?.enabled === true || (upcomingLive.data?.length ?? 0) > 0);
 
+  const subAccess = trpc.aiSubscription.getAccess.useQuery({ creatorId }, { enabled: !isOwnerOps });
+  const talkStatus = trpc.aiTalk.getStatus.useQuery(undefined, { enabled: !isOwnerOps });
+
   return (
     <View style={styles.root}>
+      {!isOwnerOps && subAccess.data && !subAccess.data.hasAccess ? (
+        <AiSubscriptionPanel creatorId={creatorId} creatorName={creatorName} />
+      ) : null}
+      {!isOwnerOps ? (
+        <AiTalkTimePanel
+          creatorName={creatorName}
+          compact={Boolean(talkStatus.data?.hasTalkAccess)}
+          showPurchase={!talkStatus.data?.hasTalkAccess}
+        />
+      ) : null}
       {!isOwnerOps ? (
         <SurfaceToggle
           surface={surface}
@@ -130,13 +146,21 @@ export function AiCreatorPanel({
           initialFileContent={sandboxSeed?.content}
         />
       ) : surface === "chat" || isOwnerOps ? (
-        <CreatorAIInterface
+        subAccess.data && !subAccess.data.hasAccess ? (
+          <View style={[styles.opsBlocked, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+            <Text style={{ color: colors.muted, textAlign: "center", fontSize: 13 }}>
+              Subscribe above to start chatting with {creatorName}.
+            </Text>
+          </View>
+        ) : (
+          <CreatorAIInterface
           creatorId={creatorId}
           creatorName={creatorName}
           creatorAvatar={creatorAvatar}
           welcomeMessage={welcomeMessage}
           initialPrompt={initialPrompt}
         />
+        )
       ) : isTechBuilder ? (
         <TechBuilderLearnPanel
           creatorId={creatorId}

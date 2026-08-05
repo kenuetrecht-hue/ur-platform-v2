@@ -1,8 +1,9 @@
 import { Redirect, Tabs } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
+import { withAlpha } from "@/lib/brand-theme";
 import { HapticTab } from "@/components/haptic-tab";
 import { TabBarIcon } from "@/components/tab-bar-icon";
 
@@ -33,16 +34,19 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.muted,
         tabBarStyle: {
-          backgroundColor: colors.background,
-          borderTopColor: colors.border,
-          borderTopWidth: 0.5,
+          backgroundColor: colors.surface,
+          borderTopColor: withAlpha(colors.secondary, 0.2),
+          borderTopWidth: StyleSheet.hairlineWidth,
           height: TAB_BAR_CONTENT_HEIGHT + bottomInset,
           paddingBottom: bottomInset,
-          paddingTop: 8,
+          paddingTop: 6,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: "600",
+          letterSpacing: 0.2,
         },
         tabBarButton: HapticTab,
       }}

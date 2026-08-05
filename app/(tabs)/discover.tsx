@@ -3,7 +3,6 @@ import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
-import { WarningBanner } from "@/components/warning-banner";
 import { PromotionalBanner } from "@/components/promotional-banner";
 import { consolidatedNavigation } from "@/lib/consolidated-navigation";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -30,7 +29,6 @@ export default function DiscoverScreen() {
         contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
-        <WarningBanner variant="compact" />
         <PromotionalBanner fullSize={false} />
 
         <TabScreenHeader
