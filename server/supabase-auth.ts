@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient, type User as SupabaseUser } from "@s
 import type { User } from "../drizzle/schema";
 import * as db from "./db";
 import { ENV } from "./_core/env";
+import { resolveUserRole, isOwnerEmail, getPlatformOwnerDisplayName } from "./_core/owner-auth";
 
 const SUPABASE_OPEN_ID_PREFIX = "supabase:";
 
@@ -26,10 +27,6 @@ function getSupabaseClient(): SupabaseClient | null {
 
 export function toSupabaseOpenId(supabaseUserId: string): string {
   return `${SUPABASE_OPEN_ID_PREFIX}${supabaseUserId}`;
-}
-
-function mapSupabaseRole(metadataRole: unknown): "user" | "admin" {
-  return metadataRole === "admin" ? "admin" : "user";
 }
 
 export async function verifySupabaseAccessToken(
@@ -59,16 +56,21 @@ export async function syncSupabaseUser(
 ): Promise<User | null> {
   const openId = toSupabaseOpenId(supabaseUser.id);
   const signedInAt = new Date();
+  const email = supabaseUser.email ?? null;
+
+  // Only the platform owner may receive admin — never trust user_metadata.role
+  const role = resolveUserRole(openId, email);
 
   await db.upsertUser({
     openId,
-    name:
-      supabaseUser.user_metadata?.name ??
-      supabaseUser.email?.split("@")[0] ??
-      null,
-    email: supabaseUser.email ?? null,
+    name: isOwnerEmail(email)
+      ? getPlatformOwnerDisplayName()
+      : supabaseUser.user_metadata?.name ??
+        supabaseUser.email?.split("@")[0] ??
+        null,
+    email,
     loginMethod: "supabase",
-    role: mapSupabaseRole(supabaseUser.user_metadata?.role),
+    role,
     lastSignedIn: signedInAt,
   });
 

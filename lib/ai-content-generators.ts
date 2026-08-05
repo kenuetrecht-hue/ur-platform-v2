@@ -569,3 +569,28 @@ export function generateContentHelperContent(): string {
 
 ⚠️ Human creators maintain full responsibility for content accuracy and compliance.`;
 }
+
+export function generateTranslatorContent(): string {
+  return `🌍 Language Tip: Greetings Around the World
+
+**Why learn greetings first?**
+Opening with the right greeting builds trust instantly — in any language or culture.
+
+**Quick reference:**
+- Spanish: *Hola* / *Buenos días* (formal morning)
+- French: *Bonjour* (day) / *Bonsoir* (evening)
+- Japanese: *Konnichiwa* (day) / add *-san* for respect
+- Arabic: *As-salamu alaykum* (peace be upon you)
+- Mandarin: *Nǐ hǎo* (你好) — tone matters!
+
+**Practice pattern:**
+1. Hear the phrase (listen twice)
+2. Repeat aloud slowly
+3. Use it in a full sentence
+4. Note formal vs informal register
+
+**Today's mini-lesson:**
+Pick one language you want to learn. Reply with that language name and LinguaMate will start a personalized lesson — vocabulary, pronunciation, and a conversation drill.
+
+⚠️ For legal, medical, or certified translations, use a professional human translator.`;
+}

@@ -399,3 +399,119 @@ export const weeklyDrawingEntriesRelations = relations(weeklyDrawingEntries, ({ 
     references: [users.id],
   }),
 }));
+
+/**
+ * TechBuilder sandbox account — tier, usage, learning matrix JSON.
+ */
+export const coderSandboxAccounts = mysqlTable("coderSandboxAccounts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  tierId: mysqlEnum("tierId", ["starter", "builder", "studio", "enterprise"])
+    .default("starter")
+    .notNull(),
+  usedBytes: int("usedBytes").default(0).notNull(),
+  learningJson: text("learningJson"),
+  upgradedAt: timestamp("upgradedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CoderSandboxAccount = typeof coderSandboxAccounts.$inferSelect;
+export type InsertCoderSandboxAccount = typeof coderSandboxAccounts.$inferInsert;
+
+export const coderSandboxProjects = mysqlTable("coderSandboxProjects", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 120 }).notNull(),
+  description: text("description"),
+  framework: varchar("framework", { length: 64 }).default("React Native / Expo").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CoderSandboxProjectRow = typeof coderSandboxProjects.$inferSelect;
+
+export const coderSandboxFiles = mysqlTable("coderSandboxFiles", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  projectId: varchar("projectId", { length: 64 }).notNull(),
+  userId: int("userId").notNull(),
+  path: varchar("path", { length: 512 }).notNull(),
+  content: text("content").notNull(),
+  language: varchar("language", { length: 32 }).notNull(),
+  sizeBytes: int("sizeBytes").notNull(),
+  storageKey: varchar("storageKey", { length: 512 }),
+  storageUrl: varchar("storageUrl", { length: 512 }),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CoderSandboxFileRow = typeof coderSandboxFiles.$inferSelect;
+
+export const coderSandboxPayments = mysqlTable("coderSandboxPayments", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  tierId: mysqlEnum("tierId", ["builder", "studio", "enterprise"]).notNull(),
+  paymentIntentId: varchar("paymentIntentId", { length: 128 }).notNull(),
+  amountCents: int("amountCents").notNull(),
+  status: mysqlEnum("status", ["pending", "succeeded", "failed"]).default("pending").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CoderSandboxPayment = typeof coderSandboxPayments.$inferSelect;
+
+/**
+ * GameForge sandbox — mirrors TechBuilder persistence.
+ */
+export const gameSandboxAccounts = mysqlTable("gameSandboxAccounts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  tierId: mysqlEnum("tierId", ["starter", "builder", "studio", "enterprise"])
+    .default("starter")
+    .notNull(),
+  usedBytes: int("usedBytes").default(0).notNull(),
+  learningJson: text("learningJson"),
+  upgradedAt: timestamp("upgradedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type GameSandboxAccount = typeof gameSandboxAccounts.$inferSelect;
+export type InsertGameSandboxAccount = typeof gameSandboxAccounts.$inferInsert;
+
+export const gameSandboxProjects = mysqlTable("gameSandboxProjects", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 120 }).notNull(),
+  description: text("description"),
+  framework: varchar("framework", { length: 64 }).default("Godot 4 / Unity").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type GameSandboxProjectRow = typeof gameSandboxProjects.$inferSelect;
+
+export const gameSandboxFiles = mysqlTable("gameSandboxFiles", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  projectId: varchar("projectId", { length: 64 }).notNull(),
+  userId: int("userId").notNull(),
+  path: varchar("path", { length: 512 }).notNull(),
+  content: text("content").notNull(),
+  language: varchar("language", { length: 32 }).notNull(),
+  sizeBytes: int("sizeBytes").notNull(),
+  storageKey: varchar("storageKey", { length: 512 }),
+  storageUrl: varchar("storageUrl", { length: 512 }),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type GameSandboxFileRow = typeof gameSandboxFiles.$inferSelect;
+
+export const gameSandboxPayments = mysqlTable("gameSandboxPayments", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  tierId: mysqlEnum("tierId", ["builder", "studio", "enterprise"]).notNull(),
+  paymentIntentId: varchar("paymentIntentId", { length: 128 }).notNull(),
+  amountCents: int("amountCents").notNull(),
+  status: mysqlEnum("status", ["pending", "succeeded", "failed"]).default("pending").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type GameSandboxPayment = typeof gameSandboxPayments.$inferSelect;

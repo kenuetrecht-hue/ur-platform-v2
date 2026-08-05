@@ -1,6 +1,7 @@
 import { z } from "zod";
 import axios from "axios";
 import { router, publicProcedure } from "./_core/trpc";
+import { applyAffiliateDisclosures } from "../lib/affiliate-disclosure";
 
 /**
  * AI Real Estate Master Router
@@ -129,9 +130,10 @@ const PropertySearchSchema = z.object({
 const synthesizeVoice = async (text: string, apiKey: string): Promise<string> => {
   try {
     const voiceId = "pNInz6obpgDGcFmaJgB"; // Professional male voice
+    const voiceText = applyAffiliateDisclosures(text, "voice").text;
     const response = await axios.post(
       `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-      { text, model_id: "eleven_monolingual_v1" },
+      { text: voiceText, model_id: "eleven_monolingual_v1" },
       { headers: { "xi-api-key": apiKey }, responseType: "arraybuffer" }
     );
     return Buffer.from(response.data).toString("base64");

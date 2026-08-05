@@ -14,6 +14,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, createTRPCClient } from "@/lib/trpc";
 import { AuthProvider } from "@/lib/auth-context";
 import { AuthRouteGuard } from "@/components/auth-route-guard";
+import { PlatformDisclosureFrame } from "@/components/platform-disclosure-frame";
 
 import "react-native-safe-area-context/src/SafeAreaContext";
 
@@ -43,7 +44,9 @@ export default function RootLayout() {
             <QueryClientProvider client={queryClient}>
               <AuthProvider>
                 <AuthRouteGuard>
-                  <Stack screenOptions={{ headerShown: false }} />
+                  <PlatformDisclosureFrame>
+                    <Stack screenOptions={{ headerShown: false }} />
+                  </PlatformDisclosureFrame>
                 </AuthRouteGuard>
               </AuthProvider>
               <StatusBar style="auto" />

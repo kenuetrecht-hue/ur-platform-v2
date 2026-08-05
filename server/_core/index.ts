@@ -7,6 +7,15 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import {
+  apiIpGuardMiddleware,
+  securityHeadersMiddleware,
+  strictCorsMiddleware,
+} from "./api-security";
+import { ENV, isOwnerEmailConfigured, assertProductionOwnerSecurity } from "./env";
+import { assertServerSecretsSafe, redactSecrets } from "./secrets";
+import { startForgeSessionJanitor } from "./forge-session-manager";
+import { getSharePreview } from "./forge-share-service";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -28,32 +37,23 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  assertServerSecretsSafe();
+  assertProductionOwnerSecurity();
+
   const app = express();
   const server = createServer(app);
 
-  // Enable CORS for all routes - reflect the request origin to support credentials
-  app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (origin) {
-      res.header("Access-Control-Allow-Origin", origin);
-    }
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Origin, X-Requested-With, Content-Type, Accept, Authorization",
-    );
-    res.header("Access-Control-Allow-Credentials", "true");
+  app.disable("x-powered-by");
+  app.set("trust proxy", 1);
 
-    // Handle preflight requests
-    if (req.method === "OPTIONS") {
-      res.sendStatus(200);
-      return;
-    }
-    next();
-  });
+  app.use(securityHeadersMiddleware);
+  app.use(strictCorsMiddleware);
 
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  // JSON body limit — large uploads should use dedicated storage routes
+  app.use(express.json({ limit: "1mb" }));
+  app.use(express.urlencoded({ limit: "1mb", extended: true }));
+
+  app.use("/api", apiIpGuardMiddleware);
 
   registerStorageProxy(app);
   registerOAuthRoutes(app);
@@ -62,11 +62,45 @@ async function startServer() {
     res.json({ ok: true, timestamp: Date.now() });
   });
 
+  app.get("/api/forge/share/:token", (req, res) => {
+    const preview = getSharePreview(req.params.token);
+    if (!preview) {
+      res.status(410).send("Share link expired or not found.");
+      return;
+    }
+    if (preview.preview.html) {
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", "no-store");
+      res.send(preview.preview.html);
+      return;
+    }
+    res.json({
+      projectName: preview.projectName,
+      preview: preview.preview,
+      expiresAt: preview.expiresAt,
+      readOnly: true,
+    });
+  });
+
   app.use(
     "/api/trpc",
     createExpressMiddleware({
       router: appRouter,
       createContext,
+      onError({ error, path, type, ctx }) {
+        if (ENV.isProduction) {
+          console.error(`[trpc] ${type} ${path ?? "unknown"}`, {
+            code: error.code,
+            requestId: ctx?.requestId,
+            ip: ctx?.ip,
+          });
+        } else {
+          console.error(
+            `[trpc] ${type} ${path ?? "unknown"}`,
+            redactSecrets(String(error.message ?? error)),
+          );
+        }
+      },
     }),
   );
 
@@ -79,6 +113,15 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`[api] server listening on port ${port}`);
+    startForgeSessionJanitor();
+    console.log(
+      `[env] Platform owner: ${isOwnerEmailConfigured() ? "configured" : "MISSING — set PLATFORM_OWNER_EMAIL in .env"}`,
+    );
+    if (port !== preferredPort) {
+      console.warn(
+        `[api] WARNING: App expects port ${preferredPort} (EXPO_PUBLIC_API_BASE_URL). Free port ${preferredPort} or update .env to :${port}`,
+      );
+    }
   });
 }
 

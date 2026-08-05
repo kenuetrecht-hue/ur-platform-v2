@@ -36,14 +36,45 @@ export default function DiscoverScreen() {
         <TabScreenHeader
           icon="🧭"
           title="Discover"
-          subtitle="Find creators, trending content, and marketplace deals."
+          subtitle="Find creators, trending content, and all AI specialists."
         />
+
+        <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+          <Pressable
+            onPress={() => router.push("/ais")}
+            style={{
+              backgroundColor: colors.primary,
+              borderRadius: 14,
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 14,
+            }}
+          >
+            <Text style={{ fontSize: 28 }}>🤖</Text>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ fontSize: 17, fontWeight: "700", color: "#fff" }}>
+                AI Hub — All Specialists
+              </Text>
+              <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.85)" }}>
+                Doctor, Security, Administration, construction, creative & more
+              </Text>
+            </View>
+            <IconSymbol name="chevron.right" size={18} color="#fff" />
+          </Pressable>
+        </View>
 
         <View style={{ paddingHorizontal: 16, gap: 10 }}>
           {subMenu.map((item) => (
             <Pressable
               key={item.id}
-              onPress={() => router.push("/(tabs)/messages")}
+              onPress={() => {
+                if (item.id === "marketplace") {
+                  router.push("/shop");
+                } else {
+                  router.push("/ais");
+                }
+              }}
               style={{
                 backgroundColor: colors.surface,
                 borderRadius: 14,

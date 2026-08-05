@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, Pressable, Alert, ScrollView } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, Link } from "expo-router";
 import { useAuth } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
@@ -138,6 +138,15 @@ export default function LoginScreen() {
               {loading ? "Signing in..." : "Sign In"}
             </Text>
           </Pressable>
+
+          <View style={{ alignItems: "center" }}>
+            <Text style={{ color: colors.muted, fontSize: 14 }}>
+              Don&apos;t have an account?{" "}
+              <Link href="/signup" style={{ color: colors.primary, fontWeight: "700" }}>
+                Sign up
+              </Link>
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </ScreenContainer>

@@ -2,7 +2,9 @@ import { z } from "zod";
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { publicProcedure, secureProcedure, ownerProcedure, router } from "./_core/trpc";
+import { assertOwnedResource } from "./_core/input-sanitize";
+import { mapServiceErrorToTrpc } from "./_core/service-errors";
 import * as db from "./db";
 import { initializeAIOmniEngine } from "./ai-omni-engine";
 import { aiLearningSystem, SubmitLearningEventSchema } from "./ai-learning-system";
@@ -10,16 +12,39 @@ import { voicePropertyRouter } from "./voice-property-router";
 import { ai3dSpecialistRouter } from "./ai-3d-specialist-router";
 import { webSearchRouter } from "./web-search-router";
 import { aiRealEstateRouter } from "./ai-real-estate-router";
+import { aiLanguageRouter } from "./ai-language-router";
 import { stampsPersistenceRouter } from "./routers/stamps-persistence";
+import { chatRouter } from "./routers/chat-router";
+import { aiCreatorChatRouter } from "./routers/ai-creator-chat-router";
+import { platformOpsRouter } from "./routers/platform-ops-router";
+import { equipmentRouter } from "./routers/equipment-router";
+import { aiLearningRouter } from "./routers/ai-learning-router";
+import { dailyEngagementRouter } from "./routers/daily-engagement-router";
+import { coderSandboxRouter } from "./routers/coder-sandbox-router";
+import { gameDevSandboxRouter } from "./routers/game-dev-sandbox-router";
+import { forgeAgentRouter } from "./routers/forge-agent-router";
+import { aiLiveSessionRouter } from "./routers/ai-live-session-router";
+import { partnerDashboardRouter } from "./routers/partner-dashboard-router";
+import { socialRouter } from "./routers/social-router";
+import { commerceRouter } from "./routers/commerce-router";
+import { destroyAllSessionsForUser } from "./_core/forge-session-manager";
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query((opts) => opts.ctx.user),
+    me: publicProcedure.query((opts) => ({
+      user: opts.ctx.user,
+      isPlatformOwner: opts.ctx.isPlatformOwner,
+      hasFullPlatformAccess: opts.ctx.isPlatformOwner,
+      hasFullAiAccess: opts.ctx.isPlatformOwner,
+    })),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      if (ctx.user?.id != null) {
+        void destroyAllSessionsForUser(String(ctx.user.id));
+      }
       return {
         success: true,
       } as const;
@@ -38,9 +63,9 @@ export const appRouter = router({
         };
       }),
 
-    submitLearning: protectedProcedure
+    submitLearning: ownerProcedure
       .input(SubmitLearningEventSchema)
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const result = await aiLearningSystem.submitLearningEvent(
           input.aiType,
           input.eventType,
@@ -48,49 +73,73 @@ export const appRouter = router({
           {
             confidence: input.confidence,
             tags: input.tags,
-            requiresApproval: input.requiresApproval,
-          }
+            requiresApproval: false,
+            userId: String(ctx.user.id),
+          },
         );
         return result;
       }),
 
-    approveLearning: protectedProcedure
-      .input(z.object({ eventId: z.string(), approvedBy: z.string() }))
-      .mutation(async ({ input }) => {
-        return await aiLearningSystem.approveLearningEvent(input.eventId, input.approvedBy);
+    approveLearning: ownerProcedure
+      .input(z.object({ eventId: z.string().max(128), approvedBy: z.string().max(128) }))
+      .mutation(async ({ input, ctx }) => {
+        return await aiLearningSystem.approveLearningEvent(
+          input.eventId,
+          String(ctx.user.id),
+        );
       }),
 
-    rejectLearning: protectedProcedure
-      .input(z.object({ eventId: z.string(), reason: z.string(), rejectedBy: z.string() }))
-      .mutation(async ({ input }) => {
-        return await aiLearningSystem.rejectLearningEvent(input.eventId, input.reason, input.rejectedBy);
+    rejectLearning: ownerProcedure
+      .input(
+        z.object({
+          eventId: z.string().max(128),
+          reason: z.string().max(500),
+          rejectedBy: z.string().max(128),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        return await aiLearningSystem.rejectLearningEvent(
+          input.eventId,
+          input.reason,
+          String(ctx.user.id),
+        );
       }),
 
-    getPendingApprovals: protectedProcedure
+    getPendingApprovals: ownerProcedure
       .input(z.object({ aiType: z.enum(["platform", "creator", "helper", "admin", "doctor"]).optional() }))
       .query(({ input }) => {
         return aiLearningSystem.getPendingApprovals(input.aiType);
       }),
 
-    getLearningEvents: protectedProcedure
-      .input(z.object({ aiType: z.enum(["platform", "creator", "helper", "admin", "doctor"]), limit: z.number().optional() }))
+    getLearningEvents: ownerProcedure
+      .input(
+        z.object({
+          aiType: z.enum(["platform", "creator", "helper", "admin", "doctor"]),
+          limit: z.number().min(1).max(100).optional(),
+        }),
+      )
       .query(({ input }) => {
         return aiLearningSystem.getLearningEvents(input.aiType, input.limit);
       }),
 
-    getAuditLog: protectedProcedure
-      .input(z.object({ aiType: z.enum(["platform", "creator", "helper", "admin", "doctor"]).optional(), limit: z.number().optional() }))
+    getAuditLog: ownerProcedure
+      .input(
+        z.object({
+          aiType: z.enum(["platform", "creator", "helper", "admin", "doctor"]).optional(),
+          limit: z.number().min(1).max(100).optional(),
+        }),
+      )
       .query(({ input }) => {
         return aiLearningSystem.getAuditLog(input.aiType, input.limit);
       }),
 
-    getStatistics: protectedProcedure
+    getStatistics: ownerProcedure
       .input(z.object({ aiType: z.enum(["platform", "creator", "helper", "admin", "doctor"]).optional() }))
       .query(({ input }) => {
         return aiLearningSystem.getStatistics(input.aiType);
       }),
 
-    getRateLimitStatus: protectedProcedure
+    getRateLimitStatus: ownerProcedure
       .input(z.object({ aiType: z.enum(["platform", "creator", "helper", "admin", "doctor"]) }))
       .query(({ input }) => {
         return aiLearningSystem.getRateLimitStatus(input.aiType);
@@ -100,11 +149,25 @@ export const appRouter = router({
   voiceProperty: voicePropertyRouter,
   ai3dSpecialist: ai3dSpecialistRouter,
   aiRealEstate: aiRealEstateRouter,
+  aiLanguage: aiLanguageRouter,
   webSearch: webSearchRouter,
 
   stamps: stampsPersistenceRouter,
+  chat: chatRouter,
+  aiCreators: aiCreatorChatRouter,
+  platformOps: platformOpsRouter,
+  equipment: equipmentRouter,
+  aiLearning: aiLearningRouter,
+  dailyEngagement: dailyEngagementRouter,
+  coderSandbox: coderSandboxRouter,
+  gameDevSandbox: gameDevSandboxRouter,
+  forgeAgent: forgeAgentRouter,
+  aiLiveSessions: aiLiveSessionRouter,
+  partnerDashboard: partnerDashboardRouter,
+  social: socialRouter,
+  commerce: commerceRouter,
   loyalty: router({
-    awardDailySignIn: protectedProcedure.mutation(async ({ ctx }) => {
+    awardDailySignIn: secureProcedure("loyalty").mutation(async ({ ctx }) => {
       const result = await db.awardDailySignInPoints(ctx.user.id);
       const loyaltyRecord = await db.getLoyaltyPoints(ctx.user.id);
       return {
@@ -116,25 +179,37 @@ export const appRouter = router({
       };
     }),
 
-    revealTicket: protectedProcedure
-      .input(z.object({ ticketId: z.number() }))
-      .mutation(async ({ input }) => {
-        const ticket = await db.revealScratchOffTicket(input.ticketId);
-        return {
-          prizeType: ticket.prizeType,
-          loyaltyPointsReward: ticket.loyaltyPointsReward,
-          drawingEntryCount: ticket.drawingEntryCount,
-        };
+    revealTicket: secureProcedure("loyalty")
+      .input(z.object({ ticketId: z.number().int().positive() }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const existing = await db.getScratchOffTicket(input.ticketId);
+          assertOwnedResource(existing?.userId, ctx.user.id);
+          const ticket = await db.revealScratchOffTicket(input.ticketId);
+          return {
+            prizeType: ticket.prizeType,
+            loyaltyPointsReward: ticket.loyaltyPointsReward,
+            drawingEntryCount: ticket.drawingEntryCount,
+          };
+        } catch (error) {
+          mapServiceErrorToTrpc(error);
+        }
       }),
 
-    claimPrize: protectedProcedure
-      .input(z.object({ ticketId: z.number() }))
-      .mutation(async ({ input }) => {
-        await db.claimScratchOffPrize(input.ticketId);
-        return { success: true };
+    claimPrize: secureProcedure("loyalty")
+      .input(z.object({ ticketId: z.number().int().positive() }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const existing = await db.getScratchOffTicket(input.ticketId);
+          assertOwnedResource(existing?.userId, ctx.user.id);
+          await db.claimScratchOffPrize(input.ticketId);
+          return { success: true };
+        } catch (error) {
+          mapServiceErrorToTrpc(error);
+        }
       }),
 
-    getSummary: protectedProcedure.query(async ({ ctx }) => {
+    getSummary: secureProcedure("loyalty").query(async ({ ctx }) => {
       const loyaltyRecord = await db.getLoyaltyPoints(ctx.user.id);
       return {
         totalPoints: loyaltyRecord?.totalPoints || 0,

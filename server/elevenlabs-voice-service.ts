@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { applyAffiliateDisclosures } from "../lib/affiliate-disclosure";
 
 /**
  * ElevenLabs Voice API Integration Service
@@ -73,6 +74,7 @@ export const ELEVENLABS_VOICE_CONFIGS: Record<string, AIPersonaVoiceConfig> = {
 export async function synthesizeVoice(
   request: VoiceSynthesisRequest,
 ): Promise<VoiceSynthesisResponse> {
+  const voiceText = applyAffiliateDisclosures(request.text, "voice").text;
   const apiKey = process.env.ELEVENLABS_API_KEY;
   
   if (!apiKey) {
@@ -82,7 +84,7 @@ export async function synthesizeVoice(
     );
     return {
       audioUrl: `https://mock-audio.urmedia.io/${request.voiceId}-${Date.now()}.mp3`,
-      duration: Math.ceil(request.text.length / 15), // Rough estimate: ~15 chars per second
+      duration: Math.ceil(voiceText.length / 15), // Rough estimate: ~15 chars per second
       format: "mp3",
       voiceId: request.voiceId,
       timestamp: Date.now(),
@@ -104,7 +106,7 @@ export async function synthesizeVoice(
           "xi-api-key": apiKey,
         },
         body: JSON.stringify({
-          text: request.text,
+          text: voiceText,
           model_id: request.modelId || voiceConfig.modelId,
           voice_settings: {
             stability: request.stability ?? voiceConfig.stability,
@@ -169,6 +171,8 @@ export async function streamVoiceSynthesis(
     throw new Error("ELEVENLABS_API_KEY not configured");
   }
 
+  const voiceText = applyAffiliateDisclosures(request.text, "voice").text;
+
   const voiceConfig = ELEVENLABS_VOICE_CONFIGS[request.voiceId] || {
     stability: 0.75,
     similarityBoost: 0.85,
@@ -183,7 +187,7 @@ export async function streamVoiceSynthesis(
         "xi-api-key": apiKey,
       },
       body: JSON.stringify({
-        text: request.text,
+        text: voiceText,
         model_id: request.modelId || voiceConfig.modelId,
         voice_settings: {
           stability: request.stability ?? voiceConfig.stability,

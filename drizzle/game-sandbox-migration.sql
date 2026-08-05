@@ -1,0 +1,45 @@
+-- GameForge sandbox persistence (mirrors coderSandbox tables)
+
+CREATE TABLE IF NOT EXISTS gameSandboxAccounts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  userId INT NOT NULL UNIQUE,
+  tierId ENUM('starter','builder','studio','enterprise') NOT NULL DEFAULT 'starter',
+  usedBytes INT NOT NULL DEFAULT 0,
+  learningJson TEXT,
+  upgradedAt TIMESTAMP NULL,
+  createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS gameSandboxProjects (
+  id VARCHAR(64) PRIMARY KEY,
+  userId INT NOT NULL,
+  name VARCHAR(120) NOT NULL,
+  description TEXT,
+  framework VARCHAR(64) NOT NULL DEFAULT 'Godot 4 / Unity',
+  createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS gameSandboxFiles (
+  id VARCHAR(64) PRIMARY KEY,
+  projectId VARCHAR(64) NOT NULL,
+  userId INT NOT NULL,
+  path VARCHAR(512) NOT NULL,
+  content TEXT NOT NULL,
+  language VARCHAR(32) NOT NULL,
+  sizeBytes INT NOT NULL,
+  storageKey VARCHAR(512),
+  storageUrl VARCHAR(512),
+  updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS gameSandboxPayments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  userId INT NOT NULL,
+  tierId ENUM('builder','studio','enterprise') NOT NULL,
+  paymentIntentId VARCHAR(128) NOT NULL,
+  amountCents INT NOT NULL,
+  status ENUM('pending','succeeded','failed') NOT NULL DEFAULT 'pending',
+  createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

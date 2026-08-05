@@ -10,6 +10,8 @@ import { DemoSection } from "@/components/demo-section";
 import { useDailySignIn } from "@/hooks/use-daily-signin";
 import { consolidatedNavigation } from "@/lib/consolidated-navigation";
 import { useRouter } from "expo-router";
+import { DailyHubPanel } from "@/components/daily-hub-panel";
+import { SocialFeedPreview } from "@/components/social-feed-preview";
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -42,6 +44,8 @@ export default function HomeScreen() {
           subtitle="Your creator hub — trending content, daily rewards, and quick actions."
         />
 
+        <DailyHubPanel />
+
         <View style={{ paddingHorizontal: 16, gap: 12 }}>
           <DemoSection
             title="Quick Actions"
@@ -51,13 +55,38 @@ export default function HomeScreen() {
           >
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
               {[
-                { label: "Create Content", route: "/(tabs)/create" as const },
-                { label: "Discover", route: "/(tabs)/discover" as const },
-                { label: "AI Assistant", route: "/(tabs)/messages" as const },
+                {
+                  label: "All AI Specialists",
+                  onPress: () => router.push("/ais"),
+                },
+                {
+                  label: "ContentMate",
+                  onPress: () =>
+                    router.push({
+                      pathname: "/ais",
+                      params: { group: "platform", ai: "contentmate" },
+                    }),
+                },
+                {
+                  label: "Create Content",
+                  onPress: () => router.push("/(tabs)/create"),
+                },
+                {
+                  label: "UR Shop",
+                  onPress: () => router.push("/shop"),
+                },
+                {
+                  label: "Social Feed",
+                  onPress: () => router.push("/(tabs)/messages"),
+                },
+                {
+                  label: "Discover",
+                  onPress: () => router.push("/(tabs)/discover"),
+                },
               ].map((action) => (
                 <Pressable
                   key={action.label}
-                  onPress={() => router.push(action.route)}
+                  onPress={action.onPress}
                   style={{
                     backgroundColor: colors.primary,
                     borderRadius: 20,
@@ -73,6 +102,15 @@ export default function HomeScreen() {
             </View>
           </DemoSection>
 
+          <DemoSection
+            title="Social Feed"
+            description="Public posts, likes, comments, and trending hashtags — free for everyone."
+            icon="📱"
+            variant="info"
+          >
+            <SocialFeedPreview />
+          </DemoSection>
+
           {homeTab?.subMenu?.map((item) => (
             <DemoSection
               key={item.id}
@@ -80,9 +118,11 @@ export default function HomeScreen() {
               description={`Explore ${item.label.toLowerCase()} on UR Platform.`}
               icon="📈"
             >
-              <Text style={{ color: colors.muted, fontSize: 14, marginTop: 4 }}>
-                Content feeds and recommendations coming soon.
-              </Text>
+              <Pressable onPress={() => router.push("/(tabs)/messages")}>
+                <Text style={{ color: colors.primary, fontSize: 14, marginTop: 4, fontWeight: "600" }}>
+                  View in Social Feed →
+                </Text>
+              </Pressable>
             </DemoSection>
           ))}
 

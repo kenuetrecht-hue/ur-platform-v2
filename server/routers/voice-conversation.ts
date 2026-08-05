@@ -137,7 +137,6 @@ export const voiceConversationRouter = router({
           input.aiAgentVoiceId
         );
 
-      // Generate animation sequence for the AI response
       const speechAnalysis =
         animationSyncEngine.analyzeSpeechForAnimation(response);
       const animationSequence = animationSyncEngine.generateAnimationSequence(

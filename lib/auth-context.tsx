@@ -15,7 +15,7 @@ import {
   setStoredUserJson,
 } from "./auth-storage";
 
-export type UserRole = "creator" | "worker" | "admin" | "3d-user";
+export type UserRole = "creator" | "worker" | "admin" | "3d-user" | "affiliate";
 
 export interface AuthUser {
   id: string;
@@ -61,11 +61,21 @@ type AuthAction =
   | { type: "SET_USER"; payload: AuthUser };
 
 function mapSupabaseUser(user: SupabaseUser): AuthUser {
+  const email = user.email || "";
+  const metaRole = user.user_metadata?.role as UserRole | undefined;
+  const role: UserRole =
+    metaRole === "creator" ||
+    metaRole === "worker" ||
+    metaRole === "admin" ||
+    metaRole === "3d-user" ||
+    metaRole === "affiliate"
+      ? metaRole
+      : "creator";
   return {
     id: user.id,
-    email: user.email || "",
-    name: user.user_metadata?.name || user.email?.split("@")[0] || "User",
-    role: user.user_metadata?.role || "creator",
+    email,
+    name: user.user_metadata?.name || email.split("@")[0] || "User",
+    role,
     avatar: user.user_metadata?.avatar,
   };
 }

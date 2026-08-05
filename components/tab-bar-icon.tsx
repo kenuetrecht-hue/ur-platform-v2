@@ -4,10 +4,11 @@ import type { ComponentProps } from "react";
 
 type TabIconName =
   | "house.fill"
+  | "sparkles"
+  | "person.fill"
   | "pencil.circle.fill"
   | "compass.fill"
-  | "bubble.right.fill"
-  | "person.fill";
+  | "bubble.right.fill";
 
 interface TabBarIconProps {
   name: TabIconName;

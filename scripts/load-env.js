@@ -47,3 +47,24 @@ for (const [systemVar, expoVar] of Object.entries(mappings)) {
     process.env[expoVar] = process.env[systemVar];
   }
 }
+
+// Never expose server-only secrets to the Expo client bundle
+const SERVER_ONLY_KEYS = [
+  "CONTENTMATE_GEMINI_API_KEY",
+  "GEMINI_API_KEY",
+  "GOOGLE_APPLICATION_CREDENTIALS",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "BUILT_IN_FORGE_API_KEY",
+  "JWT_SECRET",
+  "DATABASE_URL",
+];
+
+for (const key of SERVER_ONLY_KEYS) {
+  const publicKey = `EXPO_PUBLIC_${key}`;
+  if (process.env[publicKey]) {
+    delete process.env[publicKey];
+    console.warn(
+      `[load-env] Removed "${publicKey}" — API keys must use server-only "${key}".`,
+    );
+  }
+}

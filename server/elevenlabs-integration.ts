@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { applyAffiliateDisclosures } from "../lib/affiliate-disclosure";
 
 /**
  * ElevenLabs Voice API Integration
@@ -56,6 +57,8 @@ export class ElevenLabsVoiceService {
       similarityBoost: request.similarityBoost,
     });
 
+    const voiceText = applyAffiliateDisclosures(request.text, "voice").text;
+
     try {
       const response = await fetch(
         `${this.baseUrl}/text-to-speech/${config.voiceId}`,
@@ -66,7 +69,7 @@ export class ElevenLabsVoiceService {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            text: request.text,
+            text: voiceText,
             model_id: config.modelId,
             voice_settings: {
               stability: config.stability,
@@ -84,7 +87,7 @@ export class ElevenLabsVoiceService {
       const audioBase64 = Buffer.from(audioBuffer).toString("base64");
 
       // Calculate approximate duration (rough estimate: 150 words per minute)
-      const wordCount = request.text.split(/\s+/).length;
+      const wordCount = voiceText.split(/\s+/).length;
       const duration = (wordCount / 150) * 60;
 
       return {
@@ -155,6 +158,8 @@ export class ElevenLabsVoiceService {
       similarityBoost: request.similarityBoost,
     });
 
+    const voiceText = applyAffiliateDisclosures(request.text, "voice").text;
+
     const response = await fetch(
       `${this.baseUrl}/text-to-speech/${config.voiceId}/stream`,
       {
@@ -164,7 +169,7 @@ export class ElevenLabsVoiceService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          text: request.text,
+          text: voiceText,
           model_id: config.modelId,
           voice_settings: {
             stability: config.stability,
@@ -220,5 +225,17 @@ export const AI_PERSONA_VOICES = {
     name: "Compliance Doctor",
     stability: 0.65,
     similarityBoost: 0.8,
+  },
+  TECH_BUILDER: {
+    voiceId: "voice_model_senior_engineer_03",
+    name: "TechBuilder",
+    stability: 0.55,
+    similarityBoost: 0.82,
+  },
+  GAME_FORGE: {
+    voiceId: "voice_model_creative_director_02",
+    name: "GameForge",
+    stability: 0.6,
+    similarityBoost: 0.78,
   },
 };

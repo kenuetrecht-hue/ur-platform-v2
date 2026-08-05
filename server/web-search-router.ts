@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { secureProcedure, router } from "./_core/trpc";
 import { webSearchSecurityEngine } from "./web-search-security";
 
 /**
@@ -102,17 +102,15 @@ export const webSearchRouter = router({
    * - Validates results
    * - Returns verified sources
    */
-  search: publicProcedure
+  search: secureProcedure("webSearch")
     .input(WebSearchInputSchema)
     .output(WebSearchResponseSchema)
-    .mutation(async ({ input }: any) => {
-      const startTime = Date.now();
-
+    .mutation(async ({ input, ctx }) => {
       const result = await webSearchSecurityEngine.performSearch(
         input.query,
         input.aiId,
-        undefined,
-        input.category
+        String(ctx.user.id),
+        input.category,
       );
 
       return {
@@ -132,11 +130,14 @@ export const webSearchRouter = router({
    * - Indicates if rate limited
    * - Shows reset time
    */
-  getRateLimitStatus: publicProcedure
+  getRateLimitStatus: secureProcedure("webSearch")
     .input(RateLimitCheckSchema)
     .output(RateLimitStatusSchema)
-    .query(({ input }: any) => {
-      const status = webSearchSecurityEngine.getRateLimitStatus(input.aiId);
+    .query(({ input, ctx }) => {
+      const status = webSearchSecurityEngine.getRateLimitStatus(
+        input.aiId,
+        String(ctx.user.id),
+      );
 
       const totalLimit = 100; // Per hour
       const percentageUsed = (status.requestsUsed / totalLimit) * 100;
@@ -157,7 +158,7 @@ export const webSearchRouter = router({
    * - Indicates blocked searches and reasons
    * - Useful for debugging and monitoring
    */
-  getAuditLogs: protectedProcedure
+  getAuditLogs: secureProcedure("webSearch")
     .input(AuditLogQuerySchema)
     .output(z.array(AuditLogSchema))
     .query(({ input }: any) => {
@@ -180,7 +181,7 @@ export const webSearchRouter = router({
    * - Block rate percentage
    * - Success rate
    */
-  getStatistics: protectedProcedure
+  getStatistics: secureProcedure("webSearch")
     .input(z.object({ aiId: z.string().optional() }))
     .output(StatisticsSchema)
     .query(({ input }: any) => {
@@ -206,7 +207,7 @@ export const webSearchRouter = router({
    * - Pricing: search for cost information
    * - Standards: search for industry standards
    */
-  searchByCategory: publicProcedure
+  searchByCategory: secureProcedure("webSearch")
     .input(z.object({
       query: z.string().min(1).max(500),
       aiId: z.string(),
@@ -214,12 +215,12 @@ export const webSearchRouter = router({
       limit: z.number().min(1).max(20).default(10),
     }))
     .output(WebSearchResponseSchema)
-    .mutation(async ({ input }: any) => {
+    .mutation(async ({ input, ctx }) => {
       const result = await webSearchSecurityEngine.performSearch(
         input.query,
         input.aiId,
-        undefined,
-        input.category
+        String(ctx.user.id),
+        input.category,
       );
 
       return {
@@ -239,10 +240,10 @@ export const webSearchRouter = router({
    * - Validates SSL/TLS
    * - Checks for suspicious patterns
    */
-  verifyUrl: publicProcedure
+  verifyUrl: secureProcedure("webSearch")
     .input(z.object({
-      url: z.string().url(),
-      aiId: z.string(),
+      url: z.string().url().max(2048),
+      aiId: z.string().max(64),
     }))
     .output(z.object({
       url: z.string(),
@@ -277,10 +278,10 @@ export const webSearchRouter = router({
    * - Based on AI specialty
    * - Helps users find information faster
    */
-  getSearchRecommendations: publicProcedure
+  getSearchRecommendations: secureProcedure("webSearch")
     .input(z.object({
-      aiId: z.string(),
-      topic: z.string().optional(),
+      aiId: z.string().max(64),
+      topic: z.string().max(200).optional(),
     }))
     .output(z.object({
       aiId: z.string(),

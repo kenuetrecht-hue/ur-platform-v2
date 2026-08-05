@@ -18,6 +18,7 @@ import {
   generateCustomerServiceContent,
   generateProductContent,
   generateContentHelperContent,
+  generateTranslatorContent,
 } from "./ai-content-generators";
 
 export interface OmniCapabilities {
@@ -478,6 +479,24 @@ export const AILegalReferenceAssistant: AICreator = {
 
 
 
+function generateGenericContent(creator: AICreator): string {
+  const topics = creator.topics.slice(0, 3).join(", ") || creator.category;
+  return `✨ ${creator.name} — ${creator.category}
+
+Today's educational spotlight: ${topics}.
+
+${creator.bio}
+
+Here are practical ideas to explore:
+• Start with one focused question in your area of interest
+• Apply what you learn in a small, low-risk experiment
+• Share results and iterate with feedback
+
+This content is for entertainment and educational purposes. ${creator.disclaimer.slice(0, 120)}…
+
+Stay curious and keep learning! 🚀`;
+}
+
 /**
  * Generate human-like AI content for a creator
  */
@@ -508,9 +527,10 @@ export function generateAIContent(creator: AICreator): AIContent {
     "ai-customer-service-001": generateCustomerServiceContent,
     "ai-product-001": generateProductContent,
     "ai-content-helper-001": generateContentHelperContent,
+    "ai-translator-001": generateTranslatorContent,
   };
 
-  const generator = contentMap[creator.id] || (() => "");
+  const generator = contentMap[creator.id] ?? (() => generateGenericContent(creator));
   const content = generator();
 
   return {
@@ -1399,7 +1419,8 @@ export const AI3DSpecialist: AICreator = {
   rating: 4.9,
   updateFrequency: "Real-time",
   dataSource: "CAD Libraries, 3D Model Database, Design Trends",
-  disclaimer: "AI 3D Designer provides design suggestions and technical guidance. Always validate designs with professional engineers before production.",
+  disclaimer:
+    "⚠️ AI-Generated Content: This 3D design assistant is powered by artificial intelligence. For entertainment and educational purposes only. Always validate designs with professional engineers before production.",
   topics: [
     "3D Modeling",
     "CAD Design",
@@ -1473,9 +1494,39 @@ export const AIContentCreatorHelper: AICreator = {
 };
 
 /**
- * All AI Creators (24 total)
- * Includes 10 original creators + 14 Tier 1 Educational AI Specialists
+ * All AI Creators (25 total)
+ * Includes 10 original creators + 14 Tier 1 Educational AI Specialists + Language AI
  */
+export const AIUniversalTranslator: AICreator = {
+  id: "ai-translator-001",
+  name: "AI Universal Language Translator & Teacher",
+  title: "100+ Languages & Real-Time Translation",
+  description:
+    "Expert translator and language teacher supporting 100+ languages with bidirectional translation, interactive lessons, and cultural context",
+  handle: "@universal_translator",
+  avatar: "🌍",
+  bio: "Advanced AI translator and language learning specialist. Fluent in 100+ languages. Provides real-time bidirectional translation, interactive language lessons, pronunciation guides, grammar practice, and conversation coaching.",
+  category: "Language & Communication",
+  tier: "platinum",
+  price: 7.99,
+  followers: 12500,
+  rating: 4.95,
+  updateFrequency: "Real-time",
+  dataSource: "Global language databases, cultural context, current idioms, web resources",
+  disclaimer:
+    "⚠️ AI-Generated Content: For entertainment and educational purposes only. For critical business or legal translations, consult with professional human translators.",
+  topics: [
+    "Real-Time Translation",
+    "Language Learning",
+    "Pronunciation Guide",
+    "Grammar Practice",
+    "Cultural Context",
+    "Conversation Coaching",
+  ],
+  contentStyle: "Clear, Supportive, Educational, Culturally-Aware",
+  omniCapabilities: OMNI_CAPABILITIES_TEMPLATE,
+};
+
 export const ALL_AI_CREATORS: AICreator[] = [
   // Original 10 AI Creators
   AIWellnessCoach,
@@ -1504,15 +1555,13 @@ export const ALL_AI_CREATORS: AICreator[] = [
   AIProductManager,
   AIContentCreatorHelper,
   AI3DSpecialist,
+  AIUniversalTranslator,
 ];
 
-
 /**
- * ============================================================================
- * TIER 2: Advanced Specialized AIs (6 new AIs)
+ * Tier 2: Advanced Specialized AIs (6 AIs)
  * All with learning, memory, web surfing, photo analysis, problem-solving
  * Full 3D workspace integration and certification study capabilities
- * ============================================================================
  */
 
 export const AIRoboticsEngineer: AICreator = {
@@ -1686,38 +1735,8 @@ export const AISeismicAnalyst: AICreator = {
   omniCapabilities: OMNI_CAPABILITIES_TEMPLATE,
 };
 
-export const AIUniversalTranslator: AICreator = {
-  id: "ai-translator-001",
-  name: "AI Universal Language Translator & Teacher",
-  title: "100+ Languages & Real-Time Translation",
-  description: "Expert translator and language teacher supporting 100+ languages with bidirectional translation, interactive lessons, and cultural context",
-  handle: "@universal_translator",
-  avatar: "🌍",
-  bio: "Advanced AI translator and language learning specialist. Fluent in 100+ languages including English, Spanish, French, German, Italian, Dutch, Chinese, Japanese, Arabic, Portuguese, Russian, Korean, Thai, Vietnamese, and many more. Provides real-time bidirectional translation, interactive language lessons, pronunciation guides, grammar practice, conversation coaching, and photo/menu translation. Perfect for international business, travel, content creation, and personal language learning. Learns user terminology and maintains conversation history across languages.",
-  category: "Language & Communication",
-  tier: "platinum",
-  price: 7.99,
-  followers: 12500,
-  rating: 4.95,
-  updateFrequency: "Real-time",
-  dataSource: "Global language databases, cultural context, current idioms, web resources",
-  disclaimer: "⚠️ AI-Generated Content: This universal translator is powered by artificial intelligence and is provided for entertainment and educational purposes only. For critical business or legal translations, consult with professional human translators.",
-  topics: [
-    "Real-Time Translation",
-    "Language Learning",
-    "Pronunciation Guide",
-    "Grammar Practice",
-    "Photo Translation",
-    "Cultural Context",
-    "Conversation Coaching",
-    "International Communication",
-  ],
-  contentStyle: "Clear, Supportive, Educational, Culturally-Aware",
-  omniCapabilities: OMNI_CAPABILITIES_TEMPLATE,
-};
-
 /**
- * Updated ALL_AI_CREATORS array with 7 new AIs (31 total)
+ * Extended roster including Tier 2 engineering AIs (31 total)
  */
 export const ALL_AI_CREATORS_WITH_NEW: AICreator[] = [
   // Original 10 AI Creators

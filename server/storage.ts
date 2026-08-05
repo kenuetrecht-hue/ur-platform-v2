@@ -71,6 +71,23 @@ export async function storagePut(
   return { key, url: `/manus-storage/${key}` };
 }
 
+/** Best-effort delete — used when forge sessions end (ephemeral cloud wipe). */
+export async function storageDeleteBestEffort(relKey: string): Promise<boolean> {
+  try {
+    const { forgeUrl, forgeKey } = getForgeConfig();
+    const key = normalizeKey(relKey);
+    const deleteUrl = new URL("v1/storage/delete", forgeUrl + "/");
+    deleteUrl.searchParams.set("path", key);
+    const resp = await fetch(deleteUrl, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${forgeKey}` },
+    });
+    return resp.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
   const key = normalizeKey(relKey);
   return { key, url: `/manus-storage/${key}` };

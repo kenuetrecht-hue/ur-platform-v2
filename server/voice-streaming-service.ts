@@ -5,6 +5,7 @@
  */
 
 import { z } from "zod";
+import { applyAffiliateDisclosures } from "../lib/affiliate-disclosure";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -192,13 +193,14 @@ export class RealTimeVoiceStreamingService {
     session.status = "processing";
 
     // Get AI response text (this would call your AI backend)
-    const aiResponse = await this.getAIResponse(userMessage);
+    const aiResponseRaw = await this.getAIResponse(userMessage);
+    const { text: aiResponse } = applyAffiliateDisclosures(aiResponseRaw, "text");
     session.aiResponse = aiResponse;
 
-    // Synthesize AI response to speech
     session.status = "speaking";
+    const { text: voiceScript } = applyAffiliateDisclosures(aiResponseRaw, "voice");
     const audioUrl = await this.synthesizeToSpeech(
-      aiResponse,
+      voiceScript,
       aiAgentVoiceId
     );
     session.audioUrl = audioUrl;

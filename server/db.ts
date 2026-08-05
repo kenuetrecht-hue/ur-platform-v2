@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { isOwnerOpenId, isOwnerEmail, resolveUserRole } from "./_core/owner-auth";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -53,9 +54,10 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = user.lastSignedIn;
     }
     if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
+      const role = resolveUserRole(user.openId, user.email ?? null);
+      values.role = role;
+      updateSet.role = role;
+    } else if (isOwnerOpenId(user.openId) || isOwnerEmail(user.email)) {
       values.role = "admin";
       updateSet.role = "admin";
     }
@@ -84,9 +86,13 @@ export async function getUserByOpenId(openId: string) {
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
-  return result.length > 0 ? result[0] : undefined;
+  try {
+    const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.warn("[Database] Failed to get user by openId:", error);
+    return undefined;
+  }
 }
 
 // TODO: add feature queries here as your schema grows.

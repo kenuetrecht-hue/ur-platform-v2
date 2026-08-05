@@ -57,29 +57,11 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="create"
+        name="ais"
         options={{
-          title: "Create",
+          title: "AIs",
           tabBarIcon: ({ focused }) => (
-            <TabBarIcon name="pencil.circle.fill" focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="discover"
-        options={{
-          title: "Discover",
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon name="compass.fill" focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="messages"
-        options={{
-          title: "Messages",
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon name="bubble.right.fill" focused={focused} />
+            <TabBarIcon name="sparkles" focused={focused} />
           ),
         }}
       />
@@ -92,6 +74,18 @@ export default function TabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: "Social",
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon name="bubble.right.fill" focused={focused} />
+          ),
+        }}
+      />
+      {/* Legacy routes — still reachable via Home quick actions, hidden from tab bar */}
+      <Tabs.Screen name="create" options={{ href: null }} />
+      <Tabs.Screen name="discover" options={{ href: null }} />
     </Tabs>
   );
 }

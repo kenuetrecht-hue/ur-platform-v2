@@ -1,9 +1,25 @@
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(__dirname, "../..");
+
+// Always load ur-platform-v2/.env regardless of shell cwd (e.g. running from app/)
+dotenv.config({ path: path.join(projectRoot, ".env") });
+
 export const ENV = {
   appId: process.env.VITE_APP_ID ?? "",
   cookieSecret: process.env.JWT_SECRET ?? "",
   databaseUrl: process.env.DATABASE_URL ?? "",
   oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
+  /** Supabase auth user UUID for platform owner (without supabase: prefix) */
+  platformOwnerSupabaseId: process.env.PLATFORM_OWNER_SUPABASE_ID ?? "",
+  /** Platform owner email — only this account gets admin elevation */
+  platformOwnerEmail: process.env.PLATFORM_OWNER_EMAIL ?? "",
+  /** Platform owner display name */
+  platformOwnerName: process.env.PLATFORM_OWNER_NAME ?? "",
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
@@ -16,4 +32,32 @@ export const ENV = {
     process.env.SUPABASE_ANON_KEY ??
     process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
     "",
+  /** Google Cloud Vertex AI — server-only. Auth via GOOGLE_APPLICATION_CREDENTIALS. */
+  googleCloudProject: process.env.GOOGLE_CLOUD_PROJECT ?? "",
+  googleCloudLocation: process.env.GOOGLE_CLOUD_LOCATION ?? "us-central1",
+  googleGeminiModel:
+    process.env.GOOGLE_GEMINI_MODEL ?? "gemini-1.5-flash-002",
+  googleImagenModel:
+    process.env.GOOGLE_IMAGEN_MODEL ?? "imagen-3.0-generate-002",
+  /** Max minutes a forge cloud workspace may live before automatic wipe */
+  forgeSessionTtlMinutes: parseInt(process.env.FORGE_SESSION_TTL_MINUTES ?? "30", 10),
+  /** Optional server GitHub PAT for forge repo sync */
+  githubToken: process.env.GITHUB_TOKEN ?? "",
 };
+
+export function isOwnerEmailConfigured(): boolean {
+  return Boolean(
+    ENV.platformOwnerEmail.trim() || ENV.platformOwnerSupabaseId.trim(),
+  );
+}
+
+/** Fail closed in production if owner identity is not configured. */
+export function assertProductionOwnerSecurity(): void {
+  if (!ENV.isProduction) return;
+  if (!isOwnerEmailConfigured()) {
+    console.error(
+      "[Security] FATAL: PLATFORM_OWNER_EMAIL or PLATFORM_OWNER_SUPABASE_ID must be set in production.",
+    );
+    process.exit(1);
+  }
+}

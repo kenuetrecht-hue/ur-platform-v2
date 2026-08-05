@@ -7,6 +7,8 @@
  * Fallback: Uses Web Speech API (free, works everywhere)
  */
 
+import { applyAffiliateDisclosures } from "./affiliate-disclosure";
+
 interface AzureTTSOptions {
   voice?: string;
   rate?: number;
@@ -272,7 +274,8 @@ export async function speakText(
   voice?: string
 ): Promise<void> {
   try {
-    await azureTTSService.synthesizeToSpeech(text, { voice });
+    const { text: voiceText } = applyAffiliateDisclosures(text, "voice");
+    await azureTTSService.synthesizeToSpeech(voiceText, { voice });
   } catch (error) {
     console.error("Failed to speak text:", error);
     throw error;

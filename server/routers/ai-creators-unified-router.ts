@@ -2,19 +2,9 @@ import { publicProcedure, router } from "@/server/_core/trpc";
 import { z } from "zod";
 
 /**
- * Unified AI Creators Router
- * Provides endpoints for all 11 AI content creators:
- * 1. Plumber AI
- * 2. Electrician AI
- * 3. Welder AI
- * 4. Roofer AI
- * 5. Dry Waller AI
- * 6. Framer AI
- * 7. HVAC Technician AI
- * 8. Landscaper AI
- * 9. Coder AI
- * 10. 3D Printing AI
- * 11. Content Creator AI
+ * @deprecated DO NOT REGISTER — legacy stub router with insecure publicProcedure + client userId.
+ * Production AI creators use `aiCreatorChatRouter` (aiCreators.*) and `aiLearningRouter` (aiLearning.*).
+ * Photo/3D/troubleshooting endpoints should be added to ai-creator-chat-router when implemented.
  */
 
 const AI_TYPES = [
