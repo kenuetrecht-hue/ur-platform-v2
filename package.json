@@ -4,8 +4,8 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
-    "predev": "node scripts/free-dev-ports.mjs",
-    "dev": "concurrently --kill-others-on-fail \"pnpm dev:server\" \"pnpm dev:metro\" \"node scripts/print_qr_terminal.mjs\"",
+    "predev": "node scripts/free-dev-ports.mjs && node scripts/print_qr_terminal.mjs",
+    "dev": "concurrently --names api,metro --prefix-colors blue,magenta \"pnpm dev:server\" \"pnpm dev:metro\"",
     "dev:server": "cross-env NODE_ENV=development tsx watch server/_core/index.ts",
     "dev:metro": "cross-env EXPO_USE_METRO_WORKSPACE_ROOT=1 expo start --lan --port 8082",
     "start:expo": "cross-env EXPO_USE_METRO_WORKSPACE_ROOT=1 expo start --lan --port 8082",

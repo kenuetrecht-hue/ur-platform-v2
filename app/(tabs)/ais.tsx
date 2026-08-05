@@ -1,597 +1,384 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-
 import {
-
   View,
-
   Text,
-
   TextInput,
-
   ActivityIndicator,
-
   StyleSheet,
-
   Pressable,
-
+  ScrollView,
 } from "react-native";
-
 import { useLocalSearchParams, useRouter } from "expo-router";
-
 import { useColors } from "@/hooks/use-colors";
-
 import { ScreenContainer } from "@/components/screen-container";
-
 import { TabScreenHeader } from "@/components/tab-screen-header";
-
 import { AiHubTabRow } from "@/components/ai-hub-tab-row";
-
 import { AiSpecialistPicker } from "@/components/ai-specialist-picker";
-
 import { AiCreatorPanel } from "@/components/ai-creator-panel";
-
-import { AIDisclosureWrapper } from "@/components/ai-disclosure-wrapper";
-
 import {
-
   AI_CREATOR_CATALOG,
-
   type AiCreatorCatalogEntry,
-
 } from "@/lib/ai-creator-catalog";
-
 import {
-
   AI_HUB_CATEGORY_GROUPS,
-
   filterCreatorsByGroup,
-
 } from "@/lib/ai-hub-navigation";
-
 import { OWNER_OPS_AI_IDS, isOwnerOpsAiId } from "@/lib/owner-platform-ops-catalog";
-
 import { trpc } from "@/lib/trpc";
-
-
-
-/** Strip owner-only ops AIs — those live in Administration Dashboard only. */
+import { HiveTownHallPanel } from "@/components/hive-town-hall-panel";
 
 function publicCreatorsOnly(list: AiCreatorCatalogEntry[]): AiCreatorCatalogEntry[] {
-
   return list.filter((c) => !OWNER_OPS_AI_IDS.includes(c.id));
-
 }
 
-
-
 export default function AIsScreen() {
-
   const colors = useColors();
-
   const router = useRouter();
-
   const params = useLocalSearchParams<{ group?: string; ai?: string; prompt?: string }>();
-
-  const { data, isLoading, isError } = trpc.aiCreators.list.useQuery(undefined, {
-
-    staleTime: 60_000,
-
-    retry: 1,
-
-  });
-
-
-
-  const creators = useMemo<AiCreatorCatalogEntry[]>(() => {
-
-    if (data?.creators?.length) {
-
-      return publicCreatorsOnly(
-
-        data.creators.map((c) => ({
-
-          id: c.id,
-
-          name: c.name,
-
-          avatar: c.avatar,
-
-          category: c.category,
-
-          mission: c.mission,
-
-        })),
-
-      );
-
-    }
-
-    return publicCreatorsOnly([...AI_CREATOR_CATALOG]);
-
-  }, [data]);
-
-
-
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [hubMode, setHubMode] = useState<"chat" | "townHall">("chat");
   const [categoryGroup, setCategoryGroup] = useState("platform");
-
   const [selectedAiId, setSelectedAiId] = useState<string>("contentmate");
-
   const [searchQuery, setSearchQuery] = useState("");
 
+  const { data, isLoading, isError } = trpc.aiCreators.list.useQuery(undefined, {
+    staleTime: 60_000,
+    retry: 1,
+  });
 
+  const creators = useMemo<AiCreatorCatalogEntry[]>(() => {
+    if (data?.creators?.length) {
+      return publicCreatorsOnly(
+        data.creators.map((c) => ({
+          id: c.id,
+          name: c.name,
+          avatar: c.avatar,
+          category: c.category,
+          mission: c.mission,
+        })),
+      );
+    }
+    return publicCreatorsOnly([...AI_CREATOR_CATALOG]);
+  }, [data]);
 
   const categoryTabs = useMemo(
-
     () =>
-
       AI_HUB_CATEGORY_GROUPS.map((g) => ({
-
         id: g.id,
-
         label: g.label,
-
         emoji: g.emoji,
-
       })),
-
     [],
-
   );
-
-
 
   const filteredCreators = useMemo(
-
     () => filterCreatorsByGroup(creators, categoryGroup, searchQuery),
-
     [creators, categoryGroup, searchQuery],
-
   );
-
-
 
   const selectedCreator = useMemo(
-
     () => creators.find((c) => c.id === selectedAiId) ?? null,
-
     [creators, selectedAiId],
-
   );
 
+  const creatorWelcomeMessage = useMemo(() => {
+    if (!selectedCreator) return undefined;
+    return `Hi! I'm ${selectedCreator.name}. ${selectedCreator.mission} Ask me anything in my area — any language.`;
+  }, [selectedCreator?.id, selectedCreator?.name, selectedCreator?.mission]);
 
+  const creatorInitialPrompt = useMemo(() => {
+    if (!selectedCreator || params.ai !== selectedCreator.id) return undefined;
+    return typeof params.prompt === "string" ? params.prompt : undefined;
+  }, [params.ai, params.prompt, selectedCreator?.id]);
 
   const selectCategory = useCallback(
-
     (groupId: string) => {
-
       if (groupId === "ownerOps") return;
-
       setCategoryGroup(groupId);
-
       const inGroup = filterCreatorsByGroup(creators, groupId, searchQuery);
-
       if (inGroup.length > 0) {
-
         setSelectedAiId(inGroup[0]!.id);
-
       }
-
     },
-
     [creators, searchQuery],
-
   );
 
-
+  const pickSpecialist = useCallback((id: string) => {
+    setSelectedAiId(id);
+    setCatalogOpen(false);
+  }, []);
 
   useEffect(() => {
-
     if (typeof params.ai === "string" && isOwnerOpsAiId(params.ai)) {
-
       router.replace("/owner-ops");
-
       return;
-
     }
-
     if (typeof params.group === "string" && params.group === "ownerOps") {
-
       router.replace("/owner-ops");
-
       return;
-
     }
-
     if (typeof params.group === "string" && params.group) {
-
       selectCategory(params.group);
-
     }
-
   }, [params.group, params.ai, selectCategory, router]);
 
-
-
   useEffect(() => {
-
     if (typeof params.ai !== "string" || !params.ai || isOwnerOpsAiId(params.ai)) return;
-
     const creator = creators.find((c) => c.id === params.ai);
-
     if (!creator) return;
-
     setSelectedAiId(params.ai);
-
+    setCatalogOpen(false);
     const group = AI_HUB_CATEGORY_GROUPS.find(
-
       (g) => g.categories.length > 0 && g.categories.includes(creator.category),
-
     );
-
     if (group) {
-
       setCategoryGroup(group.id);
-
     }
-
   }, [params.ai, creators]);
 
-
-
   useEffect(() => {
-
     if (filteredCreators.length === 0) return;
-
     const visible = filteredCreators.some((c) => c.id === selectedAiId);
-
     if (!visible) {
-
       setSelectedAiId(filteredCreators[0]!.id);
-
     }
-
   }, [filteredCreators, selectedAiId]);
-
-
 
   const totalCount = data?.total ?? AI_CREATOR_CATALOG.length;
 
-
-
   return (
-
-    <ScreenContainer className="bg-background" edges={["top", "left", "right"]}>
-
+    <ScreenContainer className="bg-background">
       <View style={styles.root}>
-
         <TabScreenHeader
-
           icon="🤖"
-
           title="AI Specialists"
-
-          subtitle={`${totalCount} experts — chat or tap Learn to study the trade.`}
-
+          subtitle={
+            hubMode === "townHall"
+              ? "Town Hall — talk to the whole panel at once."
+              : `${totalCount} experts — tap Chat, type, Send.`
+          }
         />
 
-
-
-        <Pressable
-
-          onPress={() => router.push("/3d-workspace")}
-
-          style={[
-
-            styles.ownerLink,
-
-            { backgroundColor: colors.surface, borderColor: colors.border },
-
-          ]}
-
-        >
-
-          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
-
-            🎮 3D Workspace & Print Lab — design merchandise, connect your printer
-
-          </Text>
-
-        </Pressable>
-
-
-
-        <View style={styles.catalogSection}>
-
-          <TextInput
-
-            value={searchQuery}
-
-            onChangeText={setSearchQuery}
-
-            placeholder="Search specialists…"
-
-            placeholderTextColor={colors.muted}
-
+        <View style={[styles.modeRow, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+          <Pressable
+            onPress={() => setHubMode("chat")}
             style={[
-
-              styles.search,
-
-              {
-
-                backgroundColor: colors.surface,
-
-                borderColor: colors.border,
-
-                color: colors.foreground,
-
-              },
-
+              styles.modeBtn,
+              hubMode === "chat" && { backgroundColor: colors.primary },
             ]}
-
-          />
-
-
-
-          <AiHubTabRow
-
-            tabs={categoryTabs}
-
-            activeId={categoryGroup}
-
-            onSelect={selectCategory}
-
-          />
-
-
-
-          {isLoading && !data ? (
-
-            <ActivityIndicator style={{ marginVertical: 8 }} color={colors.primary} />
-
-          ) : null}
-
-
-
-          {isError ? (
-
-            <Text style={[styles.hint, { color: colors.muted }]}>
-
-              Using offline catalog — chat still works when connected.
-
+          >
+            <Text style={{ color: hubMode === "chat" ? "#fff" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
+              💬 1:1 Chat
             </Text>
-
-          ) : null}
-
-
-
-          {filteredCreators.length > 0 ? (
-
-            <>
-
-              <Text style={[styles.sectionLabel, { color: colors.foreground }]}>
-
-                {AI_HUB_CATEGORY_GROUPS.find((g) => g.id === categoryGroup)?.emoji ?? "✨"}{" "}
-
-                {AI_HUB_CATEGORY_GROUPS.find((g) => g.id === categoryGroup)?.label ?? "All"}
-
-                <Text style={{ color: colors.muted, fontWeight: "500" }}>
-
-                  {" "}
-
-                  · {filteredCreators.length} specialist
-
-                  {filteredCreators.length === 1 ? "" : "s"}
-
-                </Text>
-
-              </Text>
-
-              <AiSpecialistPicker
-
-                specialists={filteredCreators}
-
-                selectedId={selectedAiId}
-
-                onSelect={setSelectedAiId}
-
-              />
-
-            </>
-
-          ) : (
-
-            <Text style={[styles.emptyText, { color: colors.muted }]}>
-
-              No specialists in this category. Try another tab or search term.
-
+          </Pressable>
+          <Pressable
+            onPress={() => setHubMode("townHall")}
+            style={[
+              styles.modeBtn,
+              hubMode === "townHall" && { backgroundColor: colors.primary },
+            ]}
+          >
+            <Text
+              style={{
+                color: hubMode === "townHall" ? "#fff" : colors.foreground,
+                fontWeight: "700",
+                fontSize: 12,
+              }}
+            >
+              🏛️ Town Hall
             </Text>
-
-          )}
-
+          </Pressable>
         </View>
 
-
-
-        <View style={styles.chatArea}>
-
-          {selectedCreator ? (
-
-            <AIDisclosureWrapper aiName={selectedCreator.name}>
-
-              <AiCreatorPanel
-
-                key={selectedCreator.id}
-
-                creatorId={selectedCreator.id}
-
-                creatorName={selectedCreator.name}
-
-                creatorAvatar={selectedCreator.avatar}
-
-                welcomeMessage={`Hi! I'm ${selectedCreator.name}. ${selectedCreator.mission} Ask me anything in my area — any language.`}
-
-                initialPrompt={
-
-                  params.ai === selectedCreator.id && typeof params.prompt === "string"
-
-                    ? params.prompt
-
-                    : undefined
-
-                }
-
-              />
-
-            </AIDisclosureWrapper>
-
-          ) : (
-
-            <View style={[styles.placeholder, { borderColor: colors.border }]}>
-
-              <Text style={{ color: colors.muted, textAlign: "center" }}>
-
-                Select a specialist above to start chatting.
-
+        {hubMode === "townHall" ? (
+          <View style={styles.chatArea}>
+            <HiveTownHallPanel />
+          </View>
+        ) : (
+          <>
+        {selectedCreator && !catalogOpen ? (
+          <Pressable
+            onPress={() => setCatalogOpen(true)}
+            style={[
+              styles.selectedBar,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text style={{ fontSize: 20 }}>{selectedCreator.avatar}</Text>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14 }} numberOfLines={1}>
+                {selectedCreator.name}
               </Text>
-
+              <Text style={{ color: colors.muted, fontSize: 11 }} numberOfLines={1}>
+                Tap to change specialist
+              </Text>
+            </View>
+            <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>Browse ▼</Text>
+          </Pressable>
+        ) : (
+          <ScrollView
+            style={styles.catalogScroll}
+            contentContainerStyle={styles.catalogContent}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+          >
+            <View style={styles.catalogHeader}>
+              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
+                Choose a specialist
+              </Text>
+              {selectedCreator ? (
+                <Pressable onPress={() => setCatalogOpen(false)} hitSlop={8}>
+                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>Done ▲</Text>
+                </Pressable>
+              ) : null}
             </View>
 
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search specialists…"
+              placeholderTextColor={colors.muted}
+              style={[
+                styles.search,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  color: colors.foreground,
+                },
+              ]}
+            />
+
+            <AiHubTabRow tabs={categoryTabs} activeId={categoryGroup} onSelect={selectCategory} />
+
+            {isLoading && !data ? (
+              <ActivityIndicator style={{ marginVertical: 8 }} color={colors.primary} />
+            ) : null}
+
+            {isError ? (
+              <Text style={[styles.hint, { color: colors.muted }]}>
+                Using offline catalog — chat still works when connected.
+              </Text>
+            ) : null}
+
+            {filteredCreators.length > 0 ? (
+              <AiSpecialistPicker
+                specialists={filteredCreators}
+                selectedId={selectedAiId}
+                onSelect={pickSpecialist}
+              />
+            ) : (
+              <Text style={[styles.emptyText, { color: colors.muted }]}>
+                No specialists in this category.
+              </Text>
+            )}
+          </ScrollView>
+        )}
+
+        <View style={styles.chatArea}>
+          {selectedCreator ? (
+            <AiCreatorPanel
+              key={selectedCreator.id}
+              creatorId={selectedCreator.id}
+              creatorName={selectedCreator.name}
+              creatorAvatar={selectedCreator.avatar}
+              hideChatHeader
+              welcomeMessage={creatorWelcomeMessage}
+              initialPrompt={creatorInitialPrompt}
+            />
+          ) : (
+            <View style={[styles.placeholder, { borderColor: colors.border }]}>
+              <Text style={{ color: colors.muted, textAlign: "center" }}>
+                Select a specialist to start chatting.
+              </Text>
+            </View>
           )}
-
         </View>
-
+          </>
+        )}
       </View>
-
     </ScreenContainer>
-
   );
-
 }
 
-
-
 const styles = StyleSheet.create({
-
   root: {
-
     flex: 1,
-
     minHeight: 0,
-
   },
-
-  catalogSection: {
-
-    flexShrink: 0,
-
-    flexGrow: 0,
-
-  },
-
-  search: {
-
+  modeRow: {
+    flexDirection: "row",
+    gap: 8,
     marginHorizontal: 12,
-
-    marginBottom: 6,
-
-    borderRadius: 12,
-
-    borderWidth: 1,
-
-    paddingHorizontal: 14,
-
-    paddingVertical: 10,
-
-    fontSize: 15,
-
-  },
-
-  ownerLink: {
-
-    marginHorizontal: 12,
-
     marginBottom: 8,
-
+    padding: 4,
     borderRadius: 12,
-
-    borderWidth: 1.5,
-
-    paddingVertical: 10,
-
-    paddingHorizontal: 12,
-
-    alignItems: "center",
-
-  },
-
-  sectionLabel: {
-
-    fontSize: 14,
-
-    fontWeight: "700",
-
-    paddingHorizontal: 16,
-
-    paddingTop: 6,
-
-    paddingBottom: 2,
-
-    lineHeight: 20,
-
-  },
-
-  hint: {
-
-    fontSize: 12,
-
-    paddingHorizontal: 16,
-
-    paddingBottom: 4,
-
-  },
-
-  chatArea: {
-
-    flex: 1,
-
-    minHeight: 200,
-
-    paddingHorizontal: 12,
-
-    paddingTop: 8,
-
-    paddingBottom: 4,
-
-  },
-
-  placeholder: {
-
-    flex: 1,
-
-    borderRadius: 14,
-
     borderWidth: 1,
-
-    borderStyle: "dashed",
-
+  },
+  modeBtn: {
+    flex: 1,
     alignItems: "center",
-
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  selectedBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginHorizontal: 12,
+    marginBottom: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  catalogScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+    maxHeight: 260,
+  },
+  catalogContent: {
+    paddingBottom: 8,
+  },
+  catalogHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 6,
+  },
+  search: {
+    marginHorizontal: 12,
+    marginBottom: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+  },
+  hint: {
+    fontSize: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 4,
+  },
+  chatArea: {
+    flex: 1,
+    minHeight: 200,
+    paddingHorizontal: 4,
+    paddingBottom: 4,
+  },
+  placeholder: {
+    flex: 1,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    alignItems: "center",
     justifyContent: "center",
-
     padding: 24,
-
   },
-
   emptyText: {
-
     padding: 16,
-
     textAlign: "center",
-
     fontSize: 14,
-
   },
-
 });
-
-

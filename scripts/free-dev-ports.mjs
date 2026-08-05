@@ -5,7 +5,7 @@
  */
 import { execSync } from "child_process";
 
-const PORTS = [8082, 8083, 8084, 8085, 3000, 3001];
+const PORTS = [8082, 8083, 8084, 8085, 3000, 3001, 3002, 3003, 3004, 3005];
 
 function freePortWindows(port) {
   try {
