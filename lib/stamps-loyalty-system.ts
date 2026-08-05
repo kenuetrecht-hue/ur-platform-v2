@@ -449,7 +449,7 @@ class StampsLoyaltySystem {
    */
   createWeeklyDrawing(): WeeklyDrawing {
     const drawing: WeeklyDrawing = {
-      drawingId: `drawing_${Date.now()}`,
+      drawingId: `drawing_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
       drawingDate: new Date(),
       entryFee: 100, // 100 LP
       participants: [],

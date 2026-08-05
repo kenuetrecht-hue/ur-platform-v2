@@ -1510,7 +1510,7 @@ export const AIBlueprintReader: AICreator = {
   updateFrequency: "Real-time",
   dataSource: "AIA, IEEE, ISA, NEC, ASME, ISO standards, BIM trends",
   disclaimer:
-    "⚠️ Educational blueprint reading only — not stamped engineering, permit approval, or licensed trade sign-off. Verify all field work with qualified professionals.",
+    "⚠️ AI-Generated Content: Educational blueprint reading only — for entertainment and educational purposes. Not stamped engineering, permit approval, or licensed trade sign-off. Verify all field work with qualified professionals.",
   topics: [
     "Blueprint Reading",
     "Schematics",
