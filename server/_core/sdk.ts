@@ -7,6 +7,7 @@ import { SignJWT, jwtVerify } from "jose";
 import type { User } from "../../drizzle/schema";
 import * as db from "../db";
 import { authenticateSupabaseToken } from "../supabase-auth";
+import { isLikelySupabaseAccessToken } from "../../shared/supabase-config";
 import { ENV } from "./env";
 import type {
   ExchangeTokenRequest,
@@ -187,6 +188,10 @@ class SDKServer {
       return null;
     }
 
+    if (isLikelySupabaseAccessToken(cookieValue)) {
+      return null;
+    }
+
     try {
       const secretKey = this.getSessionSecret();
       const { payload } = await jwtVerify(cookieValue, secretKey, {
@@ -244,6 +249,13 @@ class SDKServer {
 
     if (!sessionToken) {
       throw ForbiddenError("Missing authentication token");
+    }
+
+    if (bearerToken && isLikelySupabaseAccessToken(bearerToken)) {
+      const supabaseUser = await authenticateSupabaseToken(bearerToken);
+      if (supabaseUser) {
+        return supabaseUser;
+      }
     }
 
     const session = await this.verifySession(sessionToken);

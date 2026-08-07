@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, StyleSheet, Pressable } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/use-colors";
 import {
   PLATFORM_DISCLOSURE_FULL,
@@ -121,10 +122,11 @@ export function WarningDisclosureModal() {
 /** Sticky web header — same calm styling as native. */
 export function WebWarningBanner() {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const brand = brandDisclosureSurface(colors);
 
   return (
-    <View style={[styles.webBar, brand]}>
+    <View style={[styles.webBar, brand, { paddingTop: insets.top + 4, paddingBottom: 5 }]}>
       <Text style={[styles.text, { color: withAlpha(colors.muted, 0.92) }]}>
         {PLATFORM_DISCLOSURE_SHORT}
       </Text>

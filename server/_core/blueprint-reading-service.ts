@@ -270,7 +270,7 @@ export function analyzeSchematicInput(input: {
     piping_isometric: ["ai-plumber-001", "ai-welder-001"],
     fire_protection: ["ai-contractor-001", "ai-electrician-001"],
     landscape: ["ai-landscaping-001", "ai-tree-service-001"],
-    marine: ["ai-structural-001", "ai-welder-001"],
+    marine: ["ai-marina-mechanic-001", "ai-electrician-001", "ai-welder-001", "ai-3d-specialist"],
     aerospace: ["ai-dynamics-001", "ai-structural-001"],
     general_engineering: ["ai-3d-specialist", "ai-contractor-001", "ai-structural-001"],
   };

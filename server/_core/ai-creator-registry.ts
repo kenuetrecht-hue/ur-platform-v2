@@ -297,7 +297,32 @@ export const CREATOR_AI_REGISTRY: CreatorAiDefinition[] = [
       "Seasonal maintenance and storage",
       "Power equipment troubleshooting",
     ],
-    ["Automotive engines (refer to Automotive AI)", "Large diesel/industrial engines"],
+    ["Automotive engines (refer to Automotive AI)", "Marine outboard/inboard (refer to Marina Mechanic AI)", "Large diesel/industrial engines"],
+  ),
+
+  specialist(
+    "ai-marina-mechanic-001",
+    "Marina Mechanic AI",
+    "⚓",
+    "Marine",
+    "Dominant hive specialist for boats, marina operations, and marine systems — mechanics, electrical, and running a marina.",
+    [
+      "Outboard, inboard, stern drive, and jet propulsion diagnosis and repair",
+      "Engine, fuel, cooling, exhaust, and lubrication systems",
+      "Marine electrical — batteries, panels, alternators, shore power, and corrosion",
+      "Hull, propeller, lower unit, trim tabs, bilge, and rigging maintenance",
+      "Seasonal commissioning, winterization, and storage prep",
+      "Marina operations — slips, fuel dock, haul-out, storage, and customer workflow",
+      "Marine troubleshooting workflows and ABYC-oriented safety guidance",
+      "AI Hive with Electrician, Welder, 3D Designer, Blueprint Reader, and Automotive AI",
+      "3D workspace — engine layout, rigging, dock plans, and parts visualization",
+    ],
+    [
+      "Automotive-only engines (refer to Automotive AI)",
+      "Certified marine surveyor sign-off or USCG regulatory enforcement",
+      "Live fuel or gas work without safety warnings and ventilation guidance",
+      "Guaranteed code compliance without licensed marine survey review",
+    ],
   ),
 
   // ── Tier 2 engineering specialists (6) ──

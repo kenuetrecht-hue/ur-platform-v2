@@ -4,13 +4,42 @@ import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { isOwnerOpenId, isOwnerEmail, resolveUserRole } from "./_core/owner-auth";
 
+function isDbConnectionRefused(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const cause = "cause" in error ? (error as { cause?: unknown }).cause : null;
+  if (cause && typeof cause === "object" && cause !== null && "code" in cause) {
+    return (cause as { code?: string }).code === "ECONNREFUSED";
+  }
+  return String(error).includes("ECONNREFUSED");
+}
+
+function logDbFailure(action: string, error: unknown): void {
+  if (!ENV.isProduction && isDbConnectionRefused(error)) {
+    console.warn(
+      `[Database] ${action} skipped — MySQL not running (ECONNREFUSED). ` +
+        "AI chat still works; auth uses dev owner session.",
+    );
+    return;
+  }
+  console.warn(`[Database] ${action} failed:`, error);
+}
+
 let _db: ReturnType<typeof drizzle> | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
+    const url = process.env.DATABASE_URL;
+    if (!url.startsWith("mysql://") && !url.startsWith("mysql2://")) {
+      console.error(
+        "[Database] DATABASE_URL must be a MySQL connection string (mysql://…). " +
+          "This project uses drizzle-orm/mysql2 — a postgresql:// URL will not work. " +
+          "Example: mysql://root:@localhost:3306/ur_platform",
+      );
+      return null;
+    }
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      _db = drizzle(url);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -74,7 +103,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       set: updateSet,
     });
   } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
+    logDbFailure("Failed to upsert user", error);
     throw error;
   }
 }
@@ -90,7 +119,7 @@ export async function getUserByOpenId(openId: string) {
     const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
     return result.length > 0 ? result[0] : undefined;
   } catch (error) {
-    console.warn("[Database] Failed to get user by openId:", error);
+    logDbFailure("Failed to get user by openId", error);
     return undefined;
   }
 }

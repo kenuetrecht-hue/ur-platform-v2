@@ -150,6 +150,7 @@ export default function AIsScreen() {
     <ScreenContainer className="bg-background">
       <View style={styles.root}>
         <TabScreenHeader
+          compact
           icon="🤖"
           title="AI Specialists"
           subtitle={
@@ -307,9 +308,10 @@ const styles = StyleSheet.create({
   },
   modeRow: {
     flexDirection: "row",
+    flexShrink: 0,
     gap: 8,
     marginHorizontal: 12,
-    marginBottom: 8,
+    marginBottom: 6,
     padding: 4,
     borderRadius: 12,
     borderWidth: 1,
@@ -317,24 +319,25 @@ const styles = StyleSheet.create({
   modeBtn: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 10,
   },
   selectedBar: {
     flexDirection: "row",
+    flexShrink: 0,
     alignItems: "center",
     gap: 10,
     marginHorizontal: 12,
-    marginBottom: 6,
+    marginBottom: 4,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
   },
   catalogScroll: {
     flexGrow: 0,
-    flexShrink: 0,
-    maxHeight: 260,
+    flexShrink: 1,
+    maxHeight: 220,
   },
   catalogContent: {
     paddingBottom: 8,
@@ -363,9 +366,8 @@ const styles = StyleSheet.create({
   },
   chatArea: {
     flex: 1,
-    minHeight: 200,
+    minHeight: 0,
     paddingHorizontal: 4,
-    paddingBottom: 4,
   },
   placeholder: {
     flex: 1,

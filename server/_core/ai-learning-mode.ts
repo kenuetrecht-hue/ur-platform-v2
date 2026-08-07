@@ -129,6 +129,13 @@ const CATEGORY_MODULES: Record<string, Omit<LearningModule, "id">[]> = {
     { title: "Maintenance & repair", description: "Carburetor, spark, fuel systems." },
     { title: "Safety & tools", description: "PPE and shop best practices." },
   ],
+  Marine: [
+    { title: "Marine systems overview", description: "Engine, fuel, cooling, electrical, hull, and rigging fundamentals." },
+    { title: "Diagnostics workflow", description: "Symptom → test → fix for outboard, inboard, and stern drive." },
+    { title: "Seasonal maintenance", description: "Commissioning, winterization, storage, and corrosion prevention." },
+    { title: "Running a marina", description: "Slips, fuel dock, haul-out, storage, safety, and customer operations." },
+    { title: "Cert prep orientation", description: "Marine tech / ABYC-style study guidance (educational).", certificationPrep: true },
+  ],
   Creative: [
     { title: "Creative process", description: "Ideation, iteration, and critique." },
     { title: "Medium-specific skills", description: "Apply concepts to your craft." },

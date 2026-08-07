@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
@@ -23,6 +24,8 @@ import { isForgeSpecialist, forgeLearnLabel } from "@/lib/forge-specialists";
 
 import { AiLiveSessionsPanel } from "@/components/ai-live-sessions-panel";
 import { AiSubscriptionPanel } from "@/components/ai-subscription-panel";
+import { useOverlapInsets } from "@/hooks/use-overlap-insets";
+import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 
 type SurfaceMode = "chat" | "learn" | "build" | "live";
 type LearnLevel = "beginner" | "intermediate" | "advanced";
@@ -241,6 +244,9 @@ function AiLearnSurface({
   creatorAvatar: string;
 }) {
   const colors = useColors();
+  const overlap = useOverlapInsets({
+    headerChromeHeight: LAYOUT_OVERLAP.AIS_TAB_CHROME_HEIGHT,
+  });
   const utils = trpc.useUtils();
   const scrollRef = useRef<ScrollView>(null);
 
@@ -325,7 +331,11 @@ function AiLearnSurface({
   const pct = profile.data?.percentComplete ?? 0;
 
   return (
-    <View style={styles.learnRoot}>
+    <KeyboardAvoidingView
+      style={styles.learnRoot}
+      behavior={overlap.keyboardBehavior}
+      keyboardVerticalOffset={overlap.keyboardVerticalOffset}
+    >
       <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
         <View style={[styles.progressFill, { width: `${pct}%`, backgroundColor: colors.primary }]} />
       </View>
@@ -428,7 +438,11 @@ function AiLearnSurface({
         </View>
       ) : null}
 
-      <ScrollView ref={scrollRef} style={styles.learnMessages} contentContainerStyle={{ padding: 12, gap: 10 }}>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.learnMessages}
+        contentContainerStyle={{ padding: 12, gap: 10, paddingBottom: 16 + overlap.scrollPaddingBottom }}
+      >
         <View style={[styles.learnHeader, { backgroundColor: colors.primary }]}>
           <Text style={styles.learnHeaderAvatar}>{creatorAvatar}</Text>
           <Text style={styles.learnHeaderTitle}>{creatorName} — Learn</Text>
@@ -462,7 +476,15 @@ function AiLearnSurface({
         </Pressable>
       ) : null}
 
-      <View style={[styles.inputRow, { borderTopColor: colors.border }]}>
+      <View
+        style={[
+          styles.inputRow,
+          {
+            borderTopColor: colors.border,
+            paddingBottom: overlap.dockPaddingBottom,
+          },
+        ]}
+      >
         <TextInput
           value={inputText}
           onChangeText={setInputText}
@@ -480,7 +502,7 @@ function AiLearnSurface({
           <Text style={{ color: "#fff", fontWeight: "700" }}>Send</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -497,8 +519,9 @@ const styles = StyleSheet.create({
   },
   surfaceRow: {
     flexDirection: "row",
+    flexShrink: 0,
     marginHorizontal: 8,
-    marginBottom: 6,
+    marginBottom: 4,
     borderRadius: 12,
     borderWidth: 1,
     padding: 4,
@@ -507,7 +530,7 @@ const styles = StyleSheet.create({
   surfaceTab: {
     flex: 1,
     borderRadius: 10,
-    paddingVertical: 10,
+    paddingVertical: 8,
     alignItems: "center",
   },
   learnRoot: { flex: 1, minHeight: 0 },

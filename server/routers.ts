@@ -31,6 +31,7 @@ import { blueprintReaderRouter } from "./routers/blueprint-reader-router";
 import { aiSubscriptionRouter } from "./routers/ai-subscription-router";
 import { aiTalkRouter } from "./routers/ai-talk-router";
 import { loyaltyRouter } from "./routers/loyalty-router";
+import { hiveTownHallRouter } from "./routers/hive-town-hall-router";
 import { destroyAllSessionsForUser } from "./_core/forge-session-manager";
 
 export const appRouter = router({
@@ -159,6 +160,7 @@ export const appRouter = router({
   stamps: stampsPersistenceRouter,
   chat: chatRouter,
   aiCreators: aiCreatorChatRouter,
+  hiveTownHall: hiveTownHallRouter,
   platformOps: platformOpsRouter,
   equipment: equipmentRouter,
   aiLearning: aiLearningRouter,

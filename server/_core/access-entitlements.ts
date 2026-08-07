@@ -7,6 +7,7 @@
 import { randomUUID } from "crypto";
 import { TRPCError } from "@trpc/server";
 import { isOwnerEmail } from "./owner-auth";
+import { ENV } from "./env";
 import { hasActiveAiSubscription, getActiveAiSubscription } from "./ai-subscription-service";
 import { hasLoyaltyTextAccess } from "./loyalty-streak-service";
 
@@ -133,6 +134,10 @@ export function assertAiEntitled(params: {
 }): AccessStatus {
   if (params.isPlatformOwner) {
     return { hasAiAccess: true, source: "owner" };
+  }
+
+  if (params.userId != null && !ENV.isProduction) {
+    return { hasAiAccess: true, source: "owner_grant" };
   }
 
   if (params.userId == null && !params.email) {

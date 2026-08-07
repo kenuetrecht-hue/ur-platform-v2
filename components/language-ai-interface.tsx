@@ -7,10 +7,13 @@ import {
   TextInput,
   ActivityIndicator,
   StyleSheet,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/auth-context";
+import { useOverlapInsets } from "@/hooks/use-overlap-insets";
+import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 
 type LanguageMode = "chat" | "translate" | "learn";
 
@@ -40,6 +43,9 @@ const LEARN_LEVELS = ["beginner", "intermediate", "advanced"] as const;
 
 export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
   const colors = useColors();
+  const overlap = useOverlapInsets({
+    headerChromeHeight: LAYOUT_OVERLAP.AIS_TAB_CHROME_HEIGHT + 100,
+  });
   const { isAuthenticated } = useAuth();
   const subAccess = trpc.aiSubscription.getAccess.useQuery(
     { creatorId: "linguamate" },
@@ -158,7 +164,11 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
   };
 
   return (
-    <View style={styles.root}>
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={overlap.keyboardBehavior}
+      keyboardVerticalOffset={overlap.keyboardVerticalOffset}
+    >
       <View style={[styles.header, { backgroundColor: "#0d9488" }]}>
         <View style={styles.headerRow}>
           <View>
@@ -264,7 +274,10 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
       <ScrollView
         ref={scrollViewRef}
         style={styles.messagesScroll}
-        contentContainerStyle={styles.messagesContent}
+        contentContainerStyle={[
+          styles.messagesContent,
+          { paddingBottom: 16 + overlap.scrollPaddingBottom },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -350,7 +363,11 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
       <View
         style={[
           styles.inputArea,
-          { borderTopColor: colors.border, backgroundColor: colors.surface },
+          {
+            borderTopColor: colors.border,
+            backgroundColor: colors.surface,
+            paddingBottom: overlap.dockPaddingBottom,
+          },
         ]}
       >
         <View style={styles.inputRow}>
@@ -392,7 +409,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
             : "Subscribe to LinguaMate above to start translating and learning."}
         </Text>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -401,7 +418,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     width: "100%",
-    overflow: "hidden",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.08)",

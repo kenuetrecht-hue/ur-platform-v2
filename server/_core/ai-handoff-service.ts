@@ -130,6 +130,36 @@ const HANDOFF_GRAPH: Record<string, HandoffSuggestion[]> = {
       route: "/(tabs)/ais",
     },
   ],
+  "ai-marina-mechanic-001": [
+    {
+      targetCreatorId: "ai-3d-specialist",
+      targetName: "AI 3D Designer",
+      reason: "Visualize engine layout, rigging, or hull components.",
+      prefillPrompt: "Help me model this marine component or dock layout in the 3D workspace.",
+      route: "/3d-workspace",
+    },
+    {
+      targetCreatorId: "ai-electrician-001",
+      targetName: "Electrician Expert AI",
+      reason: "Marine electrical, batteries, panels, and shore power.",
+      prefillPrompt: "Review my boat's electrical system — batteries, panels, wiring, and corrosion protection.",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-blueprint-reader-001",
+      targetName: "Blueprint Reader AI",
+      reason: "Read marine wiring diagrams and hull schematics.",
+      prefillPrompt: "Help me interpret this marine schematic — wiring, plumbing, or hull drawing.",
+      route: "/3d-workspace",
+    },
+    {
+      targetCreatorId: "ai-business-001",
+      targetName: "AI Business Advisor",
+      reason: "Marina business planning and operations.",
+      prefillPrompt: "Help me plan marina operations — slips, pricing, fuel dock, and seasonal workflow.",
+      route: "/(tabs)/ais",
+    },
+  ],
 };
 
 export function getHandoffSuggestions(creatorId: string): HandoffSuggestion[] {

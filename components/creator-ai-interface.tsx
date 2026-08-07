@@ -17,6 +17,8 @@ import { isForgeSpecialist } from "@/lib/forge-specialists";
 import { AFFILIATE_ASSOCIATE_ID } from "@/lib/affiliate-associate-catalog";
 import { speakText } from "@/lib/azure-tts-service";
 import { useRouter } from "expo-router";
+import { useOverlapInsets } from "@/hooks/use-overlap-insets";
+import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 
 interface ChatMessage {
   role: "user" | "ai";
@@ -35,6 +37,8 @@ export type CreatorAIInterfaceProps = {
   hideHeader?: boolean;
   /** Compact layout for the AIs tab — hides extra chrome, docks composer to message list. */
   embedded?: boolean;
+  /** Fixed UI height above chat (for keyboard offset). Defaults to AIs tab estimate when embedded. */
+  overlapHeaderHeight?: number;
 };
 
 export function CreatorAIInterface({
@@ -46,9 +50,16 @@ export function CreatorAIInterface({
   onClose,
   hideHeader = false,
   embedded = false,
+  overlapHeaderHeight,
 }: CreatorAIInterfaceProps) {
   const colors = useColors();
   const router = useRouter();
+  const overlap = useOverlapInsets({
+    reserveTabBar: embedded,
+    headerChromeHeight: embedded
+      ? (overlapHeaderHeight ?? LAYOUT_OVERLAP.AIS_TAB_CHROME_HEIGHT)
+      : 0,
+  });
   const defaultWelcome =
     welcomeMessage ??
     `Hi! I'm ${creatorName}. I understand any language — ask me anything in my area of expertise.`;
@@ -326,8 +337,8 @@ export function CreatorAIInterface({
   return (
     <KeyboardAvoidingView
       style={styles.root}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+      behavior={embedded ? overlap.keyboardBehavior : undefined}
+      keyboardVerticalOffset={embedded ? overlap.keyboardVerticalOffset : 0}
     >
       {!hideHeader ? (
       <View style={[styles.header, { backgroundColor: colors.primary }]}>
@@ -383,7 +394,6 @@ export function CreatorAIInterface({
             borderColor: colors.border,
             borderRadius: 12,
             backgroundColor: colors.surface,
-            marginHorizontal: 4,
           },
         ]}
       >
@@ -400,7 +410,10 @@ export function CreatorAIInterface({
         <ScrollView
           ref={scrollViewRef}
           style={styles.messages}
-          contentContainerStyle={styles.messagesContent}
+          contentContainerStyle={[
+            styles.messagesContent,
+            { paddingBottom: 16 + overlap.scrollPaddingBottom },
+          ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
         >
@@ -432,7 +445,16 @@ export function CreatorAIInterface({
           ) : null}
         </ScrollView>
 
-        <View style={[styles.composerDock, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
+        <View
+          style={[
+            styles.composerDock,
+            {
+              borderTopColor: colors.border,
+              backgroundColor: colors.background,
+              paddingBottom: overlap.dockPaddingBottom,
+            },
+          ]}
+        >
           {!embedded ? (
             <Pressable
               onPress={() => setShowExtras((v) => !v)}
@@ -643,13 +665,12 @@ export function CreatorAIInterface({
 
 const styles = StyleSheet.create({
   root: { flex: 1, minHeight: 0 },
-  chatBody: { flex: 1, minHeight: 160 },
+  chatBody: { flex: 1, minHeight: 0 },
   composerDock: {
     flexShrink: 0,
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: 8,
     paddingHorizontal: 8,
-    paddingBottom: 8,
   },
   header: { paddingHorizontal: 16, paddingVertical: 12 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 10 },

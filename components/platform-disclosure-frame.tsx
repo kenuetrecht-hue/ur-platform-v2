@@ -1,7 +1,12 @@
 import { View, StyleSheet } from "react-native";
+import { useSegments } from "expo-router";
 import { PlatformDisclosureBar } from "@/components/platform-disclosure-bar";
 
-/** Top + bottom disclosure on every user, creator, and AI page. */
+/**
+ * Global shell: top disclosure on every screen.
+ * Bottom legal disclaimer on tab screens lives in TabBarWithDisclosure (above tabs).
+ * Bottom disclaimer on auth / stack-only screens is rendered here.
+ */
 export function PlatformDisclosureFrame({
   children,
   compact = true,
@@ -9,11 +14,14 @@ export function PlatformDisclosureFrame({
   children: React.ReactNode;
   compact?: boolean;
 }) {
+  const segments = useSegments();
+  const inTabs = segments[0] === "(tabs)";
+
   return (
     <View style={styles.root}>
       <PlatformDisclosureBar position="top" compact={compact} />
       <View style={styles.content}>{children}</View>
-      <PlatformDisclosureBar position="bottom" compact={compact} />
+      {!inTabs ? <PlatformDisclosureBar position="bottom" compact={compact} /> : null}
     </View>
   );
 }

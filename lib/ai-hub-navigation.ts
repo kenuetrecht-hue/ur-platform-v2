@@ -14,9 +14,9 @@ export const AI_HUB_CATEGORY_GROUPS: AiHubCategoryGroup[] = [
   { id: "engineering", label: "Engineering", emoji: "🏛️", categories: ["Engineering"] },
   {
     id: "automotive",
-    label: "Automotive",
+    label: "Automotive & Marine",
     emoji: "🚗",
-    categories: ["Automotive", "Small Engines"],
+    categories: ["Automotive", "Small Engines", "Marine"],
   },
   {
     id: "business",

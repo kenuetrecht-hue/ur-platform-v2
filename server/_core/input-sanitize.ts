@@ -36,10 +36,16 @@ export function sanitizeChatHistory(
   maxTurns: number,
   maxContentLength: number,
 ): Array<{ role: "user" | "assistant"; content: string }> {
-  return history.slice(-maxTurns).map((turn) => ({
+  const sanitized = history.slice(-maxTurns).map((turn) => ({
     role: turn.role,
     content: sanitizeUserText(turn.content, maxContentLength),
   }));
+  // Gemini chat history must start with a user turn (not the welcome assistant message).
+  let start = 0;
+  while (start < sanitized.length && sanitized[start]?.role === "assistant") {
+    start += 1;
+  }
+  return sanitized.slice(start);
 }
 
 export const RESOURCE_NOT_FOUND = "RESOURCE_NOT_FOUND";

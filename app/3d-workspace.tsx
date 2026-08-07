@@ -30,6 +30,7 @@ const PROJECT_TYPES = [
   { id: "3d_printing" as const, label: "3D Print", emoji: "🖨️" },
   { id: "architecture" as const, label: "Architecture", emoji: "🏛️" },
   { id: "robotics" as const, label: "Robotics", emoji: "🤖" },
+  { id: "marine" as const, label: "Marine", emoji: "⚓" },
   { id: "software" as const, label: "Software App", emoji: "💻" },
   { id: "general" as const, label: "General", emoji: "✨" },
 ];
@@ -42,6 +43,7 @@ const WORKSPACE_CATEGORIES = new Set([
   "Engineering",
   "Creative",
   "Platform",
+  "Marine",
 ]);
 
 export default function Workspace3DScreen() {

@@ -8,6 +8,7 @@ export type ApiNamespace =
   | "chat"
   | "aiLanguage"
   | "aiCreators"
+  | "hiveTownHall"
   | "webSearch"
   | "ai"
   | "loyalty"
@@ -51,6 +52,7 @@ const NAMESPACE_USER_LIMITS: Record<ApiNamespace, number> = {
   chat: 120,
   aiLanguage: 150,
   aiCreators: 180,
+  hiveTownHall: 24,
   webSearch: 60,
   ai: 200,
   loyalty: 30,

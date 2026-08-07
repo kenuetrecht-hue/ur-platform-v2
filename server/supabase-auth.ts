@@ -1,20 +1,26 @@
 import { createClient, type SupabaseClient, type User as SupabaseUser } from "@supabase/supabase-js";
 import type { User } from "../drizzle/schema";
 import * as db from "./db";
-import { ENV } from "./_core/env";
 import { resolveUserRole, isOwnerEmail, getPlatformOwnerDisplayName } from "./_core/owner-auth";
+import {
+  resolveSupabasePublicConfig,
+  resolveSupabaseServerKey,
+} from "../shared/supabase-config";
 
 const SUPABASE_OPEN_ID_PREFIX = "supabase:";
 
 let supabaseClient: SupabaseClient | null = null;
 
 function getSupabaseClient(): SupabaseClient | null {
-  if (!ENV.supabaseUrl || !ENV.supabaseKey) {
+  const { url } = resolveSupabasePublicConfig();
+  const key = resolveSupabaseServerKey();
+
+  if (!url || !key) {
     return null;
   }
 
   if (!supabaseClient) {
-    supabaseClient = createClient(ENV.supabaseUrl, ENV.supabaseKey, {
+    supabaseClient = createClient(url, key, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
@@ -23,6 +29,10 @@ function getSupabaseClient(): SupabaseClient | null {
   }
 
   return supabaseClient;
+}
+
+export function isSupabaseConfiguredOnServer(): boolean {
+  return getSupabaseClient() !== null;
 }
 
 export function toSupabaseOpenId(supabaseUserId: string): string {

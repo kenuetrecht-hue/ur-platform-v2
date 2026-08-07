@@ -33,6 +33,7 @@ const PROJECT_SHAPES: Record<string, string> = {
   "3d_printing": "🖨️",
   architecture: "🏛️",
   robotics: "🤖",
+  marine: "⚓",
   software: "💻",
   general: "✨",
 };

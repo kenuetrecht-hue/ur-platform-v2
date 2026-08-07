@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils";
 
 export interface ScreenContainerProps extends ViewProps {
   /**
-   * SafeArea edges to apply. Defaults to ["top", "left", "right"].
-   * Bottom is typically handled by Tab Bar.
+   * SafeArea edges to apply. Defaults to ["left", "right"] — top is handled by
+   * PlatformDisclosureFrame; bottom on tab screens is handled by TabBarWithDisclosure.
    */
   edges?: Edge[];
   /**
@@ -40,7 +40,7 @@ export interface ScreenContainerProps extends ViewProps {
  */
 export function ScreenContainer({
   children,
-  edges = ["top", "left", "right"],
+  edges = ["left", "right"],
   className,
   containerClassName,
   safeAreaClassName,

@@ -30,6 +30,7 @@ const WORKSPACE_CATEGORIES = new Set([
   "Engineering",
   "Creative",
   "Platform",
+  "Marine",
 ]);
 
 export default function PlayroomScreen() {

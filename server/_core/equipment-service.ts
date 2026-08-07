@@ -257,7 +257,7 @@ export type Workspace3DSession = {
   id: string;
   userId: string;
   name: string;
-  projectType: "merchandise" | "3d_printing" | "architecture" | "robotics" | "software" | "general";
+  projectType: "merchandise" | "3d_printing" | "architecture" | "robotics" | "software" | "marine" | "general";
   description: string;
   activeAiIds: string[];
   createdAt: string;

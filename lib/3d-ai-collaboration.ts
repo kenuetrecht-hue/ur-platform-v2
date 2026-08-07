@@ -113,6 +113,14 @@ export const AI3DSpecializations: Record<string, string[]> = {
   customer_service_pro: ["support_space_design", "customer_journey_visualization", "ux_design"],
   product_manager: ["product_visualization", "feature_design", "prototype_creation"],
   content_creator_helper: ["content_visualization", "media_integration", "presentation_design"],
+  "ai-marina-mechanic-001": [
+    "engine_layout",
+    "hull_visualization",
+    "rigging_design",
+    "dock_planning",
+    "parts_modeling",
+    "marine_systems_diagram",
+  ],
 };
 
 // ============================================================================

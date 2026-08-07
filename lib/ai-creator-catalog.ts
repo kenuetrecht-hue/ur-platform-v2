@@ -43,6 +43,7 @@ export const AI_CREATOR_CATALOG: AiCreatorCatalogEntry[] = [
   { id: "ai-drywall-001", name: "Dry Waller AI", avatar: "🧱", category: "Construction", mission: "Drywall installation, finishing, and repair." },
   { id: "ai-framer-001", name: "Framer AI", avatar: "🪵", category: "Construction", mission: "Structural framing design and techniques." },
   { id: "ai-automotive-001", name: "Automotive AI", avatar: "🚗", category: "Automotive", mission: "Automotive diagnostics, repair, and maintenance." },
+  { id: "ai-marina-mechanic-001", name: "Marina Mechanic AI", avatar: "⚓", category: "Marine", mission: "Boat mechanics, marine systems, and how to run a marina." },
   { id: "ai-small-engine-001", name: "Small Engine AI", avatar: "🛠️", category: "Small Engines", mission: "Lawn equipment, generators, and small engine repair." },
   { id: "ai-robotics-001", name: "AI Robotics Engineer", avatar: "🤖", category: "Engineering", mission: "Robot design, programming, and automation." },
   { id: "ai-dynamics-001", name: "AI Dynamics Analyst", avatar: "⚙️", category: "Engineering", mission: "Physics, dynamics, and aerodynamic analysis." },

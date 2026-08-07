@@ -142,6 +142,8 @@ export function AiTalkTimePanel({
 
   if (compact && !isAuthenticated) return null;
 
+  if (compact && !showPurchase && !hasTalk) return null;
+
   if (compact && hasTalk && !showPurchase) return null;
 
 

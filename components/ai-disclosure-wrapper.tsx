@@ -2,7 +2,6 @@ import React from "react";
 import { View, Text, Pressable, StyleSheet, type TextStyle } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import {
-  AFFILIATE_LINK_AFTER_TEXT,
   AFFILIATE_LINK_BEFORE_TEXT,
 } from "@/lib/platform-disclosure-copy";
 import { brandDisclosureSurface, withAlpha } from "@/lib/brand-theme";
@@ -67,38 +66,6 @@ export function AIDisclosureWrapper({
       </View>
 
       <View style={styles.contentSlot}>{children}</View>
-
-      <View style={dividerStyle}>
-        <DisclosureLine textStyle={noteStyle}>
-          {`End of ${aiName} response · See Terms of Service for our AI disclosure policy`}
-          {hasAffiliateLinks
-            ? `\n${affiliateDisclosureText ?? AFFILIATE_LINK_AFTER_TEXT}`
-            : ""}
-        </DisclosureLine>
-      </View>
-
-      {onDismiss ? (
-        <Pressable
-          onPress={onDismiss}
-          style={({ pressed }) => ({
-            marginTop: 4,
-            paddingVertical: 6,
-            paddingHorizontal: 12,
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <Text
-            style={{
-              color: colors.muted,
-              fontSize: 11,
-              textAlign: "center",
-              opacity: 0.7,
-            }}
-          >
-            Dismiss
-          </Text>
-        </Pressable>
-      ) : null}
     </View>
   );
 }
