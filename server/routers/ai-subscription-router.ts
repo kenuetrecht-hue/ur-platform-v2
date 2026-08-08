@@ -19,6 +19,11 @@ import { getUsageAllowanceQuote } from "../../lib/ai-usage-allowances";
 import { getAiUsageStatus } from "../_core/ai-usage-meter";
 import { buildSubscriptionPurchaseSummary, formatPurchaseReceiptMessage } from "../../lib/pricing-disclosures";
 import { optionalBillingStateSchema, billingStateSchema } from "../../lib/billing-state-schema";
+import { assertPaymentChannelAllowed, assertSimulatedPurchaseAllowed, paymentChannelNote } from "../_core/payment-channel-guard";
+import { getPlanPriceCents } from "../../lib/ai-subscription-pricing";
+import { AI_SUBSCRIPTION_PRICING_SUMMARY } from "../../lib/payment-channel-policy";
+
+const clientPlatformSchema = z.enum(["web", "native"]);
 
 const creatorIdSchema = z
   .string()
@@ -50,6 +55,7 @@ export const aiSubscriptionRouter = router({
         plans: plans.map((p) => ({
           ...p,
           ...getUsageAllowanceQuote(p.plan, tier),
+          requiredPaymentChannel: "web_browser" as const,
           purchaseSummary: buildSubscriptionPurchaseSummary({
             creatorId: input.creatorId,
             creatorName,
@@ -60,12 +66,10 @@ export const aiSubscriptionRouter = router({
           }),
         })),
         usageNote: "Each plan includes a message allowance sized to cover API costs. Hive consults use 3 messages.",
+        pricingNote: AI_SUBSCRIPTION_PRICING_SUMMARY,
+        paymentNote: "AI subscriptions must be purchased through your web browser — not in the mobile app.",
         baseNote:
-          tier === "standard"
-            ? "Standard pricing — daily $5.99, weekly $9.99, monthly $14.99."
-            : tier === "premium"
-              ? "Premium pricing — higher API cost for real-time translation."
-              : "Professional pricing — includes sandbox and advanced tooling.",
+          "Flat pricing for every AI on the platform — $5.99/day (24 hours), $9.99/week, $14.99/month.",
       };
     }),
 
@@ -112,14 +116,22 @@ export const aiSubscriptionRouter = router({
         creatorId: creatorIdSchema,
         plan: planSchema,
         stateCode: billingStateSchema,
+        clientPlatform: clientPlatformSchema,
       }),
     )
     .mutation(({ input, ctx }) => {
+      assertSimulatedPurchaseAllowed();
       const userId = String(ctx.user.id);
       const email = ctx.user.email;
       if (!email) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Account email required." });
       }
+
+      const priceCents = getPlanPriceCents(input.creatorId, input.plan as AiSubscriptionPlan);
+      assertPaymentChannelAllowed({
+        subtotalCents: priceCents,
+        clientPlatform: input.clientPlatform,
+      });
 
       if (ctx.isPlatformOwner) {
         throw new TRPCError({
@@ -167,6 +179,7 @@ export const aiSubscriptionRouter = router({
         receipt,
         message: formatPurchaseReceiptMessage(receipt),
         expiresAt: record.expiresAt,
+        paymentChannel: paymentChannelNote(priceCents),
       };
     }),
 

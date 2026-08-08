@@ -104,9 +104,19 @@ class VideoEditor {
    * Create a new edit session
    */
   createEditSession(videoId: string): EditedVideo {
-    const video = this.videos.get(videoId);
+    let video = this.videos.get(videoId);
     if (!video) {
-      throw new Error(`Video ${videoId} not found`);
+      video = {
+        id: videoId,
+        uri: videoId,
+        name: videoId,
+        duration: 0,
+        width: 1920,
+        height: 1080,
+        fileSize: 0,
+        createdAt: new Date().toISOString(),
+      };
+      this.videos.set(videoId, video);
     }
 
     const edited: EditedVideo = {

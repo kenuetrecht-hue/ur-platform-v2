@@ -328,5 +328,4 @@ export class AICommandExecutor {
   }
 }
 
-export { AICommandExecutor };
 export const aiCommandExecutor = new AICommandExecutor();

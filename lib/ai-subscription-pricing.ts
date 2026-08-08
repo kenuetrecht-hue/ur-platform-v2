@@ -1,25 +1,18 @@
 /**
- * Central AI specialist subscription pricing.
- * Base plans start at $5.99/day, $9.99/week, $14.99/month.
- * Premium specialists (e.g. language translators) cost more due to higher API usage.
+ * Central AI specialist subscription pricing — flat rate per specialist.
+ * Each AI: $5.99/day (24h) · $9.99/week · $14.99/month.
+ * Tier labels remain for usage allowances only, not price multipliers.
  */
 
 export type AiSubscriptionPlan = "day" | "week" | "month";
 
 export type AiPriceTier = "standard" | "professional" | "premium";
 
-/** Base prices in cents — standard-tier specialists */
+/** Flat per-AI prices in cents — same for every specialist on the platform. */
 export const AI_SUBSCRIPTION_BASE_CENTS: Record<AiSubscriptionPlan, number> = {
   day: 599,
   week: 999,
   month: 1499,
-};
-
-/** Multipliers applied to base cents, rounded to friendly .99 retail */
-export const AI_PRICE_TIER_MULTIPLIER: Record<AiPriceTier, number> = {
-  standard: 1,
-  professional: 1.33,
-  premium: 1.5,
 };
 
 export const AI_PRICE_TIER_LABEL: Record<AiPriceTier, string> = {
@@ -28,7 +21,7 @@ export const AI_PRICE_TIER_LABEL: Record<AiPriceTier, string> = {
   premium: "Premium",
 };
 
-/** Premium — high compute / translation API cost */
+/** Premium — high compute / translation API cost (usage caps differ) */
 const PREMIUM_CREATOR_IDS = new Set(["linguamate", "ai-translator-001"]);
 
 /** Professional — sandbox, blueprint, or heavy reasoning workloads */
@@ -50,16 +43,9 @@ export function getAiPriceTier(creatorId: string): AiPriceTier {
   return "standard";
 }
 
-function roundRetailCents(cents: number): number {
-  const dollars = Math.ceil(cents / 100);
-  return dollars * 100 - 1;
-}
-
-export function getPlanPriceCents(creatorId: string, plan: AiSubscriptionPlan): number {
-  const tier = getAiPriceTier(creatorId);
-  const multiplier = AI_PRICE_TIER_MULTIPLIER[tier];
-  const raw = AI_SUBSCRIPTION_BASE_CENTS[plan] * multiplier;
-  return roundRetailCents(raw);
+/** Same retail price for every AI on the platform. */
+export function getPlanPriceCents(_creatorId: string, plan: AiSubscriptionPlan): number {
+  return AI_SUBSCRIPTION_BASE_CENTS[plan];
 }
 
 export function getPlanPriceDollars(creatorId: string, plan: AiSubscriptionPlan): number {
@@ -78,7 +64,7 @@ export type AiSubscriptionPlanQuote = {
 };
 
 const PLAN_META: Record<AiSubscriptionPlan, { label: string; durationDays: number }> = {
-  day: { label: "Daily", durationDays: 1 },
+  day: { label: "24 Hours", durationDays: 1 },
   week: { label: "Weekly", durationDays: 7 },
   month: { label: "Monthly", durationDays: 30 },
 };
@@ -116,7 +102,7 @@ export function getAiSubscriptionPlans(creatorId: string): AiSubscriptionPlanQuo
   });
 }
 
-/** Platform-wide pass — same base monthly price × all specialists factor (optional bundle) */
+/** Platform-wide bundle (optional — separate from per-AI pricing). */
 export const PLATFORM_ALL_AI_MONTHLY_CENTS = 4999;
 
 export const AI_SUBSCRIPTION_PLAN_DAYS: Record<AiSubscriptionPlan, number> = {

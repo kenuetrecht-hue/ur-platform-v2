@@ -10,6 +10,7 @@ import {
   sendTownHallMessage,
   type TownHallPanelMode,
 } from "../_core/hive-town-hall-service";
+import { assertSectionEnabledForRequest } from "../_core/platform-section-guard";
 import { secureProcedure, router, TRPCError } from "../_core/trpc";
 
 const panelModeSchema = z.enum(["all_categories", "category", "recommended", "custom"]);
@@ -69,6 +70,7 @@ export const hiveTownHallRouter = router({
       }),
     )
     .mutation(({ ctx, input }) => {
+      assertSectionEnabledForRequest("hive_town_hall", ctx.isPlatformOwner);
       assertAiEntitled({
         userId: ctx.user.id,
         email: ctx.user.email,
@@ -105,6 +107,7 @@ export const hiveTownHallRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      assertSectionEnabledForRequest("hive_town_hall", ctx.isPlatformOwner);
       assertAiEntitled({
         userId: ctx.user.id,
         email: ctx.user.email,

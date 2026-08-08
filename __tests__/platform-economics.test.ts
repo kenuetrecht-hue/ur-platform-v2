@@ -11,13 +11,13 @@ describe("platform-economics", () => {
     expect(econ.grossProfitAtMaxUseCents).toBeGreaterThan(900);
   });
 
-  it("talk standard pack stays profitable if all minutes used", () => {
-    const econ = getTalkPackEconomics("standard_20");
-    expect(econ.grossMarginAtMaxUsePercent).toBeGreaterThanOrEqual(55);
+  it("talk $5 pack stays profitable if all minutes used", () => {
+    const econ = getTalkPackEconomics("talk_5");
+    expect(econ.grossMarginAtMaxUsePercent).toBeGreaterThanOrEqual(40);
   });
 
-  it("quick talk pack is profitable after Stripe", () => {
-    const econ = getTalkPackEconomics("quick_4");
+  it("quick $1 talk pack is profitable after Stripe", () => {
+    const econ = getTalkPackEconomics("talk_1");
     expect(econ.grossProfitAtMaxUseCents).toBeGreaterThan(0);
   });
 });

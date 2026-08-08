@@ -22,10 +22,9 @@ class MockFileProcessor {
       type: 'video',
       inputFile,
       outputFile: `${this.outputDir}/${jobId}.mp4`,
-      status: 'completed',
-      progress: 100,
+      status: 'processing',
+      progress: 50,
       createdAt: new Date(),
-      completedAt: new Date(),
     };
     this.jobs.set(jobId, job);
     return job;

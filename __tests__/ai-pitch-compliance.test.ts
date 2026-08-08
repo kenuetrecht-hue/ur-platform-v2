@@ -2,9 +2,20 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { aiAudienceLearningService } from '@/lib/ai-audience-learning-service';
 import { aiSubscriptionPitchEngine } from '@/lib/ai-subscription-pitch-engine';
 
+function resetPitchServices(): void {
+  const audience = aiAudienceLearningService as any;
+  audience.audienceMembers?.clear?.();
+  audience.interactionEvents?.clear?.();
+  audience.audienceInsights?.clear?.();
+
+  const pitch = aiSubscriptionPitchEngine as any;
+  pitch.pitchHistory?.clear?.();
+  pitch.pitchMetrics?.clear?.();
+}
+
 describe('AI Audience Learning Service', () => {
   beforeEach(() => {
-    // Reset services
+    resetPitchServices();
   });
 
   it('should track audience member', () => {
@@ -108,7 +119,7 @@ describe('AI Audience Learning Service', () => {
 
 describe('AI Subscription Pitch Engine', () => {
   beforeEach(() => {
-    // Reset services
+    resetPitchServices();
   });
 
   it('should generate subscription pitch with AI disclosure', () => {
@@ -244,7 +255,7 @@ describe('AI Subscription Pitch Engine', () => {
     const metrics = aiSubscriptionPitchEngine.getPitchMetrics('creator1');
     expect(metrics.converted).toBe(1);
     expect(metrics.revenue).toBeGreaterThan(0);
-    expect(metrics.urLLCShare).toBe(metrics.revenue * 0.30);
+    expect(metrics.urLLCShare).toBe(Math.round(metrics.revenue * 0.30 * 100) / 100);
   });
 
   it('should validate pitch compliance', () => {

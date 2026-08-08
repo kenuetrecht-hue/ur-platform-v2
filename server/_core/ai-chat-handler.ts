@@ -57,6 +57,8 @@ export type AiChatContext = {
   userEmail?: string | null;
   /** Staff with chat_ops_ai from administration dashboard */
   canChatOwnerOps?: boolean;
+  /** Homepage one-shot demo — entitlement/usage skipped; guardrails remain */
+  landingDemo?: boolean;
 };
 
 export async function handleCreatorAiChat(params: {
@@ -100,60 +102,62 @@ export async function handleCreatorAiChat(params: {
     await hydrateGameLearning(userId);
   }
 
-  if (
-    isOwnerOnlyPlatformAi(params.creatorId) &&
-    !canChatOwnerOpsAi({
-      isPlatformOwner: params.ctx.isPlatformOwner,
-      canChatOwnerOps: params.ctx.canChatOwnerOps,
-    })
-  ) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Doctor AI, Administration AI, and Security AI are restricted to the Administration Dashboard.",
-    });
-  }
+  if (!params.ctx.landingDemo) {
+    if (
+      isOwnerOnlyPlatformAi(params.creatorId) &&
+      !canChatOwnerOpsAi({
+        isPlatformOwner: params.ctx.isPlatformOwner,
+        canChatOwnerOps: params.ctx.canChatOwnerOps,
+      })
+    ) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Doctor AI, Administration AI, and Security AI are restricted to the Administration Dashboard.",
+      });
+    }
 
-  if (isAffiliateOnlyAi(params.creatorId)) {
-    const enrolled = Boolean(getAffiliateProfile(userId));
-    if (
-      !canChatAffiliateAssociate({
+    if (isAffiliateOnlyAi(params.creatorId)) {
+      const enrolled = Boolean(getAffiliateProfile(userId));
+      if (
+        !canChatAffiliateAssociate({
+          isPlatformOwner: params.ctx.isPlatformOwner,
+          isEnrolledAffiliate: enrolled,
+        })
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Associate AI is available on the Affiliate Dashboard after you join the affiliate program.",
+        });
+      }
+    } else if (params.creatorId === STORE_MANAGER_AI_ID) {
+      if (
+        !canUseStoreManagerAi({
+          userId,
+          isPlatformOwner: params.ctx.isPlatformOwner,
+        })
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "Store Manager AI is available to the platform owner and enrolled content creators with a merch store.",
+        });
+      }
+      assertAiEntitled({
+        userId: params.ctx.userId,
+        email: params.ctx.userEmail,
         isPlatformOwner: params.ctx.isPlatformOwner,
-        isEnrolledAffiliate: enrolled,
-      })
-    ) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Associate AI is available on the Affiliate Dashboard after you join the affiliate program.",
+        feature: "ai_chat",
+        creatorId: params.creatorId,
+      });
+    } else {
+      assertAiEntitled({
+        userId: params.ctx.userId,
+        email: params.ctx.userEmail,
+        isPlatformOwner: params.ctx.isPlatformOwner,
+        feature: "ai_chat",
+        creatorId: params.creatorId,
       });
     }
-  } else if (params.creatorId === STORE_MANAGER_AI_ID) {
-    if (
-      !canUseStoreManagerAi({
-        userId,
-        isPlatformOwner: params.ctx.isPlatformOwner,
-      })
-    ) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message:
-          "Store Manager AI is available to the platform owner and enrolled content creators with a merch store.",
-      });
-    }
-    assertAiEntitled({
-      userId: params.ctx.userId,
-      email: params.ctx.userEmail,
-      isPlatformOwner: params.ctx.isPlatformOwner,
-      feature: "ai_chat",
-      creatorId: params.creatorId,
-    });
-  } else {
-    assertAiEntitled({
-      userId: params.ctx.userId,
-      email: params.ctx.userEmail,
-      isPlatformOwner: params.ctx.isPlatformOwner,
-      feature: "ai_chat",
-      creatorId: params.creatorId,
-    });
   }
 
   try {
@@ -174,14 +178,12 @@ export async function handleCreatorAiChat(params: {
       !isAffiliateOnlyAi(params.creatorId) &&
       (params.useHiveConsult === true || isComplexHiveProblem(message));
 
-    if (!params.ctx.isPlatformOwner && !isAffiliateOnlyAi(params.creatorId)) {
-      assertAndConsumeAiUsage({
-        userId,
-        email: params.ctx.userEmail,
-        creatorId: params.creatorId,
-        isPlatformOwner: false,
-        useHive,
-      });
+    if (
+      !params.ctx.landingDemo &&
+      !params.ctx.isPlatformOwner &&
+      !isAffiliateOnlyAi(params.creatorId)
+    ) {
+      // Usage is consumed only after a successful AI reply — failed requests are not billed.
     }
 
     let rawReply: string;
@@ -275,12 +277,14 @@ export async function handleCreatorAiChat(params: {
       const inferred = inferIncidentFromOpsChat(params.creatorId, message, reply);
       if (inferred?.shouldFile) {
         const incident = await createOpsIncident({
-          sourceAi: params.creatorId,
+          sourceAi: params.creatorId as import("./platform-ops-ai").OwnerPlatformAiId,
           severity: inferred.severity,
           category: inferred.category,
           title: inferred.title,
           problem: inferred.problem,
           proposedFix: inferred.proposedFix,
+          affectedSectionId: inferred.affectedSectionId,
+          sectionAction: inferred.sectionAction,
           actionsTaken: ["Ops AI analyzed the report", "Notification sent to platform owner"],
         });
         opsIncidentId = incident.id;
@@ -304,6 +308,21 @@ export async function handleCreatorAiChat(params: {
       pitchConsentRequest = pitchResult.pitchConsentRequest;
       pitchAccepted = pitchResult.pitchAccepted;
       pitchDeclined = pitchResult.pitchDeclined;
+    }
+
+    if (
+      !params.ctx.landingDemo &&
+      !params.ctx.isPlatformOwner &&
+      !isAffiliateOnlyAi(params.creatorId)
+    ) {
+      assertAndConsumeAiUsage({
+        userId,
+        email: params.ctx.userEmail,
+        creatorId: params.creatorId,
+        isPlatformOwner: false,
+        useHive,
+        isLearnMode: false,
+      });
     }
 
     return {

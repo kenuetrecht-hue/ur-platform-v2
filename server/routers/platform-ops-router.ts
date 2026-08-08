@@ -4,6 +4,7 @@ import {
   adminPermissionProcedure,
   ownerProcedure,
   secureProcedure,
+  securePublicProcedure,
   router,
   TRPCError,
 } from "../_core/trpc";
@@ -37,7 +38,15 @@ import {
   resolveOpsIncident,
   runPlatformHealthChecks,
   runPlatformHealthScan,
+  proposeSectionMaintenance,
+  ownerDisableSection,
+  ownerEnableSection,
 } from "../_core/platform-ops-service";
+import {
+  getPublicSectionFlags,
+  listPlatformSectionStates,
+} from "../_core/platform-section-flags-service";
+import { PLATFORM_SECTION_IDS } from "../../lib/platform-section-flags";
 
 export const platformOpsRouter = router({
   /** Requires login — owner flag is server-verified only. */
@@ -222,4 +231,58 @@ export const platformOpsRouter = router({
   resolveIncident: adminPermissionProcedure("manage_incidents")
     .input(z.object({ incidentId: z.string().min(8).max(64) }))
     .mutation(async ({ input }) => resolveOpsIncident(input.incidentId)),
+
+  /** Public — client maintenance banners (enabled flags only). */
+  getPublicSectionFlags: securePublicProcedure("platformOps").query(() => ({
+    sections: getPublicSectionFlags(),
+  })),
+
+  listSections: adminPermissionProcedure("view_ops_dashboard").query(() =>
+    listPlatformSectionStates(),
+  ),
+
+  disableSection: ownerProcedure
+    .input(
+      z.object({
+        sectionId: z.enum(PLATFORM_SECTION_IDS),
+        reason: z.string().min(3).max(2000),
+        maintenanceMessage: z.string().max(500).optional(),
+        incidentId: z.string().min(8).max(64).optional(),
+      }),
+    )
+    .mutation(({ input }) =>
+      ownerDisableSection({
+        sectionId: input.sectionId,
+        reason: input.reason,
+        maintenanceMessage: input.maintenanceMessage,
+        incidentId: input.incidentId,
+      }),
+    ),
+
+  enableSection: ownerProcedure
+    .input(
+      z.object({
+        sectionId: z.enum(PLATFORM_SECTION_IDS),
+        ownerNote: z.string().max(1000).optional(),
+      }),
+    )
+    .mutation(({ input }) =>
+      ownerEnableSection({
+        sectionId: input.sectionId,
+        ownerNote: input.ownerNote,
+      }),
+    ),
+
+  proposeSectionMaintenance: adminPermissionProcedure("chat_ops_ai")
+    .input(
+      z.object({
+        sourceAi: z.enum(OWNER_ONLY_PLATFORM_AI_IDS),
+        sectionId: z.enum(PLATFORM_SECTION_IDS),
+        action: z.enum(["isolate", "reopen"]),
+        reason: z.string().min(3).max(4000),
+        proposedFix: z.string().min(3).max(4000),
+        severity: z.enum(["low", "medium", "high", "critical"]).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => proposeSectionMaintenance(input)),
 });

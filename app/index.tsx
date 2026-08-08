@@ -1,5 +1,5 @@
 import { Redirect } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Platform, View } from "react-native";
 import { useAuth } from "@/lib/auth-context";
 
 export default function Index() {
@@ -15,6 +15,11 @@ export default function Index() {
 
   if (isAuthenticated) {
     return <Redirect href="/(tabs)" />;
+  }
+
+  // Web visitors get the marketing landing page; native apps go straight to login.
+  if (Platform.OS === "web") {
+    return <Redirect href="/welcome" />;
   }
 
   return <Redirect href="/login" />;

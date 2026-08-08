@@ -20,6 +20,7 @@ import { getSharePreview } from "./forge-share-service";
 import { isSupabaseConfiguredOnServer } from "../supabase-auth";
 import { resolveSupabasePublicConfig } from "../../shared/supabase-config";
 import * as db from "../db";
+import { registerStaticWeb } from "./static-web";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -117,6 +118,8 @@ async function startServer() {
       },
     }),
   );
+
+  registerStaticWeb(app);
 
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);

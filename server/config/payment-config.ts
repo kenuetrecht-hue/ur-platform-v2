@@ -35,25 +35,32 @@ export const paymentConfig = {
     doubleValueMultiplier: 2,
   },
 
-  // Membership Configuration
+  // Per-AI subscription (each specialist — flat rate)
+  aiSpecialistSubscription: {
+    day: { durationHours: 24, priceInCents: 599 },
+    week: { durationDays: 7, priceInCents: 999 },
+    month: { durationDays: 30, priceInCents: 1499 },
+  },
+
+  // Membership Configuration (legacy stamp bundles — separate from per-AI subs)
   memberships: {
     day: {
       name: "Day Membership",
       durationInDays: 1,
-      priceInCents: 499, // $4.99 - Uses Stripe (no stamps)
-      paymentMethod: "stripe", // Automatically determined by price
+      priceInCents: 599,
+      paymentMethod: "web_browser",
     },
     week: {
       name: "Week Membership",
       durationInDays: 7,
-      priceInCents: 1999, // $19.99 - TBD - Update this value
-      paymentMethod: "auto", // Will be determined by price logic
+      priceInCents: 999,
+      paymentMethod: "web_browser",
     },
     month: {
       name: "Month Membership",
       durationInDays: 30,
-      priceInCents: 4999, // $49.99 - TBD - Update this value
-      paymentMethod: "auto", // Will be determined by price logic
+      priceInCents: 1499,
+      paymentMethod: "web_browser",
     },
     year: {
       name: "Year Membership",
@@ -63,11 +70,24 @@ export const paymentConfig = {
     },
   },
 
-  // Payment Routing Rules
+  // 3D Workspace bundles (Option A)
+  workspace3d: {
+    dayPass: { durationHours: 24, priceInCents: 799, concurrentAiSlots: 2 },
+    solo: { durationDays: 30, priceInCents: 1999, concurrentAiSlots: 1 },
+    pro: { durationDays: 30, priceInCents: 3999, concurrentAiSlots: 3 },
+    studio: { durationDays: 30, priceInCents: 6999, concurrentAiSlots: 5 },
+    extraAiSlot: { durationDays: 30, priceInCents: 899 },
+  },
+
+  // Payment Routing Rules — see lib/payment-channel-policy.ts
   paymentRouting: {
-    // Purchases >= $4.99 use Stripe
-    // Purchases < $4.99 use stamps
-    stripeThresholdInCents: 499, // $4.99
+    /** Exactly $5.00 → native app in-app purchase */
+    inAppOnlySubtotalCents: 500,
+    /** Legacy stamp vs Stripe threshold */
+    stripeThresholdInCents: 499,
+    /** All other services → web browser checkout */
+    webBrowserRequiredNote:
+      "AI subscriptions ($5.99/$9.99/$14.99 per specialist) and $1 talk packs require web browser checkout.",
   },
 
   // Stripe Configuration

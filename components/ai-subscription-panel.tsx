@@ -20,6 +20,16 @@ import { useBillingState } from "@/hooks/use-billing-state";
 
 import type { AiPriceTier } from "@/lib/ai-subscription-pricing";
 
+import { PaymentChannelNotice } from "@/components/payment-channel-notice";
+
+import { AiHubTabRow } from "@/components/ai-hub-tab-row";
+
+import {
+  buildAiSubscriptionWebPath,
+  getClientPlatform,
+  openWebBrowserCheckout,
+} from "@/lib/web-checkout";
+
 
 
 type Props = {
@@ -29,6 +39,9 @@ type Props = {
   creatorName: string;
 
   compact?: boolean;
+
+  /** Pricing tab — always show plan cards (even when subscribed). */
+  mode?: "default" | "pricing";
 
 };
 
@@ -50,7 +63,7 @@ type PlanOption = {
 
 
 
-export function AiSubscriptionPanel({ creatorId, creatorName, compact = false }: Props) {
+export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, mode = "default" }: Props) {
 
   const colors = useColors();
 
@@ -59,6 +72,10 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false }:
   const utils = trpc.useUtils();
 
   const { stateCode, setStateCode, hasState } = useBillingState();
+
+  const clientPlatform = getClientPlatform();
+
+  const isWebCheckout = clientPlatform === "web";
 
   const [selectedPlan, setSelectedPlan] = useState<AiSubscriptionPlan>("week");
 
@@ -157,7 +174,7 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false }:
 
 
 
-  if (isAuthenticated && access.data?.hasAccess) {
+  if (isAuthenticated && access.data?.hasAccess && mode !== "pricing") {
 
     const sub = access.data.subscription;
 
@@ -203,6 +220,23 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false }:
 
   }
 
+  const activeStatusBanner =
+    mode === "pricing" && isAuthenticated && access.data?.hasAccess ? (
+      <View style={[styles.activeBox, { borderColor: colors.primary, backgroundColor: colors.surface, marginBottom: 10 }]}>
+        <Text style={{ color: colors.foreground, fontWeight: "700" }}>✓ Subscribed to {creatorName}</Text>
+        {access.data.subscription ? (
+          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>
+            {access.data.subscription.plan} plan · renew or extend below
+          </Text>
+        ) : null}
+        {activeUsageLine ? (
+          <Text style={{ color: colors.primary, fontSize: 12, marginTop: 4, fontWeight: "600" }}>
+            {activeUsageLine}
+          </Text>
+        ) : null}
+      </View>
+    ) : null;
+
 
 
   if (compact) return null;
@@ -213,6 +247,8 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false }:
 
     <View style={[styles.box, { borderColor: colors.border, backgroundColor: colors.surface }]}>
 
+      {activeStatusBanner}
+
       <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
 
         Subscribe to {creatorName}
@@ -221,17 +257,37 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false }:
 
       <Text style={{ color: colors.muted, fontSize: 13, marginTop: 6, lineHeight: 19 }}>
 
-        Review exactly what you pay and what is included before checkout.
+        $5.99/day · $9.99/week · $14.99/month — per specialist. Web browser checkout required.
 
-        {tierLabel && tierLabel !== "Standard" ? ` ${tierLabel} specialist pricing applies.` : null}
+        {tierLabel && tierLabel !== "Standard" ? ` (${tierLabel} usage tier.)` : null}
 
       </Text>
+
+
+
+      <PaymentChannelNotice compact />
 
 
 
       <BillingStatePicker value={stateCode} onChange={setStateCode} />
 
 
+
+      {hasState && planList.length > 0 ? (
+        <AiHubTabRow
+          tabs={planList.map((p) => ({
+            id: p.plan,
+            label: p.priceDisplay,
+            emoji: p.plan === "day" ? "⏱️" : p.plan === "week" ? "📅" : "🗓️",
+          }))}
+          activeId={selectedPlan}
+          onSelect={(id) => {
+            setSelectedPlan(id as AiSubscriptionPlan);
+            setLastReceipt(null);
+          }}
+          style={{ paddingHorizontal: 0 }}
+        />
+      ) : null}
 
       {hasState ? (
 
@@ -341,7 +397,15 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false }:
 
           if (!isAuthenticated || !selectedPlan || !stateCode) return;
 
-          purchase.mutate({ creatorId, plan: selectedPlan, stateCode });
+          if (!isWebCheckout) {
+
+            void openWebBrowserCheckout(buildAiSubscriptionWebPath(creatorId));
+
+            return;
+
+          }
+
+          purchase.mutate({ creatorId, plan: selectedPlan, stateCode, clientPlatform: "web" });
 
         }}
 
@@ -375,7 +439,11 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false }:
 
               : isAuthenticated
 
-                ? `I understand — pay ${selectedSummary?.pricing.totalDisplay ?? ""}`
+                ? isWebCheckout
+
+                  ? `I understand — pay ${selectedSummary?.pricing.totalDisplay ?? ""}`
+
+                  : "Continue in browser to subscribe"
 
                 : "Sign in to subscribe"}
 

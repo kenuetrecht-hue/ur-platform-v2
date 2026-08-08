@@ -22,6 +22,7 @@ import { useWorkspaceDesign } from "@/hooks/use-workspace-design";
 import { usePlayroomBuilder } from "@/hooks/use-playroom-builder";
 import { trpc } from "@/lib/trpc";
 import { AI_CREATOR_CATALOG } from "@/lib/ai-creator-catalog";
+import { PlatformSectionGate } from "@/components/platform-section-gate";
 
 const WORKSPACE_CATEGORIES = new Set([
   "3D & Design",
@@ -99,6 +100,7 @@ export default function PlayroomScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenContainer className="bg-background">
+        <PlatformSectionGate sectionId="playroom">
         <ScrollView contentContainerStyle={{ paddingBottom: 48, gap: 14 }}>
           <TabScreenHeader
             icon="🎪"
@@ -167,6 +169,7 @@ export default function PlayroomScreen() {
             ) : null}
           </View>
         </ScrollView>
+        </PlatformSectionGate>
       </ScreenContainer>
     </>
   );

@@ -3,9 +3,32 @@ import { followSystemService } from '@/lib/follow-system-service';
 import { bookingSubscriptionService } from '@/lib/booking-subscription-service';
 import { advancedNotificationService } from '@/lib/advanced-notification-service';
 
+function resetFollowBookingServices(): void {
+  const follow = followSystemService as any;
+  follow.followers?.clear?.();
+  follow.followNotifications?.clear?.();
+  follow.analytics?.clear?.();
+  follow.notificationId = 0;
+
+  const booking = bookingSubscriptionService as any;
+  booking.subscriptions?.clear?.();
+  booking.bookings?.clear?.();
+  booking.payments?.clear?.();
+  booking.subscriptionId = 0;
+  booking.bookingId = 0;
+  booking.paymentId = 0;
+
+  const notifications = advancedNotificationService as any;
+  notifications.notifications?.clear?.();
+  notifications.preferences?.clear?.();
+  notifications.analytics?.clear?.();
+  notifications.notificationId = 0;
+  notifications.deliveryQueue = [];
+}
+
 describe('Follow System Service', () => {
   beforeEach(() => {
-    // Reset services
+    resetFollowBookingServices();
   });
 
   it('should allow user to follow creator', () => {
@@ -82,7 +105,7 @@ describe('Follow System Service', () => {
 
 describe('Booking & Subscription Service', () => {
   beforeEach(() => {
-    // Reset services
+    resetFollowBookingServices();
   });
 
   it('should create subscription', () => {
@@ -162,7 +185,7 @@ describe('Booking & Subscription Service', () => {
 
 describe('Advanced Notification Service', () => {
   beforeEach(() => {
-    // Reset services
+    resetFollowBookingServices();
   });
 
   it('should create notification', () => {

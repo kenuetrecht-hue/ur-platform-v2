@@ -1,311 +1,208 @@
-import { publicProcedure, router } from "@/server/_core/trpc";
 import { z } from "zod";
+import { secureProcedure, securePublicProcedure, router, TRPCError } from "../_core/trpc";
+import { getAccessStatus } from "../_core/access-entitlements";
+import {
+  cancelWorkspace3dSubscription,
+  getActiveWorkspace3dSubscription,
+  getWorkspace3dAccessQuote,
+  purchaseWorkspace3dExtraSlot,
+  purchaseWorkspace3dPlan,
+} from "../_core/workspace-3d-subscription-service";
+import {
+  getWorkspace3dPlans,
+  getWorkspace3dPlanPriceCents,
+  WORKSPACE_3D_EXTRA_AI_SLOT_CENTS,
+  WORKSPACE_3D_PRICING_SUMMARY,
+  type Workspace3dPlanId,
+} from "../../lib/workspace-3d-pricing";
+import {
+  buildWorkspace3dPurchaseSummary,
+  buildWorkspace3dExtraSlotPurchaseSummary,
+  formatPurchaseReceiptMessage,
+} from "../../lib/pricing-disclosures";
+import { optionalBillingStateSchema, billingStateSchema } from "../../lib/billing-state-schema";
+import { assertPaymentChannelAllowed, assertSimulatedPurchaseAllowed, paymentChannelNote } from "../_core/payment-channel-guard";
+import { assertSectionEnabledForRequest } from "../_core/platform-section-guard";
 
-export const workspace3DRouter = router({
-  // Workspace Management
-  createWorkspace: publicProcedure
+const clientPlatformSchema = z.enum(["web", "native"]);
+const planSchema = z.enum(["day_pass", "solo", "pro", "studio"]);
+
+export const workspace3dRouter = router({
+  getPlans: securePublicProcedure("workspace3d")
+    .input(z.object({ stateCode: optionalBillingStateSchema }))
+    .query(({ input }) => ({
+      plans: getWorkspace3dPlans().map((p) => ({
+        ...p,
+        requiredPaymentChannel: "web_browser" as const,
+        purchaseSummary: buildWorkspace3dPurchaseSummary({
+          planId: p.planId,
+          stateCode: input.stateCode ?? null,
+        }),
+      })),
+      extraAiSlot: {
+        priceCents: WORKSPACE_3D_EXTRA_AI_SLOT_CENTS,
+        priceDisplay: `$${(WORKSPACE_3D_EXTRA_AI_SLOT_CENTS / 100).toFixed(2)}`,
+        requiredPaymentChannel: "web_browser" as const,
+        purchaseSummary: buildWorkspace3dExtraSlotPurchaseSummary(input.stateCode ?? null),
+      },
+      pricingNote: WORKSPACE_3D_PRICING_SUMMARY,
+      paymentNote: "Workspace plans must be purchased through your web browser — not in the mobile app.",
+      usageNote:
+        "Workspace access covers the 3D lab and concurrent AI slots. Text chat still requires each specialist's plan; voice uses Talk Time.",
+    })),
+
+  getAccess: secureProcedure("workspace3d").query(({ ctx }) => {
+    const userId = String(ctx.user.id);
+    if (ctx.isPlatformOwner) {
+      return {
+        ...getWorkspace3dAccessQuote(userId, true),
+        source: "owner" as const,
+        subscription: null,
+      };
+    }
+
+    const platform = getAccessStatus({
+      userId: ctx.user.id,
+      email: ctx.user.email,
+      isPlatformOwner: false,
+    });
+    if (platform.hasAiAccess) {
+      return {
+        hasAccess: true,
+        maxConcurrentAiSlots: 8,
+        plan: null,
+        extraAiSlots: 0,
+        expiresAt: null,
+        source: platform.source,
+        subscription: null,
+      };
+    }
+
+    const subscription = getActiveWorkspace3dSubscription(userId);
+    const access = getWorkspace3dAccessQuote(userId, false);
+    return {
+      ...access,
+      source: subscription ? ("workspace_3d" as const) : ("none" as const),
+      subscription,
+    };
+  }),
+
+  purchase: secureProcedure("workspace3d")
     .input(
       z.object({
-        name: z.string(),
-        description: z.string().optional(),
-        isPublic: z.boolean().optional(),
-      })
+        plan: planSchema,
+        stateCode: billingStateSchema,
+        clientPlatform: clientPlatformSchema,
+      }),
     )
-    .mutation(async ({ input }: { input: { name: string; description?: string; isPublic?: boolean } }) => {
-      return { workspaceId: "ws_123", name: input.name };
+    .mutation(({ input, ctx }) => {
+      assertSimulatedPurchaseAllowed();
+      assertSectionEnabledForRequest("3d_workspace", ctx.isPlatformOwner);
+      const userId = String(ctx.user.id);
+      const email = ctx.user.email;
+      if (!email) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Account email required." });
+      }
+
+      const priceCents = getWorkspace3dPlanPriceCents(input.plan as Workspace3dPlanId);
+      assertPaymentChannelAllowed({
+        subtotalCents: priceCents,
+        clientPlatform: input.clientPlatform,
+      });
+
+      if (ctx.isPlatformOwner) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Platform owner already has full workspace access.",
+        });
+      }
+
+      const platform = getAccessStatus({
+        userId: ctx.user.id,
+        email,
+        isPlatformOwner: false,
+      });
+      if (platform.hasAiAccess) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "You already have platform-wide access including the 3D workspace.",
+        });
+      }
+
+      const record = purchaseWorkspace3dPlan({
+        userId,
+        userEmail: email,
+        plan: input.plan as Workspace3dPlanId,
+        billingStateCode: input.stateCode,
+        source: "simulated",
+      });
+
+      const receipt = buildWorkspace3dPurchaseSummary({
+        planId: input.plan as Workspace3dPlanId,
+        stateCode: input.stateCode,
+      });
+
+      return {
+        ok: true as const,
+        subscription: record,
+        receipt,
+        message: formatPurchaseReceiptMessage(receipt),
+        expiresAt: record.expiresAt,
+        paymentChannel: paymentChannelNote(priceCents),
+      };
     }),
 
-  getWorkspace: publicProcedure
-    .input(z.object({ workspaceId: z.string() }))
-    .query(async ({ input }: { input: { workspaceId: string } }) => {
-      return { workspaceId: input.workspaceId, objects: [], members: [] };
-    }),
-
-  updateWorkspace: publicProcedure
+  purchaseExtraSlot: secureProcedure("workspace3d")
     .input(
       z.object({
-        workspaceId: z.string(),
-        name: z.string().optional(),
-        description: z.string().optional(),
-        isPublic: z.boolean().optional(),
-      })
+        stateCode: billingStateSchema,
+        clientPlatform: clientPlatformSchema,
+      }),
     )
-    .mutation(async ({ input }: { input: { workspaceId: string; name?: string; description?: string; isPublic?: boolean } }) => {
-      return { updated: true };
+    .mutation(({ input, ctx }) => {
+      assertSimulatedPurchaseAllowed();
+      const userId = String(ctx.user.id);
+      const email = ctx.user.email;
+      if (!email) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Account email required." });
+      }
+
+      assertPaymentChannelAllowed({
+        subtotalCents: WORKSPACE_3D_EXTRA_AI_SLOT_CENTS,
+        clientPlatform: input.clientPlatform,
+      });
+
+      if (ctx.isPlatformOwner) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Platform owner already has full workspace access.",
+        });
+      }
+
+      const record = purchaseWorkspace3dExtraSlot({
+        userId,
+        userEmail: email,
+        billingStateCode: input.stateCode,
+        source: "simulated",
+      });
+
+      const receipt = buildWorkspace3dExtraSlotPurchaseSummary(input.stateCode);
+
+      return {
+        ok: true as const,
+        subscription: record,
+        receipt,
+        message: formatPurchaseReceiptMessage(receipt),
+        expiresAt: record.expiresAt,
+        paymentChannel: paymentChannelNote(WORKSPACE_3D_EXTRA_AI_SLOT_CENTS),
+      };
     }),
 
-  deleteWorkspace: publicProcedure
-    .input(z.object({ workspaceId: z.string() }))
-    .mutation(async ({ input }: { input: { workspaceId: string } }) => {
-      return { deleted: true };
-    }),
-
-  listWorkspaces: publicProcedure
-    .input(z.object({ userId: z.string() }))
-    .query(async ({ input }: { input: { userId: string } }) => {
-      return { workspaces: [] };
-    }),
-
-  shareWorkspace: publicProcedure
-    .input(
-      z.object({
-        workspaceId: z.string(),
-        userIds: z.array(z.string()),
-        role: z.enum(["viewer", "editor", "admin"]),
-      })
-    )
-    .mutation(async ({ input }: { input: { workspaceId: string; userIds: string[]; role: string } }) => {
-      return { shared: true };
-    }),
-
-  // 3D Object Management
-  createObject: publicProcedure
-    .input(
-      z.object({
-        workspaceId: z.string(),
-        objectType: z.string(),
-        position: z.object({ x: z.number(), y: z.number(), z: z.number() }),
-        properties: z.any().optional(),
-      })
-    )
-    .mutation(async ({ input }: { input: { workspaceId: string; objectType: string; position: { x: number; y: number; z: number }; properties?: any } }) => {
-      return { objectId: "obj_123", created: true };
-    }),
-
-  updateObject: publicProcedure
-    .input(
-      z.object({
-        objectId: z.string(),
-        position: z.object({ x: z.number(), y: z.number(), z: z.number() }).optional(),
-        rotation: z.object({ x: z.number(), y: z.number(), z: z.number() }).optional(),
-        scale: z.object({ x: z.number(), y: z.number(), z: z.number() }).optional(),
-        properties: z.any().optional(),
-      })
-    )
-    .mutation(async ({ input }: { input: { objectId: string; position?: { x: number; y: number; z: number }; rotation?: { x: number; y: number; z: number }; scale?: { x: number; y: number; z: number }; properties?: any } }) => {
-      return { updated: true };
-    }),
-
-  deleteObject: publicProcedure
-    .input(z.object({ objectId: z.string() }))
-    .mutation(async ({ input }: { input: { objectId: string } }) => {
-      return { deleted: true };
-    }),
-
-  getWorkspaceObjects: publicProcedure
-    .input(z.object({ workspaceId: z.string() }))
-    .query(async ({ input }: { input: { workspaceId: string } }) => {
-      return { objects: [] };
-    }),
-
-  // Blueprint Operations
-  createBlueprint: publicProcedure
-    .input(
-      z.object({
-        workspaceId: z.string(),
-        name: z.string(),
-        description: z.string().optional(),
-      })
-    )
-    .mutation(async ({ input }: { input: { workspaceId: string; name: string; description?: string } }) => {
-      return { blueprintId: "bp_123", created: true };
-    }),
-
-  getBlueprint: publicProcedure
-    .input(z.object({ blueprintId: z.string() }))
-    .query(async ({ input }: { input: { blueprintId: string } }) => {
-      return { blueprintId: input.blueprintId, layers: [], annotations: [] };
-    }),
-
-  updateBlueprint: publicProcedure
-    .input(
-      z.object({
-        blueprintId: z.string(),
-        layers: z.array(z.any()).optional(),
-        measurements: z.any().optional(),
-        annotations: z.array(z.any()).optional(),
-      })
-    )
-    .mutation(async ({ input }: { input: { blueprintId: string; layers?: any[]; measurements?: any; annotations?: any[] } }) => {
-      return { updated: true };
-    }),
-
-  addLayer: publicProcedure
-    .input(
-      z.object({
-        blueprintId: z.string(),
-        layerName: z.string(),
-        layerType: z.enum(["plumbing", "electrical", "structural", "hvac", "other"]),
-      })
-    )
-    .mutation(async ({ input }: { input: { blueprintId: string; layerName: string; layerType: string } }) => {
-      return { layerId: "layer_123", added: true };
-    }),
-
-  removeLayer: publicProcedure
-    .input(z.object({ layerId: z.string() }))
-    .mutation(async ({ input }: { input: { layerId: string } }) => {
-      return { removed: true };
-    }),
-
-  exportBlueprint: publicProcedure
-    .input(
-      z.object({
-        blueprintId: z.string(),
-        format: z.enum(["pdf", "dwg", "png", "json"]),
-      })
-    )
-    .mutation(async ({ input }: { input: { blueprintId: string; format: string } }) => {
-      return { downloadUrl: "https://example.com/blueprint.pdf" };
-    }),
-
-  // AI Avatar Management
-  addAIAvatar: publicProcedure
-    .input(
-      z.object({
-        workspaceId: z.string(),
-        aiType: z.enum([
-          "plumber",
-          "electrician",
-          "welder",
-          "roofer",
-          "dry_waller",
-          "framer",
-          "hvac",
-          "coder",
-          "3d_printing",
-          "content_creator",
-        ]),
-      })
-    )
-    .mutation(async ({ input }: { input: { workspaceId: string; aiType: string } }) => {
-      return { avatarId: "avatar_123", added: true };
-    }),
-
-  removeAIAvatar: publicProcedure
-    .input(z.object({ avatarId: z.string() }))
-    .mutation(async ({ input }: { input: { avatarId: string } }) => {
-      return { removed: true };
-    }),
-
-  updateAIPosition: publicProcedure
-    .input(
-      z.object({
-        avatarId: z.string(),
-        position: z.object({ x: z.number(), y: z.number(), z: z.number() }),
-        rotation: z.object({ x: z.number(), y: z.number(), z: z.number() }).optional(),
-      })
-    )
-    .mutation(async ({ input }: { input: { avatarId: string; position: { x: number; y: number; z: number }; rotation?: { x: number; y: number; z: number } } }) => {
-      return { updated: true };
-    }),
-
-  getAIStatus: publicProcedure
-    .input(z.object({ avatarId: z.string() }))
-    .query(async ({ input }: { input: { avatarId: string } }) => {
-      return { avatarId: input.avatarId, currentTask: "idle", isActive: true };
-    }),
-
-  requestAIAssistance: publicProcedure
-    .input(
-      z.object({
-        workspaceId: z.string(),
-        aiType: z.string(),
-        request: z.string(),
-      })
-    )
-    .mutation(async ({ input }: { input: { workspaceId: string; aiType: string; request: string } }) => {
-      return { requestId: "req_123", status: "received" };
-    }),
-
-  // Collaboration
-  sendChatMessage: publicProcedure
-    .input(
-      z.object({
-        workspaceId: z.string(),
-        userId: z.string().optional(),
-        aiId: z.string().optional(),
-        message: z.string(),
-      })
-    )
-    .mutation(async ({ input }: { input: { workspaceId: string; userId?: string; aiId?: string; message: string } }) => {
-      return { messageId: "msg_123", sent: true };
-    }),
-
-  getChatHistory: publicProcedure
-    .input(
-      z.object({
-        workspaceId: z.string(),
-        limit: z.number().optional(),
-      })
-    )
-    .query(async ({ input }: { input: { workspaceId: string; limit?: number } }) => {
-      return { messages: [] };
-    }),
-
-  getCollaborationHistory: publicProcedure
-    .input(
-      z.object({
-        workspaceId: z.string(),
-        limit: z.number().optional(),
-      })
-    )
-    .query(async ({ input }: { input: { workspaceId: string; limit?: number } }) => {
-      return { events: [] };
-    }),
-
-  createSnapshot: publicProcedure
-    .input(z.object({ workspaceId: z.string() }))
-    .mutation(async ({ input }: { input: { workspaceId: string } }) => {
-      return { snapshotId: "snap_123", created: true };
-    }),
-
-  restoreSnapshot: publicProcedure
-    .input(z.object({ snapshotId: z.string() }))
-    .mutation(async ({ input }: { input: { snapshotId: string } }) => {
-      return { restored: true };
-    }),
-
-  // Permissions
-  addMember: publicProcedure
-    .input(
-      z.object({
-        workspaceId: z.string(),
-        userId: z.string(),
-        role: z.enum(["viewer", "editor", "admin"]),
-      })
-    )
-    .mutation(async ({ input }: { input: { workspaceId: string; userId: string; role: string } }) => {
-      return { memberId: "mem_123", added: true };
-    }),
-
-  removeMember: publicProcedure
-    .input(
-      z.object({
-        workspaceId: z.string(),
-        userId: z.string(),
-      })
-    )
-    .mutation(async ({ input }: { input: { workspaceId: string; userId: string } }) => {
-      return { removed: true };
-    }),
-
-  updateMemberRole: publicProcedure
-    .input(
-      z.object({
-        memberId: z.string(),
-        role: z.enum(["viewer", "editor", "admin"]),
-      })
-    )
-    .mutation(async ({ input }: { input: { memberId: string; role: string } }) => {
-      return { updated: true };
-    }),
-
-  getMemberList: publicProcedure
-    .input(z.object({ workspaceId: z.string() }))
-    .query(async ({ input }: { input: { workspaceId: string } }) => {
-      return { members: [] };
-    }),
+  cancel: secureProcedure("workspace3d").mutation(({ ctx }) => {
+    const ok = cancelWorkspace3dSubscription(String(ctx.user.id));
+    if (!ok) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "No active workspace subscription found." });
+    }
+    return { ok: true as const };
+  }),
 });
-
-export type Workspace3DRouter = typeof workspace3DRouter;

@@ -18,6 +18,9 @@ import {
   hasAiVideoTalkAccess,
   hasCreatorVoiceAccess,
 } from "../_core/ai-premium-media-service";
+import { assertTalkTimeAvailable, getTalkMillisecondsRemaining, secondsToBillingMs } from "../_core/ai-talk-time-tracker";
+import { startMeterSession } from "../_core/ai-metering-session-service";
+import { assertSectionEnabledForRequest } from "../_core/platform-section-guard";
 import { AFFILIATE_ASSOCIATE_ID, isAffiliateOnlyAi } from "../_core/affiliate-associate-ai";
 
 const CREATOR_VOICE_PERSONA: Record<string, keyof typeof AI_PERSONA_VOICES> = {
@@ -107,6 +110,9 @@ export const aiCreatorChatRouter = router({
           message: "Doctor AI, Administration AI, and Security AI are restricted to the Administration Dashboard.",
         });
       }
+      if (!isOwnerOnlyPlatformAi(input.creatorId)) {
+        assertSectionEnabledForRequest("ai_chat", ctx.isPlatformOwner);
+      }
       const result = await handleCreatorAiChat({
         creatorId: input.creatorId,
         message: input.message,
@@ -136,6 +142,7 @@ export const aiCreatorChatRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const userId = String(ctx.user.id);
+      assertSectionEnabledForRequest("voice_talk", ctx.isPlatformOwner);
 
       if (input.creatorId === AFFILIATE_ASSOCIATE_ID) {
         if (!hasAffiliateVoiceAccess(userId) && !ctx.isPlatformOwner) {
@@ -167,7 +174,7 @@ export const aiCreatorChatRouter = router({
           creatorId: input.creatorId,
         });
         if (!ctx.isPlatformOwner) {
-          consumePremiumMinute({ userId, kind: "ai_talk", creatorId: input.creatorId });
+          assertTalkTimeAvailable(userId, 1);
         }
       }
 
@@ -196,12 +203,36 @@ export const aiCreatorChatRouter = router({
         similarityBoost: voiceConfig.similarityBoost,
       });
 
+      let meterSessionId: string | null = null;
+      let millisecondsRemaining: number | null = null;
+      if (
+        !ctx.isPlatformOwner &&
+        input.creatorId !== AFFILIATE_ASSOCIATE_ID &&
+        input.creatorId !== "contentmate"
+      ) {
+        const durationMs = secondsToBillingMs(response.duration);
+        const session = startMeterSession({
+          userId,
+          creatorId: input.creatorId,
+          kind: "voice_playback",
+          maxBillableMs: durationMs,
+          source: "client_playback",
+        });
+        meterSessionId = session.id;
+        millisecondsRemaining = getTalkMillisecondsRemaining(userId);
+      }
+
       return {
         success: true as const,
         audioUrl: response.audioUrl,
         audioBase64: response.audioBase64,
         duration: response.duration,
+        durationMs: secondsToBillingMs(response.duration),
         persona: voiceConfig.name,
+        meterSessionId,
+        millisecondsRemaining,
+        meteringNote:
+          "Talk time bills only while connected and playing. Disconnect pauses billing; reconnect resumes your exact balance.",
       };
     }),
 
@@ -277,8 +308,21 @@ export const aiCreatorChatRouter = router({
         });
       }
       if (!ctx.isPlatformOwner) {
-        consumePremiumMinute({ userId: String(ctx.user.id), kind: "ai_talk", creatorId: input.creatorId });
+        assertTalkTimeAvailable(String(ctx.user.id), 1);
+        const balance = getTalkMillisecondsRemaining(String(ctx.user.id));
+        const session = startMeterSession({
+          userId: String(ctx.user.id),
+          creatorId: input.creatorId,
+          kind: "video_talk",
+          maxBillableMs: balance,
+          source: "video_session",
+        });
+        return {
+          allowed: true as const,
+          meterSessionId: session.id,
+          millisecondsRemaining: balance,
+        };
       }
-      return { allowed: true as const };
+      return { allowed: true as const, meterSessionId: null, millisecondsRemaining: null };
     }),
 });

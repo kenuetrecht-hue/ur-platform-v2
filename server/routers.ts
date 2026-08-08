@@ -30,8 +30,10 @@ import { commerceRouter } from "./routers/commerce-router";
 import { blueprintReaderRouter } from "./routers/blueprint-reader-router";
 import { aiSubscriptionRouter } from "./routers/ai-subscription-router";
 import { aiTalkRouter } from "./routers/ai-talk-router";
+import { workspace3dRouter } from "./routers/workspace-3d-router";
 import { loyaltyRouter } from "./routers/loyalty-router";
 import { hiveTownHallRouter } from "./routers/hive-town-hall-router";
+import { landingRouter } from "./routers/landing-router";
 import { destroyAllSessionsForUser } from "./_core/forge-session-manager";
 
 export const appRouter = router({
@@ -161,6 +163,7 @@ export const appRouter = router({
   chat: chatRouter,
   aiCreators: aiCreatorChatRouter,
   hiveTownHall: hiveTownHallRouter,
+  landing: landingRouter,
   platformOps: platformOpsRouter,
   equipment: equipmentRouter,
   aiLearning: aiLearningRouter,
@@ -175,6 +178,7 @@ export const appRouter = router({
   blueprintReader: blueprintReaderRouter,
   aiSubscription: aiSubscriptionRouter,
   aiTalk: aiTalkRouter,
+  workspace3d: workspace3dRouter,
   loyalty: loyaltyRouter,
 });
 

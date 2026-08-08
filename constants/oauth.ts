@@ -35,17 +35,28 @@ export function getApiBaseUrl(): string {
     return API_BASE_URL.replace(/\/$/, "");
   }
 
-  // On web, derive from current hostname by replacing port 8081 with 3000
+  // On web, point API calls at the Express server (port 3000) unless same-origin prod.
   if (ReactNative.Platform.OS === "web" && typeof window !== "undefined" && window.location) {
-    const { protocol, hostname } = window.location;
-    // Pattern: 8081-sandboxid.region.domain -> 3000-sandboxid.region.domain
+    const { protocol, hostname, port } = window.location;
+
+    // Production: web static bundle served from same host as API — relative URLs work.
+    if (port === "3000" || port === "") {
+      return "";
+    }
+
+    // Local dev: Metro web (8081/8082/etc.) → API on 3000
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return `${protocol}//${hostname}:3000`;
+    }
+
+    // Manus cloud sandbox: 8081-host → 3000-host
     const apiHostname = hostname.replace(/^8081-/, "3000-");
     if (apiHostname !== hostname) {
       return `${protocol}//${apiHostname}`;
     }
   }
 
-  // Fallback to empty (will use relative URL)
+  // Fallback to relative URL (same origin)
   return "";
 }
 

@@ -13,17 +13,16 @@ import {
 } from "../server/_core/ai-subscription-service";
 
 describe("ai-subscription-pricing", () => {
-  it("uses base daily/weekly/monthly for standard specialists", () => {
+  it("uses flat daily/weekly/monthly for every specialist", () => {
     expect(getPlanPriceDollars("ai-wellness-001", "day")).toBe(5.99);
     expect(getPlanPriceDollars("ai-wellness-001", "week")).toBe(9.99);
     expect(getPlanPriceDollars("ai-wellness-001", "month")).toBe(14.99);
   });
 
-  it("charges premium tier more for language translators", () => {
+  it("same price for premium tier specialists", () => {
     expect(getAiPriceTier("linguamate")).toBe("premium");
-    expect(getAiPriceTier("ai-translator-001")).toBe("premium");
-    expect(getPlanPriceCents("linguamate", "day")).toBeGreaterThan(AI_SUBSCRIPTION_BASE_CENTS.day);
-    expect(getPlanPriceCents("linguamate", "month")).toBeGreaterThan(AI_SUBSCRIPTION_BASE_CENTS.month);
+    expect(getPlanPriceCents("linguamate", "day")).toBe(AI_SUBSCRIPTION_BASE_CENTS.day);
+    expect(getPlanPriceCents("linguamate", "month")).toBe(AI_SUBSCRIPTION_BASE_CENTS.month);
   });
 
   it("returns three plan quotes with savings on longer plans", () => {

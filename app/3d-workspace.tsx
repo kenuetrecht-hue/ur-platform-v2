@@ -9,7 +9,7 @@ import {
   StyleSheet,
   Platform,
 } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
 import { EquipmentHubPanel } from "@/components/equipment-hub-panel";
@@ -19,11 +19,23 @@ import { BlueprintReaderPanel } from "@/components/blueprint-reader-panel";
 import { CreatorAIInterface } from "@/components/creator-ai-interface";
 import { AIDisclosureWrapper } from "@/components/ai-disclosure-wrapper";
 import { AiSpecialistPicker } from "@/components/ai-specialist-picker";
+import { Workspace3dPricingPanel } from "@/components/workspace-3d-pricing-panel";
+import { AiHubTabRow } from "@/components/ai-hub-tab-row";
 import { useColors } from "@/hooks/use-colors";
 import { useWorkspaceDesign } from "@/hooks/use-workspace-design";
 import { designLayerSummary } from "@/lib/workspace-design-utils";
 import { trpc } from "@/lib/trpc";
 import { AI_CREATOR_CATALOG } from "@/lib/ai-creator-catalog";
+
+import { PlatformSectionGate } from "@/components/platform-section-gate";
+import { useAuth } from "@/lib/auth-context";
+
+const WORKSPACE_TABS = [
+  { id: "builder", label: "Builder", emoji: "🎮" },
+  { id: "pricing", label: "Pricing", emoji: "💳" },
+] as const;
+
+type WorkspaceTabId = (typeof WORKSPACE_TABS)[number]["id"];
 
 const PROJECT_TYPES = [
   { id: "merchandise" as const, label: "Merchandise", emoji: "👕" },
@@ -50,8 +62,13 @@ export default function Workspace3DScreen() {
   const colors = useColors();
   const router = useRouter();
   const utils = trpc.useUtils();
+  const { isAuthenticated } = useAuth();
+  const params = useLocalSearchParams<{ pricing?: string }>();
 
   const { data: catalogData } = trpc.aiCreators.list.useQuery(undefined, { staleTime: 60_000 });
+  const workspaceAccess = trpc.workspace3d.getAccess.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
   const sessions = trpc.equipment.listWorkspaceSessions.useQuery();
   const createSession = trpc.equipment.createWorkspaceSession.useMutation({
     onSuccess: () => void utils.equipment.listWorkspaceSessions.invalidate(),
@@ -70,6 +87,13 @@ export default function Workspace3DScreen() {
   const [description, setDescription] = useState("");
   const [activeAiId, setActiveAiId] = useState("ai-blueprint-reader-001");
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<WorkspaceTabId>(
+    params.pricing === "1" ? "pricing" : "builder",
+  );
+
+  const maxConcurrentAis = workspaceAccess.data?.hasAccess
+    ? workspaceAccess.data.maxConcurrentAiSlots
+    : 0;
 
   const designApi = useWorkspaceDesign(sessionId);
   const activeAi = workspaceAis.find((a) => a.id === activeAiId) ?? workspaceAis[0];
@@ -87,13 +111,18 @@ export default function Workspace3DScreen() {
   }, [sessions.data, sessionId]);
 
   const ensureSession = useCallback(async () => {
-    const peerIds = workspaceAis.map((a) => a.id).filter((id) => id !== activeAiId).slice(0, 3);
+    const maxPeers = Math.max(0, maxConcurrentAis - 1);
+    const peerIds = workspaceAis
+      .map((a) => a.id)
+      .filter((id) => id !== activeAiId)
+      .slice(0, maxPeers > 0 ? maxPeers : 0);
+    const activeAiIds = maxConcurrentAis > 0 ? [activeAiId, ...peerIds] : [activeAiId];
     if (sessionId) {
       await updateSession.mutateAsync({
         sessionId,
         name: projectName,
         description,
-        activeAiIds: [activeAiId, ...peerIds],
+        activeAiIds,
       });
       await designApi.flushSave();
       return sessionId;
@@ -113,6 +142,7 @@ export default function Workspace3DScreen() {
     projectType,
     activeAiId,
     workspaceAis,
+    maxConcurrentAis,
     createSession,
     updateSession,
     designApi,
@@ -124,6 +154,7 @@ export default function Workspace3DScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenContainer className="bg-background">
+        <PlatformSectionGate sectionId="3d_workspace">
         <ScrollView contentContainerStyle={{ paddingBottom: 40, gap: 14 }}>
           <TabScreenHeader
             icon="🎮"
@@ -134,6 +165,32 @@ export default function Workspace3DScreen() {
           <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 16 }}>
             <Text style={{ color: colors.primary, fontWeight: "600" }}>← Back</Text>
           </Pressable>
+
+          <AiHubTabRow
+            tabs={WORKSPACE_TABS.map((t) => ({ id: t.id, label: t.label, emoji: t.emoji }))}
+            activeId={activeTab}
+            onSelect={(id) => setActiveTab(id as WorkspaceTabId)}
+          />
+
+          {activeTab === "pricing" ? (
+            <Workspace3dPricingPanel />
+          ) : (
+            <>
+          {!workspaceAccess.data?.hasAccess && isAuthenticated ? (
+            <Pressable
+              onPress={() => setActiveTab("pricing")}
+              style={[styles.pricingLink, { borderColor: colors.primary, marginHorizontal: 16 }]}
+            >
+              <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 12 }}>
+                💳 Subscribe to use the 3D workspace — Day Pass $7.99 · Pro $39.99/mo (3 AIs)
+              </Text>
+            </Pressable>
+          ) : workspaceAccess.data?.hasAccess ? (
+            <Text style={{ color: colors.muted, fontSize: 11, paddingHorizontal: 16, lineHeight: 16 }}>
+              Workspace plan: {workspaceAccess.data.maxConcurrentAiSlots} concurrent AI
+              {workspaceAccess.data.maxConcurrentAiSlots === 1 ? "" : "s"} in session
+            </Text>
+          ) : null}
 
           {Platform.OS === "web" ? (
             <Text style={{ color: colors.muted, fontSize: 11, paddingHorizontal: 16, lineHeight: 16 }}>
@@ -240,15 +297,30 @@ export default function Workspace3DScreen() {
 
           <View style={{ height: 360, paddingHorizontal: 12 }}>
             {activeAi ? (
-              <AIDisclosureWrapper aiName={activeAi.name}>
-                <CreatorAIInterface
+              <>
+                <Pressable
+                  onPress={() =>
+                    router.push({
+                      pathname: "/ais",
+                      params: { ai: activeAi.id, subscribe: "1" },
+                    })
+                  }
+                  style={[styles.pricingLink, { borderColor: colors.primary }]}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 12 }}>
+                    💳 {activeAi.name} — pricing ($5.99 / $9.99 / $14.99 + voice)
+                  </Text>
+                </Pressable>
+                <AIDisclosureWrapper aiName={activeAi.name}>
+                  <CreatorAIInterface
                   key={activeAi.id}
                   creatorId={activeAi.id}
                   creatorName={activeAi.name}
                   creatorAvatar={activeAi.avatar}
                   welcomeMessage={`3D builder active — ${projectName} with ${designApi.design.layers.length} layers. I'm ${activeAi.name}. Ask me to optimize meshes, suggest print settings, or refine your design.`}
                 />
-              </AIDisclosureWrapper>
+                </AIDisclosureWrapper>
+              </>
             ) : null}
           </View>
 
@@ -260,7 +332,10 @@ export default function Workspace3DScreen() {
               designTriangleCount={designLayerSummary(designApi.design).totalTriangles}
             />
           </View>
+            </>
+          )}
         </ScrollView>
+        </PlatformSectionGate>
       </ScreenContainer>
     </>
   );
@@ -275,6 +350,14 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: "center",
     gap: 4,
+  },
+  pricingLink: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    marginBottom: 6,
   },
   input: {
     borderWidth: 1,

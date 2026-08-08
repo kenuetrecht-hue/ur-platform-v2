@@ -18,6 +18,8 @@ import {
   updateWorkspaceSession,
   validateExportForEquipment,
 } from "../_core/equipment-service";
+import { assertSectionEnabledForRequest } from "../_core/platform-section-guard";
+import { assertWorkspaceAiSlotLimit } from "../_core/workspace-3d-subscription-service";
 import { getSessionDesign, saveSessionDesign } from "../_core/workspace-design-service";
 import {
   ConnectivityTypeSchema,
@@ -192,12 +194,18 @@ export const equipmentRouter = router({
         activeAiIds: z.array(z.string().max(64)).max(8).optional(),
       }),
     )
-    .mutation(({ ctx, input }) =>
-      createWorkspaceSession({
+    .mutation(({ ctx, input }) => {
+      assertSectionEnabledForRequest("3d_workspace", ctx.isPlatformOwner);
+      assertWorkspaceAiSlotLimit({
+        userId: String(ctx.user.id),
+        isPlatformOwner: ctx.isPlatformOwner,
+        activeAiIds: input.activeAiIds,
+      });
+      return createWorkspaceSession({
         userId: String(ctx.user.id),
         ...input,
-      }),
-    ),
+      });
+    }),
 
   getWorkspaceSession: secureProcedure("equipment")
     .input(z.object({ sessionId: z.string().min(4).max(128) }))
@@ -219,7 +227,13 @@ export const equipmentRouter = router({
       }),
     )
     .mutation(({ ctx, input }) => {
+      assertSectionEnabledForRequest("3d_workspace", ctx.isPlatformOwner);
       const { sessionId, ...patch } = input;
+      assertWorkspaceAiSlotLimit({
+        userId: String(ctx.user.id),
+        isPlatformOwner: ctx.isPlatformOwner,
+        activeAiIds: patch.activeAiIds,
+      });
       const session = updateWorkspaceSession(String(ctx.user.id), sessionId, patch);
       if (!session) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Workspace session not found." });
@@ -245,6 +259,7 @@ export const equipmentRouter = router({
       }),
     )
     .mutation(({ ctx, input }) => {
+      assertSectionEnabledForRequest("3d_workspace", ctx.isPlatformOwner);
       const session = getWorkspaceSession(String(ctx.user.id), input.sessionId);
       if (!session) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Workspace session not found." });

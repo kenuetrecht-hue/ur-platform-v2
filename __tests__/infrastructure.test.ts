@@ -8,16 +8,18 @@ describe('Infrastructure Services for Scale', () => {
       expect(cache.get('key1')).toBe('value1');
     });
 
-    it('should handle TTL expiration', (done) => {
+    it('should handle TTL expiration', async () => {
       const cache = new Map<string, any>();
       cache.set('key1', 'value1');
       expect(cache.get('key1')).toBe('value1');
 
-      setTimeout(() => {
-        cache.delete('key1');
-        expect(cache.get('key1')).toBeUndefined();
-        done();
-      }, 100);
+      await new Promise<void>((resolve) => {
+        setTimeout(() => {
+          cache.delete('key1');
+          expect(cache.get('key1')).toBeUndefined();
+          resolve();
+        }, 100);
+      });
     });
 
     it('should support cache-aside pattern', async () => {

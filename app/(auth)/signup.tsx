@@ -15,7 +15,7 @@ const ROLES: { id: UserRole; label: string; desc: string }[] = [
 
 export default function SignUpScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ ref?: string; role?: string }>();
+  const params = useLocalSearchParams<{ ref?: string; role?: string; email?: string; membership?: string }>();
   const { register, isLoading: authLoading } = useAuth();
   const colors = useColors();
   const [name, setName] = useState("");
@@ -38,7 +38,10 @@ export default function SignUpScreen() {
     if (params.role === "creator" || params.role === "affiliate") {
       setRole(params.role);
     }
-  }, [params.ref, params.role]);
+    if (typeof params.email === "string" && params.email.includes("@")) {
+      setEmail(params.email);
+    }
+  }, [params.ref, params.role, params.email]);
 
   const handleSignUp = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
@@ -104,6 +107,19 @@ export default function SignUpScreen() {
             <Text style={{ fontSize: 16, color: colors.muted }}>
               Create your account
             </Text>
+            {params.membership === "active" ? (
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: "#00d4ff",
+                  fontWeight: "700",
+                  textAlign: "center",
+                  marginTop: 4,
+                }}
+              >
+                PAYMENT SUCCESSFUL — Your specialist pass is active. Finish signup to log in.
+              </Text>
+            ) : null}
           </View>
 
           <View style={{ gap: 16 }}>

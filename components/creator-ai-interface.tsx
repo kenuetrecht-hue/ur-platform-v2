@@ -19,6 +19,9 @@ import { speakText } from "@/lib/azure-tts-service";
 import { useRouter } from "expo-router";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
+import { useAiTalkMeterPlayback } from "@/hooks/use-ai-talk-meter-playback";
+import { useNetworkConnectivity, isMeteringConnected } from "@/hooks/use-network-connectivity";
+import { METER_HEARTBEAT_INTERVAL_MS } from "@/lib/ai-metering-policy";
 
 interface ChatMessage {
   role: "user" | "ai";
@@ -176,6 +179,11 @@ export function CreatorAIInterface({
   });
   const assertVideo = trpc.aiCreators.assertVideoTalkAccess.useMutation();
   const [videoActive, setVideoActive] = useState(false);
+  const [videoMeterSessionId, setVideoMeterSessionId] = useState<string | null>(null);
+  const { playMeteredAudio } = useAiTalkMeterPlayback();
+  const meterConnectivity = useNetworkConnectivity();
+  const meterHeartbeat = trpc.aiTalk.meterHeartbeat.useMutation();
+  const meterFinalize = trpc.aiTalk.meterFinalize.useMutation();
   const hiveProfile = trpc.aiCreators.getHiveProfile.useQuery({ creatorId });
   const handoffs = trpc.aiCreators.getHandoffs.useQuery({ creatorId });
   const isAssociateAi = creatorId === AFFILIATE_ASSOCIATE_ID;
@@ -292,12 +300,10 @@ export function CreatorAIInterface({
         return;
       }
     } else if (!isAssociateAi && !hasTalkTime) {
-      try {
-        await buyTalk.mutateAsync({ packId: "standard_20" });
-      } catch (error) {
-        setVoiceStatus(error instanceof Error ? error.message : "Could not purchase talk time");
-        return;
-      }
+      setVoiceStatus(
+        "Purchase talk time first — $5 in the app (25 min) or $1 on web (5 min). Open AI Talk Time below.",
+      );
+      return;
     }
 
     setVoiceStatus(null);
@@ -307,12 +313,21 @@ export function CreatorAIInterface({
         text: lastAi.text.slice(0, 3000),
       });
       if (result.success) {
-        setVoiceStatus(`🔊 ${result.persona} — ${Math.round(result.duration)}s audio ready`);
-        if (typeof window !== "undefined" && result.audioUrl?.startsWith("data:")) {
+        if (result.meterSessionId && result.audioUrl?.startsWith("data:")) {
+          setVoiceStatus(`🔊 ${result.persona} — playing (metered to the ms)`);
+          await playMeteredAudio({
+            meterSessionId: result.meterSessionId,
+            audioUrl: result.audioUrl,
+            durationMs: result.durationMs ?? Math.round(result.duration * 1000),
+            onStatus: setVoiceStatus,
+          });
+        } else if (typeof window !== "undefined" && result.audioUrl?.startsWith("data:")) {
           const audio = new window.Audio(result.audioUrl);
           void audio.play();
+          setVoiceStatus(`🔊 ${result.persona} — ${Math.round(result.duration)}s audio ready`);
         } else if (Platform.OS !== "web") {
           await speakText(lastAi.text);
+          setVoiceStatus(`🔊 ${result.persona} — native voice`);
         }
       } else {
         setVoiceStatus(result.error ?? "Voice unavailable");
@@ -320,19 +335,59 @@ export function CreatorAIInterface({
     } catch (error) {
       setVoiceStatus(error instanceof Error ? error.message : "Voice failed");
     }
-  }, [buyAffiliateVoice, buyTalk, creatorId, hasPaidVoice, hasTalkTime, isAssociateAi, messages, voiceMutation]);
+  }, [buyAffiliateVoice, creatorId, hasPaidVoice, hasTalkTime, isAssociateAi, messages, playMeteredAudio, voiceMutation]);
+
+  useEffect(() => {
+    if (!videoActive || !videoMeterSessionId) return;
+
+    const tick = () => {
+      const connected = isMeteringConnected(meterConnectivity);
+      void meterHeartbeat.mutateAsync({
+        sessionId: videoMeterSessionId,
+        playbackPositionMs: 0,
+        clientOnline: connected,
+      });
+    };
+
+    tick();
+    const interval = setInterval(tick, METER_HEARTBEAT_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [videoActive, videoMeterSessionId, meterConnectivity, meterHeartbeat]);
+
+  const stopVideoTalk = useCallback(async () => {
+    if (videoMeterSessionId) {
+      try {
+        await meterFinalize.mutateAsync({
+          sessionId: videoMeterSessionId,
+          playbackPositionMs: 0,
+        });
+        void talkStatus.refetch();
+      } catch {
+        /* session may already be finalized */
+      }
+    }
+    setVideoMeterSessionId(null);
+    setVideoActive(false);
+  }, [meterFinalize, talkStatus, videoMeterSessionId]);
 
   const startVideoTalk = useCallback(async () => {
     try {
       if (!hasTalkTime) {
-        await buyVideo.mutateAsync({ packId: "standard_20" });
+        setVoiceStatus(
+          "Purchase talk time first — $5 in the mobile app (25 min) or $1 on web (5 min).",
+        );
+        return;
       }
-      await assertVideo.mutateAsync({ creatorId });
+      const access = await assertVideo.mutateAsync({ creatorId });
+      if (access.meterSessionId) {
+        setVideoMeterSessionId(access.meterSessionId);
+      }
       setVideoActive(true);
+      setVoiceStatus("📹 Video talk — billed only while connected");
     } catch (error) {
       setVoiceStatus(error instanceof Error ? error.message : "Video talk unavailable");
     }
-  }, [assertVideo, buyVideo, creatorId, hasTalkTime]);
+  }, [assertVideo, creatorId, hasTalkTime]);
 
   return (
     <KeyboardAvoidingView
@@ -508,7 +563,7 @@ export function CreatorAIInterface({
 
           {!isAssociateAi ? (
             <Pressable
-              onPress={() => void (videoActive ? setVideoActive(false) : startVideoTalk())}
+              onPress={() => void (videoActive ? stopVideoTalk() : startVideoTalk())}
               disabled={assertVideo.isPending || buyVideo.isPending}
               style={[
                 styles.hiveToggle,

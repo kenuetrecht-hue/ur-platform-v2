@@ -10,6 +10,14 @@ import {
   getNamespaceCircuitStatus,
   type ApiNamespace,
 } from "./api-security";
+import type { PlatformSectionId } from "../../lib/platform-section-flags";
+import { inferSectionFromOpsText } from "../../lib/platform-section-flags";
+import {
+  disablePlatformSection,
+  enablePlatformSection,
+  countDisabledSections,
+  listPlatformSectionStates,
+} from "./platform-section-flags-service";
 
 export type OpsIncidentSeverity = "low" | "medium" | "high" | "critical";
 export type OpsIncidentCategory =
@@ -26,7 +34,11 @@ export type OpsIncidentStatus =
   | "awaiting_owner_approval"
   | "approved"
   | "rejected"
-  | "resolved";
+  | "resolved"
+  | "section_isolated"
+  | "fix_in_progress";
+
+export type OpsSectionAction = "isolate" | "reopen";
 
 export type OpsIncident = {
   id: string;
@@ -42,6 +54,9 @@ export type OpsIncident = {
   updatedAt: string;
   ownerApprovedAt?: string;
   ownerNote?: string;
+  /** When set, owner approval may isolate or reopen this platform section. */
+  affectedSectionId?: PlatformSectionId;
+  sectionAction?: OpsSectionAction;
 };
 
 const incidents = new Map<string, OpsIncident>();
@@ -101,6 +116,8 @@ export async function createOpsIncident(input: {
   problem: string;
   proposedFix: string;
   actionsTaken?: string[];
+  affectedSectionId?: PlatformSectionId;
+  sectionAction?: OpsSectionAction;
 }): Promise<OpsIncident> {
   const now = new Date().toISOString();
   const incident: OpsIncident = {
@@ -115,6 +132,8 @@ export async function createOpsIncident(input: {
     status: "awaiting_owner_approval",
     createdAt: now,
     updatedAt: now,
+    affectedSectionId: input.affectedSectionId,
+    sectionAction: input.sectionAction,
   };
   incidents.set(incident.id, incident);
 
@@ -132,6 +151,9 @@ export async function createOpsIncident(input: {
     incident.actionsTaken.length
       ? `ACTIONS TAKEN:\n${incident.actionsTaken.map((a) => `• ${a}`).join("\n")}`
       : "ACTIONS TAKEN: (pending owner approval before changes)",
+    incident.affectedSectionId
+      ? `\nSECTION: ${incident.affectedSectionId}${incident.sectionAction ? ` → ${incident.sectionAction}` : ""}`
+      : "",
     "",
     "⏳ Awaiting your final approval in Owner Ops Console.",
   ].join("\n");
@@ -156,6 +178,25 @@ export async function approveOpsIncident(
   if (!incident.actionsTaken.includes("Owner approved remediation plan")) {
     incident.actionsTaken.push("Owner approved remediation plan");
   }
+
+  if (incident.affectedSectionId && incident.sectionAction === "isolate") {
+    disablePlatformSection({
+      sectionId: incident.affectedSectionId,
+      reason: incident.problem,
+      incidentId: incident.id,
+      disabledBy: incident.sourceAi,
+      maintenanceMessage: `${incident.title} — temporarily offline while we fix an issue. The rest of UR stays online.`,
+    });
+    incident.status = "section_isolated";
+    incident.actionsTaken.push(`Section isolated: ${incident.affectedSectionId}`);
+  } else if (incident.affectedSectionId && incident.sectionAction === "reopen") {
+    enablePlatformSection({
+      sectionId: incident.affectedSectionId,
+      ownerNote: ownerNote ?? "Owner approved reopen after fix",
+    });
+    incident.actionsTaken.push(`Section reopened: ${incident.affectedSectionId}`);
+  }
+
   incidents.set(incidentId, incident);
 
   await dispatchOwnerAlert(
@@ -198,6 +239,51 @@ export async function resolveOpsIncident(incidentId: string): Promise<OpsInciden
   incident.updatedAt = new Date().toISOString();
   incidents.set(incidentId, incident);
   return incident;
+}
+
+export async function proposeSectionMaintenance(input: {
+  sourceAi: OwnerPlatformAiId;
+  sectionId: PlatformSectionId;
+  action: OpsSectionAction;
+  reason: string;
+  proposedFix: string;
+  severity?: OpsIncidentSeverity;
+}): Promise<OpsIncident> {
+  const meta = listPlatformSectionStates().find((s) => s.id === input.sectionId);
+  const actionLabel = input.action === "isolate" ? "Isolate section" : "Reopen section";
+  return createOpsIncident({
+    sourceAi: input.sourceAi,
+    severity: input.severity ?? (input.action === "isolate" ? "high" : "medium"),
+    category: "bug",
+    title: `${actionLabel}: ${meta?.label ?? input.sectionId}`,
+    problem: input.reason,
+    proposedFix: input.proposedFix,
+    affectedSectionId: input.sectionId,
+    sectionAction: input.action,
+    actionsTaken: [
+      `${input.sourceAi} proposed ${input.action} for ${input.sectionId}`,
+      "Awaiting owner final OK before changing section availability",
+    ],
+  });
+}
+
+export function ownerDisableSection(input: {
+  sectionId: PlatformSectionId;
+  reason: string;
+  maintenanceMessage?: string;
+  incidentId?: string;
+}): ReturnType<typeof disablePlatformSection> {
+  return disablePlatformSection({
+    ...input,
+    disabledBy: "owner",
+  });
+}
+
+export function ownerEnableSection(input: {
+  sectionId: PlatformSectionId;
+  ownerNote?: string;
+}): ReturnType<typeof enablePlatformSection> {
+  return enablePlatformSection(input);
 }
 
 export type HealthCheckFinding = {
@@ -314,6 +400,8 @@ export function inferIncidentFromOpsChat(
   title: string;
   problem: string;
   proposedFix: string;
+  affectedSectionId?: PlatformSectionId;
+  sectionAction?: OpsSectionAction;
 } | null {
   if (!isOwnerOnlyPlatformAi(creatorId)) return null;
 
@@ -336,6 +424,11 @@ export function inferIncidentFromOpsChat(
   const titleMatch = aiReply.match(/INCIDENT SUMMARY:\s*(.+)/i);
   const problemMatch = aiReply.match(/PROBLEM:\s*([\s\S]+?)(?=ACTIONS TAKEN:|PROPOSED|$)/i);
   const fixMatch = aiReply.match(/PROPOSED FIX:\s*([\s\S]+?)(?=STATUS:|$)/i);
+  const sectionMatch = aiReply.match(/SECTION:\s*([a-z0-9_]+)/i);
+  const inferredSection =
+    (sectionMatch?.[1] as PlatformSectionId | undefined) ?? inferSectionFromOpsText(text);
+  const wantsIsolate = /isolat|shut down|disable|maintenance|take offline|kill switch/.test(text);
+  const wantsReopen = /reopen|bring back|re-enable|restore|open (?:the )?section/.test(text);
 
   return {
     shouldFile: true,
@@ -346,6 +439,14 @@ export function inferIncidentFromOpsChat(
     proposedFix:
       fixMatch?.[1]?.trim() ??
       "Review the AI conversation in Owner Ops and approve a remediation plan.",
+    affectedSectionId: inferredSection ?? undefined,
+    sectionAction: inferredSection
+      ? wantsReopen
+        ? "reopen"
+        : wantsIsolate
+          ? "isolate"
+          : undefined
+      : undefined,
   };
 }
 
@@ -354,8 +455,10 @@ export function getOpsDashboardSummary() {
   return {
     totalIncidents: all.length,
     awaitingApproval: all.filter((i) => i.status === "awaiting_owner_approval").length,
-    approved: all.filter((i) => i.status === "approved").length,
+    approved: all.filter((i) => i.status === "approved" || i.status === "section_isolated").length,
     resolved: all.filter((i) => i.status === "resolved").length,
+    sectionIsolated: all.filter((i) => i.status === "section_isolated").length,
+    sectionsDisabled: countDisabledSections(),
     unreadNotifications: ownerNotifications.filter((n) => !n.read).length,
     lastScanFindings: runPlatformHealthChecks().length,
   };

@@ -9,6 +9,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/auth-context";
 
 import type { AiTalkPackId } from "@/lib/ai-talk-pricing";
+import { listTalkPacksForPlatform } from "@/lib/ai-talk-pricing";
 
 import { buildTalkPurchaseSummary, type PurchaseSummary } from "@/lib/pricing-disclosures";
 
@@ -17,6 +18,20 @@ import { PurchaseSummaryCard } from "@/components/purchase-summary-card";
 import { BillingStatePicker } from "@/components/billing-state-picker";
 
 import { useBillingState } from "@/hooks/use-billing-state";
+
+import { PaymentChannelNotice } from "@/components/payment-channel-notice";
+
+import { getClientPlatform } from "@/lib/web-checkout";
+
+import {
+  AI_TALK_EXPIRY_PURCHASE_DISCLOSURE,
+  AI_TALK_METERING_DISCLOSURE,
+} from "@/lib/ai-talk-time-policy";
+import {
+  AI_METERING_PAYBACK_PROTECTION,
+  AI_METERING_RESUME_DISCLOSURE,
+  AI_TEXT_METERING_DISCLOSURE,
+} from "@/lib/ai-metering-policy";
 
 
 
@@ -68,7 +83,11 @@ export function AiTalkTimePanel({
 
   const { stateCode, setStateCode, hasState } = useBillingState();
 
-  const [selectedPack, setSelectedPack] = useState<AiTalkPackId>("standard_20");
+  const clientPlatform = getClientPlatform();
+
+  const [selectedPack, setSelectedPack] = useState<AiTalkPackId>(
+    clientPlatform === "web" ? "talk_1" : "talk_5",
+  );
 
   const [lastReceipt, setLastReceipt] = useState<PurchaseSummary | null>(null);
 
@@ -103,10 +122,17 @@ export function AiTalkTimePanel({
 
 
   const minutesLeft = status.data?.minutesRemaining ?? 0;
+  const msLeft = status.data?.millisecondsRemaining ?? minutesLeft * 60_000;
+  const timeDisplay = status.data?.timeRemainingDisplay;
+  const expiryAt = status.data?.earliestExpiryAt;
 
   const hasTalk = isAuthenticated && (status.data?.hasTalkAccess ?? false);
 
   const packs = (plans.data?.packs ?? []) as PackOption[];
+
+  const visiblePacks = packs.filter((pack) =>
+    listTalkPacksForPlatform(clientPlatform).some((allowed) => allowed.id === pack.id),
+  );
 
 
 
@@ -128,7 +154,7 @@ export function AiTalkTimePanel({
 
         <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
 
-          🎙️ {minutesLeft} talk min left · 1 min per voice/video use
+          🎙️ {timeDisplay ?? `${minutesLeft} min`} left · metered to the millisecond
 
         </Text>
 
@@ -158,9 +184,33 @@ export function AiTalkTimePanel({
 
       </Text>
 
-      <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4, lineHeight: 17 }}>
+      <PaymentChannelNotice compact />
 
-        Voice & video with {creatorName ?? "AI specialists"}. Review your minutes and cost before you pay.
+      <View style={[styles.expiryBox, { borderColor: colors.primary, backgroundColor: `${colors.primary}12` }]}>
+        <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 12 }}>
+          30-day use-it-or-lose-it
+        </Text>
+        <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4, lineHeight: 16 }}>
+          {AI_TALK_EXPIRY_PURCHASE_DISCLOSURE}
+        </Text>
+      </View>
+
+      <View style={[styles.expiryBox, { borderColor: colors.border, backgroundColor: colors.background, marginTop: 8 }]}>
+        <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 12 }}>
+          Disconnect-safe metering
+        </Text>
+        <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4, lineHeight: 16 }}>
+          {AI_TALK_METERING_DISCLOSURE} {AI_METERING_RESUME_DISCLOSURE}
+        </Text>
+        <Text style={{ color: colors.muted, fontSize: 11, marginTop: 6, lineHeight: 16 }}>
+          {AI_TEXT_METERING_DISCLOSURE} {AI_METERING_PAYBACK_PROTECTION}
+        </Text>
+      </View>
+
+      <Text style={{ color: colors.muted, fontSize: 12, marginTop: 8, lineHeight: 17 }}>
+
+        Voice & video with {creatorName ?? "AI specialists"}. 25¢/min reference · $1 = 5 min · $5 = 25 min (app).
+        Every second of AI speech is tracked.
 
       </Text>
 
@@ -170,7 +220,11 @@ export function AiTalkTimePanel({
 
         <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13, marginTop: 10 }}>
 
-          Balance: {minutesLeft} minutes remaining (expires 30 days after purchase)
+          Balance: {timeDisplay ?? `${minutesLeft} min`} ({msLeft.toLocaleString()} ms) remaining
+
+          {expiryAt
+            ? ` · earliest expiry ${new Date(expiryAt).toLocaleDateString()}`
+            : ""}
 
         </Text>
 
@@ -186,7 +240,7 @@ export function AiTalkTimePanel({
 
         <View style={styles.packRow}>
 
-          {packs.map((pack) => {
+          {visiblePacks.map((pack) => {
 
             const active = selectedPack === pack.id;
 
@@ -272,7 +326,7 @@ export function AiTalkTimePanel({
 
           if (!isAuthenticated || !stateCode) return;
 
-          purchase.mutate({ packId: selectedPack, stateCode });
+          purchase.mutate({ packId: selectedPack, stateCode, clientPlatform });
 
         }}
 
@@ -329,6 +383,16 @@ export function AiTalkTimePanel({
             {purchase.data?.message}
 
           </Text>
+
+          {purchase.data?.purchaseDisclosures?.map((line) => (
+
+            <Text key={line} style={{ color: colors.muted, fontSize: 10, marginTop: 4, lineHeight: 15 }}>
+
+              • {line}
+
+            </Text>
+
+          ))}
 
         </View>
 
@@ -439,6 +503,18 @@ const styles = StyleSheet.create({
   },
 
   successBox: {
+
+    borderWidth: 1,
+
+    borderRadius: 8,
+
+    padding: 10,
+
+    marginTop: 10,
+
+  },
+
+  expiryBox: {
 
     borderWidth: 1,
 

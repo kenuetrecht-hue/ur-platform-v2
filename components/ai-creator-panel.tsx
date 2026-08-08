@@ -23,11 +23,11 @@ import { GameForgeLearnPanel } from "@/components/game-forge-learn-panel";
 import { isForgeSpecialist, forgeLearnLabel } from "@/lib/forge-specialists";
 
 import { AiLiveSessionsPanel } from "@/components/ai-live-sessions-panel";
-import { AiSubscriptionPanel } from "@/components/ai-subscription-panel";
+import { AiSpecialistPricingPanel } from "@/components/ai-specialist-pricing-panel";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 
-type SurfaceMode = "chat" | "learn" | "build" | "live";
+type SurfaceMode = "chat" | "learn" | "build" | "live" | "pricing";
 type LearnLevel = "beginner" | "intermediate" | "advanced";
 type LearnMode = "lesson" | "practice" | "certification" | "on_the_job";
 
@@ -40,7 +40,8 @@ export type AiCreatorPanelProps = {
   welcomeMessage?: string;
   initialPrompt?: string;
   /** Hide duplicate chat header when parent screen shows specialist info. */
-  hideChatHeader?: boolean;
+  /** Open pricing tab (e.g. web checkout handoff ?subscribe=1). */
+  initialSurface?: SurfaceMode;
 };
 
 const LEARN_LEVELS: LearnLevel[] = ["beginner", "intermediate", "advanced"];
@@ -58,10 +59,11 @@ export function AiCreatorPanel({
   welcomeMessage,
   initialPrompt,
   hideChatHeader = false,
+  initialSurface,
 }: AiCreatorPanelProps) {
   const colors = useColors();
   const router = useRouter();
-  const [surface, setSurface] = useState<SurfaceMode>("chat");
+  const [surface, setSurface] = useState<SurfaceMode>(initialSurface ?? "chat");
   const [sandboxSeed, setSandboxSeed] = useState<{ path: string; content: string } | null>(null);
 
   const isOwnerOps = OWNER_OPS_AI_IDS.includes(creatorId);
@@ -74,10 +76,10 @@ export function AiCreatorPanel({
     { creatorAiId: creatorId },
     { enabled: creatorId !== "linguamate" && !isOwnerOps },
   );
-  const subAccess = trpc.aiSubscription.getAccess.useQuery(
-    { creatorId },
-    { enabled: !isOwnerOps && creatorId !== "linguamate" },
-  );
+
+  useEffect(() => {
+    if (initialSurface) setSurface(initialSurface);
+  }, [initialSurface, creatorId]);
 
   if (isOwnerOps) {
     return (
@@ -103,8 +105,24 @@ export function AiCreatorPanel({
   if (creatorId === "linguamate") {
     return (
       <View style={styles.root}>
-        <AiSubscriptionPanel creatorId="linguamate" creatorName="LinguaMate" />
-        <LanguageAIInterface />
+        <SurfaceToggle
+          surface={surface}
+          onChange={setSurface}
+          colors={colors}
+          learnLabel="Learn languages"
+          showBuild={false}
+          showLive={false}
+          chatOnlyWithPricing
+        />
+        {surface === "pricing" ? (
+          <AiSpecialistPricingPanel
+            creatorId="linguamate"
+            creatorName="LinguaMate"
+            creatorAvatar="🌍"
+          />
+        ) : (
+          <LanguageAIInterface />
+        )}
       </View>
     );
   }
@@ -129,10 +147,13 @@ export function AiCreatorPanel({
           showLive={showLiveTab}
         />
       ) : null}
-      {!isOwnerOps && subAccess.data && !subAccess.data.hasAccess ? (
-        <AiSubscriptionPanel creatorId={creatorId} creatorName={creatorName} compact />
-      ) : null}
-      {surface === "live" && showLiveTab ? (
+      {surface === "pricing" ? (
+        <AiSpecialistPricingPanel
+          creatorId={creatorId}
+          creatorName={creatorName}
+          creatorAvatar={creatorAvatar}
+        />
+      ) : surface === "live" && showLiveTab ? (
         <AiLiveSessionsPanel creatorId={creatorId} creatorName={creatorName} />
       ) : surface === "build" && isTechBuilder ? (
         <TechBuilderSandboxPanel
@@ -188,6 +209,7 @@ function SurfaceToggle({
   learnLabel,
   showBuild = false,
   showLive = false,
+  chatOnlyWithPricing = false,
 }: {
   surface: SurfaceMode;
   onChange: (m: SurfaceMode) => void;
@@ -195,16 +217,18 @@ function SurfaceToggle({
   learnLabel: string;
   showBuild?: boolean;
   showLive?: boolean;
+  /** LinguaMate — chat + pricing only */
+  chatOnlyWithPricing?: boolean;
 }) {
-  const tabs: { id: SurfaceMode; label: string }[] = [
-    { id: "chat", label: "💬 Chat" },
-    { id: "learn", label: `📚 ${learnLabel}` },
-  ];
-  if (showLive) {
-    tabs.push({ id: "live", label: "🎥 Live" });
-  }
-  if (showBuild) {
-    tabs.push({ id: "build", label: "🏗️ Build" });
+  const tabs: { id: SurfaceMode; label: string }[] = [{ id: "chat", label: "💬 Chat" }];
+
+  if (chatOnlyWithPricing) {
+    tabs.push({ id: "pricing", label: "💳 Pricing" });
+  } else {
+    tabs.push({ id: "learn", label: `📚 ${learnLabel}` });
+    if (showLive) tabs.push({ id: "live", label: "🎥 Live" });
+    if (showBuild) tabs.push({ id: "build", label: "🏗️ Build" });
+    tabs.push({ id: "pricing", label: "💳 Pricing" });
   }
 
   return (

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   purchaseSocialPostAssistant,
   hasSocialPostAssistantAccess,
@@ -6,6 +6,11 @@ import {
   generateSocialPostDraft,
   POST_ASSISTANT_PLANS,
 } from "../server/_core/social-post-assistant-service";
+
+vi.mock("../server/_core/google-ai", () => ({
+  isGoogleCloudAiConfigured: vi.fn(() => false),
+  generateGoogleChatReply: vi.fn(async () => "Great hike! 🥾 #WeekendVibes"),
+}));
 
 describe("Social Post Assistant", () => {
   const userId = "spa-user-1";

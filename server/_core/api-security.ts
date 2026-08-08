@@ -30,6 +30,8 @@ export type ApiNamespace =
   | "blueprintReader"
   | "aiSubscription"
   | "aiTalk"
+  | "landing"
+  | "workspace3d"
   | "default";
 
 type WindowBucket = {
@@ -74,6 +76,8 @@ const NAMESPACE_USER_LIMITS: Record<ApiNamespace, number> = {
   blueprintReader: 90,
   aiSubscription: 40,
   aiTalk: 40,
+  landing: 30,
+  workspace3d: 40,
   default: 500,
 };
 

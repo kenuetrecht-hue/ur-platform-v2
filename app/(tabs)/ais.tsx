@@ -34,7 +34,7 @@ function publicCreatorsOnly(list: AiCreatorCatalogEntry[]): AiCreatorCatalogEntr
 export default function AIsScreen() {
   const colors = useColors();
   const router = useRouter();
-  const params = useLocalSearchParams<{ group?: string; ai?: string; prompt?: string }>();
+  const params = useLocalSearchParams<{ group?: string; ai?: string; prompt?: string; subscribe?: string }>();
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [hubMode, setHubMode] = useState<"chat" | "townHall">("chat");
   const [categoryGroup, setCategoryGroup] = useState("platform");
@@ -285,6 +285,7 @@ export default function AIsScreen() {
               hideChatHeader
               welcomeMessage={creatorWelcomeMessage}
               initialPrompt={creatorInitialPrompt}
+              initialSurface={params.subscribe === "1" ? "pricing" : undefined}
             />
           ) : (
             <View style={[styles.placeholder, { borderColor: colors.border }]}>

@@ -11,6 +11,31 @@ import { getUsageAllowanceQuote, HIVE_MESSAGE_MULTIPLIER, LEARN_MESSAGE_MULTIPLI
 import { getAiTalkPack, type AiTalkPackId } from "./ai-talk-pricing";
 import { calculateCustomerCheckout } from "./stripe-checkout-pricing";
 import type { UsStateCode } from "./us-state-taxes";
+import {
+  getRequiredPaymentChannel,
+  getPaymentChannelLabel,
+  PAYMENT_CHANNEL_POLICY_SUMMARY,
+} from "./payment-channel-policy";
+import {
+  AI_TALK_EXPIRY_PURCHASE_DISCLOSURE,
+  AI_TALK_METERING_DISCLOSURE,
+  getTalkPackPurchaseDisclosures,
+  minutesToMilliseconds,
+} from "./ai-talk-time-policy";
+import {
+  AI_METERING_PAYBACK_PROTECTION,
+  AI_METERING_RESUME_DISCLOSURE,
+  AI_TEXT_METERING_DISCLOSURE,
+  AI_VOICE_METERING_DISCLOSURE,
+} from "./ai-metering-policy";
+import {
+  getWorkspace3dConcurrentSlots,
+  getWorkspace3dPlanLabel,
+  getWorkspace3dPlanPriceCents,
+  WORKSPACE_3D_EXTRA_AI_SLOT_CENTS,
+  WORKSPACE_3D_PLAN_DAYS,
+  type Workspace3dPlanId,
+} from "./workspace-3d-pricing";
 
 export type PurchaseSummaryLine = {
   label: string;
@@ -21,7 +46,7 @@ export type PurchaseSummaryLine = {
 export type PurchasePricing = ReturnType<typeof calculateCustomerCheckout>;
 
 export type PurchaseSummary = {
-  productType: "ai_subscription" | "ai_talk";
+  productType: "ai_subscription" | "ai_talk" | "workspace_3d" | "workspace_3d_addon";
   title: string;
   /** Itemized price — subtotal + tax + Stripe fee = total */
   pricing: PurchasePricing;
@@ -163,6 +188,9 @@ export function buildSubscriptionPurchaseSummary(params: {
     ],
     importantNotes: [
       "When your message allowance runs out, chat pauses until you renew or upgrade.",
+      AI_TEXT_METERING_DISCLOSURE,
+      AI_METERING_PAYBACK_PROTECTION,
+      "AI subscriptions must be purchased through your web browser — not in the mobile app.",
       ...stateTaxNotes(params.stateCode ?? null, pricing),
       "No auto-renew unless you choose it at checkout.",
     ],
@@ -177,6 +205,7 @@ export function buildTalkPurchaseSummary(
 ): PurchaseSummary {
   const pack = getAiTalkPack(packId);
   const { pricing, youPay, priceBreakdown } = buildPricingBlock(pack.priceCents, stateCode, "one-time");
+  const channel = getRequiredPaymentChannel(pack.priceCents);
 
   return {
     productType: "ai_talk",
@@ -186,8 +215,8 @@ export function buildTalkPurchaseSummary(
     priceBreakdown,
     youReceive: [
       {
-        label: "Talk minutes",
-        value: `${pack.totalMinutes} minutes total (${pack.billedMinutes} purchased + ${pack.bonusMinutes} bonus)`,
+        label: "Talk time included",
+        value: `${pack.totalMinutes} minutes (${minutesToMilliseconds(pack.totalMinutes).toLocaleString()} ms) of AI speech`,
         emphasis: true,
       },
       {
@@ -195,22 +224,125 @@ export function buildTalkPurchaseSummary(
         value: "Any UR AI specialist — voice read-aloud & video talk",
       },
       {
-        label: "Usage rate",
-        value: "1 minute deducted per voice playback or video session start",
+        label: "Metering",
+        value: "Billed only while connected and playing — pauses on disconnect, resumes at the same position",
       },
       {
-        label: "Validity",
-        value: "Minutes expire 30 days after purchase if unused",
+        label: "Must use within",
+        value: "30 days of purchase — unused time expires automatically",
+        emphasis: true,
       },
     ],
     notIncluded: [
       "Text chat subscription (buy a specialist plan separately)",
-      "Unlimited talk — minutes are deducted as you use them",
+      "Rollover — expired minutes are forfeited",
     ],
     importantNotes: [
-      "Unused minutes do not roll over after the 30-day expiry.",
+      ...getTalkPackPurchaseDisclosures(packId),
+      AI_VOICE_METERING_DISCLOSURE,
+      AI_METERING_RESUME_DISCLOSURE,
+      AI_TEXT_METERING_DISCLOSURE,
+      AI_METERING_PAYBACK_PROTECTION,
+      `Checkout via ${getPaymentChannelLabel(channel)}.`,
+      PAYMENT_CHANNEL_POLICY_SUMMARY,
       ...stateTaxNotes(stateCode ?? null, pricing),
-      "Buying again adds minutes to your balance.",
+      "Each new purchase starts its own 30-day expiry window.",
+    ],
+    aiDisclosure: AI_DISCLOSURE,
+    billingEntity: BILLING_ENTITY,
+  };
+}
+
+export function buildWorkspace3dPurchaseSummary(params: {
+  planId: Workspace3dPlanId;
+  stateCode?: UsStateCode | null;
+}): PurchaseSummary {
+  const priceCents = getWorkspace3dPlanPriceCents(params.planId);
+  const slots = getWorkspace3dConcurrentSlots(params.planId);
+  const days = WORKSPACE_3D_PLAN_DAYS[params.planId];
+  const planLabel = getWorkspace3dPlanLabel(params.planId);
+  const durationNote =
+    params.planId === "day_pass" ? "one-time, 24 hours" : `one-time, ${days} days`;
+  const { pricing, youPay, priceBreakdown } = buildPricingBlock(
+    priceCents,
+    params.stateCode,
+    durationNote,
+  );
+
+  return {
+    productType: "workspace_3d",
+    title: `3D Workspace — ${planLabel}`,
+    pricing,
+    youPay,
+    priceBreakdown,
+    youReceive: [
+      {
+        label: "Workspace access",
+        value: "Babylon viewport, design layers, STL upload, blueprint panel, print export",
+      },
+      {
+        label: "Concurrent AI slots",
+        value: `${slots} specialist${slots === 1 ? "" : "s"} active in the lab at once`,
+        emphasis: true,
+      },
+      {
+        label: "Access period",
+        value:
+          params.planId === "day_pass"
+            ? "Active for 24 hours from purchase"
+            : `Active for ${days} days from purchase`,
+      },
+    ],
+    notIncluded: [
+      "Per-specialist text chat (buy each AI's day/week/month plan separately)",
+      "Voice talk-back (buy Talk Time packs separately)",
+      "Unlimited concurrent AIs beyond your slot count",
+    ],
+    importantNotes: [
+      "Workspace plans must be purchased through your web browser — not in the mobile app.",
+      "Each active AI in the lab still needs its own text subscription for chat messages.",
+      ...stateTaxNotes(params.stateCode ?? null, pricing),
+      "No auto-renew unless you choose it at checkout.",
+    ],
+    aiDisclosure: AI_DISCLOSURE,
+    billingEntity: BILLING_ENTITY,
+  };
+}
+
+export function buildWorkspace3dExtraSlotPurchaseSummary(
+  stateCode?: UsStateCode | null,
+): PurchaseSummary {
+  const { pricing, youPay, priceBreakdown } = buildPricingBlock(
+    WORKSPACE_3D_EXTRA_AI_SLOT_CENTS,
+    stateCode,
+    "one-time, 30 days (matches active workspace plan)",
+  );
+
+  return {
+    productType: "workspace_3d_addon",
+    title: "3D Workspace — Extra AI Slot",
+    pricing,
+    youPay,
+    priceBreakdown,
+    youReceive: [
+      {
+        label: "Additional slot",
+        value: "+1 concurrent AI specialist in your workspace session",
+        emphasis: true,
+      },
+      {
+        label: "Requires",
+        value: "An active Solo, Pro, or Studio workspace plan (not Day Pass alone for renewal)",
+      },
+    ],
+    notIncluded: [
+      "Workspace base access without an active workspace plan",
+      "Specialist text chat or voice talk time",
+    ],
+    importantNotes: [
+      "Extra slots stack on your current workspace plan until it expires.",
+      "Web browser checkout required.",
+      ...stateTaxNotes(stateCode ?? null, pricing),
     ],
     aiDisclosure: AI_DISCLOSURE,
     billingEntity: BILLING_ENTITY,

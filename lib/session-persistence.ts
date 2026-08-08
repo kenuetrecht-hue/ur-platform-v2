@@ -343,5 +343,4 @@ export class SessionPersistence {
   }
 }
 
-export { SessionPersistence };
 export const sessionPersistence = new SessionPersistence();

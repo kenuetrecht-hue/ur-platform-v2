@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { assertSectionEnabledForRequest } from "../_core/platform-section-guard";
 import { secureProcedure, publicProcedure, router } from "../_core/trpc";
 import {
   analyzeSchematicInput,
@@ -43,7 +44,10 @@ export const blueprintReaderRouter = router({
         fileName: z.string().max(256).optional(),
       }),
     )
-    .mutation(({ input }) => analyzeSchematicInput(input)),
+    .mutation(({ ctx, input }) => {
+      assertSectionEnabledForRequest("blueprint_reader", ctx.isPlatformOwner);
+      return analyzeSchematicInput(input);
+    }),
 
   detectType: secureProcedure("blueprintReader")
     .input(z.object({ text: z.string().min(3).max(4000) }))

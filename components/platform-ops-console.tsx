@@ -14,7 +14,7 @@ import { CreatorAIInterface } from "@/components/creator-ai-interface";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import type { AdminStaffRole } from "@/lib/admin-access-types";
 import { AiSessionProgrammingPanel } from "@/components/ai-session-programming-panel";
-import { TransactionHistoryList } from "@/components/transaction-history-list";
+import { PlatformSectionMaintenancePanel } from "@/components/platform-section-maintenance-panel";
 
 export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatformOwner?: boolean }) {
   const colors = useColors();
@@ -211,7 +211,7 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
       <View style={styles.statsRow}>
         {[
           { label: "Awaiting you", value: dashboard.data?.awaitingApproval ?? 0 },
-          { label: "Approved", value: dashboard.data?.approved ?? 0 },
+          { label: "Sections off", value: dashboard.data?.sectionsDisabled ?? 0 },
           { label: "Alerts", value: dashboard.data?.unreadNotifications ?? 0 },
         ].map((s) => (
           <View key={s.label} style={[styles.stat, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -303,6 +303,10 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
         </View>
       ) : null}
 
+      {isPlatformOwner ? (
+        <PlatformSectionMaintenancePanel canManage={isPlatformOwner} />
+      ) : null}
+
       {hasAdminPermission("view_incidents") ? (
       <View style={{ gap: 8 }}>
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Incidents</Text>
@@ -322,6 +326,12 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
                   </Text>
                 </View>
                 <Text style={{ color: colors.muted, fontSize: 12 }}>{inc.category} · {inc.sourceAi}</Text>
+                {inc.affectedSectionId ? (
+                  <Text style={{ color: colors.primary, fontSize: 11, marginTop: 4 }}>
+                    Section: {inc.affectedSectionId}
+                    {inc.sectionAction ? ` → ${inc.sectionAction}` : ""}
+                  </Text>
+                ) : null}
               </Pressable>
               {expandedId === inc.id ? (
                 <View style={{ marginTop: 10, gap: 8 }}>
@@ -412,7 +422,7 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
             creatorId={selectedOpsAi}
             creatorName={selectedMeta.name}
             creatorAvatar={selectedMeta.avatar}
-            welcomeMessage={`Owner channel active. I'm ${selectedMeta.name}. Report issues, request scans, or ask for compliance/security status. I'll file incidents and notify you for final approval.`}
+            welcomeMessage={`Owner channel active. I'm ${selectedMeta.name}. Report issues, request scans, propose section isolation (one area offline while UR stays up), or ask for compliance/security status. I'll file incidents and notify you for final approval.`}
           />
         </View>
       </View>
