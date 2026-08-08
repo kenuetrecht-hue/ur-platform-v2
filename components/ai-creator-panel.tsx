@@ -40,8 +40,11 @@ export type AiCreatorPanelProps = {
   welcomeMessage?: string;
   initialPrompt?: string;
   /** Hide duplicate chat header when parent screen shows specialist info. */
+  hideChatHeader?: boolean;
   /** Open pricing tab (e.g. web checkout handoff ?subscribe=1). */
   initialSurface?: SurfaceMode;
+  /** Keyboard overlap — parent tab chrome above this panel. */
+  overlapHeaderHeight?: number;
 };
 
 const LEARN_LEVELS: LearnLevel[] = ["beginner", "intermediate", "advanced"];
@@ -60,6 +63,7 @@ export function AiCreatorPanel({
   initialPrompt,
   hideChatHeader = false,
   initialSurface,
+  overlapHeaderHeight,
 }: AiCreatorPanelProps) {
   const colors = useColors();
   const router = useRouter();
@@ -175,6 +179,7 @@ export function AiCreatorPanel({
           initialPrompt={initialPrompt}
           hideHeader={hideChatHeader}
           embedded={hideChatHeader}
+          overlapHeaderHeight={overlapHeaderHeight}
         />
         </View>
       ) : isTechBuilder ? (
@@ -232,7 +237,14 @@ function SurfaceToggle({
   }
 
   return (
-    <View style={[styles.surfaceRow, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.surfaceScroll}
+      contentContainerStyle={styles.surfaceScrollContent}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={[styles.surfaceRow, { borderColor: colors.border, backgroundColor: colors.surface }]}>
       {tabs.map((tab) => {
         const active = surface === tab.id;
         return (
@@ -248,13 +260,17 @@ function SurfaceToggle({
               },
             ]}
           >
-            <Text style={{ color: active ? "#fff" : colors.foreground, fontWeight: "700", fontSize: 13 }}>
+            <Text
+              style={{ color: active ? "#fff" : colors.foreground, fontWeight: "700", fontSize: 12 }}
+              numberOfLines={1}
+            >
               {tab.label}
             </Text>
           </Pressable>
         );
       })}
-    </View>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -541,20 +557,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "stretch",
   },
-  surfaceRow: {
-    flexDirection: "row",
+  surfaceScroll: {
+    flexGrow: 0,
     flexShrink: 0,
     marginHorizontal: 8,
     marginBottom: 4,
+  },
+  surfaceScrollContent: {
+    flexGrow: 0,
+  },
+  surfaceRow: {
+    flexDirection: "row",
+    flexShrink: 0,
     borderRadius: 12,
     borderWidth: 1,
     padding: 4,
-    flexShrink: 0,
+    gap: 4,
   },
   surfaceTab: {
-    flex: 1,
+    flexShrink: 0,
+    minWidth: 88,
     borderRadius: 10,
     paddingVertical: 8,
+    paddingHorizontal: 10,
     alignItems: "center",
   },
   learnRoot: { flex: 1, minHeight: 0 },

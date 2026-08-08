@@ -18,7 +18,10 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
 
     const inAuthRoute =
       segments[0] === "(auth)" ||
-      (segments.length === 1 && segments[0] === "login");
+      segments[0] === "login" ||
+      segments[0] === "signup";
+    const inPublicMarketing =
+      segments[0] === "welcome" || segments[0] === "handoff" || segments[0] === "link";
     const inProtectedRoute = segments[0] === "(tabs)";
 
     if (!isAuthenticated && inProtectedRoute) {
@@ -27,6 +30,11 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     }
 
     if (isAuthenticated && inAuthRoute) {
+      router.replace("/(tabs)");
+      return;
+    }
+
+    if (isAuthenticated && inPublicMarketing) {
       router.replace("/(tabs)");
     }
   }, [isAuthenticated, isLoading, segments, router]);

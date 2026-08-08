@@ -22,8 +22,8 @@ export const LAYOUT_OVERLAP = {
   ANDROID_NAV_BAR_BUFFER: 6,
   /** Samsung One UI often needs a hair more clearance above the tab bar. */
   SAMSUNG_TAB_BUFFER: 4,
-  /** AIs tab chrome above the chat panel (header + mode row + specialist bar + surface tabs). */
-  AIS_TAB_CHROME_HEIGHT: 168,
+  /** AIs tab chrome above the chat panel (header + mode row + specialist bar). */
+  AIS_TAB_CHROME_HEIGHT: 112,
 } as const;
 
 /** Legal disclaimer strip height when stacked directly above the tab bar. */

@@ -392,8 +392,8 @@ export function CreatorAIInterface({
   return (
     <KeyboardAvoidingView
       style={styles.root}
-      behavior={embedded ? overlap.keyboardBehavior : undefined}
-      keyboardVerticalOffset={embedded ? overlap.keyboardVerticalOffset : 0}
+      behavior={embedded && Platform.OS === "ios" ? overlap.keyboardBehavior : undefined}
+      keyboardVerticalOffset={embedded && Platform.OS === "ios" ? overlap.keyboardVerticalOffset : 0}
     >
       {!hideHeader ? (
       <View style={[styles.header, { backgroundColor: colors.primary }]}>

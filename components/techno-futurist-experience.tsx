@@ -1,5 +1,5 @@
 import { ScrollView, View, Text, StyleSheet, Platform, useWindowDimensions, Pressable } from "react-native";
-import { Link, Redirect, useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth-context";
 import { useTypewriter } from "@/hooks/use-typewriter";
@@ -42,8 +42,12 @@ export function TechnoFuturistExperience() {
           <View style={styles.topBar}>
             <Text style={styles.logo}>UR PLATFORM</Text>
             <View style={styles.topLinks}>
-              <Pressable onPress={() => router.push("/login")}>
-                <Text style={styles.link}>Sign in</Text>
+              <Pressable
+                accessibilityRole="link"
+                onPress={() => router.push("/login")}
+                style={styles.signInBtn}
+              >
+                <Text style={styles.signInBtnText}>Sign in</Text>
               </Pressable>
             </View>
           </View>
@@ -54,13 +58,18 @@ export function TechnoFuturistExperience() {
             {!done ? <Text style={styles.cursor}>|</Text> : null}
           </Text>
           <Text style={styles.lede}>
-            {LANDING_PLATFORM_UNITY_LINE} Dark-mode command surface, live WebGL depth, bento AI
-            previews, and a one-shot test drive — no signup required.
+            {LANDING_PLATFORM_UNITY_LINE} Sign in for full access to every specialist, live classes,
+            and your creator hub. Preview one demo message below — no account needed for the test drive.
           </Text>
 
-          <Pressable onPress={() => router.push("/signup")} style={styles.heroCta}>
-            <Text style={styles.heroCtaText}>Initialize account →</Text>
-          </Pressable>
+          <View style={styles.heroCtaRow}>
+            <Pressable onPress={() => router.push("/login")} style={styles.heroSignIn}>
+              <Text style={styles.heroSignInText}>Sign in</Text>
+            </Pressable>
+            <Pressable onPress={() => router.push("/signup")} style={styles.heroCta}>
+              <Text style={styles.heroCtaText}>Create account →</Text>
+            </Pressable>
+          </View>
 
           <LandingBentoGrid isWide={isWide} />
           <LandingDemoChat />
@@ -69,11 +78,9 @@ export function TechnoFuturistExperience() {
           <LandingCheckoutCta />
 
           <View style={styles.footer}>
-            <Link href="/login" asChild>
-              <Pressable>
-                <Text style={styles.link}>Sign in</Text>
-              </Pressable>
-            </Link>
+            <Pressable accessibilityRole="link" onPress={() => router.push("/login")}>
+              <Text style={styles.link}>Already have an account? Sign in</Text>
+            </Pressable>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -93,8 +100,16 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   logo: { color: T.electric, fontWeight: "900", letterSpacing: 2, fontSize: 13 },
-  topLinks: { flexDirection: "row", gap: 12 },
+  topLinks: { flexDirection: "row", gap: 12, alignItems: "center" },
   link: { color: T.electric, fontWeight: "700", fontSize: 14 },
+  signInBtn: {
+    borderWidth: 1,
+    borderColor: T.electric,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  signInBtnText: { color: T.electric, fontWeight: "800", fontSize: 13 },
   kicker: {
     color: T.electricDim,
     fontSize: 10,
@@ -112,13 +127,26 @@ const styles = StyleSheet.create({
   },
   cursor: { color: T.electric, fontWeight: "300" },
   lede: { color: T.muted, fontSize: 16, lineHeight: 24, marginBottom: 20, maxWidth: 640 },
+  heroCtaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginBottom: 12,
+    alignItems: "center",
+  },
+  heroSignIn: {
+    borderWidth: 1,
+    borderColor: T.electric,
+    borderRadius: 999,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  heroSignInText: { color: T.electric, fontWeight: "800", fontSize: 15 },
   heroCta: {
-    alignSelf: "flex-start",
     backgroundColor: T.electric,
     borderRadius: 999,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    marginBottom: 8,
   },
   heroCtaText: { color: "#001018", fontWeight: "800", fontSize: 15 },
   footer: { alignItems: "center", paddingTop: 8 },

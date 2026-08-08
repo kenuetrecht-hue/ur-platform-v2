@@ -46,6 +46,9 @@ export default function LoginScreen() {
       >
         <View style={{ gap: 24 }}>
           <View style={{ alignItems: "center", gap: 8 }}>
+            <Link href="/welcome" style={{ color: colors.muted, fontSize: 13 }}>
+              ← Back to homepage
+            </Link>
             <Text
               style={{
                 fontSize: 32,

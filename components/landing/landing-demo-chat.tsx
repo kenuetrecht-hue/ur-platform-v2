@@ -54,10 +54,10 @@ export function LandingDemoChat({ onReply }: Props) {
   return (
     <View style={styles.wrap}>
       <Text style={styles.sectionTag}>INTERACTIVE TEST DRIVE</Text>
-      <Text style={styles.title}>Try a specialist — one free message</Text>
+      <Text style={styles.title}>Try a specialist — one free preview message</Text>
       <Text style={styles.sub}>
-        No account required. Pick any specialist on the platform — same engine, same guardrails,
-        same hive behind every reply.
+        Lead-gen preview only — sign in for unlimited chat, live classes, and subscriptions. Pick any
+        specialist below for a single demo reply.
       </Text>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pills}>
