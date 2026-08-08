@@ -16,10 +16,14 @@ import { trpc } from "@/lib/trpc";
 import {
   ALLOWED_SESSION_DURATIONS,
   CREATOR_MIN_PRICE_CENTS_PER_MINUTE,
+  GROUP_APPOINTMENT_MIN_ATTENDEES,
+  GROUP_APPOINTMENT_MIN_PRICE_CENTS_PER_MINUTE,
+  GROUP_APPOINTMENT_PRICE_CENTS_PER_MINUTE,
   MAX_SESSION_ATTENDEES,
   SESSION_CAPACITY_PRESETS,
   computeSessionTicketCents,
   durationLabel,
+  type LiveClassPricingTier,
 } from "@/lib/ai-session-constants";
 import { TransactionHistoryList, CustomLinkCard } from "@/components/transaction-history-list";
 import { CreatorPayoutSetupPanel } from "@/components/creator-payout-setup-panel";
@@ -81,6 +85,8 @@ export function ContentCreatorDashboardPanel() {
   const [startsAt, setStartsAt] = useState("");
   const [duration, setDuration] = useState<(typeof ALLOWED_SESSION_DURATIONS)[number]>(60);
   const [maxAttendees, setMaxAttendees] = useState("5000");
+  const [minAttendees, setMinAttendees] = useState("5");
+  const [pricingTier, setPricingTier] = useState<LiveClassPricingTier>("standard");
   const [pricePerMin, setPricePerMin] = useState("0.20");
 
   const dash = trpc.partnerDashboard.creatorDashboard.useQuery();
@@ -278,9 +284,67 @@ export function ContentCreatorDashboardPanel() {
                 Schedule a live class
               </Text>
               <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6, lineHeight: 18 }}>
-                $0.20/min is the floor — charge whatever you want above that. Ticket = duration × your
-                rate.
+                Standard: $0.20/min minimum, flexible group size. Group appointment: $0.01/min
+                minimum (charge $0.02, $0.20, or more), {GROUP_APPOINTMENT_MIN_ATTENDEES}+ paid
+                signups, unlimited seats — refunded only if minimum not met 1 hour before start; otherwise
+                non-refundable.
               </Text>
+              <Text style={{ color: colors.muted, fontSize: 11, marginTop: 10, marginBottom: 4 }}>
+                Class type
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+                <Pressable
+                  onPress={() => {
+                    setPricingTier("standard");
+                    setMinAttendees("5");
+                    setPricePerMin("0.20");
+                  }}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: pricingTier === "standard" ? colors.primary : colors.background,
+                      borderColor: pricingTier === "standard" ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: pricingTier === "standard" ? "#fff" : colors.foreground,
+                      fontSize: 11,
+                      fontWeight: "700",
+                    }}
+                  >
+                    Standard ($0.20+/min)
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setPricingTier("group_appointment");
+                    setMinAttendees(String(GROUP_APPOINTMENT_MIN_ATTENDEES));
+                    setPricePerMin("0.01");
+                    setMaxAttendees(String(MAX_SESSION_ATTENDEES));
+                  }}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor:
+                        pricingTier === "group_appointment" ? colors.primary : colors.background,
+                      borderColor:
+                        pricingTier === "group_appointment" ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: pricingTier === "group_appointment" ? "#fff" : colors.foreground,
+                      fontSize: 11,
+                      fontWeight: "700",
+                    }}
+                  >
+                    Group appointment ($0.01+/min · 25+)
+                  </Text>
+                </Pressable>
+              </View>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -352,6 +416,10 @@ export function ContentCreatorDashboardPanel() {
                   </Pressable>
                 ))}
               </View>
+              <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8, lineHeight: 16 }}>
+                Classes must start at least 12 hours from now. Back-out with refund until 1h 30m before
+                start, then a 30-minute fill window, then sign-ups close 1 hour before start.
+              </Text>
               <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 4 }}>Quick start times</Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
                 {timePresets.map((preset) => (
@@ -381,10 +449,15 @@ export function ContentCreatorDashboardPanel() {
                 style={[styles.input, { borderColor: colors.border, color: colors.foreground, marginTop: 8 }]}
               />
               <Text style={{ color: colors.muted, fontSize: 11, marginTop: 10, marginBottom: 4 }}>
-                Rate per minute — floor $0.20, no ceiling
+                {pricingTier === "group_appointment"
+                  ? "Rate per minute — $0.01 minimum, no ceiling"
+                  : "Rate per minute — $0.20 minimum, no ceiling"}
               </Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
-                {["0.20", "0.50", "1.00", "2.00", "5.00"].map((rate) => (
+                {(pricingTier === "group_appointment"
+                  ? ["0.01", "0.02", "0.05", "0.20", "1.00"]
+                  : ["0.20", "0.50", "1.00", "2.00", "5.00"]
+                ).map((rate) => (
                   <Pressable
                     key={rate}
                     onPress={() => setPricePerMin(rate)}
@@ -412,16 +485,28 @@ export function ContentCreatorDashboardPanel() {
                 value={pricePerMin}
                 onChangeText={setPricePerMin}
                 keyboardType="decimal-pad"
-                placeholder="Custom rate (USD/min, min $0.20)"
+                placeholder={
+                  pricingTier === "group_appointment"
+                    ? "Custom rate (USD/min, min $0.01)"
+                    : "Custom rate (USD/min, min $0.20)"
+                }
                 placeholderTextColor={colors.muted}
                 style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
               />
               {(() => {
-                const rateCents = Math.max(
-                  CREATOR_MIN_PRICE_CENTS_PER_MINUTE,
-                  Math.round(parseFloat(pricePerMin) * 100) || CREATOR_MIN_PRICE_CENTS_PER_MINUTE,
-                );
-                const ticketCents = computeSessionTicketCents(duration, rateCents);
+                const rateCents =
+                  pricingTier === "group_appointment"
+                    ? Math.max(
+                        GROUP_APPOINTMENT_MIN_PRICE_CENTS_PER_MINUTE,
+                        Math.round(parseFloat(pricePerMin) * 100) ||
+                          GROUP_APPOINTMENT_MIN_PRICE_CENTS_PER_MINUTE,
+                      )
+                    : Math.max(
+                        CREATOR_MIN_PRICE_CENTS_PER_MINUTE,
+                        Math.round(parseFloat(pricePerMin) * 100) ||
+                          CREATOR_MIN_PRICE_CENTS_PER_MINUTE,
+                      );
+                const ticketCents = duration * rateCents;
                 return (
                   <Text style={{ color: colors.muted, fontSize: 11, marginTop: 6 }}>
                     Ticket preview: ${(ticketCents / 100).toFixed(2)} ({duration} min @ $
@@ -429,6 +514,57 @@ export function ContentCreatorDashboardPanel() {
                   </Text>
                 );
               })()}
+              <Text style={{ color: colors.muted, fontSize: 11, marginTop: 10, marginBottom: 4 }}>
+                {pricingTier === "group_appointment"
+                  ? `Minimum paid signups (at least ${GROUP_APPOINTMENT_MIN_ATTENDEES})`
+                  : "Minimum attendees to run (class starts only if this many join)"}
+              </Text>
+              {pricingTier === "standard" ? (
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+                {["1", "3", "5", "10", "25"].map((min) => (
+                  <Pressable
+                    key={min}
+                    onPress={() => setMinAttendees(min)}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: minAttendees === min ? colors.primary : colors.background,
+                        borderColor: minAttendees === min ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: minAttendees === min ? "#fff" : colors.foreground,
+                        fontSize: 11,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {min} min
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              ) : (
+                <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 8 }}>
+                  Fixed at {GROUP_APPOINTMENT_MIN_ATTENDEES} paid tickets — unlimited room capacity.
+                </Text>
+              )}
+              <TextInput
+                value={minAttendees}
+                onChangeText={setMinAttendees}
+                keyboardType="number-pad"
+                editable={pricingTier === "standard"}
+                placeholder={
+                  pricingTier === "group_appointment"
+                    ? String(GROUP_APPOINTMENT_MIN_ATTENDEES)
+                    : "Minimum to run (e.g. 5)"
+                }
+                placeholderTextColor={colors.muted}
+                style={[styles.input, { borderColor: colors.border, color: colors.foreground, marginBottom: 8 }]}
+              />
+              {pricingTier === "standard" ? (
+              <>
               <Text style={{ color: colors.muted, fontSize: 11, marginTop: 10, marginBottom: 4 }}>
                 Room capacity (1–{MAX_SESSION_ATTENDEES.toLocaleString()} seats)
               </Text>
@@ -467,21 +603,51 @@ export function ContentCreatorDashboardPanel() {
                 placeholderTextColor={colors.muted}
                 style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
               />
+              </>
+              ) : null}
               <Pressable
                 disabled={!selectedAi || !startsAt || schedule.isPending}
                 onPress={() => {
-                  const cap = Math.min(
-                    MAX_SESSION_ATTENDEES,
-                    Math.max(1, parseInt(maxAttendees, 10) || 1),
-                  );
-                  const rateCents = Math.max(
-                    CREATOR_MIN_PRICE_CENTS_PER_MINUTE,
-                    Math.round(parseFloat(pricePerMin) * 100) || CREATOR_MIN_PRICE_CENTS_PER_MINUTE,
-                  );
-                  if (parseFloat(pricePerMin) * 100 < CREATOR_MIN_PRICE_CENTS_PER_MINUTE) {
+                  const cap =
+                    pricingTier === "group_appointment"
+                      ? MAX_SESSION_ATTENDEES
+                      : Math.min(
+                          MAX_SESSION_ATTENDEES,
+                          Math.max(1, parseInt(maxAttendees, 10) || 1),
+                        );
+                  const minToRun =
+                    pricingTier === "group_appointment"
+                      ? GROUP_APPOINTMENT_MIN_ATTENDEES
+                      : Math.min(cap, Math.max(1, parseInt(minAttendees, 10) || 1));
+                  const rateCents =
+                    pricingTier === "group_appointment"
+                      ? Math.max(
+                          GROUP_APPOINTMENT_MIN_PRICE_CENTS_PER_MINUTE,
+                          Math.round(parseFloat(pricePerMin) * 100) ||
+                            GROUP_APPOINTMENT_MIN_PRICE_CENTS_PER_MINUTE,
+                        )
+                      : Math.max(
+                          CREATOR_MIN_PRICE_CENTS_PER_MINUTE,
+                          Math.round(parseFloat(pricePerMin) * 100) ||
+                            CREATOR_MIN_PRICE_CENTS_PER_MINUTE,
+                        );
+                  if (
+                    pricingTier === "standard" &&
+                    parseFloat(pricePerMin) * 100 < CREATOR_MIN_PRICE_CENTS_PER_MINUTE
+                  ) {
                     Alert.alert(
                       "Minimum rate",
-                      "$0.20 per minute is the floor — set a higher rate if you like.",
+                      "$0.20 per minute is the floor for standard classes. Use Group appointment for $0.01+/min with 25+ attendees.",
+                    );
+                    return;
+                  }
+                  if (
+                    pricingTier === "group_appointment" &&
+                    parseFloat(pricePerMin) * 100 < GROUP_APPOINTMENT_MIN_PRICE_CENTS_PER_MINUTE
+                  ) {
+                    Alert.alert(
+                      "Minimum rate",
+                      "$0.01 per minute is the floor for group appointments. You may charge more.",
                     );
                     return;
                   }
@@ -491,6 +657,8 @@ export function ContentCreatorDashboardPanel() {
                     title: title.trim() || undefined,
                     durationMinutes: duration,
                     maxAttendees: cap,
+                    minAttendeesToStart: minToRun,
+                    pricingTier,
                     priceCentsPerMinute: rateCents,
                   });
                 }}
@@ -528,8 +696,14 @@ export function ContentCreatorDashboardPanel() {
                         {c.committedDurationMinutes} min
                       </Text>
                       <Text style={{ color: colors.muted, fontSize: 12 }}>
-                        ${(c.priceCents / 100).toFixed(2)} ticket · {c.attendeeCount}/{c.maxAttendees} sold
+                        ${(c.priceCents / 100).toFixed(2)} ticket ·{" "}
+                        {c.attendeeCount}/{c.maxAttendees} tickets · min {c.minAttendeesToStart ?? 1} to run
                       </Text>
+                      {"enrollmentLabel" in c ? (
+                        <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>
+                          {String(c.enrollmentLabel)}
+                        </Text>
+                      ) : null}
                     </View>
                     <View
                       style={[
@@ -563,7 +737,10 @@ export function ContentCreatorDashboardPanel() {
                     {c.status === "scheduled" && (
                       <Pressable
                         onPress={() =>
-                          Alert.alert("Cancel class?", "Attendees who bought tickets will need a refund.", [
+                          Alert.alert(
+                            "Cancel class?",
+                            "Paid tickets are non-refundable. Cancelling does not issue refunds — attendees were told they must attend after purchase.",
+                            [
                             { text: "Keep", style: "cancel" },
                             {
                               text: "Cancel class",

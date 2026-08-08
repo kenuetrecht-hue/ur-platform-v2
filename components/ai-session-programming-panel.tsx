@@ -150,6 +150,9 @@ export function AiSessionProgrammingPanel() {
           placeholderTextColor={colors.muted}
           style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
         />
+        <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8, lineHeight: 16 }}>
+          Start time must be at least 12 hours from now. Attendees can sign up until 1 hour before class.
+        </Text>
         <TextInput
           value={scheduleStart}
           onChangeText={setScheduleStart}

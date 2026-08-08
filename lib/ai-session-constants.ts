@@ -10,6 +10,14 @@ export type AllowedSessionDuration = (typeof ALLOWED_SESSION_DURATIONS)[number];
 export const MAX_SESSION_ATTENDEES = 10_000;
 export const SESSION_CAPACITY_PRESETS = [500, 1_000, 5_000, 10_000] as const;
 
+export {
+  STANDARD_MIN_PRICE_CENTS_PER_MINUTE,
+  GROUP_APPOINTMENT_MIN_PRICE_CENTS_PER_MINUTE,
+  GROUP_APPOINTMENT_PRICE_CENTS_PER_MINUTE,
+  GROUP_APPOINTMENT_MIN_ATTENDEES,
+  type LiveClassPricingTier,
+} from "./live-class-pricing-policy";
+
 export function durationLabel(minutes: AllowedSessionDuration): string {
   if (minutes === 15) return "15 min";
   if (minutes === 30) return "30 min (½ hr)";

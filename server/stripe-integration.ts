@@ -20,7 +20,8 @@ export interface StripePaymentIntent {
   clientSecret: string;
   amount: number;
   currency: string;
-  status: "requires_payment_method" | "requires_confirmation" | "succeeded";
+  status: "requires_payment_method" | "requires_confirmation" | "succeeded" | "refunded";
+  chargeId?: string;
   metadata: Record<string, any>;
   createdAt: number;
 }
@@ -46,6 +47,7 @@ export interface StripePaymentMethod {
 export interface StripeCharge {
   id: string;
   customerId: string;
+  paymentIntentId?: string;
   amount: number;
   currency: string;
   status: "succeeded" | "failed" | "pending";
@@ -216,6 +218,7 @@ class StripeIntegrationService {
     const charge: StripeCharge = {
       id: chargeId,
       customerId: method.customerId,
+      paymentIntentId: intentId,
       amount: intent.amount,
       currency: intent.currency,
       status: "succeeded",
@@ -226,8 +229,30 @@ class StripeIntegrationService {
 
     this.charges.set(chargeId, charge);
     intent.status = "succeeded";
+    intent.chargeId = chargeId;
 
     return charge;
+  }
+
+  /**
+   * Refund a succeeded payment intent (full refund).
+   */
+  async refundPaymentIntent(
+    intentId: string,
+    reason?: string,
+  ): Promise<StripeRefund | null> {
+    const intent = this.paymentIntents.get(intentId);
+    if (!intent?.chargeId) return null;
+    if (intent.status === "refunded") {
+      throw new Error(`Payment intent ${intentId} already refunded`);
+    }
+    const refund = await this.refundCharge(intent.chargeId, intent.amount, reason);
+    intent.status = "refunded";
+    return refund;
+  }
+
+  getPaymentIntent(intentId: string): StripePaymentIntent | undefined {
+    return this.paymentIntents.get(intentId);
   }
 
   /**

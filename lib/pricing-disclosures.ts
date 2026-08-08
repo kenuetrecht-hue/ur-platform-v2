@@ -36,6 +36,15 @@ import {
   WORKSPACE_3D_PLAN_DAYS,
   type Workspace3dPlanId,
 } from "./workspace-3d-pricing";
+import {
+  LIVE_CLASS_PURCHASE_RULES,
+  LIVE_CLASS_SCHEDULING_RULES_SUMMARY,
+  LIVE_CLASS_NO_REFUND_AFTER_LOCKIN_SUMMARY,
+  LIVE_CLASS_BACKOUT_RULE_SUMMARY,
+  LIVE_CLASS_FILL_WINDOW_RULE_SUMMARY,
+  LIVE_CLASS_PATIENCE_GRACE_RULE_SUMMARY,
+} from "./live-class-scheduling-policy";
+import type { LiveClassPricingTier } from "./live-class-pricing-policy";
 
 export type PurchaseSummaryLine = {
   label: string;
@@ -46,7 +55,7 @@ export type PurchaseSummaryLine = {
 export type PurchasePricing = ReturnType<typeof calculateCustomerCheckout>;
 
 export type PurchaseSummary = {
-  productType: "ai_subscription" | "ai_talk" | "workspace_3d" | "workspace_3d_addon";
+  productType: "ai_subscription" | "ai_talk" | "workspace_3d" | "workspace_3d_addon" | "live_class";
   title: string;
   /** Itemized price — subtotal + tax + Stripe fee = total */
   pricing: PurchasePricing;
@@ -344,6 +353,88 @@ export function buildWorkspace3dExtraSlotPurchaseSummary(
       "Web browser checkout required.",
       ...stateTaxNotes(stateCode ?? null, pricing),
     ],
+    aiDisclosure: AI_DISCLOSURE,
+    billingEntity: BILLING_ENTITY,
+  };
+}
+
+export function buildLiveClassPurchaseSummary(params: {
+  sessionTitle: string;
+  creatorName: string;
+  durationMinutes: number;
+  priceCentsPerMinute: number;
+  ticketSubtotalCents: number;
+  minAttendeesToStart: number;
+  pricingTier: LiveClassPricingTier;
+  refundsOnUnderfill: boolean;
+  ticketOnlyMinimum: boolean;
+  startsAt: string;
+  stateCode?: UsStateCode | null;
+}): PurchaseSummary {
+  const startLabel = new Date(params.startsAt).toLocaleString();
+  const { pricing, youPay, priceBreakdown } = buildPricingBlock(
+    params.ticketSubtotalCents,
+    params.stateCode,
+    "one-time ticket",
+  );
+  const rateUsd = (params.priceCentsPerMinute / 100).toFixed(2);
+  const importantNotes = [...LIVE_CLASS_PURCHASE_RULES];
+
+  if (params.pricingTier === "group_appointment") {
+    importantNotes.unshift(LIVE_CLASS_PATIENCE_GRACE_RULE_SUMMARY);
+    importantNotes.unshift(
+      `Group appointment: ${params.minAttendeesToStart}+ paid signups required by 1 hour before ${startLabel}. If the minimum is never met, everyone is refunded. If you reach ${params.minAttendeesToStart} and only the last seat opens, the remaining ${params.minAttendeesToStart - 1} who wait still get the class.`,
+    );
+  } else if (params.minAttendeesToStart > 1) {
+    importantNotes.unshift(
+      `This class needs at least ${params.minAttendeesToStart} ${params.ticketOnlyMinimum ? "paid signups" : "registrations"} before it can run.`,
+    );
+  }
+
+  importantNotes.unshift(LIVE_CLASS_NO_REFUND_AFTER_LOCKIN_SUMMARY);
+  importantNotes.unshift(LIVE_CLASS_FILL_WINDOW_RULE_SUMMARY);
+  importantNotes.unshift(LIVE_CLASS_BACKOUT_RULE_SUMMARY);
+  importantNotes.unshift(LIVE_CLASS_SCHEDULING_RULES_SUMMARY);
+  importantNotes.push(...stateTaxNotes(params.stateCode ?? null, pricing));
+
+  return {
+    productType: "live_class",
+    title: `${params.creatorName} — ${params.sessionTitle}`,
+    pricing,
+    youPay,
+    priceBreakdown,
+    youReceive: [
+      {
+        label: "Live class ticket",
+        value: `${params.durationMinutes} minutes with ${params.creatorName} at $${rateUsd}/min`,
+        emphasis: true,
+      },
+      {
+        label: "Seat lock",
+        value:
+          "Back out with a full refund until 1 hour 30 minutes before start. After that your seat is locked and you must attend.",
+        emphasis: true,
+      },
+      {
+        label: "Fill window",
+        value:
+          "From 1 hour 30 minutes to 1 hour before start, seats are locked but new sign-ups can join to fill open spots.",
+      },
+      {
+        label: "Scheduled start",
+        value: startLabel,
+      },
+      {
+        label: "Lobby opens",
+        value: "15 minutes before start (once the class is confirmed)",
+      },
+    ],
+    notIncluded: [
+      "Text chat subscription (buy separately if needed)",
+      "Recording or replay unless the host announces it",
+      "Refunds after the 1 hour 30 minute lock-in (except automatic cancellation when a group minimum is not met 1 hour before start)",
+    ],
+    importantNotes,
     aiDisclosure: AI_DISCLOSURE,
     billingEntity: BILLING_ENTITY,
   };

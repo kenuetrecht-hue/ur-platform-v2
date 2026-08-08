@@ -21,6 +21,7 @@ import {
   scheduleLiveSession,
   cancelLiveSession,
   getLiveSession,
+  getSessionEnrollmentSummary,
 } from "../_core/ai-live-session-service";
 import {
   listAiSessionPrograms,
@@ -193,11 +194,9 @@ export const partnerDashboardRouter = router({
           .union([z.literal(15), z.literal(30), z.literal(45), z.literal(60)])
           .optional(),
         maxAttendees: z.number().int().min(1).max(10_000).optional(),
-        priceCentsPerMinute: z
-          .number()
-          .int()
-          .min(CREATOR_MIN_PRICE_CENTS_PER_MINUTE)
-          .optional(),
+        minAttendeesToStart: z.number().int().min(1).max(10_000).optional(),
+        pricingTier: z.enum(["standard", "group_appointment"]).optional(),
+        priceCentsPerMinute: z.number().int().min(1).optional(),
       }),
     )
     .mutation(({ ctx, input }) => {
@@ -217,7 +216,18 @@ export const partnerDashboardRouter = router({
   listMyClasses: protectedProcedure.query(({ ctx }) => {
     const dash = getCreatorDashboard(String(ctx.user.id));
     if (!dash.enrolled) return [];
-    return listLiveSessions().filter((s) => s.hostUserId === String(ctx.user.id));
+    return listLiveSessions()
+      .filter((s) => s.hostUserId === String(ctx.user.id))
+      .map((s) => {
+        const enrollment = getSessionEnrollmentSummary(s);
+        return {
+          ...s,
+          registeredCount: enrollment.registeredCount,
+          spotsNeeded: enrollment.spotsNeeded,
+          confirmedToRun: enrollment.confirmedToRun,
+          enrollmentLabel: enrollment.enrollmentLabel,
+        };
+      });
   }),
 
   cancelMyClass: protectedProcedure

@@ -21,8 +21,14 @@ import {
   confirmSessionPayment,
   createSessionCheckout,
   extendLiveSessionOvertime,
+  expressInterestInSession,
+  cancelInterestInSession,
+  backOutOfLiveSession,
+  userHasInterestInSession,
+  userHasSessionAccess,
   getLiveSession,
   getOwnerSessionStats,
+  getSessionEnrollmentSummary,
   getSessionJoinAccess,
   listLiveSessions,
   scheduleLiveSession,
@@ -32,6 +38,8 @@ import {
   listCreatorVideos,
   requestCreatorVideo,
 } from "../_core/ai-creator-video-service";
+import { buildLiveClassPurchaseSummary } from "../../lib/pricing-disclosures";
+import { optionalBillingStateSchema } from "../../lib/billing-state-schema";
 
 const durationSchema = z.union([
   z.literal(15),
@@ -47,6 +55,7 @@ function mapPublicSession(s: NonNullable<ReturnType<typeof getLiveSession>>) {
     overtimeMinutes: s.overtimeMinutes,
     allowOvertime: s.allowOvertime,
   });
+  const enrollment = getSessionEnrollmentSummary(s);
   return {
     id: s.id,
     creatorAiId: s.creatorAiId,
@@ -64,8 +73,31 @@ function mapPublicSession(s: NonNullable<ReturnType<typeof getLiveSession>>) {
     priceCents: s.priceCents,
     priceUsd: (s.priceCents / 100).toFixed(2),
     maxAttendees: s.maxAttendees,
-    attendeeCount: s.attendeeCount,
-    spotsLeft: Math.max(0, s.maxAttendees - s.attendeeCount),
+    minAttendeesToStart: enrollment.minAttendeesToStart,
+    attendeeCount: enrollment.ticketCount,
+    registeredCount: enrollment.registeredCount,
+    interestCount: enrollment.interestCount,
+    spotsNeeded: enrollment.spotsNeeded,
+    confirmedToRun: enrollment.confirmedToRun,
+    enrollmentStatus: enrollment.enrollmentStatus,
+    enrollmentLabel: enrollment.enrollmentLabel,
+    enrollmentDeadlineAt: enrollment.enrollmentDeadlineAt,
+    enrollmentOpen: enrollment.enrollmentOpen,
+    minimumCheckAt: enrollment.minimumCheckAt,
+    backoutDeadlineAt: enrollment.backoutDeadlineAt,
+    backoutOpen: enrollment.backoutOpen,
+    inFillWindow: enrollment.inFillWindow,
+    fillWindowStartAt: enrollment.fillWindowStartAt,
+    peakPaidCount: enrollment.peakPaidCount,
+    patienceGracePending: enrollment.patienceGracePending,
+    patienceGraceActive: enrollment.patienceGraceActive,
+    pricingTier: s.pricingTier,
+    pricingTierLabel:
+      s.pricingTier === "group_appointment" ? "Group appointment" : "Standard live class",
+    refundsOnUnderfill: s.refundsOnUnderfill,
+    ticketOnlyMinimum: s.ticketOnlyMinimum,
+    refundsProcessed: s.refundsProcessed,
+    spotsLeft: Math.max(0, s.maxAttendees - enrollment.registeredCount),
     status: s.status,
     commitment,
   };
@@ -105,6 +137,7 @@ export const aiLiveSessionRouter = router({
     .input(
       z.object({
         sessionId: z.string().uuid(),
+        stateCode: optionalBillingStateSchema,
         attributionSlug: z.string().min(2).max(64).optional(),
       }),
     )
@@ -115,7 +148,34 @@ export const aiLiveSessionRouter = router({
         userEmail: ctx.user.email ?? "",
         userName: ctx.user.name ?? "UR User",
         isPlatformOwner: ctx.isPlatformOwner,
+        billingStateCode: input.stateCode,
         attributionSlug: input.attributionSlug,
+      });
+    }),
+
+  getPurchaseSummary: publicProcedure
+    .input(
+      z.object({
+        sessionId: z.string().uuid(),
+        stateCode: optionalBillingStateSchema,
+      }),
+    )
+    .query(({ input }) => {
+      const session = getLiveSession(input.sessionId);
+      if (!session) return null;
+      const enrollment = getSessionEnrollmentSummary(session);
+      return buildLiveClassPurchaseSummary({
+        sessionTitle: session.title,
+        creatorName: session.creatorName,
+        durationMinutes: session.durationMinutes,
+        priceCentsPerMinute: session.priceCentsPerMinute,
+        ticketSubtotalCents: session.priceCents,
+        minAttendeesToStart: enrollment.minAttendeesToStart,
+        pricingTier: session.pricingTier,
+        refundsOnUnderfill: session.refundsOnUnderfill,
+        ticketOnlyMinimum: session.ticketOnlyMinimum,
+        startsAt: session.startsAt,
+        stateCode: input.stateCode ?? null,
       });
     }),
 
@@ -128,6 +188,41 @@ export const aiLiveSessionRouter = router({
         userEmail: ctx.user.email ?? "",
       });
     }),
+
+  expressInterest: protectedProcedure
+    .input(z.object({ sessionId: z.string().uuid() }))
+    .mutation(({ ctx, input }) =>
+      expressInterestInSession({ sessionId: input.sessionId, userId: String(ctx.user.id) }),
+    ),
+
+  cancelInterest: protectedProcedure
+    .input(z.object({ sessionId: z.string().uuid() }))
+    .mutation(({ ctx, input }) =>
+      cancelInterestInSession({ sessionId: input.sessionId, userId: String(ctx.user.id) }),
+    ),
+
+  backOut: protectedProcedure
+    .input(z.object({ sessionId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) =>
+      backOutOfLiveSession({
+        sessionId: input.sessionId,
+        userId: String(ctx.user.id),
+        userEmail: ctx.user.email ?? "",
+      }),
+    ),
+
+  hasTicket: protectedProcedure
+    .input(z.object({ sessionId: z.string().uuid() }))
+    .query(({ ctx, input }) => ({
+      hasTicket: userHasSessionAccess(input.sessionId, String(ctx.user.id)),
+      hasInterest: userHasInterestInSession(input.sessionId, String(ctx.user.id)),
+    })),
+
+  hasInterest: protectedProcedure
+    .input(z.object({ sessionId: z.string().uuid() }))
+    .query(({ ctx, input }) => ({
+      hasInterest: userHasInterestInSession(input.sessionId, String(ctx.user.id)),
+    })),
 
   joinAccess: protectedProcedure
     .input(z.object({ sessionId: z.string().uuid() }))
@@ -177,8 +272,10 @@ export const aiLiveSessionRouter = router({
         description: z.string().max(2000).optional(),
         startsAt: z.string().min(10).max(40),
         durationMinutes: durationSchema.optional(),
-        priceCentsPerMinute: z.number().int().min(CREATOR_MIN_PRICE_CENTS_PER_MINUTE).optional(),
         maxAttendees: z.number().int().min(1).max(MAX_SESSION_ATTENDEES).optional(),
+        minAttendeesToStart: z.number().int().min(1).max(10_000).optional(),
+        pricingTier: z.enum(["standard", "group_appointment"]).optional(),
+        priceCentsPerMinute: z.number().int().min(1).optional(),
       }),
     )
     .mutation(({ input }) => scheduleLiveSession(input)),
