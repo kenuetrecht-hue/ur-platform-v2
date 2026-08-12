@@ -72,6 +72,7 @@ function isMissingAiChatTable(error: unknown): boolean {
 async function runWithDb<T>(
   operation: (db: NonNullable<Awaited<ReturnType<typeof getDb>>>) => Promise<T>,
 ): Promise<T | "unavailable"> {
+  if (process.env.AI_CHAT_FORCE_MEMORY === "1") return "unavailable";
   const db = await getDb();
   if (!db) return "unavailable";
   try {
@@ -229,19 +230,21 @@ export async function appendAiChatTurns(params: {
     creatorId: params.creatorId,
   });
 
-  const now = new Date();
+  const baseMs = Date.now();
   const sanitized = params.turns
     .filter((t) => t.content.trim().length > 0)
-    .map((t) => ({
+    .map((t, index) => ({
       id: randomUUID(),
       role: t.role,
       content: sanitizeContent(t.content),
-      createdAt: now,
+      createdAt: new Date(baseMs + index),
     }));
 
   if (sanitized.length === 0) {
-    return { threadId, messageIds: [], updatedAt: toIso(now) };
+    return { threadId, messageIds: [], updatedAt: toIso(new Date(baseMs)) };
   }
+
+  const now = sanitized[sanitized.length - 1]!.createdAt;
 
   const dbResult = await runWithDb(async (db) => {
     await db.insert(aiChatMessages).values(

@@ -121,6 +121,75 @@ const HANDOFF_GRAPH: Record<string, HandoffSuggestion[]> = {
       route: "/(tabs)/ais",
     },
   ],
+  "ai-attorney-001": [
+    {
+      targetCreatorId: "ai-attorney-criminal-001",
+      targetName: "Criminal Justice Attorney AI",
+      reason: "Criminal charges, rights, pleas, and procedure.",
+      prefillPrompt: "I need help understanding criminal procedure and my rights (educational only).",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-attorney-realestate-001",
+      targetName: "Real Estate Attorney AI",
+      reason: "Contracts, title, leases, and closing law.",
+      prefillPrompt: "Help me understand the legal side of my real estate transaction.",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-attorney-tax-001",
+      targetName: "Tax Attorney AI",
+      reason: "IRS notices, audits, and tax controversy.",
+      prefillPrompt: "I received an IRS notice — walk me through my options (educational).",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-attorney-accountant-001",
+      targetName: "Accountant Attorney AI",
+      reason: "Entity law, audits, and finance contracts.",
+      prefillPrompt: "Help me review the legal side of my business entity and financial contracts.",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-attorney-credit-001",
+      targetName: "Credit & Consumer Attorney AI",
+      reason: "Credit repair, disputes, and building good credit.",
+      prefillPrompt: "Teach me how to dispute errors on my credit report and build credit responsibly.",
+      route: "/(tabs)/ais",
+    },
+  ],
+  "ai-attorney-credit-001": [
+    {
+      targetCreatorId: "ai-attorney-tax-001",
+      targetName: "Tax Attorney AI",
+      reason: "Tax liens and IRS collections affecting credit.",
+      prefillPrompt: "How do tax liens and IRS collections interact with my credit report?",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-attorney-accountant-001",
+      targetName: "Accountant Attorney AI",
+      reason: "Business credit and entity structure.",
+      prefillPrompt: "Help me understand business credit and entity setup for my LLC.",
+      route: "/(tabs)/ais",
+    },
+  ],
+  "ai-attorney-realestate-001": [
+    {
+      targetCreatorId: "ai-realestate-001",
+      targetName: "Real Estate Master AI",
+      reason: "Market analysis and transaction strategy.",
+      prefillPrompt: "Combine legal review with market analysis for my property deal.",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-attorney-tax-001",
+      targetName: "Tax Attorney AI",
+      reason: "1031 exchanges and property tax implications.",
+      prefillPrompt: "Explain the tax law side of my real estate investment strategy.",
+      route: "/(tabs)/ais",
+    },
+  ],
   contentmate: [
     {
       targetCreatorId: "ai-marketing-001",

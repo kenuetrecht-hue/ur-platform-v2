@@ -22,6 +22,7 @@ import { isSupabaseConfiguredOnServer } from "../supabase-auth";
 import { resolveSupabasePublicConfig } from "../../shared/supabase-config";
 import * as db from "../db";
 import { registerStaticWeb } from "./static-web";
+import { getCommerceMode, isSimulatedCommerceMode, DEV_SIMULATED_COMMERCE_NOTICE } from "../../lib/dev-commerce-mode";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -79,6 +80,11 @@ async function startServer() {
     res.json({
       ok: true,
       timestamp: Date.now(),
+      commerce: {
+        mode: getCommerceMode(),
+        simulated: isSimulatedCommerceMode(),
+        notice: isSimulatedCommerceMode() ? DEV_SIMULATED_COMMERCE_NOTICE : undefined,
+      },
       ai: {
         configured: ai.configured,
         reachable: ai.reachable,

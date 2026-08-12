@@ -224,6 +224,126 @@ export const SPECIALIZED_CAPABILITIES: Record<
       updateFrequency: "Real-time",
     },
   },
+  "ai-attorney-criminal-001": {
+    fileExport: {
+      enabled: true,
+      formats: [
+        "Legal Documents",
+        "Motion Outlines",
+        "Research Memos",
+        "Compliance Reports",
+      ],
+      batchExport: true,
+      cloudIntegration: ["Document Management", "Client Portal"],
+    },
+    webSearch: {
+      enabled: true,
+      realTime: true,
+      sources: [
+        "Legal Databases",
+        "Case Law",
+        "Criminal Statutes",
+        "Federal Regulations",
+      ],
+      updateFrequency: "Real-time",
+    },
+  },
+  "ai-attorney-realestate-001": {
+    fileExport: {
+      enabled: true,
+      formats: [
+        "Purchase Agreements",
+        "Lease Templates",
+        "Title Checklists",
+        "Compliance Reports",
+      ],
+      batchExport: true,
+      cloudIntegration: ["Document Management", "Client Portal"],
+    },
+    webSearch: {
+      enabled: true,
+      realTime: true,
+      sources: [
+        "Legal Databases",
+        "Real Estate Law",
+        "State Statutes",
+        "HUD Resources",
+      ],
+      updateFrequency: "Real-time",
+    },
+  },
+  "ai-attorney-accountant-001": {
+    fileExport: {
+      enabled: true,
+      formats: [
+        "Entity Formation Guides",
+        "Contract Reviews",
+        "Audit Prep Checklists",
+        "Compliance Reports",
+      ],
+      batchExport: true,
+      cloudIntegration: ["Document Management", "Client Portal"],
+    },
+    webSearch: {
+      enabled: true,
+      realTime: true,
+      sources: [
+        "Legal Databases",
+        "Accounting Standards",
+        "SEC Filings",
+        "Federal Regulations",
+      ],
+      updateFrequency: "Real-time",
+    },
+  },
+  "ai-attorney-tax-001": {
+    fileExport: {
+      enabled: true,
+      formats: [
+        "Tax Research Memos",
+        "IRS Response Templates",
+        "Compliance Reports",
+        "Audit Prep Checklists",
+      ],
+      batchExport: true,
+      cloudIntegration: ["Document Management", "Client Portal"],
+    },
+    webSearch: {
+      enabled: true,
+      realTime: true,
+      sources: [
+        "IRS Publications",
+        "Tax Code",
+        "Case Law",
+        "State Tax Resources",
+      ],
+      updateFrequency: "Real-time",
+    },
+  },
+  "ai-attorney-credit-001": {
+    fileExport: {
+      enabled: true,
+      formats: [
+        "Dispute Letter Templates",
+        "Credit Action Plans",
+        "Consumer Rights Guides",
+        "Compliance Reports",
+      ],
+      batchExport: true,
+      cloudIntegration: ["Document Management", "Client Portal"],
+    },
+    webSearch: {
+      enabled: true,
+      realTime: true,
+      sources: [
+        "CFPB Resources",
+        "FCRA Guidance",
+        "Consumer Law",
+        "Credit Bureau Policies",
+      ],
+      updateFrequency: "Real-time",
+    },
+  },
   // Accountant Pro - Financial visualization
   "ai-accountant-001": {
     visualization3D: {

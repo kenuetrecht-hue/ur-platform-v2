@@ -25,6 +25,8 @@ import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync"
 import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { useAuth } from "@/lib/auth-context";
 import { METER_HEARTBEAT_INTERVAL_MS } from "@/lib/ai-metering-policy";
+import { buildAiChatDisclosure, AI_WELCOME_DISCLOSURE_SUFFIX } from "@/lib/platform-disclosure-copy";
+import { brandDisclosureSurface, withAlpha } from "@/lib/brand-theme";
 
 interface ChatMessage {
   role: "user" | "ai";
@@ -70,7 +72,7 @@ export function CreatorAIInterface({
   });
   const defaultWelcome =
     welcomeMessage ??
-    `Hi! I'm ${creatorName}. I understand any language — ask me anything in my area of expertise.`;
+    `Hi! I'm ${creatorName}, an AI assistant on UR Platform.\n\n${AI_WELCOME_DISCLOSURE_SUFFIX}\n\nHow can I help you today?`;
   const scrollViewRef = useRef<ScrollView>(null);
   const messageSeq = useRef(0);
   const loadingRef = useRef(false);
@@ -485,6 +487,29 @@ export function CreatorAIInterface({
       </View>
       ) : null}
 
+      <View
+        style={[
+          styles.disclosureBanner,
+          brandDisclosureSurface(colors),
+        ]}
+        accessibilityRole="text"
+        accessibilityLabel={buildAiChatDisclosure(creatorName)}
+      >
+        <Text
+          style={{
+            color: withAlpha(colors.muted, 0.92),
+            fontSize: 10,
+            lineHeight: 14,
+            textAlign: "center",
+            letterSpacing: 0.12,
+            opacity: 0.85,
+          }}
+          numberOfLines={4}
+        >
+          {buildAiChatDisclosure(creatorName)}
+        </Text>
+      </View>
+
       {!embedded && apiReachable === false ? (
         <View
           style={[
@@ -868,6 +893,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
+  },
+  disclosureBanner: {
+    marginHorizontal: 12,
+    marginBottom: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   input: {
     flex: 1,

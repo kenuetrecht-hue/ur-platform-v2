@@ -52,7 +52,9 @@ describe("ai-chat-persistence-service (in-memory fallback)", () => {
     });
 
     const full = await listAiChatMessages({ userId: 9, creatorId: "linguamate" });
-    const since = full!.messages[0]!.createdAt;
+    const since = full!.messages[full!.messages.length - 1]!.createdAt;
+
+    await new Promise((resolve) => setTimeout(resolve, 5));
 
     await appendAiChatTurns({
       userId: 9,

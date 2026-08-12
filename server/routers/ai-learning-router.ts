@@ -29,6 +29,12 @@ import {
   isCreativeTeachingCreator,
 } from "../_core/creative-arts-teaching-curriculum";
 import {
+  getLegalMasterPracticeExercises,
+  getLegalMasterSelfPacedPath,
+  getLegalMasterTeachingTagline,
+  isLegalMasterTeachingCreator,
+} from "../_core/legal-masters-teaching-curriculum";
+import {
   createPracticeQuestionSet,
   getLearningProgress,
   recordLessonComplete,
@@ -116,6 +122,17 @@ export const aiLearningRouter = router({
                 advanced: getCreativeSelfPacedPath(def.id, "advanced"),
               },
               tagline: getCreativeTeachingTagline(def.id),
+            }
+          : {}),
+        ...(isLegalMasterTeachingCreator(def.id)
+          ? {
+              legalMastersAcademy: true,
+              selfPacedPaths: {
+                beginner: getLegalMasterSelfPacedPath(def.id, "beginner"),
+                intermediate: getLegalMasterSelfPacedPath(def.id, "intermediate"),
+                advanced: getLegalMasterSelfPacedPath(def.id, "advanced"),
+              },
+              tagline: getLegalMasterTeachingTagline(def.id),
             }
           : {}),
       };
@@ -263,6 +280,23 @@ export const aiLearningRouter = router({
             level: ex.level,
           })),
           disclaimer: "Educational creative practice — produce your own original work.",
+        };
+      }
+
+      if (isLegalMasterTeachingCreator(input.creatorId)) {
+        const exercises = getLegalMasterPracticeExercises({
+          creatorId: input.creatorId,
+          count: input.count,
+        });
+        return {
+          questions: exercises.map((ex) => ({
+            id: ex.id,
+            topic: ex.title,
+            question: ex.prompt,
+            level: ex.level,
+          })),
+          disclaimer:
+            "Educational legal practice only — not licensed representation. Consult a qualified attorney for your situation.",
         };
       }
 

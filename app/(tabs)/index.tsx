@@ -127,6 +127,22 @@ export default function HomeScreen() {
                     }),
                 },
                 {
+                  label: "Legal Masters",
+                  onPress: () =>
+                    router.push({
+                      pathname: "/ais",
+                      params: { group: "legalMasters", ai: "ai-attorney-criminal-001" },
+                    }),
+                },
+                {
+                  label: "Credit Attorney AI",
+                  onPress: () =>
+                    router.push({
+                      pathname: "/ais",
+                      params: { group: "legalMasters", ai: "ai-attorney-credit-001" },
+                    }),
+                },
+                {
                   label: "Merch 3D Lab",
                   onPress: () =>
                     router.push({

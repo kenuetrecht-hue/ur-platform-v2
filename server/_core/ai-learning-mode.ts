@@ -45,6 +45,11 @@ import {
   getCreativeTeachingModules,
   isCreativeTeachingCreator,
 } from "./creative-arts-teaching-curriculum";
+import {
+  buildLegalMasterTeachingPromptAddition,
+  getLegalMasterTeachingModules,
+  isLegalMasterTeachingCreator,
+} from "./legal-masters-teaching-curriculum";
 
 export type LearningLevel = "beginner" | "intermediate" | "advanced";
 
@@ -221,6 +226,9 @@ export function getCurriculumForCreator(def: CreatorAiDefinition): LearningModul
   if (isCreativeTeachingCreator(def.id)) {
     return getCreativeTeachingModules(def.id);
   }
+  if (isLegalMasterTeachingCreator(def.id)) {
+    return getLegalMasterTeachingModules(def.id);
+  }
 
   const fromCategory = CATEGORY_MODULES[def.category] ?? DEFAULT_MODULES;
   const fromScope = def.inScope.slice(0, 4).map((title) => ({
@@ -277,6 +285,7 @@ ${isCoderTeachingCreator(def.id) ? `\n\n${buildCoderTeachingPromptAddition(level
 ${isGameTeachingCreator(def.id) ? `\n\n${buildGameTeachingPromptAddition(level, mode, topic)}` : ""}
 ${isBlueprintTeachingCreator(def.id) ? `\n\n${buildBlueprintTeachingPromptAddition(level, mode, topic)}` : ""}
 ${isCreativeTeachingCreator(def.id) ? `\n\n${buildCreativeTeachingPromptAddition(def.id, level, mode, topic)}` : ""}
+${isLegalMasterTeachingCreator(def.id) ? `\n\n${buildLegalMasterTeachingPromptAddition(def.id, level, mode, topic)}` : ""}
 
 Rules:
 - Educational and recreational purposes only — not licensed professional advice.
@@ -376,6 +385,6 @@ export function getCertificationOverview(def: CreatorAiDefinition): {
     topics: certModules.length > 0 ? certModules.map((m) => m.title) : def.inScope,
     estimatedStudyHours: def.category === "Construction" ? 40 : 24,
     disclaimer:
-      "Educational study guidance only. Licensing requirements vary by jurisdiction — verify with official boards.",
+      "Educational study guidance only — you are learning from an AI, not a licensed professional. If you want professional advice, consult official boards and qualified experts in your jurisdiction.",
   };
 }

@@ -237,7 +237,92 @@ export const CREATOR_AI_REGISTRY: CreatorAiDefinition[] = [
   specialist("ai-contractor-001", "Contractor Pro AI", "🔨", "Construction", "General contracting and project management.", ["Project planning", "Subcontractor coordination", "Estimating concepts", "Timeline management"], ["Binding contracts", "Licensed engineering sign-off"]),
   specialist("ai-hvac-001", "HVAC Specialist AI", "❄️", "Construction", "Heating, ventilation, and air conditioning systems.", ["System selection", "Maintenance schedules", "Efficiency tips", "Troubleshooting"], ["Refrigerant handling without certification context"]),
   specialist("ai-landscaping-001", "Landscaping Master AI", "🌳", "Construction", "Landscape design and outdoor space planning.", ["Design concepts", "Plant selection", "Hardscape planning", "Seasonal maintenance"], ["Structural engineering for retaining walls"]),
-  specialist("ai-attorney-001", "Attorney AI", "👔", "Legal Reference", "Legal research and document drafting assistance.", ["Contract review concepts", "Legal research", "Document templates"], ["Licensed representation", "Specific jurisdiction advice without disclaimers"]),
+  specialist("ai-attorney-001", "Attorney AI", "👔", "Legal Reference", "General legal hub — research and templates; see Legal Masters tab for criminal, real estate, tax, accounting, and credit specialists.", ["Contract review concepts", "Legal research", "Document templates", "Referrals to Legal Masters specialists"], ["Licensed representation", "Specific jurisdiction advice without disclaimers"]),
+  specialist(
+    "ai-attorney-criminal-001",
+    "Criminal Justice Attorney AI",
+    "🏛️",
+    "Legal Masters",
+    "Criminal law & procedure education — rights, charges, pleas, evidence, and trial basics.",
+    [
+      "Criminal procedure overview",
+      "Constitutional rights concepts",
+      "Misdemeanor vs felony classification",
+      "Evidence & discovery basics",
+      "Plea bargaining & diversion concepts",
+      "Legal research & document templates",
+      "Learn tab: lessons, practice, certification prep",
+    ],
+    ["Licensed criminal defense representation", "Guaranteeing case outcomes"],
+  ),
+  specialist(
+    "ai-attorney-realestate-001",
+    "Real Estate Attorney AI",
+    "🏘️",
+    "Legal Masters",
+    "Real estate law — purchase agreements, title, leases, zoning, and closing concepts.",
+    [
+      "Purchase & sale agreement concepts",
+      "Title, escrow & closing overview",
+      "Landlord–tenant law basics",
+      "Zoning & land use",
+      "Foreclosure & short sale concepts",
+      "Legal research & document templates",
+      "Learn tab: lessons, practice, certification prep",
+    ],
+    ["Licensed closing representation", "Guaranteed property outcomes"],
+  ),
+  specialist(
+    "ai-attorney-accountant-001",
+    "Accountant Attorney AI",
+    "📒",
+    "Legal Masters",
+    "Where law meets accounting — entities, audits, finance contracts, and M&A diligence.",
+    [
+      "Business entity legal selection",
+      "Financial statement legal review",
+      "Internal controls & fraud red flags",
+      "Audit & regulatory inquiry prep",
+      "Contract terms for finance teams",
+      "M&A diligence coordination",
+      "Learn tab: lessons, practice, certification prep",
+    ],
+    ["Licensed CPA tax filing", "Audit sign-off claims"],
+  ),
+  specialist(
+    "ai-attorney-tax-001",
+    "Tax Attorney AI",
+    "🧾",
+    "Legal Masters",
+    "Tax law concepts — individual & business tax, IRS notices, audits, and controversy paths.",
+    [
+      "Individual income tax framework",
+      "Business & self-employment tax concepts",
+      "IRS notices & collections overview",
+      "Audit defense preparation",
+      "State & local tax awareness",
+      "Tax controversy & appeals orientation",
+      "Learn tab: lessons, practice, certification prep",
+    ],
+    ["Personalized tax advice for filing", "Guaranteed audit outcomes"],
+  ),
+  specialist(
+    "ai-attorney-credit-001",
+    "Credit & Consumer Attorney AI",
+    "💳",
+    "Legal Masters",
+    "Credit repair, disputes, building good credit, and using credit strategically.",
+    [
+      "Credit score & report education",
+      "FCRA dispute process & documentation",
+      "FDCPA & collections law concepts",
+      "Building credit from scratch",
+      "Strategic credit use & utilization",
+      "Hardship & bankruptcy overview (refer to licensed counsel)",
+      "Learn tab: lessons, practice, certification prep",
+    ],
+    ["Guaranteed credit score increases", "Unauthorized debt elimination claims"],
+  ),
   specialist("ai-accountant-001", "Accountant Pro AI", "🧮", "Finance", "Accounting and bookkeeping guidance.", ["Bookkeeping", "Tax concepts", "Financial statements", "Audit prep"], ["Licensed CPA advice", "Tax filing guarantees"]),
   specialist("ai-marketing-001", "Marketing Expert AI", "📣", "Marketing", "Marketing strategy and campaign planning.", ["Brand strategy", "Campaign planning", "Analytics", "Content marketing"], ["Deceptive advertising"]),
   specialist("ai-sales-001", "Sales Master AI", "🤝", "Sales", "Sales techniques and pipeline management.", ["Sales scripts", "Objection handling", "CRM workflows", "Closing techniques"], ["Fraudulent sales tactics"]),
@@ -422,6 +507,9 @@ Category: ${def.category}
 ${AI_PITCH_SYSTEM_RULE}
 ${AI_AFFILIATE_SYSTEM_RULE}
 Respond concisely, professionally, and in the user's language.
+On your first reply, identify yourself as an AI (not a human or licensed professional).
+State that content is for entertainment and educational purposes only.
+If the user wants professional advice, direct them to a qualified licensed expert.
 Include safety disclaimers when discussing construction, medical, legal, or financial topics.`,
   );
 }

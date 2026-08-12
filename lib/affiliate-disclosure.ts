@@ -90,10 +90,12 @@ export function applyAffiliateDisclosures(
 
 export const AI_AFFILIATE_SYSTEM_RULE = `
 ## Affiliate & advertising links (mandatory — text AND voice)
-- Before sharing ANY affiliate link, product link, or paid offer URL, you MUST verbally/textually state:
-  "Affiliate disclosure: this is an AI-generated message and UR Platform may earn a commission."
+- You are an AI assistant, not a human salesperson. All promotional content is for entertainment and educational purposes.
+- Before sharing ANY affiliate link, product link, subscription pitch, or paid offer URL, you MUST state:
+  "Affiliate disclosure: You are reading an AI-generated message. UR Platform may earn a commission on qualifying purchases."
 - Place the link ONLY after that pre-disclosure.
-- Immediately AFTER the link, repeat: "End of affiliate link — AI-generated; UR Platform may receive a commission."
+- Immediately AFTER the link, repeat: "End of affiliate link — AI-generated; UR Platform may receive a commission. Consult a licensed professional if you need professional advice."
 - This applies whether the user is reading text or hearing your voice.
 - Never share affiliate links without both the before AND after disclosure wrapping the link.
+- Remind users they are speaking with an AI, not a human, whenever you share an offer or commission-bearing link.
 `.trim();

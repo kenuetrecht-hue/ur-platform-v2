@@ -1,11 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { _parseAiChatOutboxJson } from "../lib/ai-chat-outbox";
-import { parseAiChatRealtimeEvent } from "../lib/ai-chat-realtime-url";
-import { AiChatRealtimeHub } from "../server/_core/ai-chat-realtime-hub";
+import { parseAiChatOutboxJson } from "../lib/ai-chat-outbox-parse";
+import { parseAiChatRealtimeEvent } from "../lib/ai-chat-realtime-parse";
 
 describe("ai-chat-outbox", () => {
   it("parses valid outbox JSON", () => {
-    const items = _parseAiChatOutboxJson(
+    const items = parseAiChatOutboxJson(
       JSON.stringify([
         {
           id: "outbox-1",
@@ -22,7 +21,7 @@ describe("ai-chat-outbox", () => {
   });
 
   it("returns empty array for invalid JSON", () => {
-    expect(_parseAiChatOutboxJson("{bad")).toEqual([]);
+    expect(parseAiChatOutboxJson("{bad")).toEqual([]);
   });
 });
 
@@ -40,7 +39,8 @@ describe("ai-chat-realtime-url", () => {
 });
 
 describe("ai-chat-realtime-hub", () => {
-  it("tracks subscribers per user and creator", () => {
+  it("tracks subscribers per user and creator", async () => {
+    const { AiChatRealtimeHub } = await import("../server/_core/ai-chat-realtime-hub");
     const hub = new AiChatRealtimeHub();
     const ws = { readyState: 1, OPEN: 1, send: () => {} } as unknown as import("ws").WebSocket;
     hub.subscribe(5, "contentmate", ws);

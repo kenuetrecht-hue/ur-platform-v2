@@ -6,13 +6,16 @@ import {
   AI_SUBSCRIPTION_PRICING_SUMMARY,
   AI_TALK_PRICING_SUMMARY,
 } from "@/lib/payment-channel-policy";
+import { DEV_SIMULATED_COMMERCE_NOTICE } from "@/lib/dev-commerce-mode";
 
 type Props = {
   compact?: boolean;
+  /** Show dev simulated-checkout banner (non-production). */
+  showDevCommerce?: boolean;
 };
 
 /** Visible on every purchase surface so users understand app vs web checkout rules. */
-export function PaymentChannelNotice({ compact = false }: Props) {
+export function PaymentChannelNotice({ compact = false, showDevCommerce = __DEV__ }: Props) {
   const colors = useColors();
 
   return (
@@ -29,6 +32,11 @@ export function PaymentChannelNotice({ compact = false }: Props) {
       <Text style={[styles.body, { color: colors.muted }]}>
         {PAYMENT_CHANNEL_POLICY_SUMMARY}
       </Text>
+      {showDevCommerce ? (
+        <Text style={[styles.devNote, { color: colors.primary }]}>
+          {DEV_SIMULATED_COMMERCE_NOTICE}
+        </Text>
+      ) : null}
       {!compact ? (
         <>
           <Text style={[styles.priceLine, { color: colors.muted }]}>{AI_SUBSCRIPTION_PRICING_SUMMARY}</Text>
@@ -62,5 +70,10 @@ const styles = StyleSheet.create({
   priceLine: {
     fontSize: 11,
     lineHeight: 16,
+  },
+  devNote: {
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: "700",
   },
 });

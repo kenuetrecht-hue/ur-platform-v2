@@ -323,7 +323,7 @@ function AiLearnSurface({
   }, [profile.data?.progress.level]);
 
   useEffect(() => {
-    const intro = `Welcome to **Learn mode** with ${creatorName}. Pick a topic below or ask to start a ${level} ${learnMode.replace(/_/g, " ")} session. I'll teach you step-by-step — educational purposes only.`;
+    const intro = `Welcome to **Learn mode** with ${creatorName} — an AI teacher, not a human professional. Pick a topic below or ask to start a ${level} ${learnMode.replace(/_/g, " ")} session. I'll teach you step-by-step for **entertainment and educational purposes only**. If you want professional advice, consult a qualified licensed expert.`;
     setMessages([{ role: "ai", text: intro }]);
     setActiveTopic(null);
   }, [creatorId, creatorName, level, learnMode]);

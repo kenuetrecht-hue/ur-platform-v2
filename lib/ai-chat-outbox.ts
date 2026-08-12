@@ -1,38 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { parseAiChatOutboxJson, type AiChatOutboxItem } from "./ai-chat-outbox-parse";
 
-export type AiChatOutboxItem = {
-  id: string;
-  creatorId: string;
-  message: string;
-  useHiveConsult?: boolean;
-  /** LinguaMate chat mode extras */
-  targetLanguage?: string;
-  /** Which API route to use when flushing */
-  channel: "creators" | "language";
-  createdAt: string;
-  attempts: number;
-};
+export type { AiChatOutboxItem } from "./ai-chat-outbox-parse";
 
 const STORAGE_KEY = "ur_ai_chat_outbox_v1";
 const MAX_OUTBOX_ITEMS = 50;
 const MAX_MESSAGE_LENGTH = 4000;
 
 function safeParse(raw: string | null): AiChatOutboxItem[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (item): item is AiChatOutboxItem =>
-        typeof item === "object" &&
-        item !== null &&
-        typeof (item as AiChatOutboxItem).id === "string" &&
-        typeof (item as AiChatOutboxItem).creatorId === "string" &&
-        typeof (item as AiChatOutboxItem).message === "string",
-    );
-  } catch {
-    return [];
-  }
+  return parseAiChatOutboxJson(raw);
 }
 
 async function writeAll(items: AiChatOutboxItem[]): Promise<void> {
@@ -91,7 +67,6 @@ export async function clearAiChatOutboxForTests(): Promise<void> {
   await AsyncStorage.removeItem(STORAGE_KEY);
 }
 
-/** @internal vitest — in-memory shim when AsyncStorage is mocked */
 export function _parseAiChatOutboxJson(raw: string | null): AiChatOutboxItem[] {
-  return safeParse(raw);
+  return parseAiChatOutboxJson(raw);
 }

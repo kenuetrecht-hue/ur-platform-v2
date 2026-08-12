@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet, type TextStyle } from "react-native"
 import { useColors } from "@/hooks/use-colors";
 import {
   AFFILIATE_LINK_BEFORE_TEXT,
+  buildAiChatDisclosure,
 } from "@/lib/platform-disclosure-copy";
 import { brandDisclosureSurface, withAlpha } from "@/lib/brand-theme";
 
@@ -60,7 +61,7 @@ export function AIDisclosureWrapper({
     <View style={styles.root}>
       <View style={dividerStyle}>
         <DisclosureLine textStyle={noteStyle}>
-          {`You're chatting with ${aiName}, an AI companion · For education & entertainment, not professional advice`}
+          {buildAiChatDisclosure(aiName)}
           {hasAffiliateLinks ? `\n${AFFILIATE_LINK_BEFORE_TEXT}` : ""}
         </DisclosureLine>
       </View>

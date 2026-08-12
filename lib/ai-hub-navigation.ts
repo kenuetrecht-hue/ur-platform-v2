@@ -47,6 +47,7 @@ export const AI_HUB_CATEGORY_GROUPS: AiHubCategoryGroup[] = [
     categories: ["Health & Wellness", "Health & Fitness"],
   },
   { id: "tech", label: "Tech", emoji: "💻", categories: ["Technology", "Game Development", "Support"] },
+  { id: "legalMasters", label: "Legal Masters", emoji: "👔", categories: ["Legal Masters"] },
   { id: "legal", label: "Legal", emoji: "⚖️", categories: ["Legal Reference"] },
   { id: "language", label: "Language", emoji: "🌍", categories: ["Language"] },
 ];

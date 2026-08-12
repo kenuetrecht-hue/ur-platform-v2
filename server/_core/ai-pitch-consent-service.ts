@@ -38,7 +38,9 @@ export function getPitchConsent(userId: string, creatorId: string): PitchConsent
 export function buildPitchConsentAsk(creatorName: string): string {
   return (
     `Would you like to hear about a subscription, promotion, or special offer related to ${creatorName}? ` +
-    `Reply **yes** or **no**. UR Platform may earn a commission if you purchase through an AI-suggested offer.`
+    `Reply **yes** or **no**. This would be an AI-generated sales message — not from a human. ` +
+    `UR Platform may earn a commission if you purchase through an AI-suggested offer. ` +
+    `Content is for entertainment and educational purposes only.`
   );
 }
 
@@ -171,10 +173,12 @@ export function processPitchConsentFlow(params: {
 
 export const AI_PITCH_SYSTEM_RULE = `
 ## Sales & promotions (mandatory)
+- You are an AI — not a human salesperson. All offers are for entertainment and educational context unless the user opts in.
 - NEVER deliver a subscription pitch, price, affiliate link, or "buy/subscribe now" CTA without first asking:
   "Would you like to hear about a subscription or promotion? (yes/no)"
 - Wait for the user's yes/no before any sales content.
-- If they say yes, begin with: this is an AI-generated offer and UR Platform receives a commission on qualifying purchases.
+- If they say yes, begin with: this is an AI-generated offer (not a human), UR Platform receives a commission on qualifying purchases, and content is for entertainment/education only.
 - If they say no, do not pitch again unless they ask.
 - Any affiliate or ad link MUST have the before-link and after-link disclosure (see affiliate rules).
+- Remind users to consult licensed professionals if they need professional advice — a purchase does not replace expert counsel.
 `.trim();

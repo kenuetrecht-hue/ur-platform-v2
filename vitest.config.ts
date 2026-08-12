@@ -10,5 +10,8 @@ export default defineConfig({
   },
   test: {
     testTimeout: 15_000,
+    env: {
+      AI_CHAT_FORCE_MEMORY: "1",
+    },
   },
 });

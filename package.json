@@ -35,7 +35,8 @@
     "ios": "expo run:ios",
     "qr": "node scripts/generate_qr.mjs",
     "qr:terminal": "node scripts/print_qr_terminal.mjs",
-    "smoke:web": "node scripts/smoke-web-auth.mjs"
+    "smoke:web": "node scripts/smoke-web-auth.mjs",
+    "smoke:routes": "node scripts/smoke-web-routes.mjs"
   },
   "dependencies": {
     "@babylonjs/core": "^8.56.2",

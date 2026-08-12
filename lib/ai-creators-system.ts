@@ -20,6 +20,7 @@ import {
   generateContentHelperContent,
   generateTranslatorContent,
 } from "./ai-content-generators";
+import { LEGAL_AI_DISCLAIMER } from "./platform-disclosure-copy";
 
 export interface OmniCapabilities {
   longTermMemory: {
@@ -402,7 +403,7 @@ export const AIMusician: AICreator = {
   updateFrequency: "Real-time (24/7 availability)",
   dataSource: "Music theory references, instrument method books, ear-training guides",
   disclaimer:
-    "⚠️ AI-Generated Content: Educational music guidance only — not a substitute for in-person instruction for regulated exams. Take breaks and use proper posture to avoid strain.",
+    "⚠️ AI-Generated Content: For entertainment and educational purposes only. Educational music guidance — not a substitute for in-person instruction for regulated exams. Take breaks and use proper posture to avoid strain.",
   topics: ["Guitar", "Piano", "Drums", "Music Theory", "Ear Training", "Songwriting", "Practice Routines"],
   contentStyle: "Patient, encouraging instructor tone with step-by-step exercises and metronome-friendly drills",
   omniCapabilities: OMNI_CAPABILITIES_TEMPLATE,
@@ -442,7 +443,7 @@ export const AILogoBrand: AICreator = {
   updateFrequency: "Real-time (24/7 availability)",
   dataSource: "Brand design principles, typography references, color theory guides",
   disclaimer:
-    "⚠️ AI-Generated Content: Concept guidance only — not legal trademark clearance. Consult a designer or attorney before commercial use.",
+    "⚠️ AI-Generated Content: For entertainment and educational purposes only. Concept guidance — not legal trademark clearance. Consult a designer or attorney before commercial use.",
   topics: ["Logo Concepts", "Brand Identity", "Color Palettes", "Typography", "Brand Voice", "Brand Kits"],
   contentStyle: "Visual, structured, professional tone with clear deliverable briefs",
   omniCapabilities: OMNI_CAPABILITIES_TEMPLATE,
@@ -536,8 +537,7 @@ export const AILegalReferenceAssistant: AICreator = {
   rating: 4.8,
   updateFrequency: "Real-time (24/7 availability)",
   dataSource: "US Federal Law databases, State Legal Codes (all 50 states), Case Law databases, Legal precedents, Compliance standards",
-  disclaimer:
-    "⚠️ NOTICE & DISCLAIMER: This assistant is a synthetic AI model built strictly for entertainment and educational and informational reference purposes. It is NOT an attorney, a law firm, or a licensed legal professional. No interaction with this AI constitutes legal advice, nor does it establish an attorney-client relationship. Always consult a qualified, licensed attorney in your jurisdiction for formal legal matters. UR LLC assumes no liability for the use or reference of this material.",
+  disclaimer: LEGAL_AI_DISCLAIMER,
   topics: [
     "Federal Laws",
     "State Laws (All 50 States)",
@@ -597,6 +597,11 @@ export function generateAIContent(creator: AICreator): AIContent {
     "ai-hvac-001": generateHVACContent,
     "ai-landscaping-001": generateLandscapingContent,
     "ai-attorney-001": generateAttorneyContent,
+    "ai-attorney-criminal-001": generateAttorneyContent,
+    "ai-attorney-realestate-001": generateAttorneyContent,
+    "ai-attorney-accountant-001": generateAttorneyContent,
+    "ai-attorney-tax-001": generateAttorneyContent,
+    "ai-attorney-credit-001": generateAttorneyContent,
     "ai-accountant-001": generateAccountantContent,
     "ai-marketing-001": generateMarketingContent,
     "ai-sales-001": generateSalesContent,
@@ -730,6 +735,41 @@ function generateContentTitle(creator: AICreator): string {
       "Essential Legal Documents for Your Business",
       "Compliance Deadlines by State",
       "Legal Precedents Affecting Small Business",
+    ],
+    "ai-attorney-criminal-001": [
+      "Miranda Rights Explained (Educational)",
+      "Misdemeanor vs Felony: What Changes",
+      "Plea Bargaining: Options and Trade-offs",
+      "Evidence Basics Every Citizen Should Know",
+      "When to Consult a Criminal Defense Attorney",
+    ],
+    "ai-attorney-realestate-001": [
+      "Purchase Agreement Clauses to Review",
+      "Title Insurance: Why It Matters",
+      "Landlord-Tenant Law Basics by State",
+      "Zoning Questions Before You Buy",
+      "Closing Checklist for Home Buyers",
+    ],
+    "ai-attorney-accountant-001": [
+      "LLC vs S-Corp: Legal and Accounting Angles",
+      "Audit Prep: Document Retention Essentials",
+      "Finance Contract Red Flags",
+      "M&A Diligence Legal Checklist",
+      "Governance Controls for Small Business",
+    ],
+    "ai-attorney-tax-001": [
+      "Common IRS Notice Types Explained",
+      "Audit Defense: First 48 Hours",
+      "Self-Employment Tax Essentials",
+      "State Nexus: When You Owe More",
+      "Tax Controversy Paths Before Court",
+    ],
+    "ai-attorney-credit-001": [
+      "How to Read Your Credit Report",
+      "FCRA Dispute Letter Framework",
+      "Build Credit from Zero in 6 Months",
+      "Utilization Strategy Without Overspending",
+      "Collections Law: Your Consumer Rights",
     ],
     "ai-accountant-001": [
       "Tax Planning: Maximize Deductions",
@@ -1278,8 +1318,8 @@ export const AIAttorney: AICreator = {
   id: "ai-attorney-001",
   name: "Attorney AI",
   handle: "@attorney_ai",
-  avatar: "⚖️",
-  bio: "Legal reference AI providing research, document templates, compliance checking, and state-specific law guidance. Educational resource for legal learning.",
+  avatar: "👔",
+  bio: "General legal hub — research, document templates, and compliance concepts. Open the Legal Masters tab for criminal, real estate, tax, accounting, and credit specialists.",
   category: "Legal",
   tier: "platinum",
   price: 9.99,
@@ -1287,15 +1327,139 @@ export const AIAttorney: AICreator = {
   rating: 4.96,
   updateFrequency: "Real-time legal updates",
   dataSource: "Legal databases, state laws, federal regulations, case law",
-  disclaimer:
-    "⚠️ AI-Generated Content: NOT a substitute for licensed attorneys. For entertainment and educational purposes only. Consult qualified legal professionals for binding advice.",
-  topics: ["Legal Research", "Document Templates", "Compliance", "State Laws", "Contract Review"],
+  disclaimer: LEGAL_AI_DISCLAIMER,
+  topics: ["Legal Research", "Document Templates", "Compliance", "Legal Masters Referrals", "Contract Review"],
   contentStyle: "Professional, precise, compliance-focused",
   omniCapabilities: {
     ...OMNI_CAPABILITIES_TEMPLATE,
     safeguardedLearning: {
       ...OMNI_CAPABILITIES_TEMPLATE.safeguardedLearning,
       protectedPatterns: ["unauthorized_practice", "legal_advice"],
+    },
+  },
+};
+
+export const AICriminalJusticeAttorney: AICreator = {
+  id: "ai-attorney-criminal-001",
+  name: "Criminal Justice Attorney AI",
+  handle: "@criminal_justice_attorney",
+  avatar: "🏛️",
+  bio: "Criminal law & procedure specialist — constitutional rights, charges, pleas, evidence, and trial basics. Full Learn academy with lessons, practice, and certification prep.",
+  category: "Legal Masters",
+  tier: "platinum",
+  price: 9.99,
+  followers: 12000,
+  rating: 4.95,
+  updateFrequency: "Real-time legal updates",
+  dataSource: "Criminal statutes, case law, constitutional law databases",
+  disclaimer: LEGAL_AI_DISCLAIMER,
+  topics: ["Criminal Procedure", "Constitutional Rights", "Evidence", "Plea Bargaining", "Sentencing"],
+  contentStyle: "Professional, precise, rights-focused",
+  omniCapabilities: {
+    ...OMNI_CAPABILITIES_TEMPLATE,
+    safeguardedLearning: {
+      ...OMNI_CAPABILITIES_TEMPLATE.safeguardedLearning,
+      protectedPatterns: ["unauthorized_practice", "legal_advice"],
+    },
+  },
+};
+
+export const AIRealEstateAttorney: AICreator = {
+  id: "ai-attorney-realestate-001",
+  name: "Real Estate Attorney AI",
+  handle: "@realestate_attorney",
+  avatar: "🏘️",
+  bio: "Real estate law specialist — purchase agreements, title, leases, zoning, closings, and foreclosure concepts. Full Learn academy with field-specific practice.",
+  category: "Legal Masters",
+  tier: "platinum",
+  price: 9.99,
+  followers: 11000,
+  rating: 4.94,
+  updateFrequency: "Real-time legal updates",
+  dataSource: "Property law, title standards, HUD resources, state real estate statutes",
+  disclaimer: LEGAL_AI_DISCLAIMER,
+  topics: ["Purchase Agreements", "Title & Closing", "Landlord-Tenant", "Zoning", "Foreclosure"],
+  contentStyle: "Professional, transaction-focused",
+  omniCapabilities: {
+    ...OMNI_CAPABILITIES_TEMPLATE,
+    safeguardedLearning: {
+      ...OMNI_CAPABILITIES_TEMPLATE.safeguardedLearning,
+      protectedPatterns: ["unauthorized_practice", "legal_advice"],
+    },
+  },
+};
+
+export const AIAccountantAttorney: AICreator = {
+  id: "ai-attorney-accountant-001",
+  name: "Accountant Attorney AI",
+  handle: "@accountant_attorney",
+  avatar: "📒",
+  bio: "Law meets accounting — entity selection, audit prep, finance contracts, and M&A diligence from a legal angle. Full Learn academy with certification orientation.",
+  category: "Legal Masters",
+  tier: "platinum",
+  price: 9.99,
+  followers: 9000,
+  rating: 4.93,
+  updateFrequency: "Real-time updates",
+  dataSource: "Corporate law, accounting standards, SEC resources, contract law",
+  disclaimer: LEGAL_AI_DISCLAIMER,
+  topics: ["Entity Law", "Audit Prep", "Finance Contracts", "M&A Diligence", "Governance"],
+  contentStyle: "Professional, analytical, compliance-focused",
+  omniCapabilities: {
+    ...OMNI_CAPABILITIES_TEMPLATE,
+    safeguardedLearning: {
+      ...OMNI_CAPABILITIES_TEMPLATE.safeguardedLearning,
+      protectedPatterns: ["unauthorized_practice", "legal_advice", "tax_evasion"],
+    },
+  },
+};
+
+export const AITaxAttorney: AICreator = {
+  id: "ai-attorney-tax-001",
+  name: "Tax Attorney AI",
+  handle: "@tax_attorney",
+  avatar: "🧾",
+  bio: "Tax law specialist — individual & business tax concepts, IRS notices, audit defense prep, and controversy paths. Full Learn academy with practice drills.",
+  category: "Legal Masters",
+  tier: "platinum",
+  price: 9.99,
+  followers: 13000,
+  rating: 4.96,
+  updateFrequency: "Real-time tax law updates",
+  dataSource: "IRS publications, tax code, tax court decisions, state tax resources",
+  disclaimer: LEGAL_AI_DISCLAIMER,
+  topics: ["IRS Notices", "Audit Defense", "Business Tax", "State Tax", "Tax Controversy"],
+  contentStyle: "Professional, precise, regulatory-focused",
+  omniCapabilities: {
+    ...OMNI_CAPABILITIES_TEMPLATE,
+    safeguardedLearning: {
+      ...OMNI_CAPABILITIES_TEMPLATE.safeguardedLearning,
+      protectedPatterns: ["unauthorized_practice", "legal_advice", "tax_evasion"],
+    },
+  },
+};
+
+export const AICreditAttorney: AICreator = {
+  id: "ai-attorney-credit-001",
+  name: "Credit & Consumer Attorney AI",
+  handle: "@credit_attorney",
+  avatar: "💳",
+  bio: "Credit repair & consumer law educator — read reports, dispute errors, build credit from scratch, and use credit strategically. Full Learn academy with hands-on exercises.",
+  category: "Legal Masters",
+  tier: "platinum",
+  price: 9.99,
+  followers: 15000,
+  rating: 4.97,
+  updateFrequency: "Real-time consumer law updates",
+  dataSource: "FCRA, FDCPA, CFPB resources, credit bureau policies",
+  disclaimer: LEGAL_AI_DISCLAIMER,
+  topics: ["Credit Reports", "Disputes", "Building Credit", "Collections Law", "Strategic Credit Use"],
+  contentStyle: "Supportive, educational, consumer-focused",
+  omniCapabilities: {
+    ...OMNI_CAPABILITIES_TEMPLATE,
+    safeguardedLearning: {
+      ...OMNI_CAPABILITIES_TEMPLATE.safeguardedLearning,
+      protectedPatterns: ["unauthorized_practice", "legal_advice", "credit_repair_scams"],
     },
   },
 };
@@ -1662,6 +1826,11 @@ export const ALL_AI_CREATORS: AICreator[] = [
   AIHVACSpecialist,
   AILandscapingMaster,
   AIAttorney,
+  AICriminalJusticeAttorney,
+  AIRealEstateAttorney,
+  AIAccountantAttorney,
+  AITaxAttorney,
+  AICreditAttorney,
   AIAccountantPro,
   AIMarketingExpert,
   AIRealEstateSalesMaster,
@@ -1878,6 +2047,11 @@ export const ALL_AI_CREATORS_WITH_NEW: AICreator[] = [
   AIHVACSpecialist,
   AILandscapingMaster,
   AIAttorney,
+  AICriminalJusticeAttorney,
+  AIRealEstateAttorney,
+  AIAccountantAttorney,
+  AITaxAttorney,
+  AICreditAttorney,
   AIAccountantPro,
   AIMarketingExpert,
   AIRealEstateSalesMaster,
