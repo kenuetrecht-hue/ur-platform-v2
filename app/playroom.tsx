@@ -23,6 +23,7 @@ import { usePlayroomBuilder } from "@/hooks/use-playroom-builder";
 import { trpc } from "@/lib/trpc";
 import { AI_CREATOR_CATALOG } from "@/lib/ai-creator-catalog";
 import { PlatformSectionGate } from "@/components/platform-section-gate";
+import { WorkspaceWebHandoffBanner } from "@/components/workspace-web-handoff-banner";
 
 const WORKSPACE_CATEGORIES = new Set([
   "3D & Design",
@@ -116,6 +117,8 @@ export default function PlayroomScreen() {
               <Text style={{ color: colors.muted, fontWeight: "600" }}>Full 3D Lab →</Text>
             </Pressable>
           </View>
+
+          <WorkspaceWebHandoffBanner variant="playroom" />
 
           <WorkspaceBabylonViewport
             design={designApi.design}

@@ -75,7 +75,7 @@ export default function HomeScreen() {
                   onPress: () =>
                     router.push({
                       pathname: "/ais",
-                      params: { group: "platform", ai: "ai-coder-001" },
+                      params: { group: "platform", ai: "ai-coder-001", surface: "build" },
                     }),
                 },
                 {
@@ -116,6 +116,22 @@ export default function HomeScreen() {
                     router.push({
                       pathname: "/ais",
                       params: { group: "creative", ai: "ai-logo-brand-001" },
+                    }),
+                },
+                {
+                  label: "GameForge · Games",
+                  onPress: () =>
+                    router.push({
+                      pathname: "/ais",
+                      params: { group: "tech", ai: "ai-game-dev-001", surface: "build" },
+                    }),
+                },
+                {
+                  label: "Merch 3D Lab",
+                  onPress: () =>
+                    router.push({
+                      pathname: "/3d-workspace",
+                      params: { project: "merchandise" },
                     }),
                 },
                 {

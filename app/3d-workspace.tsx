@@ -28,6 +28,7 @@ import { trpc } from "@/lib/trpc";
 import { AI_CREATOR_CATALOG } from "@/lib/ai-creator-catalog";
 
 import { PlatformSectionGate } from "@/components/platform-section-gate";
+import { WorkspaceWebHandoffBanner } from "@/components/workspace-web-handoff-banner";
 import { useAuth } from "@/lib/auth-context";
 
 const WORKSPACE_TABS = [
@@ -63,7 +64,7 @@ export default function Workspace3DScreen() {
   const router = useRouter();
   const utils = trpc.useUtils();
   const { isAuthenticated } = useAuth();
-  const params = useLocalSearchParams<{ pricing?: string }>();
+  const params = useLocalSearchParams<{ pricing?: string; project?: string }>();
 
   const { data: catalogData } = trpc.aiCreators.list.useQuery(undefined, { staleTime: 60_000 });
   const workspaceAccess = trpc.workspace3d.getAccess.useQuery(undefined, {
@@ -82,7 +83,12 @@ export default function Workspace3DScreen() {
     return fromApi.filter((c) => WORKSPACE_CATEGORIES.has(c.category));
   }, [catalogData]);
 
-  const [projectType, setProjectType] = useState<(typeof PROJECT_TYPES)[number]["id"]>("merchandise");
+  const [projectType, setProjectType] = useState<(typeof PROJECT_TYPES)[number]["id"]>(() => {
+    if (params.project === "merchandise" || params.project === "3d_printing") {
+      return params.project;
+    }
+    return "merchandise";
+  });
   const [projectName, setProjectName] = useState("My merchandise design");
   const [description, setDescription] = useState("");
   const [activeAiId, setActiveAiId] = useState("ai-blueprint-reader-001");
@@ -165,6 +171,8 @@ export default function Workspace3DScreen() {
           <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 16 }}>
             <Text style={{ color: colors.primary, fontWeight: "600" }}>← Back</Text>
           </Pressable>
+
+          <WorkspaceWebHandoffBanner variant="merch" />
 
           <AiHubTabRow
             tabs={WORKSPACE_TABS.map((t) => ({ id: t.id, label: t.label, emoji: t.emoji }))}

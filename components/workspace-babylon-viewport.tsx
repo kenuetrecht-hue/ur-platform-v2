@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { View, Text, ActivityIndicator, Platform, StyleSheet, Pressable } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { openWebBrowserCheckout } from "@/lib/web-checkout";
+import { build3dWorkspaceWebPath } from "@/lib/forge-platform-handoff";
 import type { DesignLayer, WorkspaceDesignState } from "@/lib/workspace-design-types";
 import { base64ToArrayBuffer } from "@/lib/stl-utils";
 
@@ -341,6 +343,12 @@ export function WorkspaceBabylonViewport({
         <Text style={{ color: colors.muted, fontSize: 12, textAlign: "center", paddingHorizontal: 16 }}>
           Full Babylon.js builder with STL upload runs on web. Layers sync when you open the workspace in a browser.
         </Text>
+        <Pressable
+          onPress={() => void openWebBrowserCheckout(build3dWorkspaceWebPath({ project: "merchandise" }))}
+          style={[styles.nativeWebBtn, { backgroundColor: colors.primary }]}
+        >
+          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Open in browser</Text>
+        </Pressable>
       </View>
     );
   }
@@ -416,6 +424,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     padding: 16,
+  },
+  nativeWebBtn: {
+    marginTop: 8,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,

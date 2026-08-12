@@ -35,7 +35,7 @@ function publicCreatorsOnly(list: AiCreatorCatalogEntry[]): AiCreatorCatalogEntr
 export default function AIsScreen() {
   const colors = useColors();
   const router = useRouter();
-  const params = useLocalSearchParams<{ group?: string; ai?: string; prompt?: string; subscribe?: string }>();
+  const params = useLocalSearchParams<{ group?: string; ai?: string; prompt?: string; subscribe?: string; surface?: string }>();
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [hubMode, setHubMode] = useState<"chat" | "townHall">("chat");
   const [categoryGroup, setCategoryGroup] = useState("platform");
@@ -91,6 +91,15 @@ export default function AIsScreen() {
     if (!selectedCreator || params.ai !== selectedCreator.id) return undefined;
     return typeof params.prompt === "string" ? params.prompt : undefined;
   }, [params.ai, params.prompt, selectedCreator?.id]);
+
+  const creatorInitialSurface = useMemo(() => {
+    if (params.subscribe === "1") return "pricing" as const;
+    const surface = params.surface;
+    if (surface === "build" || surface === "learn" || surface === "chat" || surface === "live" || surface === "pricing") {
+      return surface;
+    }
+    return undefined;
+  }, [params.subscribe, params.surface]);
 
   const selectCategory = useCallback(
     (groupId: string) => {
@@ -277,7 +286,7 @@ export default function AIsScreen() {
               hideChatHeader
               welcomeMessage={creatorWelcomeMessage}
               initialPrompt={creatorInitialPrompt}
-              initialSurface={params.subscribe === "1" ? "pricing" : undefined}
+              initialSurface={creatorInitialSurface}
               overlapHeaderHeight={LAYOUT_OVERLAP.AIS_TAB_CHROME_HEIGHT}
             />
           ) : (

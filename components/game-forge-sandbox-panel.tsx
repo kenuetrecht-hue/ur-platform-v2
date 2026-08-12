@@ -7,11 +7,14 @@ import {
   ScrollView,
   ActivityIndicator,
   StyleSheet,
+  Platform,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { ForgeBuildToolsPanel } from "@/components/forge-build-tools-panel";
+import { ForgePlatformHandoffBanner } from "@/components/forge-platform-handoff-banner";
 import { GAME_FORGE_ID } from "@/lib/forge-specialists";
+import { assessForgeProjectScale } from "@/lib/forge-platform-handoff";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 
 function formatBytes(bytes: number): string {
@@ -65,10 +68,20 @@ export function GameForgeSandboxPanel({
   );
   const [testResult, setTestResult] = useState<string | null>(null);
   const [checkoutPending, setCheckoutPending] = useState<string | null>(null);
+  const [lastBundleKb, setLastBundleKb] = useState(0);
 
   const selectedProject = projects.data?.find((p) => p.id === selectedProjectId) ?? projects.data?.[0];
   const tier = status.data?.tier;
   const nextTier = status.data?.nextTier;
+  const forgeHandoff = assessForgeProjectScale({
+    isNativeApp: Platform.OS !== "web",
+    creatorId: GAME_FORGE_ID,
+    usagePercent: status.data?.usagePercent,
+    projectFileCount: selectedProject?.files.length,
+    editingFileChars: fileContent.length,
+    estimatedBundleKb: lastBundleKb,
+    tierId: tier?.id,
+  });
 
   const handleCreateProject = () => {
     createProject.mutate(
@@ -111,6 +124,7 @@ export function GameForgeSandboxPanel({
       { projectId: selectedProject.id },
       {
         onSuccess: (report) => {
+          setLastBundleKb(Math.round((report.estimatedAssetMb ?? 0) * 1024));
           const lines = [
             report.success ? "✅ Build simulation passed" : "⚠️ Build issues found",
             `Files: ${report.filesChecked} · Est. assets: ${report.estimatedAssetMb} MB · Secured: ${report.secured ? "yes" : "review"}`,
@@ -153,6 +167,14 @@ export function GameForgeSandboxPanel({
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ padding: 12, gap: 12 }}>
+      <ForgePlatformHandoffBanner
+        creatorId={GAME_FORGE_ID}
+        usagePercent={status.data?.usagePercent}
+        projectFileCount={selectedProject?.files.length}
+        editingFileChars={fileContent.length}
+        estimatedBundleKb={lastBundleKb}
+        tierId={tier?.id}
+      />
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.cardTitle, { color: colors.foreground }]}>
           🏗️ Sandbox — {tier?.label ?? "Starter"}
@@ -332,13 +354,15 @@ export function GameForgeSandboxPanel({
         </>
       ) : null}
 
-      <ForgeBuildToolsPanel
-        creatorId={GAME_FORGE_ID}
-        projectId={selectedProject?.id ?? null}
-        onRefreshProjects={() => {
-          void utils.gameDevSandbox.listProjects.invalidate();
-        }}
-      />
+      {!forgeHandoff.shouldHandoffToWeb ? (
+        <ForgeBuildToolsPanel
+          creatorId={GAME_FORGE_ID}
+          projectId={selectedProject?.id ?? null}
+          onRefreshProjects={() => {
+            void utils.gameDevSandbox.listProjects.invalidate();
+          }}
+        />
+      ) : null}
 
       <View style={[styles.card, { backgroundColor: `${colors.primary}10`, borderColor: colors.primary }]}>
         <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
