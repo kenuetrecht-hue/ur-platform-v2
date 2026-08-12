@@ -23,6 +23,7 @@ import {
   buildCreatorSignupHref,
 } from "@/lib/launch-promotion-config";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
+import { trpc } from "@/lib/trpc";
 
 function CountdownUnit({ value, label, padded }: { value: number; label: string; padded?: boolean }) {
   const display = padded ? String(value).padStart(2, "0") : value;
@@ -39,21 +40,34 @@ export function LandingPromoBanner() {
   const [affiliateInput, setAffiliateInput] = useState("");
   const [affiliateError, setAffiliateError] = useState<string | null>(null);
   const [promoState, setPromoState] = useState(() => initializePromotionalSystem());
+  const stats = trpc.stamps.getPromotionStats.useQuery(undefined, {
+    refetchInterval: 60_000,
+  });
+
+  const creatorCounts = useMemo(
+    () => ({
+      tier1: stats.data?.tier1.joined ?? 0,
+      tier2: stats.data?.tier2.joined ?? 0,
+      tier3: stats.data?.tier3.joined ?? 0,
+    }),
+    [stats.data],
+  );
 
   useEffect(() => {
     const tick = () => {
-      setPromoState((prev) =>
-        updatePromotionalState(prev, { tier1: 0, tier2: 0, tier3: 0 }),
-      );
+      setPromoState((prev) => updatePromotionalState(prev, creatorCounts));
     };
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [creatorCounts]);
 
   const tier1 = promoState.tiers[0];
-  const tier1Remaining = tier1 ? tier1.capacity - tier1.joined : 100;
-  const tier1Progress = tier1 ? Math.min(100, (tier1.joined / tier1.capacity) * 100) : 0;
+  const tier1Joined = creatorCounts.tier1;
+  const tier1Remaining = stats.data?.tier1.remaining ?? (tier1 ? tier1.capacity - tier1Joined : 100);
+  const tier1Progress = tier1 ? Math.min(100, (tier1Joined / tier1.capacity) * 100) : 0;
+  const totalRemaining = stats.data?.totalRemaining ?? promoState.totalSpotsRemaining;
+  const isActive = stats.data?.isActive ?? promoState.isActive;
 
   const parsedRef = useMemo(() => parseAffiliateRefFromInput(affiliateInput), [affiliateInput]);
 
@@ -66,7 +80,7 @@ export function LandingPromoBanner() {
     router.push(buildCreatorSignupHref(parsedRef) as never);
   };
 
-  if (!promoState.isActive) {
+  if (!isActive) {
     return (
       <View style={[styles.wrap, styles.inactive]}>
         <Text style={styles.inactiveText}>Launch window closed — create an account to join the platform.</Text>
@@ -87,7 +101,7 @@ export function LandingPromoBanner() {
       <View style={styles.glow} pointerEvents="none" />
 
       <Text style={styles.tag}>
-        {LAUNCH_SIGNUP_WINDOW_DAYS}-DAY LAUNCH · {tier1Remaining} TIER 1 SPOTS LEFT
+        {LAUNCH_SIGNUP_WINDOW_DAYS}-DAY LAUNCH · {totalRemaining} SPOTS LEFT · {tier1Remaining} TIER 1
       </Text>
       <Text style={styles.headline}>{LAUNCH_PROMOTION_HEADLINE}</Text>
       <Text style={styles.sub}>{LAUNCH_PROMOTION_SUBLINE}</Text>
@@ -113,7 +127,7 @@ export function LandingPromoBanner() {
           {LAUNCH_PROMOTION_TIERS[0]!.durationLabel}
         </Text>
         <Text style={styles.tierFeaturedBody}>
-          {tier1?.joined ?? 0} / 100 joined · {tier1Remaining} spots left
+          {tier1Joined} / 100 joined · {tier1Remaining} spots left
         </Text>
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${tier1Progress}%` }]} />

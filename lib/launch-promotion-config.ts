@@ -80,6 +80,26 @@ export const LAUNCH_PROMOTION_HEADLINE = "30-day creator launch";
 export const LAUNCH_PROMOTION_SUBLINE =
   `First ${LAUNCH_CREATOR_SLOTS} creators lock in a discounted platform fee. Standard split: creators keep 85% · UR retains ${PLATFORM_FEE_PERCENT}% unless your tier discount applies.`;
 
+/** Default go-live anchor — override with EXPO_PUBLIC_LAUNCH_DATE or LAUNCH_DATE in .env */
+const DEFAULT_LAUNCH_DATE_ISO = "2026-08-12T05:00:00.000Z";
+
+/** Shared launch date for countdown + tier assignment (homepage, app home, server). */
+export function getLaunchDate(): Date {
+  const raw =
+    process.env.EXPO_PUBLIC_LAUNCH_DATE?.trim() ||
+    process.env.LAUNCH_DATE?.trim() ||
+    DEFAULT_LAUNCH_DATE_ISO;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? new Date(DEFAULT_LAUNCH_DATE_ISO) : parsed;
+}
+
+/** Last moment new creators can claim a launch tier (launch + 30 days). */
+export function getLaunchWindowEnd(launchDate = getLaunchDate()): Date {
+  const end = new Date(launchDate);
+  end.setDate(end.getDate() + LAUNCH_SIGNUP_WINDOW_DAYS);
+  return end;
+}
+
 /** Pull ?ref= from a pasted affiliate URL or return a plain referral code. */
 export function parseAffiliateRefFromInput(input: string): string | null {
   const trimmed = input.trim();

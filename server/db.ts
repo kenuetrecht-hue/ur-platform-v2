@@ -4,6 +4,7 @@ import mysql from "mysql2/promise";
 import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { isOwnerOpenId, isOwnerEmail, resolveUserRole } from "./_core/owner-auth";
+import { getLaunchDate, getLaunchWindowEnd } from "../lib/launch-promotion-config";
 
 function isDbConnectionRefused(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
@@ -246,6 +247,34 @@ export async function getCurrentRegistrationCount() {
   return result.length + 1; // Next registration index
 }
 
+/** Count creators enrolled in each launch tier (for homepage / landing countdown). */
+export async function getLaunchPromotionStats(): Promise<{
+  tier1: number;
+  tier2: number;
+  tier3: number;
+  totalJoined: number;
+}> {
+  const db = await getDb();
+  if (!db) {
+    return { tier1: 0, tier2: 0, tier3: 0, totalJoined: 0 };
+  }
+
+  const rows = await db
+    .select({ tier: launchPromotionTiers.tier })
+    .from(launchPromotionTiers);
+
+  let tier1 = 0;
+  let tier2 = 0;
+  let tier3 = 0;
+  for (const row of rows) {
+    if (row.tier === "tier_1") tier1 += 1;
+    else if (row.tier === "tier_2") tier2 += 1;
+    else if (row.tier === "tier_3") tier3 += 1;
+  }
+
+  return { tier1, tier2, tier3, totalJoined: rows.length };
+}
+
 /**
  * Determine promotional tier based on registration index
  */
@@ -270,8 +299,8 @@ export async function createLaunchPromotionTier(
   if (!tier) return null; // No promotion for users beyond 300
 
   const now = new Date();
-  const launchDate = new Date("2026-05-27"); // Launch date (adjust as needed)
-  const day31 = new Date(launchDate.getTime() + 31 * 24 * 60 * 60 * 1000);
+  const launchDate = getLaunchDate();
+  const day31 = getLaunchWindowEnd(launchDate);
 
   let tier1DiscountPercentage = null;
   let tier1DiscountDurationDays = null;

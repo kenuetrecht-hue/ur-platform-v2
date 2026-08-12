@@ -3,6 +3,8 @@
  * Manages 30-day launch promotion with tier tracking and gamification
  */
 
+import { getLaunchDate, getLaunchWindowEnd, LAUNCH_CREATOR_SLOTS } from "@/lib/launch-promotion-config";
+
 export interface PromotionalTier {
   tier: 1 | 2 | 3;
   name: string;
@@ -34,9 +36,8 @@ export interface PromotionalState {
  * Initialize promotional system
  * Launch date should be set when the app goes live
  */
-export function initializePromotionalSystem(launchDate: Date = new Date()): PromotionalState {
-  const endDate = new Date(launchDate);
-  endDate.setDate(endDate.getDate() + 30);
+export function initializePromotionalSystem(launchDate: Date = getLaunchDate()): PromotionalState {
+  const endDate = getLaunchWindowEnd(launchDate);
 
   const tiers: PromotionalTier[] = [
     {
@@ -99,8 +100,8 @@ export function initializePromotionalSystem(launchDate: Date = new Date()): Prom
     minutesRemaining: 0,
     tiers,
     totalCreatorsJoined: 0,
-    totalSpotsAvailable: 300,
-    totalSpotsRemaining: 300,
+    totalSpotsAvailable: LAUNCH_CREATOR_SLOTS,
+    totalSpotsRemaining: LAUNCH_CREATOR_SLOTS,
     progressPercentage: 0,
   };
 }
@@ -142,7 +143,7 @@ export function updatePromotionalState(
   });
 
   const totalCreatorsJoined = creatorCounts.tier1 + creatorCounts.tier2 + creatorCounts.tier3;
-  const totalSpotsRemaining = Math.max(0, 300 - totalCreatorsJoined);
+  const totalSpotsRemaining = Math.max(0, LAUNCH_CREATOR_SLOTS - totalCreatorsJoined);
 
   return {
     ...state,

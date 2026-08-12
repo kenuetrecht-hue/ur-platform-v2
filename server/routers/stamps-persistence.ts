@@ -5,6 +5,13 @@
 
 import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc";
+import * as db from "../db";
+import {
+  getLaunchDate,
+  getLaunchWindowEnd,
+  LAUNCH_CREATOR_SLOTS,
+  LAUNCH_SIGNUP_WINDOW_DAYS,
+} from "../../lib/launch-promotion-config";
 
 export const stampsPersistenceRouter = router({
   /**
@@ -188,15 +195,35 @@ export const stampsPersistenceRouter = router({
   /**
    * Get real-time promotion statistics
    */
-  getPromotionStats: publicProcedure.query(async ({ ctx }) => {
-    // TODO: Query promotionStats table
-    // TODO: Calculate remaining spots
+  getPromotionStats: publicProcedure.query(async () => {
+    const counts = await db.getLaunchPromotionStats();
+    const launchDate = getLaunchDate();
+    const windowEnd = getLaunchWindowEnd(launchDate);
+    const now = Date.now();
+    const isActive = now < windowEnd.getTime() && counts.totalJoined < LAUNCH_CREATOR_SLOTS;
+
     return {
-      tier1: { joined: 0, capacity: 100, remaining: 100 },
-      tier2: { joined: 0, capacity: 100, remaining: 100 },
-      tier3: { joined: 0, capacity: 100, remaining: 100 },
-      totalJoined: 0,
-      totalRemaining: 300,
+      isActive,
+      launchDate: launchDate.toISOString(),
+      windowEnd: windowEnd.toISOString(),
+      windowDays: LAUNCH_SIGNUP_WINDOW_DAYS,
+      tier1: {
+        joined: counts.tier1,
+        capacity: 100,
+        remaining: Math.max(0, 100 - counts.tier1),
+      },
+      tier2: {
+        joined: counts.tier2,
+        capacity: 100,
+        remaining: Math.max(0, 100 - counts.tier2),
+      },
+      tier3: {
+        joined: counts.tier3,
+        capacity: 100,
+        remaining: Math.max(0, 100 - counts.tier3),
+      },
+      totalJoined: counts.totalJoined,
+      totalRemaining: Math.max(0, LAUNCH_CREATOR_SLOTS - counts.totalJoined),
     };
   }),
 

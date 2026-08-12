@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
-import { LaunchPromotionBanner } from "@/components/launch-promotion-banner";
+import { HomeLaunchPromoBanner } from "@/components/home-launch-promo-banner";
 import { DailyLoyaltyBanner } from "@/components/daily-loyalty-banner";
 import { DemoSection } from "@/components/demo-section";
 import { useDailySignIn } from "@/hooks/use-daily-signin";
@@ -25,7 +25,7 @@ export default function HomeScreen() {
         contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
-        <LaunchPromotionBanner />
+        <HomeLaunchPromoBanner />
 
         <DailyLoyaltyBanner
           totalPoints={dailySignIn.totalPoints}
