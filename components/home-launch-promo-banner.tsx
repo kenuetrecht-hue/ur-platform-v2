@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
+import { BrandGradient } from "@/components/brand-gradient";
 import {
   initializePromotionalSystem,
   updatePromotionalState,
@@ -30,13 +30,14 @@ export function HomeLaunchPromoBanner() {
   const router = useRouter();
   const stats = trpc.stamps.getPromotionStats.useQuery(undefined, {
     refetchInterval: 60_000,
+    retry: 1,
   });
 
   const creatorCounts = useMemo(
     () => ({
-      tier1: stats.data?.tier1.joined ?? 0,
-      tier2: stats.data?.tier2.joined ?? 0,
-      tier3: stats.data?.tier3.joined ?? 0,
+      tier1: stats.data?.tier1?.joined ?? 0,
+      tier2: stats.data?.tier2?.joined ?? 0,
+      tier3: stats.data?.tier3?.joined ?? 0,
     }),
     [stats.data],
   );
@@ -90,12 +91,7 @@ export function HomeLaunchPromoBanner() {
         : 100 - creatorCounts.tier3;
 
   return (
-    <LinearGradient
-      colors={["#2563EB", "#7C3AED"]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.wrap}
-    >
+    <BrandGradient variant="brand" style={styles.wrap}>
       <Text style={styles.tag}>
         {LAUNCH_SIGNUP_WINDOW_DAYS}-DAY LAUNCH · {totalRemaining} SPOTS LEFT
       </Text>
@@ -147,7 +143,7 @@ export function HomeLaunchPromoBanner() {
       >
         <Text style={styles.ctaOutlineText}>Share your referral link →</Text>
       </Pressable>
-    </LinearGradient>
+    </BrandGradient>
   );
 }
 

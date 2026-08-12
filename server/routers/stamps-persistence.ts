@@ -196,7 +196,12 @@ export const stampsPersistenceRouter = router({
    * Get real-time promotion statistics
    */
   getPromotionStats: publicProcedure.query(async () => {
-    const counts = await db.getLaunchPromotionStats();
+    let counts = { tier1: 0, tier2: 0, tier3: 0, totalJoined: 0 };
+    try {
+      counts = await db.getLaunchPromotionStats();
+    } catch (error) {
+      console.warn("[stamps] getPromotionStats fallback — DB unavailable:", error);
+    }
     const launchDate = getLaunchDate();
     const windowEnd = getLaunchWindowEnd(launchDate);
     const now = Date.now();

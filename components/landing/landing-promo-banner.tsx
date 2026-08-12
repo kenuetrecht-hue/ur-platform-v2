@@ -46,9 +46,9 @@ export function LandingPromoBanner() {
 
   const creatorCounts = useMemo(
     () => ({
-      tier1: stats.data?.tier1.joined ?? 0,
-      tier2: stats.data?.tier2.joined ?? 0,
-      tier3: stats.data?.tier3.joined ?? 0,
+      tier1: stats.data?.tier1?.joined ?? 0,
+      tier2: stats.data?.tier2?.joined ?? 0,
+      tier3: stats.data?.tier3?.joined ?? 0,
     }),
     [stats.data],
   );
@@ -64,7 +64,7 @@ export function LandingPromoBanner() {
 
   const tier1 = promoState.tiers[0];
   const tier1Joined = creatorCounts.tier1;
-  const tier1Remaining = stats.data?.tier1.remaining ?? (tier1 ? tier1.capacity - tier1Joined : 100);
+  const tier1Remaining = stats.data?.tier1?.remaining ?? (tier1 ? tier1.capacity - tier1Joined : 100);
   const tier1Progress = tier1 ? Math.min(100, (tier1Joined / tier1.capacity) * 100) : 0;
   const totalRemaining = stats.data?.totalRemaining ?? promoState.totalSpotsRemaining;
   const isActive = stats.data?.isActive ?? promoState.isActive;
