@@ -1,5 +1,6 @@
+import { useContext } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { BottomTabBarHeightContext } from "@react-navigation/bottom-tabs";
 import {
   LAYOUT_OVERLAP,
   androidBottomBuffer,
@@ -22,7 +23,9 @@ export type OverlapInsetsOptions = {
 export function useOverlapInsets(options: OverlapInsetsOptions = {}) {
   const { reserveTabBar = true, headerChromeHeight = 0 } = options;
   const insets = useSafeAreaInsets();
-  const tabBarFromNav = useBottomTabBarHeight();
+  const tabBarFromContext = useContext(BottomTabBarHeightContext);
+  const tabBarFromNav =
+    reserveTabBar && typeof tabBarFromContext === "number" ? tabBarFromContext : 0;
 
   const tabBarHeight = reserveTabBar
     ? tabBarFromNav > 0

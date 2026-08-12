@@ -22,6 +22,14 @@ import { assertTalkTimeAvailable, getTalkMillisecondsRemaining, secondsToBilling
 import { startMeterSession } from "../_core/ai-metering-session-service";
 import { assertSectionEnabledForRequest } from "../_core/platform-section-guard";
 import { AFFILIATE_ASSOCIATE_ID, isAffiliateOnlyAi } from "../_core/affiliate-associate-ai";
+import {
+  appendAiChatTurns,
+  getOrCreateAiChatThread,
+  listAiChatMessages,
+  loadAiChatHistoryForModel,
+} from "../_core/ai-chat-persistence-service";
+import { mapServiceErrorToTrpc } from "../_core/service-errors";
+import { notifyAiChatThreadUpdated } from "../_core/ai-chat-realtime-ws";
 
 const CREATOR_VOICE_PERSONA: Record<string, keyof typeof AI_PERSONA_VOICES> = {
   "ai-coder-001": "TECH_BUILDER",
@@ -83,6 +91,72 @@ export const aiCreatorChatRouter = router({
       return hive;
     }),
 
+  /** Cross-device thread — same account on web + mobile. */
+  getThread: secureProcedure("aiCreators")
+    .input(z.object({ creatorId: creatorIdSchema }))
+    .query(async ({ input, ctx }) => {
+      if (isOwnerOnlyPlatformAi(input.creatorId) || isAffiliateOnlyAi(input.creatorId)) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "AI assistant not found." });
+      }
+      try {
+        const existing = await listAiChatMessages({
+          userId: ctx.user.id,
+          creatorId: input.creatorId,
+        });
+        if (existing) return existing;
+        const created = await getOrCreateAiChatThread({
+          userId: ctx.user.id,
+          creatorId: input.creatorId,
+        });
+        return {
+          threadId: created.threadId,
+          creatorId: input.creatorId,
+          updatedAt: created.updatedAt,
+          messages: [],
+        };
+      } catch (error) {
+        throw mapServiceErrorToTrpc(error);
+      }
+    }),
+
+  /** Incremental sync for active chat screens (poll while online). */
+  getThreadUpdates: secureProcedure("aiCreators")
+    .input(
+      z.object({
+        creatorId: creatorIdSchema,
+        since: z.string().datetime().optional(),
+      }),
+    )
+    .query(async ({ input, ctx }) => {
+      if (isOwnerOnlyPlatformAi(input.creatorId) || isAffiliateOnlyAi(input.creatorId)) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "AI assistant not found." });
+      }
+      try {
+        const sinceDate = input.since ? new Date(input.since) : undefined;
+        const thread = await listAiChatMessages({
+          userId: ctx.user.id,
+          creatorId: input.creatorId,
+          since: sinceDate,
+          limit: sinceDate ? 100 : 40,
+        });
+        if (!thread) {
+          const created = await getOrCreateAiChatThread({
+            userId: ctx.user.id,
+            creatorId: input.creatorId,
+          });
+          return {
+            threadId: created.threadId,
+            creatorId: input.creatorId,
+            updatedAt: created.updatedAt,
+            messages: [] as const,
+          };
+        }
+        return thread;
+      } catch (error) {
+        throw mapServiceErrorToTrpc(error);
+      }
+    }),
+
   sendMessage: secureProcedure("aiCreators")
     .input(
       z.object({
@@ -113,10 +187,27 @@ export const aiCreatorChatRouter = router({
       if (!isOwnerOnlyPlatformAi(input.creatorId)) {
         assertSectionEnabledForRequest("ai_chat", ctx.isPlatformOwner);
       }
+
+      let serverHistory = await loadAiChatHistoryForModel({
+        userId: ctx.user.id,
+        creatorId: input.creatorId,
+        maxTurns: 20,
+      });
+      while (serverHistory.length > 0 && serverHistory[0]?.role === "assistant") {
+        serverHistory = serverHistory.slice(1);
+      }
+      const history =
+        serverHistory.length > 0
+          ? serverHistory
+          : (input.history ?? []).map((turn) => ({
+              role: turn.role,
+              content: turn.content,
+            }));
+
       const result = await handleCreatorAiChat({
         creatorId: input.creatorId,
         message: input.message,
-        history: input.history,
+        history,
         useHiveConsult: input.useHiveConsult,
         ctx: {
           userId,
@@ -126,9 +217,34 @@ export const aiCreatorChatRouter = router({
         },
       });
 
+      let syncMeta: { threadId: string; updatedAt: string } | undefined;
+      try {
+        syncMeta = await appendAiChatTurns({
+          userId: ctx.user.id,
+          creatorId: input.creatorId,
+          turns: [
+            { role: "user", content: input.message },
+            { role: "assistant", content: result.reply },
+          ],
+        });
+      } catch (persistError) {
+        console.warn("[ai-chat-sync] Failed to persist turn:", persistError);
+      }
+
+      if (syncMeta) {
+        notifyAiChatThreadUpdated({
+          userId: ctx.user.id,
+          creatorId: input.creatorId,
+          updatedAt: syncMeta.updatedAt,
+          threadId: syncMeta.threadId,
+        });
+      }
+
       return {
         ...result,
         userId,
+        threadId: syncMeta?.threadId,
+        threadUpdatedAt: syncMeta?.updatedAt,
       };
     }),
 

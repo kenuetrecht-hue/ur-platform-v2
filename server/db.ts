@@ -1,5 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { isOwnerOpenId, isOwnerEmail, resolveUserRole } from "./_core/owner-auth";
@@ -25,26 +26,43 @@ function logDbFailure(action: string, error: unknown): void {
 }
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _dbProbeFailureLogged = false;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
+function normalizeDatabaseUrl(url: string): string {
+  return url.replace(/@localhost(?=[:/])/g, "@127.0.0.1");
+}
+
+// Lazily create the drizzle instance; probes MySQL so callers get null when it is down.
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    const url = process.env.DATABASE_URL;
-    if (!url.startsWith("mysql://") && !url.startsWith("mysql2://")) {
-      console.error(
-        "[Database] DATABASE_URL must be a MySQL connection string (mysql://…). " +
-          "This project uses drizzle-orm/mysql2 — a postgresql:// URL will not work. " +
-          "Example: mysql://root:@localhost:3306/ur_platform",
-      );
-      return null;
-    }
-    try {
-      _db = drizzle(url);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
+  if (_db) return _db;
+
+  const rawUrl = process.env.DATABASE_URL;
+  if (!rawUrl) return null;
+
+  const url = normalizeDatabaseUrl(rawUrl);
+  if (!url.startsWith("mysql://") && !url.startsWith("mysql2://")) {
+    console.error(
+      "[Database] DATABASE_URL must be a MySQL connection string (mysql://…). " +
+        "This project uses drizzle-orm/mysql2 — a postgresql:// URL will not work. " +
+        "Example: mysql://root:@127.0.0.1:3306/ur_platform",
+    );
+    return null;
   }
+
+  try {
+    const probe = await mysql.createConnection(url);
+    await probe.query("SELECT 1");
+    await probe.end();
+    _db = drizzle(url);
+    _dbProbeFailureLogged = false;
+  } catch (error) {
+    if (!_dbProbeFailureLogged) {
+      logDbFailure("Connection probe failed", error);
+      _dbProbeFailureLogged = true;
+    }
+    _db = null;
+  }
+
   return _db;
 }
 
@@ -663,8 +681,10 @@ export async function getWeeklyDrawingEntries(userId: number, week: string) {
     .select()
     .from(weeklyDrawingEntries)
     .where(
-      eq(weeklyDrawingEntries.userId, userId) &&
-      eq(weeklyDrawingEntries.drawingWeek, week)
+      and(
+        eq(weeklyDrawingEntries.userId, userId),
+        eq(weeklyDrawingEntries.drawingWeek, week),
+      ),
     );
 
   return result;

@@ -4,6 +4,7 @@
 
 import { randomUUID } from "crypto";
 import { TRPCError } from "@trpc/server";
+import { getPlatformPublicOrigin } from "../../lib/platform-urls";
 
 export type UserLinkRole = "member" | "creator" | "affiliate";
 
@@ -22,7 +23,7 @@ const linksByUserId = new Map<string, UserLinkProfile>();
 const linksBySlug = new Map<string, UserLinkProfile>();
 
 function appBaseUrl(): string {
-  return (process.env.EXPO_PUBLIC_APP_URL ?? "https://urplatform.app").replace(/\/$/, "");
+  return getPlatformPublicOrigin();
 }
 
 function slugify(displayName: string, email: string): string {

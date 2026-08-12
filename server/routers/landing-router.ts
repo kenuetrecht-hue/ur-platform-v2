@@ -5,11 +5,19 @@ import {
   getLandingTownHallPreview,
   isLandingDemoCreator,
   LANDING_DEMO_CREATOR_IDS,
+  LANDING_DEMO_MESSAGE_MAX,
+  LANDING_DEMO_REPLY_MAX,
+  LANDING_DEMO_VOICE_TEXT_MAX,
   runLandingDemoChat,
   canUseDemoVoice,
   markDemoVoiceUsed,
   hasUsedDemo,
 } from "../_core/landing-demo-service";
+import {
+  assertLandingDemoSendAllowed,
+  issueLandingDemoToken,
+} from "../_core/landing-demo-guard";
+import { assertSectionEnabledForRequest } from "../_core/platform-section-guard";
 import { ElevenLabsVoiceService, AI_PERSONA_VOICES } from "../elevenlabs-integration";
 import { sanitizeUserText } from "../_core/input-sanitize";
 import { assertNoAiTakeoverInMessage } from "../_core/ai-control";
@@ -21,6 +29,7 @@ import {
   LANDING_ALL_SPECIALISTS_MONTHLY_CENTS,
   LANDING_SPECIALIST_COUNT_LABEL,
 } from "../../lib/landing-checkout-pricing";
+import { truncateLandingDemoReply } from "../../lib/landing-demo-policy";
 
 const demoCreatorSchema = z
   .string()
@@ -35,29 +44,62 @@ const DEMO_VOICE_PERSONA: Partial<Record<string, keyof typeof AI_PERSONA_VOICES>
   "ai-3d-specialist": "TECH_BUILDER",
 };
 
+function assertLandingDemoSection(isPlatformOwner: boolean): void {
+  assertSectionEnabledForRequest("landing_demo", isPlatformOwner);
+}
+
 export const landingRouter = router({
-  getDemoSpecialists: securePublicProcedure("landing").query(() => ({
-    specialists: LANDING_DEMO_CREATOR_IDS.map((id) => id),
-  })),
+  getDemoSpecialists: securePublicProcedure("landing").query(({ ctx }) => {
+    assertLandingDemoSection(ctx.isPlatformOwner);
+    return {
+      specialists: LANDING_DEMO_CREATOR_IDS.map((id) => id),
+    };
+  }),
 
   getPublicStats: securePublicProcedure("landing").query(() => getLandingPublicStats()),
 
   getTownHallPreview: securePublicProcedure("landing").query(() => getLandingTownHallPreview()),
 
-  getDemoStatus: securePublicProcedure("landing").query(({ ctx }) => ({
-    demoUsed: hasUsedDemo(ctx.ip),
-  })),
+  getDemoStatus: securePublicProcedure("landing").query(({ ctx }) => {
+    assertLandingDemoSection(ctx.isPlatformOwner);
+    const demoUsed = hasUsedDemo(ctx.ip);
+    return {
+      demoUsed,
+      voiceUsed: !canUseDemoVoice(ctx.ip),
+      demoToken: demoUsed ? null : issueLandingDemoToken(ctx.ip),
+      limits: {
+        messageMax: LANDING_DEMO_MESSAGE_MAX,
+        replyMax: LANDING_DEMO_REPLY_MAX,
+        voiceTextMax: LANDING_DEMO_VOICE_TEXT_MAX,
+      },
+    };
+  }),
 
   sendDemoMessage: securePublicProcedure("landing")
     .input(
       z.object({
         creatorId: demoCreatorSchema,
-        message: z.string().trim().min(4).max(280),
+        message: z.string().trim().min(4).max(LANDING_DEMO_MESSAGE_MAX),
+        demoToken: z.string().trim().min(32).max(128),
+        pageLoadedAtMs: z.number().finite(),
+        honeypot: z.string().max(200).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const message = sanitizeUserText(input.message, 280);
+      assertLandingDemoSection(ctx.isPlatformOwner);
+
+      const message = sanitizeUserText(input.message, LANDING_DEMO_MESSAGE_MAX);
       assertNoAiTakeoverInMessage(message, false);
+
+      assertLandingDemoSendAllowed({
+        ip: ctx.ip,
+        userAgent: ctx.req?.headers["user-agent"] as string | undefined,
+        honeypot: input.honeypot,
+        demoToken: input.demoToken,
+        pageLoadedAtMs: input.pageLoadedAtMs,
+        message,
+      });
+
       return runLandingDemoChat({
         creatorId: input.creatorId,
         message,
@@ -69,10 +111,19 @@ export const landingRouter = router({
     .input(
       z.object({
         creatorId: demoCreatorSchema,
-        text: z.string().trim().min(1).max(400),
+        text: z.string().trim().min(1).max(LANDING_DEMO_VOICE_TEXT_MAX),
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      assertLandingDemoSection(ctx.isPlatformOwner);
+
+      if (!hasUsedDemo(ctx.ip)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Send your free text demo first, then unlock voice preview.",
+        });
+      }
+
       if (!canUseDemoVoice(ctx.ip)) {
         throw new TRPCError({
           code: "TOO_MANY_REQUESTS",
@@ -90,10 +141,15 @@ export const landingRouter = router({
         return { success: false as const, error: "Voice not configured for this specialist." };
       }
 
+      const voiceText = truncateLandingDemoReply(
+        sanitizeUserText(input.text, LANDING_DEMO_VOICE_TEXT_MAX),
+        LANDING_DEMO_VOICE_TEXT_MAX,
+      );
+
       const voiceConfig = AI_PERSONA_VOICES[personaKey];
       const service = new ElevenLabsVoiceService(apiKey);
       const response = await service.synthesizeVoice({
-        text: input.text.slice(0, 400),
+        text: voiceText,
         voiceId: voiceConfig.voiceId,
         stability: voiceConfig.stability,
         similarityBoost: voiceConfig.similarityBoost,

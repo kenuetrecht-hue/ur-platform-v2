@@ -27,6 +27,12 @@ import {
 } from "./google-ai";
 import { sanitizeChatHistory, sanitizeUserText } from "./input-sanitize";
 import { mapServiceErrorToTrpc } from "./service-errors";
+import {
+  buildLandingDemoPromptAppend,
+  LANDING_DEMO_MESSAGE_MAX,
+  LANDING_DEMO_REPLY_MAX,
+  truncateLandingDemoReply,
+} from "../../lib/landing-demo-policy";
 import { isOwnerOnlyPlatformAi, canChatOwnerOpsAi } from "./platform-ops-ai";
 import { assertAiEntitled } from "./access-entitlements";
 import { assertAndConsumeAiUsage } from "./ai-usage-meter";
@@ -163,7 +169,10 @@ export async function handleCreatorAiChat(params: {
   try {
     assertUserCanUseAi(userId, params.ctx.isPlatformOwner);
 
-    const message = sanitizeUserText(params.message, 2000);
+    const message = sanitizeUserText(
+      params.message,
+      params.ctx.landingDemo ? LANDING_DEMO_MESSAGE_MAX : 2000,
+    );
     assertNoAiTakeoverInMessage(message, params.ctx.isPlatformOwner);
 
     if (isPlatformAiRole(params.creatorId)) {
@@ -175,6 +184,7 @@ export async function handleCreatorAiChat(params: {
     const history = sanitizeChatHistory(params.history ?? [], 20, 4000);
 
     const useHive =
+      !params.ctx.landingDemo &&
       !isAffiliateOnlyAi(params.creatorId) &&
       (params.useHiveConsult === true || isComplexHiveProblem(message));
 
@@ -205,25 +215,29 @@ export async function handleCreatorAiChat(params: {
       }));
     } else {
       let basePrompt = buildCreatorSystemPrompt(params.creatorId);
-      if (params.creatorId === "ai-coder-001") {
-        basePrompt += `\n\n${buildCoderLearningContext(userId)}`;
-      }
-      if (params.creatorId === "ai-game-dev-001") {
-        basePrompt += `\n\n${buildGameLearningContext(userId)}`;
-      }
-      if (params.creatorId === STORE_MANAGER_AI_ID) {
-        basePrompt += `\n\n${buildStoreManagerContext({
-          userId,
-          isPlatformOwner: params.ctx.isPlatformOwner,
-        })}`;
-      }
-      if (params.creatorId === BLUEPRINT_READER_AI_ID) {
-        basePrompt += `\n\n${buildBlueprintReaderContextForChat(userId)}`;
+      if (params.ctx.landingDemo) {
+        basePrompt += `\n\n${buildLandingDemoPromptAppend(def.name)}`;
+      } else {
+        if (params.creatorId === "ai-coder-001") {
+          basePrompt += `\n\n${buildCoderLearningContext(userId)}`;
+        }
+        if (params.creatorId === "ai-game-dev-001") {
+          basePrompt += `\n\n${buildGameLearningContext(userId)}`;
+        }
+        if (params.creatorId === STORE_MANAGER_AI_ID) {
+          basePrompt += `\n\n${buildStoreManagerContext({
+            userId,
+            isPlatformOwner: params.ctx.isPlatformOwner,
+          })}`;
+        }
+        if (params.creatorId === BLUEPRINT_READER_AI_ID) {
+          basePrompt += `\n\n${buildBlueprintReaderContextForChat(userId)}`;
+        }
       }
 
       let systemPrompt: string;
-      if (isAffiliateOnlyAi(params.creatorId)) {
-        systemPrompt = buildCreatorSystemPrompt(params.creatorId);
+      if (params.ctx.landingDemo || isAffiliateOnlyAi(params.creatorId)) {
+        systemPrompt = basePrompt;
       } else {
         systemPrompt = await buildHiveEnhancedSystemPrompt({
           creatorId: params.creatorId,
@@ -235,8 +249,10 @@ export async function handleCreatorAiChat(params: {
 
       const result = await generateGoogleChatReply({
         systemPrompt,
-        history,
+        history: params.ctx.landingDemo ? [] : history,
         message,
+        maxOutputTokens: params.ctx.landingDemo ? 80 : undefined,
+        temperature: params.ctx.landingDemo ? 0.85 : undefined,
       });
       rawReply = result.reply;
       model = result.model;
@@ -254,18 +270,22 @@ export async function handleCreatorAiChat(params: {
       reply = sanitizeAiReplyForRole(reply, params.creatorId, params.ctx.isPlatformOwner, def.name);
     }
 
-    recordHiveInteraction({
-      userId,
-      creatorId: params.creatorId,
-      userMessage: message,
-      aiReply: reply,
-    });
+    if (params.ctx.landingDemo) {
+      reply = truncateLandingDemoReply(reply, LANDING_DEMO_REPLY_MAX);
+    } else {
+      recordHiveInteraction({
+        userId,
+        creatorId: params.creatorId,
+        userMessage: message,
+        aiReply: reply,
+      });
 
-    recordUserActivity({
-      userId,
-      creatorId: params.creatorId,
-      activityType: "chat",
-    });
+      recordUserActivity({
+        userId,
+        creatorId: params.creatorId,
+        activityType: "chat",
+      });
+    }
 
     let opsIncidentId: string | undefined;
     if (isOwnerOnlyPlatformAi(params.creatorId) && params.ctx.isPlatformOwner) {
@@ -296,7 +316,11 @@ export async function handleCreatorAiChat(params: {
     let pitchAccepted: boolean | undefined;
     let pitchDeclined: boolean | undefined;
 
-    if (!isOwnerOnlyPlatformAi(params.creatorId) && !isAffiliateOnlyAi(params.creatorId)) {
+    if (
+      !params.ctx.landingDemo &&
+      !isOwnerOnlyPlatformAi(params.creatorId) &&
+      !isAffiliateOnlyAi(params.creatorId)
+    ) {
       const pitchResult = processPitchConsentFlow({
         userId,
         creatorId: params.creatorId,

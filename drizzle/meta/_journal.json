@@ -29,6 +29,13 @@
       "when": 1780012901422,
       "tag": "0003_easy_mindworm",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1780020000000,
+      "tag": "0004_ai_chat_sync",
+      "breakpoints": true
     }
   ]
 }

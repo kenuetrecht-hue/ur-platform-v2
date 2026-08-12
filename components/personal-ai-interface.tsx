@@ -13,10 +13,15 @@ import {
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { speakText } from "@/lib/azure-tts-service";
+import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync";
+import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
+import { useAuth } from "@/lib/auth-context";
 
 interface ChatMessage {
+  id?: string;
   role: "user" | "ai";
   text: string;
+  pending?: boolean;
 }
 
 interface PersonalAIInterfaceProps {
@@ -28,12 +33,14 @@ interface PersonalAIInterfaceProps {
 }
 
 export function PersonalAIInterface({
+  creatorId = "contentmate",
   onClose,
   compact = false,
   quickActions,
   welcomeMessage,
 }: PersonalAIInterfaceProps) {
   const colors = useColors();
+  const { isAuthenticated } = useAuth();
   const defaultWelcome =
     welcomeMessage ??
     "Hi! I'm ContentMate, your personal AI assistant. I understand any language — just write or speak naturally. I'm here to help you create amazing content. What would you like to do today?";
@@ -46,6 +53,33 @@ export function PersonalAIInterface({
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const loadingRef = useRef(false);
+
+  const applySyncedMessages = useCallback(
+    (synced: SyncedChatMessage[]) => {
+      if (loadingRef.current || synced.length === 0) return;
+      setMessages(
+        synced.map((m) => ({
+          id: m.id,
+          role: m.role,
+          text: m.text,
+        })),
+      );
+    },
+    [],
+  );
+
+  const { connected: chatSyncConnected, refetch: refetchChatThread } = useAiChatSync({
+    creatorId,
+    enabled: isAuthenticated,
+    onSync: applySyncedMessages,
+  });
+
+  const { enqueue: enqueueOutbox } = useAiChatOutbox({
+    creatorId,
+    enabled: isAuthenticated,
+    onFlushed: () => void refetchChatThread(),
+  });
 
   const chatMutation = trpc.aiCreators.sendMessage.useMutation();
   const voiceMutation = trpc.aiCreators.synthesizeVoice.useMutation();
@@ -66,11 +100,30 @@ export function PersonalAIInterface({
       const userMessage = rawText.trim().slice(0, 2000);
       if (!userMessage || loading) return;
 
+      loadingRef.current = true;
       setLoading(true);
-      setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
-      if (rawText === inputText) {
+      const clearedInput = rawText === inputText;
+      if (clearedInput) {
         setInputText("");
       }
+
+      if (isAuthenticated && !chatSyncConnected) {
+        const item = await enqueueOutbox({
+          creatorId,
+          message: userMessage,
+          channel: "creators",
+        });
+        setMessages((prev) => [
+          ...prev,
+          { role: "user", text: userMessage, id: item.id, pending: true },
+        ]);
+        loadingRef.current = false;
+        setLoading(false);
+        scrollToBottom();
+        return;
+      }
+
+      setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
 
       try {
         const history = messages
@@ -82,12 +135,13 @@ export function PersonalAIInterface({
           }));
 
         const result = await chatMutation.mutateAsync({
-          creatorId: "contentmate",
+          creatorId,
           message: userMessage,
           history,
         });
 
         setMessages((prev) => [...prev, { role: "ai", text: result.reply }]);
+        void refetchChatThread();
       } catch (error) {
         const message =
           error instanceof Error
@@ -95,11 +149,12 @@ export function PersonalAIInterface({
             : "Sorry, I encountered an error. Please try again.";
         setMessages((prev) => [...prev, { role: "ai", text: message }]);
       } finally {
+        loadingRef.current = false;
         setLoading(false);
         scrollToBottom();
       }
     },
-    [chatMutation, inputText, loading, messages, scrollToBottom],
+    [chatMutation, chatSyncConnected, creatorId, enqueueOutbox, inputText, isAuthenticated, loading, messages, scrollToBottom, refetchChatThread],
   );
 
   const handleSendMessage = () => {
@@ -166,7 +221,7 @@ export function PersonalAIInterface({
       >
         {messages.map((msg, idx) => (
           <View
-            key={idx}
+            key={msg.id ?? idx}
             style={[
               styles.messageRow,
               msg.role === "user" ? styles.messageRowUser : styles.messageRowAi,

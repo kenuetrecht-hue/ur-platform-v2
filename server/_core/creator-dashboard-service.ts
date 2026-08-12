@@ -7,9 +7,10 @@ import { getCreatorPayoutProfile } from "./creator-payout-service";
 import { getContentCreatorProfile } from "./partner-program-service";
 import { listAllTransactions, getTransactionStats } from "./transaction-ledger-service";
 import { getLiveSession, listLiveSessions, type AiLiveSession } from "./ai-live-session-service";
+import { getPlatformPublicOrigin } from "../../lib/platform-urls";
 
 function appBaseUrl(): string {
-  return (process.env.EXPO_PUBLIC_APP_URL ?? "https://urplatform.app").replace(/\/$/, "");
+  return getPlatformPublicOrigin();
 }
 
 export function buildCreatorShareText(params: {

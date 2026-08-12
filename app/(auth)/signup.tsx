@@ -5,6 +5,7 @@ import { useAuth, type UserRole } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
+import { LAUNCH_PROMOTION_SUBLINE } from "@/lib/launch-promotion-config";
 
 const ROLES: { id: UserRole; label: string; desc: string }[] = [
   { id: "creator", label: "Content creator", desc: "Host paid live classes · 85% instant payouts" },
@@ -120,6 +121,31 @@ export default function SignUpScreen() {
                 PAYMENT SUCCESSFUL — Your specialist pass is active. Finish signup to log in.
               </Text>
             ) : null}
+            {params.ref ? (
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: colors.primary,
+                  fontWeight: "700",
+                  textAlign: "center",
+                  marginTop: 4,
+                }}
+              >
+                Launch promotion applies by signup order · referral {String(params.ref).toUpperCase()}
+              </Text>
+            ) : (
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colors.muted,
+                  textAlign: "center",
+                  marginTop: 4,
+                  lineHeight: 18,
+                }}
+              >
+                {LAUNCH_PROMOTION_SUBLINE}
+              </Text>
+            )}
           </View>
 
           <View style={{ gap: 16 }}>

@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { getPlatformPublicOrigin } from "@/lib/platform-urls";
 
 const bundleId = "space.manus.ur.creator.platform.t20260430224643";
 const timestamp = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
@@ -13,7 +14,7 @@ export function getAppPublicBaseUrl(): string {
     return window.location.origin.replace(/\/+$/, "");
   }
 
-  return "https://urplatform.app";
+  return getPlatformPublicOrigin();
 }
 
 export function buildHandoffUrl(token: string): string {

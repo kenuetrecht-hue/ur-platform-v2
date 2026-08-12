@@ -33,12 +33,14 @@ export function LandingTownHallCarousel() {
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.tag}>HIVE TOWN HALL PREVIEW</Text>
-      <Text style={styles.title}>Multiple AIs. One live session.</Text>
-      <Text style={styles.sub}>
-        Specialists collaborate on one platform — marina ops, business, trades, and creators in
-        sync.
-      </Text>
+      <View style={styles.header}>
+        <Text style={styles.tag}>HIVE TOWN HALL PREVIEW</Text>
+        <Text style={styles.title}>Multiple AIs. One live session.</Text>
+        <Text style={styles.sub}>
+          Specialists collaborate on one platform — marina ops, business, trades, and creators in
+          sync.
+        </Text>
+      </View>
 
       <View style={styles.stage}>
         <View style={styles.panelRow}>
@@ -67,16 +69,26 @@ export function LandingTownHallCarousel() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginBottom: 32 },
+  wrap: {
+    marginBottom: 32,
+    position: "relative",
+    zIndex: 2,
+  },
+  header: {
+    backgroundColor: T.bg,
+    paddingBottom: 4,
+    marginBottom: 12,
+  },
   tag: { color: T.electric, fontSize: 10, fontWeight: "800", letterSpacing: 2, marginBottom: 8 },
   title: { color: T.text, fontSize: 22, fontWeight: "800", marginBottom: 8 },
-  sub: { color: T.muted, fontSize: 14, lineHeight: 21, marginBottom: 16 },
+  sub: { color: T.muted, fontSize: 14, lineHeight: 21 },
   stage: {
     borderRadius: 16,
     borderWidth: 1,
     borderColor: T.border,
     backgroundColor: T.bgElevated,
     padding: 18,
+    overflow: "hidden",
   },
   panelRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
   avatarChip: {

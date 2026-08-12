@@ -14,7 +14,12 @@ import {
   sanitizeUserText,
 } from "./_core/input-sanitize";
 import { LANGUAGE_AI_SYSTEM_PROMPT } from "./_core/multilingual-prompts";
+import {
+  appendAiChatTurns,
+  loadAiChatHistoryForModel,
+} from "./_core/ai-chat-persistence-service";
 import { mapServiceErrorToTrpc } from "./_core/service-errors";
+import { notifyAiChatThreadUpdated } from "./_core/ai-chat-realtime-ws";
 import { secureProcedure, router, TRPCError } from "./_core/trpc";
 
 function assertLinguamateEntitled(ctx: {
@@ -77,7 +82,19 @@ export const aiLanguageRouter = router({
         const message = sanitizeUserText(input.message, 4000);
         assertNoAiTakeoverInMessage(message, ctx.isPlatformOwner);
         assertMessageWithinAiRole(message, "linguamate", ctx.isPlatformOwner);
-        const history = sanitizeChatHistory(input.history ?? [], 30, 4000);
+
+        let serverHistory = await loadAiChatHistoryForModel({
+          userId: Number(ctx.user.id),
+          creatorId: "linguamate",
+          maxTurns: 30,
+        });
+        while (serverHistory.length > 0 && serverHistory[0]?.role === "assistant") {
+          serverHistory = serverHistory.slice(1);
+        }
+        const history =
+          serverHistory.length > 0
+            ? sanitizeChatHistory(serverHistory, 30, 4000)
+            : sanitizeChatHistory(input.history ?? [], 30, 4000);
         const targetLanguage = input.targetLanguage
           ? sanitizeLanguageLabel(input.targetLanguage)
           : undefined;
@@ -97,7 +114,36 @@ export const aiLanguageRouter = router({
           role: "linguamate",
         });
 
-        return { reply, model, userId: ctx.user.id };
+        let syncMeta: { threadId: string; updatedAt: string } | undefined;
+        try {
+          syncMeta = await appendAiChatTurns({
+            userId: Number(ctx.user.id),
+            creatorId: "linguamate",
+            turns: [
+              { role: "user", content: message },
+              { role: "assistant", content: reply },
+            ],
+          });
+        } catch (persistError) {
+          console.warn("[ai-chat-sync] LinguaMate persist failed:", persistError);
+        }
+
+        if (syncMeta) {
+          notifyAiChatThreadUpdated({
+            userId: Number(ctx.user.id),
+            creatorId: "linguamate",
+            updatedAt: syncMeta.updatedAt,
+            threadId: syncMeta.threadId,
+          });
+        }
+
+        return {
+          reply,
+          model,
+          userId: ctx.user.id,
+          threadId: syncMeta?.threadId,
+          threadUpdatedAt: syncMeta?.updatedAt,
+        };
       } catch (error) {
         if (error instanceof TRPCError) throw error;
         mapServiceErrorToTrpc(error);

@@ -22,6 +22,9 @@ export type GoogleChatParams = {
   history: GoogleChatTurn[];
   message: string;
   responseLanguage?: string;
+  /** Optional cap for short public demos — server-controlled only. */
+  maxOutputTokens?: number;
+  temperature?: number;
 };
 
 export type GoogleChatResult = {
@@ -293,6 +296,15 @@ function buildUserMessage(message: string, responseLanguage?: string): string {
 }
 
 function sanitizeParams(params: GoogleChatParams): GoogleChatParams {
+  const maxOutputTokens =
+    params.maxOutputTokens != null
+      ? Math.min(Math.max(Math.floor(params.maxOutputTokens), 16), 8192)
+      : undefined;
+  const temperature =
+    params.temperature != null
+      ? Math.min(Math.max(params.temperature, 0), 2)
+      : undefined;
+
   return {
     systemPrompt: params.systemPrompt,
     message: sanitizeUserText(params.message, MAX_MESSAGE_LENGTH),
@@ -303,6 +315,8 @@ function sanitizeParams(params: GoogleChatParams): GoogleChatParams {
       role: turn.role,
       content: sanitizeUserText(turn.content, MAX_MESSAGE_LENGTH),
     })),
+    maxOutputTokens,
+    temperature,
   };
 }
 
@@ -326,7 +340,8 @@ async function generateChatViaGeminiApiKey(
     parts: [{ text: turn.content }],
   }));
 
-  const maxOutputTokens = ENV.isProduction ? 4096 : 2048;
+  const maxOutputTokens = safe.maxOutputTokens ?? (ENV.isProduction ? 4096 : 2048);
+  const temperature = safe.temperature ?? 0.7;
 
   async function callModel(modelName: string): Promise<GoogleChatResult> {
     const model = genAI.getGenerativeModel({
@@ -334,7 +349,7 @@ async function generateChatViaGeminiApiKey(
       systemInstruction: safe.systemPrompt,
       generationConfig: {
         maxOutputTokens,
-        temperature: 0.7,
+        temperature,
       },
     });
 
@@ -389,6 +404,8 @@ async function generateChatViaGeminiApiKey(
 
 async function generateChatViaVertex(safe: GoogleChatParams): Promise<GoogleChatResult> {
   const vertex = getVertexClient();
+  const maxOutputTokens = safe.maxOutputTokens ?? 4096;
+  const temperature = safe.temperature ?? 0.7;
   const model = vertex.getGenerativeModel({
     model: ENV.googleGeminiModel,
     systemInstruction: {
@@ -396,8 +413,8 @@ async function generateChatViaVertex(safe: GoogleChatParams): Promise<GoogleChat
       parts: [{ text: safe.systemPrompt }],
     },
     generationConfig: {
-      maxOutputTokens: 4096,
-      temperature: 0.7,
+      maxOutputTokens,
+      temperature,
     },
   });
 

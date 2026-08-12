@@ -76,7 +76,7 @@ const NAMESPACE_USER_LIMITS: Record<ApiNamespace, number> = {
   blueprintReader: 90,
   aiSubscription: 40,
   aiTalk: 40,
-  landing: 30,
+  landing: 20,
   workspace3d: 40,
   default: 500,
 };
@@ -102,6 +102,8 @@ function parseAllowedOrigins(): Set<string> {
     "http://127.0.0.1:3000",
     "http://127.0.0.1:8081",
     "http://127.0.0.1:8082",
+    "https://urplatform.llc",
+    "https://www.urplatform.llc",
   ]);
 
   const fromEnv = process.env.CORS_ALLOWED_ORIGINS ?? "";

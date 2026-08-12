@@ -44,6 +44,7 @@ import {
   qualifiesForPatienceRun,
   isPatienceGracePending,
 } from "../../lib/live-class-scheduling-policy";
+import { getEffectiveOvertimeMinutes } from "../../lib/live-session-room-policy";
 import { calculateCustomerCheckout } from "../../lib/stripe-checkout-pricing";
 import { normalizeStateCode } from "../../lib/us-state-taxes";
 
@@ -112,7 +113,11 @@ const pendingPayments = new Map<
 >();
 
 function sessionActualEndsAt(session: AiLiveSession): Date {
-  const totalMinutes = session.committedDurationMinutes + session.overtimeMinutes;
+  const overtime = getEffectiveOvertimeMinutes({
+    overtimeMinutes: session.overtimeMinutes,
+    allowOvertime: session.allowOvertime,
+  });
+  const totalMinutes = session.committedDurationMinutes + overtime;
   return new Date(Date.parse(session.startsAt) + totalMinutes * 60_000);
 }
 

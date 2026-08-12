@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { View, Text, ActivityIndicator, Pressable, StyleSheet } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { CreatorAIInterface } from "@/components/creator-ai-interface";
+import { LiveSessionRoomPanel } from "@/components/live-session-room-panel";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/auth-context";
@@ -130,6 +131,10 @@ export default function LiveSessionScreen() {
                 </Text>
               </View>
             ) : null}
+            <LiveSessionRoomPanel
+              sessionId={id}
+              creatorName={access.data.session.creatorName}
+            />
             <View style={{ flex: 1 }}>
               <CreatorAIInterface
                 creatorId={access.data.session.creatorAiId}

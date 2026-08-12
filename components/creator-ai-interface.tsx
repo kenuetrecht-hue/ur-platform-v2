@@ -21,12 +21,17 @@ import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { useAiTalkMeterPlayback } from "@/hooks/use-ai-talk-meter-playback";
 import { useNetworkConnectivity, isMeteringConnected } from "@/hooks/use-network-connectivity";
+import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync";
+import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
+import { useAuth } from "@/lib/auth-context";
 import { METER_HEARTBEAT_INTERVAL_MS } from "@/lib/ai-metering-policy";
 
 interface ChatMessage {
   role: "user" | "ai";
   text: string;
   id: string;
+  /** Queued locally while offline — flushes when API is reachable. */
+  pending?: boolean;
 }
 
 export type CreatorAIInterfaceProps = {
@@ -68,6 +73,34 @@ export function CreatorAIInterface({
     `Hi! I'm ${creatorName}. I understand any language — ask me anything in my area of expertise.`;
   const scrollViewRef = useRef<ScrollView>(null);
   const messageSeq = useRef(0);
+  const loadingRef = useRef(false);
+  const { isAuthenticated } = useAuth();
+
+  const applySyncedMessages = useCallback(
+    (synced: SyncedChatMessage[]) => {
+      if (loadingRef.current || synced.length === 0) return;
+      setMessages(
+        synced.map((m) => ({
+          id: m.id,
+          role: m.role,
+          text: m.text,
+        })),
+      );
+    },
+    [],
+  );
+
+  const { connected: chatSyncConnected, refetch: refetchChatThread } = useAiChatSync({
+    creatorId,
+    enabled: isAuthenticated,
+    onSync: applySyncedMessages,
+  });
+
+  const { enqueue: enqueueOutbox } = useAiChatOutbox({
+    creatorId,
+    enabled: isAuthenticated,
+    onFlushed: () => void refetchChatThread(),
+  });
 
   const makeMessage = useCallback(
     (role: ChatMessage["role"], text: string): ChatMessage => {
@@ -223,14 +256,32 @@ export function CreatorAIInterface({
       const userMessage = rawText.trim().slice(0, 2000);
       if (!userMessage || loading) return;
 
+      loadingRef.current = true;
       setLoading(true);
       setSendStatus("Sending…");
       const clearedInput = rawText === inputText;
-      setMessages((prev) => [...prev, makeMessage("user", userMessage)]);
-      scrollToBottom();
       if (clearedInput) {
         setInputText("");
       }
+
+      if (isAuthenticated && !chatSyncConnected) {
+        const item = await enqueueOutbox({
+          creatorId,
+          message: userMessage,
+          channel: "creators",
+          useHiveConsult: hiveMode,
+        });
+        setMessages((prev) => [
+          ...prev,
+          { ...makeMessage("user", userMessage), id: item.id, pending: true },
+        ]);
+        setSendStatus("Queued — sends when you're back online");
+        scrollToBottom();
+        return;
+      }
+
+      setMessages((prev) => [...prev, makeMessage("user", userMessage)]);
+      scrollToBottom();
 
       try {
         const priorTurns = messages
@@ -273,6 +324,7 @@ export function CreatorAIInterface({
         setMessages((prev) => [...prev, makeMessage("ai", replyText)]);
         setAwaitingPitchConsent(Boolean(result.pitchConsentRequest));
         setSendStatus(null);
+        void refetchChatThread();
       } catch (error) {
         const errText = formatChatError(error);
         setMessages((prev) => [...prev, makeMessage("ai", errText)]);
@@ -281,11 +333,25 @@ export function CreatorAIInterface({
           setInputText(userMessage);
         }
       } finally {
+        loadingRef.current = false;
         setLoading(false);
         scrollToBottom();
       }
     },
-    [chatMutation, creatorId, hiveMode, inputText, loading, makeMessage, messages, scrollToBottom],
+    [
+      chatMutation,
+      chatSyncConnected,
+      creatorId,
+      enqueueOutbox,
+      hiveMode,
+      inputText,
+      isAuthenticated,
+      loading,
+      makeMessage,
+      messages,
+      scrollToBottom,
+      refetchChatThread,
+    ],
   );
 
   const speakLastReply = useCallback(async () => {

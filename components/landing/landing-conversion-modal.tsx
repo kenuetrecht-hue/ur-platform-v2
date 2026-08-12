@@ -11,6 +11,9 @@ import {
 import { useRouter } from "expo-router";
 import { trpc } from "@/lib/trpc";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
+import { LANDING_DEMO_REPLY_MAX, LANDING_DEMO_VOICE_TEXT_MAX } from "@/lib/landing-demo-policy";
+
+const displayReply = (text: string) => text.slice(0, LANDING_DEMO_REPLY_MAX);
 
 type Props = {
   visible: boolean;
@@ -44,15 +47,15 @@ export function LandingConversionModal({ visible, onClose, creatorId, creatorNam
         <View style={styles.card}>
           <Text style={styles.glowTag}>◈ HIVE RESPONSE LOCKED IN</Text>
           <Text style={styles.title}>{creatorName} replied</Text>
-          <Text style={styles.body} numberOfLines={6}>
-            {reply}
+          <Text style={styles.body} numberOfLines={3}>
+            {displayReply(reply)}
           </Text>
 
           <Pressable
             onPress={() =>
               voiceMutation.mutate({
                 creatorId: creatorId as "ai-marina-mechanic-001" | "contentmate" | "linguamate" | "ai-wellness-001" | "ai-3d-specialist",
-                text: reply.slice(0, 400),
+                text: displayReply(reply).slice(0, LANDING_DEMO_VOICE_TEXT_MAX),
               })
             }
             disabled={voiceMutation.isPending}

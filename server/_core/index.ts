@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
+import dns from "dns/promises";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
@@ -47,6 +48,16 @@ async function startServer() {
 
   const app = express();
   const server = createServer(app);
+
+  try {
+    const { registerAiChatRealtimeWs } = await import("./ai-chat-realtime-ws");
+    registerAiChatRealtimeWs(server);
+  } catch (error) {
+    console.warn(
+      "[ai-chat-realtime] WebSocket disabled — install dependencies: stop pnpm dev, run pnpm install, restart.",
+      error instanceof Error ? error.message : error,
+    );
+  }
 
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
@@ -146,14 +157,24 @@ async function startServer() {
     console.log(
       `[auth] Supabase: ${isSupabaseConfiguredOnServer() ? "configured" : "MISSING"} (${supa.url})`,
     );
+    void (async function checkSupabaseHost() {
+      try {
+        const host = new URL(supa.url).hostname;
+        await dns.lookup(host);
+      } catch {
+        console.warn(
+          `[auth] Supabase host does not resolve (${supa.url}). ` +
+            "Create a project at https://supabase.com/dashboard and update EXPO_PUBLIC_SUPABASE_URL in .env.",
+        );
+      }
+    })();
     void db.getDb().then((conn) => {
       const dbUrl = process.env.DATABASE_URL ?? "";
       if (!dbUrl) {
         console.warn("[Database] DATABASE_URL not set — loyalty/user data will not persist");
       } else if (!conn) {
         console.warn(
-          "[Database] Not connected — start MySQL and run pnpm db:push. " +
-            "Use mysql:// not postgresql:// in DATABASE_URL",
+          "[Database] Not connected — run pnpm db:mysql-dev then pnpm db:setup",
         );
       } else {
         console.log("[Database] MySQL connected — user/loyalty persistence enabled");

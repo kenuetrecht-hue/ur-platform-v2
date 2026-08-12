@@ -39,7 +39,15 @@ import {
   requestCreatorVideo,
 } from "../_core/ai-creator-video-service";
 import { buildLiveClassPurchaseSummary } from "../../lib/pricing-disclosures";
-import { optionalBillingStateSchema } from "../../lib/billing-state-schema";
+import { optionalBillingStateSchema, billingStateSchema } from "../../lib/billing-state-schema";
+import {
+  getLiveSessionRoomState,
+  submitLiveSessionQuestion,
+  markLiveSessionQuestionAnswered,
+  optIntoLiveSessionOvertime,
+  leaveLiveSessionRoom,
+  purchaseLiveSessionSpeakAccess,
+} from "../_core/live-session-room-service";
 
 const durationSchema = z.union([
   z.literal(15),
@@ -233,6 +241,91 @@ export const aiLiveSessionRouter = router({
         isPlatformOwner: ctx.isPlatformOwner,
       });
     }),
+
+  getRoomState: protectedProcedure
+    .input(z.object({ sessionId: z.string().uuid() }))
+    .query(({ ctx, input }) =>
+      getLiveSessionRoomState({
+        sessionId: input.sessionId,
+        userId: String(ctx.user.id),
+        userLabel: ctx.user.name ?? ctx.user.email ?? "Attendee",
+        isPlatformOwner: ctx.isPlatformOwner,
+      }),
+    ),
+
+  submitQuestion: protectedProcedure
+    .input(
+      z.object({
+        sessionId: z.string().uuid(),
+        channel: z.enum(["voice", "text"]),
+        questionText: z.string().min(4).max(500).trim(),
+      }),
+    )
+    .mutation(({ ctx, input }) =>
+      submitLiveSessionQuestion({
+        sessionId: input.sessionId,
+        userId: String(ctx.user.id),
+        userLabel: ctx.user.name ?? ctx.user.email ?? "Attendee",
+        isPlatformOwner: ctx.isPlatformOwner,
+        channel: input.channel,
+        questionText: input.questionText,
+      }),
+    ),
+
+  markQuestionAnswered: protectedProcedure
+    .input(
+      z.object({
+        sessionId: z.string().uuid(),
+        questionId: z.string().uuid(),
+      }),
+    )
+    .mutation(({ ctx, input }) =>
+      markLiveSessionQuestionAnswered({
+        sessionId: input.sessionId,
+        userId: String(ctx.user.id),
+        questionId: input.questionId,
+        isPlatformOwner: ctx.isPlatformOwner,
+      }),
+    ),
+
+  optIntoOvertime: protectedProcedure
+    .input(z.object({ sessionId: z.string().uuid() }))
+    .mutation(({ ctx, input }) =>
+      optIntoLiveSessionOvertime({
+        sessionId: input.sessionId,
+        userId: String(ctx.user.id),
+        isPlatformOwner: ctx.isPlatformOwner,
+      }),
+    ),
+
+  leaveRoom: protectedProcedure
+    .input(z.object({ sessionId: z.string().uuid() }))
+    .mutation(({ ctx, input }) =>
+      leaveLiveSessionRoom({
+        sessionId: input.sessionId,
+        userId: String(ctx.user.id),
+        isPlatformOwner: ctx.isPlatformOwner,
+      }),
+    ),
+
+  purchaseSpeakAccess: protectedProcedure
+    .input(
+      z.object({
+        sessionId: z.string().uuid(),
+        stateCode: billingStateSchema,
+        clientPlatform: z.enum(["web", "native"]),
+      }),
+    )
+    .mutation(({ ctx, input }) =>
+      purchaseLiveSessionSpeakAccess({
+        sessionId: input.sessionId,
+        userId: String(ctx.user.id),
+        userEmail: ctx.user.email ?? "",
+        isPlatformOwner: ctx.isPlatformOwner,
+        billingStateCode: input.stateCode,
+        clientPlatform: input.clientPlatform,
+      }),
+    ),
 
   listPrograms: adminPermissionProcedure("manage_ai_sessions").query(() => {
     return listAiSessionPrograms().map((p) => ({

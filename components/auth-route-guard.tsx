@@ -22,7 +22,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       segments[0] === "signup";
     const inPublicMarketing =
       segments[0] === "welcome" || segments[0] === "handoff" || segments[0] === "link";
-    const inProtectedRoute = segments[0] === "(tabs)";
+    const inProtectedRoute = segments[0] === "(tabs)" || segments[0] === "profile";
 
     if (!isAuthenticated && inProtectedRoute) {
       router.replace("/login");

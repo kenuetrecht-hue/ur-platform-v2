@@ -1,11 +1,10 @@
-import { useState } from "react";
 import { ScrollView, View, Text, Pressable } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { useAuth } from "@/lib/auth-context";
+import { getPostLogoutHref } from "@/lib/post-auth-redirect";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
-import { CreatorOnboardingFlow } from "@/components/creator-onboarding-flow";
 import { consolidatedNavigation } from "@/lib/consolidated-navigation";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { trpc } from "@/lib/trpc";
@@ -25,11 +24,8 @@ export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const colors = useColors();
   const router = useRouter();
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const profileTab = consolidatedNavigation.getTab("profile");
-  const subMenu = (profileTab?.subMenu ?? []).filter(
-    (item) => item.id !== "admin" && item.id !== "dashboard",
-  );
+  const subMenu = (profileTab?.subMenu ?? []).filter((item) => item.id !== "admin");
   const {
     canAccessAdminDashboard,
     ownerDisplayName,
@@ -44,7 +40,7 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     await logout();
-    router.replace("/login");
+    router.replace(getPostLogoutHref());
   };
 
   return (
@@ -231,8 +227,8 @@ export default function ProfileScreen() {
             <Pressable
               key={item.id}
               onPress={() => {
-                if (item.id === "dashboard") {
-                  setShowOnboarding(true);
+                if (item.route) {
+                  router.push(item.route as Href);
                 }
               }}
               style={{
@@ -268,11 +264,6 @@ export default function ProfileScreen() {
         </View>
       </ScrollView>
 
-      <CreatorOnboardingFlow
-        visible={showOnboarding}
-        onComplete={() => setShowOnboarding(false)}
-        onClose={() => setShowOnboarding(false)}
-      />
     </ScreenContainer>
   );
 }

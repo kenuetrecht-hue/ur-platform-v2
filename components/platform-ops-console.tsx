@@ -15,6 +15,7 @@ import { usePlatformOwner } from "@/lib/use-platform-owner";
 import type { AdminStaffRole } from "@/lib/admin-access-types";
 import { AiSessionProgrammingPanel } from "@/components/ai-session-programming-panel";
 import { PlatformSectionMaintenancePanel } from "@/components/platform-section-maintenance-panel";
+import { TransactionHistoryList } from "@/components/transaction-history-list";
 
 export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatformOwner?: boolean }) {
   const colors = useColors();

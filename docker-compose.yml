@@ -1,5 +1,9 @@
 version: "3.8"
 
+# NOTE: The UR Platform app uses MySQL (see DATABASE_URL / drizzle-orm/mysql2).
+# For local dev database: pnpm db:mysql:up  (docker-compose.mysql.yml)
+# This file's PostgreSQL stack is legacy infrastructure scaffolding — not wired to the app DB layer.
+
 services:
   # ============================================================================
   # PostgreSQL Database

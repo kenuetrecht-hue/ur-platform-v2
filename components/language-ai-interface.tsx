@@ -14,12 +14,16 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/auth-context";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
+import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync";
+import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 
 type LanguageMode = "chat" | "translate" | "learn";
 
 interface ChatMessage {
+  id?: string;
   role: "user" | "ai";
   text: string;
+  pending?: boolean;
 }
 
 interface LanguageAIInterfaceProps {
@@ -65,6 +69,33 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const loadingRef = useRef(false);
+
+  const applySyncedMessages = useCallback(
+    (synced: SyncedChatMessage[]) => {
+      if (loadingRef.current || synced.length === 0) return;
+      setMessages(
+        synced.map((m) => ({
+          id: m.id,
+          role: m.role,
+          text: m.text,
+        })),
+      );
+    },
+    [],
+  );
+
+  const { connected: chatSyncConnected, refetch: refetchChatThread } = useAiChatSync({
+    creatorId: "linguamate",
+    enabled: isAuthenticated && canChat && mode === "chat",
+    onSync: applySyncedMessages,
+  });
+
+  const { enqueue: enqueueOutbox } = useAiChatOutbox({
+    creatorId: "linguamate",
+    enabled: isAuthenticated && canChat && mode === "chat",
+    onFlushed: () => void refetchChatThread(),
+  });
 
   const chatMutation = trpc.aiLanguage.chat.useMutation();
   const translateMutation = trpc.aiLanguage.translate.useMutation();
@@ -93,9 +124,29 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
       const userMessage = rawText.trim().slice(0, 4000);
       if (!userMessage || loading || !canChat) return;
 
+      loadingRef.current = true;
       setLoading(true);
+      const clearedInput = rawText === inputText;
+      if (clearedInput) setInputText("");
+
+      if (mode === "chat" && isAuthenticated && !chatSyncConnected) {
+        const item = await enqueueOutbox({
+          creatorId: "linguamate",
+          message: userMessage,
+          channel: "language",
+          targetLanguage,
+        });
+        setMessages((prev) => [
+          ...prev,
+          { role: "user", text: userMessage, id: item.id, pending: true },
+        ]);
+        loadingRef.current = false;
+        setLoading(false);
+        scrollToBottom();
+        return;
+      }
+
       setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
-      if (rawText === inputText) setInputText("");
 
       try {
         let reply = "";
@@ -122,6 +173,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
             targetLanguage: targetLanguage || undefined,
           });
           reply = result.reply;
+          void refetchChatThread();
         }
 
         setMessages((prev) => [...prev, { role: "ai", text: reply }]);
@@ -132,6 +184,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
             : "Sorry, I encountered an error. Please try again.";
         setMessages((prev) => [...prev, { role: "ai", text: message }]);
       } finally {
+        loadingRef.current = false;
         setLoading(false);
         scrollToBottom();
       }
@@ -139,10 +192,14 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
     [
       buildHistory,
       chatMutation,
+      chatSyncConnected,
+      enqueueOutbox,
       inputText,
+      isAuthenticated,
       learnLevel,
       loading,
       mode,
+      refetchChatThread,
       scrollToBottom,
       targetLanguage,
       teachMutation,

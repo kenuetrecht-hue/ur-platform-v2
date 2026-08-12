@@ -515,3 +515,34 @@ export const gameSandboxPayments = mysqlTable("gameSandboxPayments", {
 });
 
 export type GameSandboxPayment = typeof gameSandboxPayments.$inferSelect;
+
+/**
+ * AI specialist chat threads — one per user + creator (cross-device sync).
+ */
+export const aiChatThreads = mysqlTable(
+  "aiChatThreads",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: int("userId").notNull(),
+    creatorId: varchar("creatorId", { length: 64 }).notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userCreatorUnique: unique("aiChatThreads_user_creator").on(table.userId, table.creatorId),
+  }),
+);
+
+export type AiChatThread = typeof aiChatThreads.$inferSelect;
+export type InsertAiChatThread = typeof aiChatThreads.$inferInsert;
+
+export const aiChatMessages = mysqlTable("aiChatMessages", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  threadId: varchar("threadId", { length: 36 }).notNull(),
+  role: mysqlEnum("role", ["user", "assistant"]).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AiChatMessage = typeof aiChatMessages.$inferSelect;
+export type InsertAiChatMessage = typeof aiChatMessages.$inferInsert;

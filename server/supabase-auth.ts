@@ -10,6 +10,14 @@ import {
 const SUPABASE_OPEN_ID_PREFIX = "supabase:";
 
 let supabaseClient: SupabaseClient | null = null;
+let lastSupabaseAuthLogMs = 0;
+
+function logSupabaseAuthOnce(message: string): void {
+  const now = Date.now();
+  if (now - lastSupabaseAuthLogMs < 30_000) return;
+  lastSupabaseAuthLogMs = now;
+  console.warn("[SupabaseAuth]", message);
+}
 
 function getSupabaseClient(): SupabaseClient | null {
   const { url } = resolveSupabasePublicConfig();
@@ -44,21 +52,40 @@ export async function verifySupabaseAccessToken(
 ): Promise<SupabaseUser | null> {
   const client = getSupabaseClient();
   if (!client) {
-    console.warn("[SupabaseAuth] Supabase is not configured on the server");
+    logSupabaseAuthOnce("Supabase is not configured on the server");
     return null;
   }
 
-  const {
-    data: { user },
-    error,
-  } = await client.auth.getUser(accessToken);
+  try {
+    const {
+      data: { user },
+      error,
+    } = await client.auth.getUser(accessToken);
 
-  if (error || !user) {
-    console.warn("[SupabaseAuth] Token verification failed:", error?.message);
+    if (error || !user) {
+      const msg = error?.message ?? "unknown error";
+      if (msg.includes("fetch failed") || msg.includes("ENOTFOUND")) {
+        logSupabaseAuthOnce(
+          "Cannot reach Supabase — check EXPO_PUBLIC_SUPABASE_URL in .env (project may be deleted or DNS offline).",
+        );
+      } else {
+        logSupabaseAuthOnce(`Token verification failed: ${msg}`);
+      }
+      return null;
+    }
+
+    return user;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("fetch failed") || msg.includes("ENOTFOUND")) {
+      logSupabaseAuthOnce(
+        "Cannot reach Supabase — check EXPO_PUBLIC_SUPABASE_URL in .env (project may be deleted or DNS offline).",
+      );
+    } else {
+      logSupabaseAuthOnce(`Token verification failed: ${msg}`);
+    }
     return null;
   }
-
-  return user;
 }
 
 export async function syncSupabaseUser(

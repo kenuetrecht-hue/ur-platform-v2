@@ -1,37 +1,36 @@
 /**
- * Public landing-page demo — one free AI message per IP per 24h (server enforced).
+ * Public landing-page demo — one free AI message per IP (process lifetime).
  */
 
 import { TRPCError } from "@trpc/server";
+import {
+  LANDING_DEMO_MESSAGE_MAX,
+  LANDING_DEMO_REPLY_MAX,
+  LANDING_DEMO_CREATOR_IDS,
+  type LandingDemoCreatorId,
+  truncateLandingDemoReply,
+} from "../../lib/landing-demo-policy";
 import { handleCreatorAiChat } from "./ai-chat-handler";
 import { isCreatorAiId } from "./ai-creator-registry";
 import { getTownHallPanelPreview } from "./hive-town-hall-service";
 
-const DEMO_TTL_MS = 24 * 60 * 60 * 1000;
-const DEMO_MESSAGE_MAX = 280;
+export {
+  LANDING_DEMO_MESSAGE_MAX,
+  LANDING_DEMO_REPLY_MAX,
+  LANDING_DEMO_VOICE_TEXT_MAX,
+  LANDING_DEMO_CREATOR_IDS,
+  type LandingDemoCreatorId,
+} from "../../lib/landing-demo-policy";
 
-/** Public specialists allowed on the homepage test drive. */
-export const LANDING_DEMO_CREATOR_IDS = [
-  "ai-marina-mechanic-001",
-  "contentmate",
-  "linguamate",
-  "ai-wellness-001",
-  "ai-3d-specialist",
-] as const;
-
-export type LandingDemoCreatorId = (typeof LANDING_DEMO_CREATOR_IDS)[number];
-
-const demoUsedByIp = new Map<string, number>();
-const voiceUsedByIp = new Map<string, number>();
+const demoUsedByIp = new Set<string>();
+const voiceUsedByIp = new Set<string>();
 
 function normalizeIp(ip: string | undefined): string {
   return (ip ?? "unknown").trim() || "unknown";
 }
 
 function assertDemoNotUsed(ip: string): void {
-  const key = normalizeIp(ip);
-  const usedAt = demoUsedByIp.get(key);
-  if (usedAt && Date.now() - usedAt < DEMO_TTL_MS) {
+  if (demoUsedByIp.has(normalizeIp(ip))) {
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
       message: "You already used your free demo message. Create an account for unlimited access.",
@@ -40,21 +39,19 @@ function assertDemoNotUsed(ip: string): void {
 }
 
 export function markDemoUsed(ip: string): void {
-  demoUsedByIp.set(normalizeIp(ip), Date.now());
+  demoUsedByIp.add(normalizeIp(ip));
 }
 
 export function hasUsedDemo(ip: string): boolean {
-  const usedAt = demoUsedByIp.get(normalizeIp(ip));
-  return Boolean(usedAt && Date.now() - usedAt < DEMO_TTL_MS);
+  return demoUsedByIp.has(normalizeIp(ip));
 }
 
 export function canUseDemoVoice(ip: string): boolean {
-  const usedAt = voiceUsedByIp.get(normalizeIp(ip));
-  return !usedAt || Date.now() - usedAt >= DEMO_TTL_MS;
+  return !voiceUsedByIp.has(normalizeIp(ip));
 }
 
 export function markDemoVoiceUsed(ip: string): void {
-  voiceUsedByIp.set(normalizeIp(ip), Date.now());
+  voiceUsedByIp.add(normalizeIp(ip));
 }
 
 export function isLandingDemoCreator(id: string): id is LandingDemoCreatorId {
@@ -76,7 +73,7 @@ export async function runLandingDemoChat(params: {
 
   const result = await handleCreatorAiChat({
     creatorId: params.creatorId,
-    message: params.message.slice(0, DEMO_MESSAGE_MAX),
+    message: params.message.slice(0, LANDING_DEMO_MESSAGE_MAX),
     history: [],
     useHiveConsult: false,
     ctx: {
@@ -91,6 +88,7 @@ export async function runLandingDemoChat(params: {
 
   return {
     ...result,
+    reply: truncateLandingDemoReply(result.reply, LANDING_DEMO_REPLY_MAX),
     demoUsed: true,
     signupRequired: true,
   };
@@ -136,9 +134,9 @@ export function getLandingTownHallPreview() {
       line: "Shore power panels need GFCI and corrosion inspection on every haul-out.",
     },
     {
-      speaker: "Platform Doctor AI",
-      avatar: "🩺",
-      line: "If you go through and look, you'll see that every single one of us is running on the same platform.",
+      speaker: "LinguaMate",
+      avatar: "🌍",
+      line: "Every specialist speaks your language — teach, translate, and learn on one platform.",
     },
     {
       speaker: "ContentMate",
@@ -148,4 +146,9 @@ export function getLandingTownHallPreview() {
   ];
 
   return { panel: { specialists }, simulation };
+}
+
+export function _resetLandingDemoUsageForTests(): void {
+  demoUsedByIp.clear();
+  voiceUsedByIp.clear();
 }

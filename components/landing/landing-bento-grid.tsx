@@ -27,16 +27,16 @@ const CARDS: BentoCard[] = [
     ],
   },
   {
-    id: "doctor",
-    title: "Platform Doctor AI",
-    avatar: "🩺",
-    tag: "OPS ANALYSIS",
+    id: "electrician",
+    title: "Electrician Expert AI",
+    avatar: "⚡",
+    tag: "SHORE POWER",
     accent: "#a78bfa",
     lines: [
-      "API latency: 142ms — healthy",
-      "Gemini quota: monitoring",
-      "MySQL: reconnect advised",
-      "Hive town hall: 4 sessions live",
+      "GFCI protection on every dock pedestal",
+      "Corrosion check on marina wiring",
+      "NEC-oriented guidance for haul-out",
+      "Hive consult: trades + business aligned",
     ],
   },
   {
@@ -91,8 +91,10 @@ function LoopingLines({ lines, accent }: { lines: string[]; accent: string }) {
 
 function BentoTile({ card, wide }: { card: BentoCard; wide?: boolean }) {
   const float = useRef(new Animated.Value(0)).current;
+  const enableFloat = Platform.OS !== "web";
 
   useEffect(() => {
+    if (!enableFloat) return;
     Animated.loop(
       Animated.sequence([
         Animated.timing(float, {
@@ -109,9 +111,11 @@ function BentoTile({ card, wide }: { card: BentoCard; wide?: boolean }) {
         }),
       ]),
     ).start();
-  }, [float]);
+  }, [enableFloat, float]);
 
-  const translateY = float.interpolate({ inputRange: [0, 1], outputRange: [0, -6] });
+  const translateY = enableFloat
+    ? float.interpolate({ inputRange: [0, 1], outputRange: [0, -6] })
+    : 0;
 
   return (
     <Animated.View
@@ -140,7 +144,7 @@ function BentoTile({ card, wide }: { card: BentoCard; wide?: boolean }) {
 
 export function LandingBentoGrid({ isWide }: { isWide: boolean }) {
   return (
-    <View>
+    <View style={styles.section}>
       <Text style={styles.sectionTag}>ONE PLATFORM</Text>
       <Text style={styles.sectionTitle}>Every specialist. Same engine.</Text>
       <Text style={styles.sectionSub}>{LANDING_PLATFORM_UNITY_LINE}</Text>
@@ -154,6 +158,10 @@ export function LandingBentoGrid({ isWide }: { isWide: boolean }) {
 }
 
 const styles = StyleSheet.create({
+  section: {
+    marginBottom: 40,
+    zIndex: 0,
+  },
   sectionTag: {
     color: T.electricDim,
     fontSize: 10,
@@ -164,8 +172,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { color: T.text, fontSize: 22, fontWeight: "900", marginBottom: 6 },
   sectionSub: { color: T.muted, fontSize: 14, lineHeight: 21, marginBottom: 14, maxWidth: 640 },
-  grid: { gap: 12, marginBottom: 28 },
-  gridWide: { flexDirection: "row", flexWrap: "wrap" },
+  grid: { gap: 12 },
+  gridWide: { flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start" },
   tile: {
     flexGrow: 1,
     flexBasis: "100%",
@@ -174,11 +182,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: T.bgElevated,
     padding: 16,
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
+    ...(Platform.OS !== "web"
+      ? {
+          shadowOpacity: 0.35,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+        }
+      : {}),
   },
-  tileWide: { flexBasis: "48%", maxWidth: "48%" },
+  tileWide: { flexBasis: "48%", maxWidth: "48%", flexShrink: 0 },
   tileHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   tileAvatar: { fontSize: 26 },
   livePill: {

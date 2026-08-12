@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -7,10 +7,12 @@ import {
   ActivityIndicator,
   StyleSheet,
   ScrollView,
+  Platform,
 } from "react-native";
 import { trpc } from "@/lib/trpc";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
 import { LandingConversionModal } from "@/components/landing/landing-conversion-modal";
+import { LANDING_DEMO_MESSAGE_MAX, LANDING_DEMO_REPLY_MAX } from "@/lib/landing-demo-policy";
 
 const DEMO_SPECIALISTS = [
   { id: "ai-marina-mechanic-001", label: "Marina Mechanic", avatar: "⚓" },
@@ -22,14 +24,28 @@ const DEMO_SPECIALISTS = [
 
 type Props = {
   onReply?: () => void;
+  creatorId?: string;
+  onCreatorIdChange?: (id: string) => void;
 };
 
-export function LandingDemoChat({ onReply }: Props) {
-  const [creatorId, setCreatorId] = useState<string>(DEMO_SPECIALISTS[0].id);
+export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCreatorIdChange }: Props) {
+  const [internalCreatorId, setInternalCreatorId] = useState<string>(DEMO_SPECIALISTS[0].id);
+  const creatorId = controlledCreatorId ?? internalCreatorId;
+
+  const setCreatorId = (id: string) => {
+    if (onCreatorIdChange) onCreatorIdChange(id);
+    else setInternalCreatorId(id);
+  };
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState("");
+  const pageLoadedAtMs = useRef(Date.now());
+
+  useEffect(() => {
+    pageLoadedAtMs.current = Date.now();
+  }, []);
 
   const statusQuery = trpc.landing.getDemoStatus.useQuery(undefined, { staleTime: 30_000 });
   const demoMutation = trpc.landing.sendDemoMessage.useMutation({
@@ -43,12 +59,21 @@ export function LandingDemoChat({ onReply }: Props) {
   });
 
   const demoUsed = statusQuery.data?.demoUsed ?? false;
+  const demoToken = statusQuery.data?.demoToken ?? null;
+  const messageMax = statusQuery.data?.limits?.messageMax ?? LANDING_DEMO_MESSAGE_MAX;
   const loading = demoMutation.isPending;
+  const canSend = !demoUsed && !loading && Boolean(demoToken) && message.trim().length >= 4;
 
   const send = () => {
-    if (!message.trim() || demoUsed || loading) return;
+    if (!canSend || !demoToken) return;
     setError(null);
-    demoMutation.mutate({ creatorId, message: message.trim() });
+    demoMutation.mutate({
+      creatorId,
+      message: message.trim(),
+      demoToken,
+      pageLoadedAtMs: pageLoadedAtMs.current,
+      honeypot: honeypot || undefined,
+    });
   };
 
   return (
@@ -56,25 +81,42 @@ export function LandingDemoChat({ onReply }: Props) {
       <Text style={styles.sectionTag}>INTERACTIVE TEST DRIVE</Text>
       <Text style={styles.title}>Try a specialist — one free preview message</Text>
       <Text style={styles.sub}>
-        Lead-gen preview only — sign in for unlimited chat, live classes, and subscriptions. Pick any
-        specialist below for a single demo reply.
+        Pick your specialist below for a single demo reply ({messageMax} characters in).
       </Text>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pills}>
-        {DEMO_SPECIALISTS.map((s) => {
-          const active = s.id === creatorId;
-          return (
-            <Pressable
-              key={s.id}
-              onPress={() => setCreatorId(s.id)}
-              style={[styles.pill, active && styles.pillActive]}
-            >
-              <Text style={styles.pillEmoji}>{s.avatar}</Text>
-              <Text style={[styles.pillLabel, active && styles.pillLabelActive]}>{s.label}</Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      {!onCreatorIdChange ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pills}>
+          {DEMO_SPECIALISTS.map((s) => {
+            const active = s.id === creatorId;
+            return (
+              <Pressable
+                key={s.id}
+                onPress={() => setCreatorId(s.id)}
+                style={[styles.pill, active && styles.pillActive]}
+              >
+                <Text style={styles.pillEmoji}>{s.avatar}</Text>
+                <Text style={[styles.pillLabel, active && styles.pillLabelActive]}>{s.label}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      ) : (
+        <Text style={styles.selectedNote}>
+          Selected: {DEMO_SPECIALISTS.find((s) => s.id === creatorId)?.label ?? "Specialist"}
+        </Text>
+      )}
+
+      {Platform.OS === "web" ? (
+        <TextInput
+          value={honeypot}
+          onChangeText={setHoneypot}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          autoComplete="off"
+          tabIndex={-1}
+          style={styles.honeypot}
+        />
+      ) : null}
 
       <TextInput
         value={message}
@@ -85,11 +127,14 @@ export function LandingDemoChat({ onReply }: Props) {
             : "Ask your specialist anything..."
         }
         placeholderTextColor={T.muted}
-        maxLength={280}
+        maxLength={messageMax}
         editable={!demoUsed && !loading}
         style={styles.input}
         multiline
       />
+      <Text style={styles.counter}>
+        {message.length}/{messageMax}
+      </Text>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {demoUsed ? (
@@ -98,8 +143,8 @@ export function LandingDemoChat({ onReply }: Props) {
 
       <Pressable
         onPress={send}
-        disabled={demoUsed || loading || !message.trim()}
-        style={[styles.sendBtn, (demoUsed || !message.trim()) && styles.sendBtnDisabled]}
+        disabled={!canSend}
+        style={[styles.sendBtn, !canSend && styles.sendBtnDisabled]}
       >
         {loading ? (
           <ActivityIndicator color="#001018" />
@@ -111,10 +156,7 @@ export function LandingDemoChat({ onReply }: Props) {
       {reply ? (
         <View style={styles.replyBox}>
           <Text style={styles.replyLabel}>AI RESPONSE</Text>
-          <Text style={styles.replyText}>
-            {reply.slice(0, 600)}
-            {reply.length > 600 ? "…" : ""}
-          </Text>
+          <Text style={styles.replyText}>{reply}</Text>
         </View>
       ) : null}
 
@@ -139,14 +181,20 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   sectionTag: {
-    color: T.electric,
+    color: T.brandBlueLight,
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 2,
     marginBottom: 8,
   },
   title: { color: T.text, fontSize: 22, fontWeight: "800", marginBottom: 8 },
-  sub: { color: T.muted, fontSize: 14, lineHeight: 21, marginBottom: 16 },
+  sub: { color: T.muted, fontSize: 14, lineHeight: 20, marginBottom: 14 },
+  selectedNote: {
+    color: T.brandPurpleLight,
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: 14,
+  },
   pills: { gap: 8, marginBottom: 14 },
   pill: {
     flexDirection: "row",
@@ -154,15 +202,22 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: T.border,
+    borderColor: T.borderBrand,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginRight: 4,
   },
-  pillActive: { borderColor: T.electric, backgroundColor: "rgba(0,212,255,0.12)" },
+  pillActive: { borderColor: T.brandBlueLight, backgroundColor: "rgba(79, 70, 229, 0.2)" },
   pillEmoji: { fontSize: 16 },
   pillLabel: { color: T.muted, fontSize: 13, fontWeight: "600" },
   pillLabelActive: { color: T.text },
+  honeypot: {
+    position: "absolute",
+    left: -9999,
+    width: 1,
+    height: 1,
+    opacity: 0,
+  },
   input: {
     borderWidth: 1,
     borderColor: T.border,
@@ -172,16 +227,19 @@ const styles = StyleSheet.create({
     color: T.text,
     fontSize: 15,
     textAlignVertical: "top",
-    marginBottom: 12,
+    marginBottom: 4,
   },
+  counter: { color: T.muted, fontSize: 11, textAlign: "right", marginBottom: 12 },
   sendBtn: {
-    backgroundColor: T.electric,
+    backgroundColor: T.brandBlue,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: T.brandPurpleLight,
   },
   sendBtnDisabled: { opacity: 0.45 },
-  sendText: { color: "#001018", fontWeight: "800", fontSize: 15 },
+  sendText: { color: "#FFFFFF", fontWeight: "800", fontSize: 15 },
   error: { color: "#f87171", fontSize: 13, marginBottom: 8 },
   usedNote: { color: T.gold, fontSize: 12, marginBottom: 8 },
   replyBox: {
