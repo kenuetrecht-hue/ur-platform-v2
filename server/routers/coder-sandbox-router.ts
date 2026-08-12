@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { secureProcedure, router, TRPCError } from "../_core/trpc";
 import { assertAiEntitled } from "../_core/access-entitlements";
+import { assertSectionEnabledForRequest } from "../_core/platform-section-guard";
 import {
-  createSandboxProject,
   deleteSandboxFile,
   getSandboxProject,
   getSandboxStatus,
@@ -31,6 +31,7 @@ function assertSandboxAccess(ctx: {
   user: { id: unknown; email?: string | null; name?: string | null };
   isPlatformOwner: boolean;
 }) {
+  assertSectionEnabledForRequest("forge_sandbox", ctx.isPlatformOwner);
   assertAiEntitled({
     userId: ctx.user.id,
     email: ctx.user.email,

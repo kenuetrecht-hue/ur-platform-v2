@@ -6,6 +6,7 @@ export const LANDING_DEMO_VOICE_TEXT_MAX = 50;
 
 /** Public specialists allowed on the homepage test drive. */
 export const LANDING_DEMO_CREATOR_IDS = [
+  "ai-coder-001",
   "ai-marina-mechanic-001",
   "contentmate",
   "linguamate",

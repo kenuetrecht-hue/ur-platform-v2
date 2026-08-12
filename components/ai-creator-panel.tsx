@@ -383,6 +383,11 @@ function AiLearnSurface({
         Progress: {pct}% · {profile.data?.modulesCompleted ?? 0}/
         {profile.data?.totalModules ?? "?"} modules
       </Text>
+      {curriculum.data?.tagline ? (
+        <Text style={{ color: colors.foreground, fontSize: 12, paddingHorizontal: 12, paddingTop: 6, lineHeight: 18 }}>
+          {curriculum.data.tagline}
+        </Text>
+      ) : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.levelScroll} contentContainerStyle={styles.chipRow}>
         {LEARN_LEVELS.map((lv) => (

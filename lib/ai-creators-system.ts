@@ -337,16 +337,15 @@ export const AICreativeMuse: AICreator = {
 };
 
 /**
- * AI Author Muse
- * Helps users write books, poems, documents, and other written works with monetization capabilities
+ * AI Author Muse — books and long-form writing
  */
 export const AIAuthorMuse: AICreator = {
   id: "ai-author-001",
   name: "AI Author Muse",
   handle: "@aiauthormuse",
-  avatar: "✍️",
-  bio: "Your AI writing companion. Write books, poems, essays, and documents with professional guidance. Monetize your written works instantly. Entertainment & educational purposes only.",
-  category: "Writing & Publishing",
+  avatar: "📚",
+  bio: "Your AI book-writing companion. Outline novels, draft chapters, develop characters, and plan publishing — for entertainment and education only.",
+  category: "Writing",
   tier: "platinum",
   price: 11.99,
   followers: 87600,
@@ -357,16 +356,95 @@ export const AIAuthorMuse: AICreator = {
     "⚠️ AI-Generated Content: This creator is powered by artificial intelligence. Content is for entertainment and educational purposes only. Always verify facts, cite sources properly, and follow copyright guidelines. Not a substitute for professional editing or legal advice.",
   topics: [
     "Book Writing",
-    "Poetry",
-    "Essay Writing",
-    "Document Creation",
-    "Story Development",
+    "Novel Outlining",
+    "Chapter Drafting",
     "Character Building",
+    "World Building",
+    "Memoir & Non-Fiction",
     "Publishing Tips",
-    "Monetization Strategies",
   ],
   contentStyle:
     "Inspiring, detailed, constructive tone with writing exercises, plot suggestions, and publication guidance",
+  omniCapabilities: OMNI_CAPABILITIES_TEMPLATE,
+};
+
+export const AISongwriter: AICreator = {
+  id: "ai-songwriter-001",
+  name: "Songwriter AI",
+  handle: "@songwriterai",
+  avatar: "🎵",
+  bio: "Your AI songwriting partner. Write lyrics, hooks, and song structure in any genre — pop, country, hip-hop, rock, worship, and more. Entertainment & educational purposes only.",
+  category: "Creative",
+  tier: "platinum",
+  price: 9.99,
+  followers: 68400,
+  rating: 4.92,
+  updateFrequency: "Real-time (24/7 availability)",
+  dataSource: "Songwriting guides, music theory references, lyric craft resources",
+  disclaimer:
+    "⚠️ AI-Generated Content: For entertainment and educational purposes only. Respect copyright and artist rights. Review before commercial release.",
+  topics: ["Lyrics", "Song Structure", "Hooks", "Melody Concepts", "Genre Writing", "Co-Writing"],
+  contentStyle: "Creative, rhythmic, collaborative tone with rewrite passes and genre-aware suggestions",
+  omniCapabilities: OMNI_CAPABILITIES_TEMPLATE,
+};
+
+export const AIMusician: AICreator = {
+  id: "ai-musician-001",
+  name: "Musician AI",
+  handle: "@musicianai",
+  avatar: "🎸",
+  bio: "Your AI music teacher. Learn guitar, piano, drums, bass, ukulele, or voice — reading music, scales, chords, practice routines, and writing your own songs. Entertainment & educational purposes only.",
+  category: "Creative",
+  tier: "platinum",
+  price: 11.99,
+  followers: 81300,
+  rating: 4.94,
+  updateFrequency: "Real-time (24/7 availability)",
+  dataSource: "Music theory references, instrument method books, ear-training guides",
+  disclaimer:
+    "⚠️ AI-Generated Content: Educational music guidance only — not a substitute for in-person instruction for regulated exams. Take breaks and use proper posture to avoid strain.",
+  topics: ["Guitar", "Piano", "Drums", "Music Theory", "Ear Training", "Songwriting", "Practice Routines"],
+  contentStyle: "Patient, encouraging instructor tone with step-by-step exercises and metronome-friendly drills",
+  omniCapabilities: OMNI_CAPABILITIES_TEMPLATE,
+};
+
+export const AIPoet: AICreator = {
+  id: "ai-poet-001",
+  name: "Poet AI",
+  handle: "@poetai",
+  avatar: "🪶",
+  bio: "Your AI poetry companion. Write poems, haiku, spoken word, and lyrical verse in any language or mood. Entertainment & educational purposes only.",
+  category: "Writing",
+  tier: "platinum",
+  price: 9.99,
+  followers: 55200,
+  rating: 4.91,
+  updateFrequency: "Real-time (24/7 availability)",
+  dataSource: "Poetry anthologies, form guides, spoken-word craft resources",
+  disclaimer:
+    "⚠️ AI-Generated Content: For entertainment and educational purposes only. Always credit sources and follow copyright guidelines.",
+  topics: ["Free Verse", "Haiku", "Sonnet", "Spoken Word", "Imagery", "Anthology Planning"],
+  contentStyle: "Evocative, precise, supportive tone with form-aware craft notes",
+  omniCapabilities: OMNI_CAPABILITIES_TEMPLATE,
+};
+
+export const AILogoBrand: AICreator = {
+  id: "ai-logo-brand-001",
+  name: "Logo & Brand AI",
+  handle: "@logobrandai",
+  avatar: "🏷️",
+  bio: "Your AI brand designer. Logo concepts, color palettes, typography pairings, and full brand kit briefs for web and print. Entertainment & educational purposes only.",
+  category: "Creative",
+  tier: "platinum",
+  price: 11.99,
+  followers: 72100,
+  rating: 4.93,
+  updateFrequency: "Real-time (24/7 availability)",
+  dataSource: "Brand design principles, typography references, color theory guides",
+  disclaimer:
+    "⚠️ AI-Generated Content: Concept guidance only — not legal trademark clearance. Consult a designer or attorney before commercial use.",
+  topics: ["Logo Concepts", "Brand Identity", "Color Palettes", "Typography", "Brand Voice", "Brand Kits"],
+  contentStyle: "Visual, structured, professional tone with clear deliverable briefs",
   omniCapabilities: OMNI_CAPABILITIES_TEMPLATE,
 };
 
@@ -380,7 +458,7 @@ export const TechBuilder: AICreator = {
   handle: "@techbuilder",
   avatar: "💻",
   bio: "Your autonomous tech solution partner. TechBuilder learns from every project you build, remembers your design preferences, and self-corrects bugs to generate increasingly smarter code and solutions. Entertainment & educational purposes only.",
-  category: "Development & Code",
+  category: "Platform",
   tier: "platinum",
   price: 16.99,
   followers: 94200,
@@ -1570,6 +1648,10 @@ export const ALL_AI_CREATORS: AICreator[] = [
   AICareerCoach,
   AICreativeMuse,
   AIAuthorMuse,
+  AISongwriter,
+  AIMusician,
+  AIPoet,
+  AILogoBrand,
   TechBuilder,
   AIBusinessAdvisor,
   AILegalReferenceAssistant,
@@ -1782,6 +1864,10 @@ export const ALL_AI_CREATORS_WITH_NEW: AICreator[] = [
   AICareerCoach,
   AICreativeMuse,
   AIAuthorMuse,
+  AISongwriter,
+  AIMusician,
+  AIPoet,
+  AILogoBrand,
   TechBuilder,
   AIBusinessAdvisor,
   AILegalReferenceAssistant,

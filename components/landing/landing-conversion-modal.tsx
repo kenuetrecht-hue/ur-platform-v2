@@ -54,7 +54,7 @@ export function LandingConversionModal({ visible, onClose, creatorId, creatorNam
           <Pressable
             onPress={() =>
               voiceMutation.mutate({
-                creatorId: creatorId as "ai-marina-mechanic-001" | "contentmate" | "linguamate" | "ai-wellness-001" | "ai-3d-specialist",
+                creatorId: creatorId as "ai-coder-001" | "ai-marina-mechanic-001" | "contentmate" | "linguamate" | "ai-wellness-001" | "ai-3d-specialist",
                 text: displayReply(reply).slice(0, LANDING_DEMO_VOICE_TEXT_MAX),
               })
             }

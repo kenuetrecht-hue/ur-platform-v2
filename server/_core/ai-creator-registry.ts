@@ -10,6 +10,7 @@ import {
   STORE_MANAGER_SYSTEM_PROMPT,
   SPECIALIST_MULTILINGUAL_WRAPPER,
   BLUEPRINT_READER_SYSTEM_PROMPT,
+  TECH_BUILDER_SYSTEM_PROMPT,
 } from "./multilingual-prompts";
 import { type PlatformAiRole } from "./ai-roles";
 import { getHiveCapabilities, HIVE_PEER_GRAPH } from "./ai-hive-capabilities";
@@ -194,20 +195,26 @@ export const CREATOR_AI_REGISTRY: CreatorAiDefinition[] = [
   specialist("ai-crypto-001", "AI Crypto Analyst", "₿", "Finance", "Cryptocurrency market analysis and education.", ["Market trends", "Blockchain concepts", "Risk management", "Portfolio education"], ["Guaranteed returns", "Insider trading tips"]),
   specialist("ai-news-001", "AI News Daily", "📰", "News", "Daily news summaries and context.", ["News summaries", "Background context", "Multiple perspectives"], ["Fabricating events", "Unverified breaking claims"]),
   specialist("ai-career-001", "AI Career Coach", "🎯", "Career", "Career development and job search coaching.", ["Resume tips", "Interview prep", "Career pivots", "Networking"], ["Guaranteed job offers", "Discriminatory hiring advice"]),
-  specialist("ai-creative-001", "AI Creative Muse", "🎨", "Creative", "Creative inspiration across media.", ["Brainstorming", "Concept development", "Creative blocks"], ["Copyright infringement guidance"]),
-  specialist("ai-author-001", "AI Author Muse", "📚", "Writing", "Writing and storytelling assistance.", ["Plot development", "Character arcs", "Editing feedback", "Publishing basics"], ["Plagiarism", "Ghostwriting academic submissions"]),
-  specialist("ai-coder-001", "TechBuilder", "💻", "Technology", "Teach and build software — learn to code on your own, with sandbox projects.", [
-    "Code review and debugging",
+  specialist("ai-creative-001", "AI Creative Muse", "🎨", "Creative", "Cross-media creative inspiration — brainstorming, mood boards, and artistic exercises.", ["Brainstorming", "Concept development", "Creative blocks", "Art and design exercises"], ["Copyright infringement guidance"]),
+  specialist("ai-author-001", "AI Author Muse", "📚", "Writing", "Books, novels, memoirs, and long-form writing — outline, draft, edit, and publish.", ["Novel and book outlining", "Chapter drafting and revision", "Character arcs and world-building", "Memoir and non-fiction structure", "Publishing and self-publishing basics"], ["Plagiarism", "Ghostwriting academic submissions"]),
+  specialist("ai-songwriter-001", "Songwriter AI", "🎵", "Creative", "Write songs and lyrics — hooks, verses, bridges, melody ideas, any genre.", ["Lyrics and song structure (verse, chorus, bridge)", "Hooks, titles, and rhyme schemes", "Melody and chord progression concepts", "Genre styles: pop, country, hip-hop, rock, worship, and more", "Co-writing and revision passes"], ["Copyright infringement", "Impersonating artists for commercial release"]),
+  specialist("ai-musician-001", "Musician AI", "🎸", "Creative", "Learn to play instruments, read music, practice effectively, and write your own songs.", ["Guitar, piano, drums, bass, ukulele, and voice fundamentals", "Reading notation, rhythm, scales, and chords", "Practice routines and metronome training", "Ear training and transcribing melodies", "Writing music on your instrument", "Home recording and performance tips"], ["Replacing in-person music teachers for regulated exams", "Medical advice for repetitive strain injuries"]),
+  specialist("ai-poet-001", "Poet AI", "🪶", "Writing", "Poems, haiku, spoken word, and lyrical verse — any mood, any language.", ["Poetry forms: free verse, sonnet, haiku, slam, ballad", "Imagery, metaphor, rhythm, and line breaks", "Spoken-word and performance notes", "Anthology and chapbook planning", "Revision and critique of user drafts"], ["Plagiarism", "Publishing others' work as your own"]),
+  specialist("ai-logo-brand-001", "Logo & Brand AI", "🏷️", "Creative", "Logo concepts, brand identity, color palettes, typography, and brand kits.", ["Logo concept briefs and SVG-ready descriptions", "Brand name, tagline, and voice guidelines", "Color palette and typography pairing", "Brand kit checklist for web and print", "Handoff briefs for designers and TechBuilder web builds"], ["Trademark clearance claims", "Copying existing brand marks"]),
+  specialist("ai-coder-001", "TechBuilder", "💻", "Platform", "UR Platform lead coder — ship on the same stack UR runs (Expo, tRPC, MySQL, Supabase). Chat, Learn, Build sandbox, voice, hive, live sessions, and subscriptions.", [
+    "Full-stack UR Platform development — mobile, web, API, database, auth",
+    "Code review, debugging, architecture, and security-first refactors",
     "Self-paced coding lessons for beginners through advanced",
     "Hands-on exercises — learn by typing code yourself",
-    "Architecture and best practices",
-    "Sandbox project structure and file organization",
-    "Build agent — autonomous multi-step builds with diff review",
-    "GitHub sync, live preview, CI generation, stack templates",
+    "Sandbox project structure, forge agent, templates, GitHub sync, preview, CI",
+    "Build tab — autonomous multi-step builds with diff review",
     "Learn mode — programming lessons, practice, interview prep",
-    "AI Hive consultation with 3D, product, and security specialists",
+    "AI Hive consultation with 3D, product, security, and trade specialists",
     "Web search for docs and latest APIs",
+    "Voice talk-time parity with other professional specialists",
+    "Live code lab sessions when enabled",
     "3D workspace collaboration for technical design",
+    "Daily engagement and cross-device chat sync",
   ], ["Malware", "Unauthorized access tools", "Executing untrusted code on user devices without consent"]),
   specialist("ai-game-dev-001", "GameForge", "🎮", "Game Development", "Teach and build video games — ship simple titles to Apple App Store & Google Play, or scale to massive worlds in a secure sandbox.", [
     "Game design, core loops, and player motivation",
@@ -388,6 +395,9 @@ export function buildCreatorSystemPrompt(creatorId: string): string {
   }
   if (creatorId === BLUEPRINT_READER_AI_ID) {
     return BLUEPRINT_READER_SYSTEM_PROMPT;
+  }
+  if (creatorId === "ai-coder-001") {
+    return TECH_BUILDER_SYSTEM_PROMPT;
   }
   if (creatorId === "linguamate" || creatorId === "ai-translator-001") {
     return LANGUAGE_AI_SYSTEM_PROMPT;

@@ -54,7 +54,7 @@ export const PLATFORM_SECTION_CATALOG: PlatformSectionMeta[] = [
     id: "forge_sandbox",
     label: "Forge & Code Sandbox",
     description: "TechBuilder, GameForge, and Forge agent pipelines",
-    routes: [],
+    routes: ["/tech-builder"],
   },
   {
     id: "ai_chat",

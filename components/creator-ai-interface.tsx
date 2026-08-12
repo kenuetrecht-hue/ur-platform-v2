@@ -223,12 +223,18 @@ export function CreatorAIInterface({
   const talkMinutes = talkStatus.data?.minutesRemaining ?? premium.data?.talkMinutesRemaining ?? 0;
   const hasTalkTime = talkMinutes > 0;
   const supportsVoice = isForgeSpecialist(creatorId) || isAssociateAi || hasTalkTime;
+  const forgeEmbedded = embedded && isForgeSpecialist(creatorId);
+  const showVoiceHiveControls = !embedded || forgeEmbedded;
   const hasPaidVoice =
     isAssociateAi
       ? Boolean(premium.data?.affiliateVoice)
       : creatorId === "contentmate"
         ? Boolean(premium.data?.creatorVoice)
         : true;
+
+  useEffect(() => {
+    if (forgeEmbedded) setShowExtras(true);
+  }, [forgeEmbedded]);
 
   useEffect(() => {
     messageSeq.current = 0;
@@ -576,7 +582,7 @@ export function CreatorAIInterface({
             },
           ]}
         >
-          {!embedded ? (
+          {showVoiceHiveControls ? (
             <Pressable
               onPress={() => setShowExtras((v) => !v)}
               style={[styles.extrasToggle, { borderColor: colors.border, backgroundColor: colors.surface }]}
@@ -588,7 +594,7 @@ export function CreatorAIInterface({
             </Pressable>
           ) : null}
 
-          {!embedded && showExtras ? (
+          {showVoiceHiveControls && showExtras ? (
         <>
           {!isAssociateAi ? (
             <Pressable

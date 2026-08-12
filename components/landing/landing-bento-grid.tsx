@@ -14,6 +14,19 @@ type BentoCard = {
 
 const CARDS: BentoCard[] = [
   {
+    id: "techbuilder",
+    title: "TechBuilder",
+    avatar: "💻",
+    tag: "PLATFORM CODER",
+    accent: T.brandBlueLight,
+    lines: [
+      "Scaffold Expo + tRPC + Supabase auth",
+      "Debug API routes & MySQL schema",
+      "Learn tab → Build sandbox → ship",
+      "Voice, hive, live labs — full parity",
+    ],
+  },
+  {
     id: "marina",
     title: "Marina Mechanic AI",
     avatar: "⚓",

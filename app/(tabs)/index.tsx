@@ -71,6 +71,54 @@ export default function HomeScreen() {
                     }),
                 },
                 {
+                  label: "TechBuilder · Apps",
+                  onPress: () =>
+                    router.push({
+                      pathname: "/ais",
+                      params: { group: "platform", ai: "ai-coder-001" },
+                    }),
+                },
+                {
+                  label: "Author Muse · Books",
+                  onPress: () =>
+                    router.push({
+                      pathname: "/ais",
+                      params: { group: "creative", ai: "ai-author-001" },
+                    }),
+                },
+                {
+                  label: "Songwriter AI",
+                  onPress: () =>
+                    router.push({
+                      pathname: "/ais",
+                      params: { group: "creative", ai: "ai-songwriter-001" },
+                    }),
+                },
+                {
+                  label: "Musician AI",
+                  onPress: () =>
+                    router.push({
+                      pathname: "/ais",
+                      params: { group: "creative", ai: "ai-musician-001" },
+                    }),
+                },
+                {
+                  label: "Poet AI",
+                  onPress: () =>
+                    router.push({
+                      pathname: "/ais",
+                      params: { group: "creative", ai: "ai-poet-001" },
+                    }),
+                },
+                {
+                  label: "Logo & Brand AI",
+                  onPress: () =>
+                    router.push({
+                      pathname: "/ais",
+                      params: { group: "creative", ai: "ai-logo-brand-001" },
+                    }),
+                },
+                {
                   label: "Create Content",
                   onPress: () => router.push("/(tabs)/create"),
                 },

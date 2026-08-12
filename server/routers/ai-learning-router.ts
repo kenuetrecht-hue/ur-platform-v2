@@ -23,6 +23,12 @@ import {
   isBlueprintTeachingCreator,
 } from "../_core/blueprint-teaching-curriculum";
 import {
+  getCreativePracticeExercises,
+  getCreativeSelfPacedPath,
+  getCreativeTeachingTagline,
+  isCreativeTeachingCreator,
+} from "../_core/creative-arts-teaching-curriculum";
+import {
   createPracticeQuestionSet,
   getLearningProgress,
   recordLessonComplete,
@@ -99,6 +105,17 @@ export const aiLearningRouter = router({
                 advanced: getBlueprintSelfPacedPath("advanced"),
               },
               tagline: "Learn to read any blueprint — any schematic type, any industry trend.",
+            }
+          : {}),
+        ...(isCreativeTeachingCreator(def.id)
+          ? {
+              creativeAcademy: true,
+              selfPacedPaths: {
+                beginner: getCreativeSelfPacedPath(def.id, "beginner"),
+                intermediate: getCreativeSelfPacedPath(def.id, "intermediate"),
+                advanced: getCreativeSelfPacedPath(def.id, "advanced"),
+              },
+              tagline: getCreativeTeachingTagline(def.id),
             }
           : {}),
       };
@@ -230,6 +247,22 @@ export const aiLearningRouter = router({
             starterFile: ex.starterFile,
           })),
           disclaimer: "Educational game dev practice — build scripts and docs in the secure Build sandbox.",
+        };
+      }
+
+      if (isCreativeTeachingCreator(input.creatorId)) {
+        const exercises = getCreativePracticeExercises({
+          creatorId: input.creatorId,
+          count: input.count,
+        });
+        return {
+          questions: exercises.map((ex) => ({
+            id: ex.id,
+            topic: ex.title,
+            question: ex.prompt,
+            level: ex.level,
+          })),
+          disclaimer: "Educational creative practice — produce your own original work.",
         };
       }
 

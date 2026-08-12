@@ -40,6 +40,11 @@ import {
   getBlueprintTeachingModules,
   isBlueprintTeachingCreator,
 } from "./blueprint-teaching-curriculum";
+import {
+  buildCreativeTeachingPromptAddition,
+  getCreativeTeachingModules,
+  isCreativeTeachingCreator,
+} from "./creative-arts-teaching-curriculum";
 
 export type LearningLevel = "beginner" | "intermediate" | "advanced";
 
@@ -137,12 +142,14 @@ const CATEGORY_MODULES: Record<string, Omit<LearningModule, "id">[]> = {
     { title: "Cert prep orientation", description: "Marine tech / ABYC-style study guidance (educational).", certificationPrep: true },
   ],
   Creative: [
-    { title: "Creative process", description: "Ideation, iteration, and critique." },
-    { title: "Medium-specific skills", description: "Apply concepts to your craft." },
+    { title: "Creative process & habits", description: "Ideation, iteration, critique, and finishing work." },
+    { title: "Medium-specific craft", description: "Apply concepts to your art, music, or design." },
+    { title: "Portfolio & showcase prep", description: "Present creative work professionally (educational).", certificationPrep: true },
   ],
   Writing: [
-    { title: "Story structure", description: "Plot, character, and pacing." },
-    { title: "Revision & editing", description: "Polish drafts like a pro." },
+    { title: "Story & structure", description: "Plot, character, pacing, and revision." },
+    { title: "Voice & style", description: "Find your tone and polish drafts." },
+    { title: "Publishing orientation", description: "Paths to share your work (educational).", certificationPrep: true },
   ],
   "3D & Design": [
     { title: "3D modeling basics", description: "Meshes, materials, and topology." },
@@ -211,6 +218,9 @@ export function getCurriculumForCreator(def: CreatorAiDefinition): LearningModul
   if (isBlueprintTeachingCreator(def.id)) {
     return getBlueprintTeachingModules();
   }
+  if (isCreativeTeachingCreator(def.id)) {
+    return getCreativeTeachingModules(def.id);
+  }
 
   const fromCategory = CATEGORY_MODULES[def.category] ?? DEFAULT_MODULES;
   const fromScope = def.inScope.slice(0, 4).map((title) => ({
@@ -266,6 +276,7 @@ ${modeInstructions[mode]}
 ${isCoderTeachingCreator(def.id) ? `\n\n${buildCoderTeachingPromptAddition(level, mode, topic)}` : ""}
 ${isGameTeachingCreator(def.id) ? `\n\n${buildGameTeachingPromptAddition(level, mode, topic)}` : ""}
 ${isBlueprintTeachingCreator(def.id) ? `\n\n${buildBlueprintTeachingPromptAddition(level, mode, topic)}` : ""}
+${isCreativeTeachingCreator(def.id) ? `\n\n${buildCreativeTeachingPromptAddition(def.id, level, mode, topic)}` : ""}
 
 Rules:
 - Educational and recreational purposes only — not licensed professional advice.

@@ -15,6 +15,7 @@ import { LandingConversionModal } from "@/components/landing/landing-conversion-
 import { LANDING_DEMO_MESSAGE_MAX, LANDING_DEMO_REPLY_MAX } from "@/lib/landing-demo-policy";
 
 const DEMO_SPECIALISTS = [
+  { id: "ai-coder-001", label: "TechBuilder", avatar: "💻" },
   { id: "ai-marina-mechanic-001", label: "Marina Mechanic", avatar: "⚓" },
   { id: "contentmate", label: "ContentMate", avatar: "✨" },
   { id: "linguamate", label: "LinguaMate", avatar: "🌍" },

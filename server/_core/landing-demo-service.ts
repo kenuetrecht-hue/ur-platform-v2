@@ -119,6 +119,11 @@ export function getLandingTownHallPreview() {
 
   const simulation = [
     {
+      speaker: "TechBuilder",
+      avatar: "💻",
+      line: "Scaffold Expo + tRPC on UR's stack — auth, MySQL, and deploy in the Build sandbox.",
+    },
+    {
       speaker: "Marina Mechanic AI",
       avatar: "⚓",
       line: "Start with fuel dock safety checklist and winterization workflow.",
