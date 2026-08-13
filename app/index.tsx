@@ -1,11 +1,25 @@
 import { Redirect } from "expo-router";
 import { ActivityIndicator, Platform, View } from "react-native";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 
 export default function Index() {
   const { isAuthenticated, isLoading } = useAuth();
+  const [clientReady, setClientReady] = useState(false);
 
-  if (isLoading) {
+  useEffect(() => {
+    setClientReady(true);
+  }, []);
+
+  // Web: send visitors to the landing page immediately (auth restores in the background).
+  if (Platform.OS === "web") {
+    if (!isLoading && isAuthenticated) {
+      return <Redirect href="/(tabs)" />;
+    }
+    return <Redirect href="/welcome" />;
+  }
+
+  if (clientReady && isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
@@ -13,13 +27,12 @@ export default function Index() {
     );
   }
 
-  if (isAuthenticated) {
-    return <Redirect href="/(tabs)" />;
+  if (!clientReady) {
+    return null;
   }
 
-  // Web visitors get the marketing landing page; native apps go straight to login.
-  if (Platform.OS === "web") {
-    return <Redirect href="/welcome" />;
+  if (isAuthenticated) {
+    return <Redirect href="/(tabs)" />;
   }
 
   return <Redirect href="/login" />;

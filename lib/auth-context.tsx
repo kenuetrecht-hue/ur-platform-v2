@@ -111,7 +111,15 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AUTH_SESSION_TIMEOUT_MS = 8_000;
+const AUTH_SESSION_TIMEOUT_MS = 5_000;
+
+async function persistSessionSafe(session: Session, user: AuthUser): Promise<void> {
+  try {
+    await withTimeout(persistSession(session, user), 3_000, "Auth storage persist");
+  } catch (error) {
+    console.warn("[Auth] Could not persist session locally:", error);
+  }
+}
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return Promise.race([
@@ -130,6 +138,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     let mounted = true;
 
+    const finishLoading = () => {
+      if (mounted) {
+        dispatch({ type: "SET_LOADING", payload: false });
+      }
+    };
+
+    const hardCap = setTimeout(finishLoading, AUTH_SESSION_TIMEOUT_MS + 500);
+
     const restoreSession = async () => {
       try {
         const {
@@ -142,7 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (session?.user && session.access_token) {
           const authUser = mapSupabaseUser(session.user);
-          await persistSession(session, authUser);
+          await persistSessionSafe(session, authUser);
           if (mounted) {
             dispatch({
               type: "LOGIN_SUCCESS",
@@ -152,9 +168,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           return;
         }
 
-        // Fallback: read cached credentials if Supabase session is unavailable
-        const cachedUserJson = await getStoredUserJson();
-        const token = await getAccessToken();
+        const cachedUserJson = await withTimeout(
+          getStoredUserJson(),
+          2_000,
+          "Cached user read",
+        ).catch(() => null);
+        const token = await withTimeout(getAccessToken(), 2_000, "Cached token read").catch(
+          () => null,
+        );
 
         if (cachedUserJson && token && mounted) {
           const user = JSON.parse(cachedUserJson) as AuthUser;
@@ -166,9 +187,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch (error) {
         console.error("[Auth] Session restore failed:", error);
       } finally {
-        if (mounted) {
-          dispatch({ type: "SET_LOADING", payload: false });
-        }
+        clearTimeout(hardCap);
+        finishLoading();
       }
     };
 
@@ -209,6 +229,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     return () => {
       mounted = false;
+      clearTimeout(hardCap);
       subscription.unsubscribe();
     };
   }, []);
@@ -222,21 +243,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         throw new Error("Email and password are required");
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: password.trim(),
-      });
+      const { data, error } = await withTimeout(
+        supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password: password.trim(),
+        }),
+        15_000,
+        "Sign in",
+      );
 
       if (error) {
         throw new Error(error.message);
       }
 
-      if (!data.user || !data.session) {
-        throw new Error("Login failed: No user or session returned");
+      if (!data.user) {
+        throw new Error("Login failed: No user returned");
+      }
+
+      if (!data.session) {
+        if (!data.user.email_confirmed_at) {
+          throw new Error(
+            "Please confirm your email before signing in. Check your inbox for the Supabase confirmation link.",
+          );
+        }
+        throw new Error("Login failed: No session returned. Please try again.");
       }
 
       const authUser = mapSupabaseUser(data.user);
-      await persistSession(data.session, authUser);
+      await persistSessionSafe(data.session, authUser);
       dispatch({
         type: "LOGIN_SUCCESS",
         payload: { user: authUser, accessToken: data.session.access_token },

@@ -1,21 +1,35 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Pressable, Alert, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  ScrollView,
+  Platform,
+  StyleSheet,
+} from "react-native";
 import { useRouter, Link } from "expo-router";
 import { useAuth } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
+import { showUserMessage } from "@/lib/show-user-message";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, isLoading: authLoading } = useAuth();
+  const { login } = useAuth();
   const colors = useColors();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const handleLogin = async () => {
+    setFormError(null);
+
     if (!email.trim() || !password.trim()) {
-      Alert.alert("Error", "Please enter email and password");
+      const msg = "Please enter email and password.";
+      setFormError(msg);
+      showUserMessage("Error", msg);
       return;
     }
 
@@ -24,121 +38,118 @@ export default function LoginScreen() {
       await login(email.trim(), password.trim());
       router.replace("/(tabs)");
     } catch (err) {
-      Alert.alert(
-        "Login Failed",
-        err instanceof Error ? err.message : "Unknown error",
-      );
+      const msg =
+        err instanceof Error ? err.message : "Sign in failed. Please try again.";
+      setFormError(msg);
+      showUserMessage("Login Failed", msg);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const loading = submitting || authLoading;
+  const inputStyle = {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 16,
+    color: colors.foreground,
+    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as object) : null),
+  };
 
   return (
     <ScreenContainer className="bg-background">
       <ScrollView
-        contentContainerStyle={{
-          flexGrow: 1,
-          justifyContent: "center",
-          padding: 24,
-        }}
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
       >
-        <View style={{ gap: 24 }}>
-          <View style={{ alignItems: "center", gap: 8 }}>
+        <View style={styles.form}>
+          <View style={styles.header}>
             <Link href="/welcome" style={{ color: colors.muted, fontSize: 13 }}>
               ← Back to homepage
             </Link>
-            <Text
-              style={{
-                fontSize: 32,
-                fontWeight: "bold",
-                color: colors.foreground,
-              }}
-            >
-              UR Platform
-            </Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>UR Platform</Text>
             <Text style={{ fontSize: 16, color: colors.muted }}>
               Sign in to your account
             </Text>
           </View>
 
-          <View style={{ gap: 16 }}>
-            <View>
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: colors.foreground,
-                  marginBottom: 8,
-                }}
-              >
-                Email
+          {formError ? (
+            <View
+              style={[
+                styles.errorBox,
+                { backgroundColor: colors.surface, borderColor: colors.error ?? "#ef4444" },
+              ]}
+            >
+              <Text style={[styles.errorText, { color: colors.error ?? "#ef4444" }]}>
+                {formError}
               </Text>
+            </View>
+          ) : null}
+
+          <View style={styles.fields}>
+            <View>
+              <Text style={[styles.label, { color: colors.foreground }]}>Email</Text>
               <TextInput
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(value) => {
+                  setEmail(value);
+                  if (formError) setFormError(null);
+                }}
                 placeholder="you@example.com"
                 placeholderTextColor={colors.muted}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                editable={!loading}
-                style={{
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                  borderWidth: 1,
-                  borderRadius: 12,
-                  padding: 12,
-                  fontSize: 16,
-                  color: colors.foreground,
-                }}
+                autoComplete="email"
+                textContentType="emailAddress"
+                editable={!submitting}
+                style={inputStyle}
+                returnKeyType="next"
               />
             </View>
 
             <View>
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: colors.foreground,
-                  marginBottom: 8,
-                }}
-              >
-                Password
-              </Text>
+              <Text style={[styles.label, { color: colors.foreground }]}>Password</Text>
               <TextInput
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(value) => {
+                  setPassword(value);
+                  if (formError) setFormError(null);
+                }}
                 placeholder="Your password"
                 placeholderTextColor={colors.muted}
                 secureTextEntry
-                editable={!loading}
-                style={{
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                  borderWidth: 1,
-                  borderRadius: 12,
-                  padding: 12,
-                  fontSize: 16,
-                  color: colors.foreground,
+                autoComplete="current-password"
+                textContentType="password"
+                editable={!submitting}
+                style={inputStyle}
+                returnKeyType="go"
+                onSubmitEditing={() => {
+                  void handleLogin();
                 }}
               />
             </View>
           </View>
 
           <Pressable
-            onPress={handleLogin}
-            disabled={loading}
-            style={{
+            onPress={() => {
+              void handleLogin();
+            }}
+            disabled={submitting}
+            accessibilityRole="button"
+            style={({ pressed }) => ({
               backgroundColor: colors.primary,
               borderRadius: 12,
               padding: 16,
               alignItems: "center",
-              opacity: loading ? 0.6 : 1,
-            }}
+              opacity: submitting ? 0.6 : pressed ? 0.9 : 1,
+              ...(Platform.OS === "web" ? ({ cursor: submitting ? "default" : "pointer" } as object) : null),
+            })}
           >
             <Text style={{ fontSize: 16, fontWeight: "600", color: "#fff" }}>
-              {loading ? "Signing in..." : "Sign In"}
+              {submitting ? "Signing in..." : "Sign In"}
             </Text>
           </Pressable>
 
@@ -155,3 +166,27 @@ export default function LoginScreen() {
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  scroll: { flex: 1, zIndex: 1 },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    padding: 24,
+  },
+  form: { gap: 24, zIndex: 2 },
+  header: { alignItems: "center", gap: 8 },
+  title: { fontSize: 32, fontWeight: "bold" },
+  fields: { gap: 16 },
+  label: { fontSize: 14, fontWeight: "600", marginBottom: 8 },
+  errorBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+  },
+  errorText: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+  },
+});

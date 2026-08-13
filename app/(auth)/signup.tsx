@@ -17,7 +17,7 @@ const ROLES: { id: UserRole; label: string; desc: string }[] = [
 export default function SignUpScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ ref?: string; role?: string; email?: string; membership?: string }>();
-  const { register, isLoading: authLoading } = useAuth();
+  const { register } = useAuth();
   const colors = useColors();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -83,7 +83,7 @@ export default function SignUpScreen() {
     }
   };
 
-  const loading = submitting || authLoading;
+  const loading = submitting;
 
   return (
     <ScreenContainer className="bg-background">

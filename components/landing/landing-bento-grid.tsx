@@ -138,7 +138,9 @@ function BentoTile({ card, wide }: { card: BentoCard; wide?: boolean }) {
         {
           borderColor: card.accent + "55",
           transform: [{ translateY }],
-          shadowColor: card.accent,
+          ...(Platform.OS === "web"
+            ? { boxShadow: `0 4px 12px ${card.accent}59` }
+            : { shadowColor: card.accent }),
         },
       ]}
     >
@@ -203,7 +205,13 @@ const styles = StyleSheet.create({
         }
       : {}),
   },
-  tileWide: { flexBasis: "48%", maxWidth: "48%", flexShrink: 0 },
+  tileWide: {
+    flexBasis: Platform.OS === "web" ? ("auto" as const) : ("48%" as const),
+    minWidth: Platform.OS === "web" ? 280 : undefined,
+    maxWidth: "48%",
+    flexShrink: 0,
+    flexGrow: 1,
+  },
   tileHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   tileAvatar: { fontSize: 26 },
   livePill: {

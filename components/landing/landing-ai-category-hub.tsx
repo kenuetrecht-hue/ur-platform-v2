@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
+import { View, Text, Pressable, ScrollView, StyleSheet, Platform } from "react-native";
 import {
   AI_HUB_CATEGORY_GROUPS,
   filterCreatorsByGroup,
@@ -133,9 +133,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   card: {
-    flexBasis: "47%",
     flexGrow: 1,
-    maxWidth: "48%",
+    flexShrink: 1,
+    minWidth: 148,
+    maxWidth: Platform.OS === "web" ? ("48%" as const) : ("48%" as const),
+    flexBasis: Platform.OS === "web" ? ("auto" as const) : ("47%" as const),
     borderRadius: 14,
     borderWidth: 1,
     borderColor: T.border,
@@ -146,9 +148,13 @@ const styles = StyleSheet.create({
   cardActive: {
     borderColor: T.brandPurpleLight,
     backgroundColor: "rgba(124, 58, 237, 0.14)",
-    shadowColor: T.brandPurple,
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
+    ...(Platform.OS === "web"
+      ? { boxShadow: "0 0 10px rgba(124, 58, 237, 0.35)" }
+      : {
+          shadowColor: T.brandPurple,
+          shadowOpacity: 0.35,
+          shadowRadius: 10,
+        }),
   },
   cardAvatar: { fontSize: 24, marginBottom: 6 },
   cardName: { color: T.text, fontSize: 13, fontWeight: "800", marginBottom: 4 },

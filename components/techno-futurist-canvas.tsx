@@ -7,7 +7,7 @@ import { withAlpha } from "@/lib/brand-theme";
 export function TechnoFuturistCanvas() {
   const colors = useColors();
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+    <View style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}>
       <LinearGradient
         colors={[colors.background, withAlpha(colors.primary, 0.12), colors.background]}
         start={{ x: 0, y: 0 }}

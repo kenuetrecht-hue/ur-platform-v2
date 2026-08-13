@@ -373,7 +373,7 @@ export function WorkspaceBabylonViewport({
         style={{ width: "100%", height: "100%", display: loading || error ? "none" : "block" }}
       />
 
-      <View style={styles.toolbar} pointerEvents="box-none">
+      <View style={[styles.toolbar, { pointerEvents: "box-none" }]}>
         <Text style={styles.toolbarTitle} numberOfLines={1}>
           {projectName ?? "3D Builder"} · {design.layers.length} layers
         </Text>

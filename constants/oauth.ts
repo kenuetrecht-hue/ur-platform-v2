@@ -17,6 +17,22 @@ const env = {
   deepLinkScheme: schemeFromBundleId,
 };
 
+/** True when EXPO_PUBLIC_API_BASE_URL points at a LAN IP (for phone testing, not browser dev). */
+function isLanApiBaseUrl(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname;
+    return (
+      hostname !== "localhost" &&
+      hostname !== "127.0.0.1" &&
+      (hostname.startsWith("192.168.") ||
+        hostname.startsWith("10.") ||
+        hostname.startsWith("172."))
+    );
+  } catch {
+    return false;
+  }
+}
+
 export const OAUTH_PORTAL_URL = env.portal;
 export const OAUTH_SERVER_URL = env.server;
 export const APP_ID = env.appId;
@@ -30,23 +46,26 @@ export const API_BASE_URL = env.apiBaseUrl;
  * URL pattern: https://PORT-sandboxid.region.domain
  */
 export function getApiBaseUrl(): string {
-  // If API_BASE_URL is set, use it
-  if (API_BASE_URL) {
-    return API_BASE_URL.replace(/\/$/, "");
+  // Expo web SSR: window is undefined on first render — still use localhost API in dev,
+  // not the LAN IP from .env (that value is for physical phones on Wi‑Fi).
+  if (ReactNative.Platform.OS === "web" && typeof window === "undefined" && env.apiBaseUrl) {
+    if (isLanApiBaseUrl(env.apiBaseUrl)) {
+      return "http://localhost:3000";
+    }
   }
 
-  // On web, point API calls at the Express server (port 3000) unless same-origin prod.
+  // Web on this machine: always use localhost API (Metro is :8082, Express is :3000).
+  // EXPO_PUBLIC_API_BASE_URL may be a LAN IP for physical phones — don't use that in the browser.
   if (ReactNative.Platform.OS === "web" && typeof window !== "undefined" && window.location) {
     const { protocol, hostname, port } = window.location;
+
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return `${protocol}//${hostname}:3000`;
+    }
 
     // Production: web static bundle served from same host as API — relative URLs work.
     if (port === "3000" || port === "") {
       return "";
-    }
-
-    // Local dev: Metro web (8081/8082/etc.) → API on 3000
-    if (hostname === "localhost" || hostname === "127.0.0.1") {
-      return `${protocol}//${hostname}:3000`;
     }
 
     // Manus cloud sandbox: 8081-host → 3000-host
@@ -56,7 +75,24 @@ export function getApiBaseUrl(): string {
     }
   }
 
-  // Fallback to relative URL (same origin)
+  if (API_BASE_URL) {
+    return API_BASE_URL.replace(/\/$/, "");
+  }
+
+  if (ReactNative.Platform.OS === "web" && typeof window !== "undefined" && window.location) {
+    const { protocol, hostname, port } = window.location;
+    if (port === "3000" || port === "") {
+      return "";
+    }
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return `${protocol}//${hostname}:3000`;
+    }
+    const apiHostname = hostname.replace(/^8081-/, "3000-");
+    if (apiHostname !== hostname) {
+      return `${protocol}//${apiHostname}`;
+    }
+  }
+
   return "";
 }
 

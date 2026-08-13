@@ -16,6 +16,14 @@ export function PlatformDisclosureFrame({
 }) {
   const segments = useSegments();
   const inTabs = segments[0] === "(tabs)";
+  // Marketing landing is full-bleed dark UI — global disclosure bars clash and steal vertical space.
+  const isMarketingLanding = segments[0] === "welcome";
+  const isAuthScreen =
+    segments[0] === "(auth)" || segments[0] === "login" || segments[0] === "signup";
+
+  if (isMarketingLanding || isAuthScreen) {
+    return <View style={styles.root}>{children}</View>;
+  }
 
   return (
     <View style={styles.root}>

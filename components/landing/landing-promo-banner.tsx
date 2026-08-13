@@ -98,7 +98,7 @@ export function LandingPromoBanner() {
       end={{ x: 1, y: 1 }}
       style={styles.wrap}
     >
-      <View style={styles.glow} pointerEvents="none" />
+      <View style={[styles.glow, { pointerEvents: "none" }]} />
 
       <Text style={styles.tag}>
         {LAUNCH_SIGNUP_WINDOW_DAYS}-DAY LAUNCH · {totalRemaining} SPOTS LEFT · {tier1Remaining} TIER 1

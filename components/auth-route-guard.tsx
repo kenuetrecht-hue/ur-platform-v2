@@ -1,7 +1,20 @@
 import { useAuth } from "@/lib/auth-context";
 import { useRouter, useSegments } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
+
+function isPublicRoute(segments: string[]): boolean {
+  const root = segments[0];
+  return (
+    root === "(auth)" ||
+    root === "login" ||
+    root === "signup" ||
+    root === "welcome" ||
+    root === "handoff" ||
+    root === "link" ||
+    root === undefined
+  );
+}
 
 /**
  * Redirects users based on auth state:
@@ -12,9 +25,14 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const [clientReady, setClientReady] = useState(false);
 
   useEffect(() => {
-    if (isLoading) return;
+    setClientReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!clientReady || isLoading) return;
 
     const inAuthRoute =
       segments[0] === "(auth)" ||
@@ -37,9 +55,10 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     if (isAuthenticated && inPublicMarketing) {
       router.replace("/(tabs)");
     }
-  }, [isAuthenticated, isLoading, segments, router]);
+  }, [clientReady, isAuthenticated, isLoading, segments, router]);
 
-  if (isLoading) {
+  // Public pages (welcome, login, etc.) render immediately — don't block on Supabase session restore.
+  if (clientReady && isLoading && !isPublicRoute(segments)) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />

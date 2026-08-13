@@ -158,5 +158,5 @@ export function TechnoFuturistCanvas() {
     };
   }, []);
 
-  return <View ref={hostRef} style={StyleSheet.absoluteFill} pointerEvents="none" />;
+  return <View ref={hostRef} style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]} />;
 }
