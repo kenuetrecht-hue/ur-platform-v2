@@ -5,8 +5,8 @@ import React, {
   useEffect,
   useContext,
 } from "react";
-import type { Session, User as SupabaseUser } from "@supabase/supabase-js";
-import { supabase } from "./supabase";
+import type { Session, User as SupabaseUser, SupabaseClient } from "@supabase/supabase-js";
+import { getSupabaseClientAsync } from "./supabase";
 import {
   clearAuthStorage,
   getAccessToken,
@@ -148,6 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const restoreSession = async () => {
       try {
+        const supabase: SupabaseClient = await getSupabaseClientAsync();
         const {
           data: { session },
         } = await withTimeout(
@@ -192,50 +193,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     };
 
-    restoreSession();
+    void restoreSession();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    let subscription: { unsubscribe: () => void } | null = null;
+
+    void getSupabaseClientAsync().then((supabase) => {
       if (!mounted) return;
 
-      if (event === "SIGNED_IN" && session?.user && session.access_token) {
-        const authUser = mapSupabaseUser(session.user);
-        await persistSession(session, authUser);
-        dispatch({
-          type: "LOGIN_SUCCESS",
-          payload: { user: authUser, accessToken: session.access_token },
-        });
-        return;
-      }
+      const {
+        data: { subscription: authSubscription },
+      } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!mounted) return;
 
-      if (event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") {
-        if (event === "SIGNED_OUT") {
-          await clearAuthStorage();
-          dispatch({ type: "LOGOUT" });
-          return;
-        }
-
-        if (session?.user && session.access_token) {
+        if (event === "SIGNED_IN" && session?.user && session.access_token) {
           const authUser = mapSupabaseUser(session.user);
-          await persistSession(session, authUser);
+          await persistSessionSafe(session, authUser);
           dispatch({
             type: "LOGIN_SUCCESS",
             payload: { user: authUser, accessToken: session.access_token },
           });
+          return;
         }
-      }
+
+        if (event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") {
+          if (event === "SIGNED_OUT") {
+            await clearAuthStorage();
+            dispatch({ type: "LOGOUT" });
+            return;
+          }
+
+          if (session?.user && session.access_token) {
+            const authUser = mapSupabaseUser(session.user);
+            await persistSessionSafe(session, authUser);
+            dispatch({
+              type: "LOGIN_SUCCESS",
+              payload: { user: authUser, accessToken: session.access_token },
+            });
+          }
+        }
+      });
+
+      subscription = authSubscription;
     });
 
     return () => {
       mounted = false;
       clearTimeout(hardCap);
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    dispatch({ type: "SET_LOADING", payload: true });
     dispatch({ type: "SET_ERROR", payload: null });
 
     try {
@@ -243,6 +251,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         throw new Error("Email and password are required");
       }
 
+      const supabase = await getSupabaseClientAsync();
       const { data, error } = await withTimeout(
         supabase.auth.signInWithPassword({
           email: email.trim(),
@@ -282,13 +291,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           : "Login failed. Please try again.";
       dispatch({ type: "SET_ERROR", payload: msg });
       throw error;
-    } finally {
-      dispatch({ type: "SET_LOADING", payload: false });
     }
   }, []);
 
   const logout = useCallback(async () => {
     try {
+      const supabase = await getSupabaseClientAsync();
       await supabase.auth.signOut();
     } catch (error) {
       console.error("[Auth] Supabase signOut error:", error);
@@ -313,6 +321,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           throw new Error("Email, password, and name are required");
         }
 
+        const supabase = await getSupabaseClientAsync();
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password: password.trim(),

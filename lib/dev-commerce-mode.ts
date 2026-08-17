@@ -3,12 +3,14 @@
  * Simulated checkout grants real in-app entitlements in development only.
  */
 
-import { ENV } from "../server/_core/env";
-
 export type CommerceMode = "simulated" | "live";
 
 export const DEV_SIMULATED_COMMERCE_NOTICE =
   "Development mode: checkout is simulated — no LLC or live Stripe required. Subscriptions, shop orders, and talk time unlock in-app for testing.";
+
+function isProductionEnv(): boolean {
+  return typeof process !== "undefined" && process.env.NODE_ENV === "production";
+}
 
 export function hasLiveStripeKeys(): boolean {
   const secret = process.env.STRIPE_SECRET_KEY?.trim() ?? "";
@@ -22,8 +24,8 @@ export function hasLiveStripeKeys(): boolean {
 }
 
 export function getCommerceMode(): CommerceMode {
-  if (ENV.isProduction && hasLiveStripeKeys()) return "live";
-  if (ENV.isProduction) return "live";
+  if (isProductionEnv() && hasLiveStripeKeys()) return "live";
+  if (isProductionEnv()) return "live";
   return "simulated";
 }
 

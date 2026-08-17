@@ -65,11 +65,11 @@ export const aiSubscriptionRouter = router({
             stateCode: input.stateCode ?? null,
           }),
         })),
-        usageNote: "Each plan includes a message allowance sized to cover API costs. Hive consults use 3 messages.",
+        usageNote: "Each plan includes a capped message allowance. Hive = 3 messages · Learn/chapters = 5 · 10 web searches/day included. Upgrade for more images, code runs, talk time, and chapters.",
         pricingNote: AI_SUBSCRIPTION_PRICING_SUMMARY,
         paymentNote: "AI subscriptions must be purchased through your web browser — not in the mobile app.",
         baseNote:
-          "Flat pricing for every AI on the platform — $5.99/day (24 hours), $9.99/week, $14.99/month.",
+          "Standard specialist pricing — $7.99/day (24 hours), $15.99/week, $24.99/month. Professional and premium tiers vary.",
       };
     }),
 

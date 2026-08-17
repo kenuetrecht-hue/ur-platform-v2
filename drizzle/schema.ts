@@ -546,3 +546,120 @@ export const aiChatMessages = mysqlTable("aiChatMessages", {
 
 export type AiChatMessage = typeof aiChatMessages.$inferSelect;
 export type InsertAiChatMessage = typeof aiChatMessages.$inferInsert;
+
+/**
+ * Long-term AI user memory profiles (hive context across sessions).
+ */
+export const aiUserMemoryProfiles = mysqlTable(
+  "aiUserMemoryProfiles",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: varchar("userId", { length: 128 }).notNull(),
+    creatorId: varchar("creatorId", { length: 64 }).notNull(),
+    communicationStyle: varchar("communicationStyle", { length: 16 }).default("friendly"),
+    recentTopicsJson: text("recentTopicsJson"),
+    totalInteractions: int("totalInteractions").default(0).notNull(),
+    lastInteractionAt: timestamp("lastInteractionAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    userCreatorUnique: unique("aiUserMemoryProfiles_user_creator").on(table.userId, table.creatorId),
+  }),
+);
+
+export type AiUserMemoryProfile = typeof aiUserMemoryProfiles.$inferSelect;
+
+export const aiUserMemoryEntries = mysqlTable("aiUserMemoryEntries", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: varchar("userId", { length: 128 }).notNull(),
+  creatorId: varchar("creatorId", { length: 64 }).notNull(),
+  userMessage: text("userMessage").notNull(),
+  aiResponse: text("aiResponse").notNull(),
+  sentiment: varchar("sentiment", { length: 16 }).default("neutral"),
+  topicsJson: text("topicsJson"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AiUserMemoryEntry = typeof aiUserMemoryEntries.$inferSelect;
+
+/**
+ * Registered creator identities — anti-impersonation (unique normalized display name per user).
+ */
+export const creatorIdentityProfiles = mysqlTable(
+  "creatorIdentityProfiles",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: varchar("userId", { length: 128 }).notNull().unique(),
+    displayName: varchar("displayName", { length: 80 }).notNull(),
+    normalizedName: varchar("normalizedName", { length: 80 }).notNull(),
+    verified: boolean("verified").default(false).notNull(),
+    enrolledAt: timestamp("enrolledAt").defaultNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    normalizedNameUnique: unique("creatorIdentityProfiles_normalizedName").on(table.normalizedName),
+  }),
+);
+
+export type CreatorIdentityProfile = typeof creatorIdentityProfiles.$inferSelect;
+
+/**
+ * Content fingerprints — detect duplicate / cloned posts across creators.
+ */
+export const contentAssetFingerprints = mysqlTable(
+  "contentAssetFingerprints",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    ownerUserId: varchar("ownerUserId", { length: 128 }).notNull(),
+    contentHash: varchar("contentHash", { length: 64 }).notNull().unique(),
+    source: mysqlEnum("source", ["social_post", "creator_profile"]).notNull(),
+    sourceId: varchar("sourceId", { length: 128 }).notNull(),
+    bodyPreview: varchar("bodyPreview", { length: 120 }),
+    contentRightsMode: mysqlEnum("contentRightsMode", ["original", "licensed_repost"])
+      .default("original")
+      .notNull(),
+    attributionSourceName: varchar("attributionSourceName", { length: 80 }),
+    licenseType: varchar("licenseType", { length: 32 }),
+    registeredAt: timestamp("registeredAt").defaultNow().notNull(),
+  },
+);
+
+export type ContentAssetFingerprint = typeof contentAssetFingerprints.$inferSelect;
+
+/**
+ * Repeat-infringer strikes — DMCA / content theft enforcement.
+ */
+export const creatorInfringementStrikes = mysqlTable("creatorInfringementStrikes", {
+  userId: varchar("userId", { length: 128 }).primaryKey(),
+  strikeCount: int("strikeCount").default(0).notNull(),
+  publishBlocked: boolean("publishBlocked").default(false).notNull(),
+  lastStrikeAt: timestamp("lastStrikeAt"),
+  terminatedAt: timestamp("terminatedAt"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CreatorInfringementStrike = typeof creatorInfringementStrikes.$inferSelect;
+
+/**
+ * User-submitted impersonation / content theft reports (owner review queue).
+ */
+export const contentProtectionReports = mysqlTable("contentProtectionReports", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  reporterUserId: varchar("reporterUserId", { length: 128 }).notNull(),
+  subjectUserId: varchar("subjectUserId", { length: 128 }).notNull(),
+  reportType: mysqlEnum("reportType", [
+    "impersonation",
+    "content_theft",
+    "unauthorized_repost",
+  ]).notNull(),
+  relatedAssetId: varchar("relatedAssetId", { length: 36 }),
+  description: text("description").notNull(),
+  status: mysqlEnum("status", ["open", "confirmed", "dismissed"]).default("open").notNull(),
+  reviewedByOwnerId: varchar("reviewedByOwnerId", { length: 128 }),
+  reviewedAt: timestamp("reviewedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ContentProtectionReport = typeof contentProtectionReports.$inferSelect;

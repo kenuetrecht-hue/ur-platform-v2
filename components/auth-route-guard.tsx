@@ -32,7 +32,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!clientReady || isLoading) return;
+    if (!clientReady || (isLoading && !isAuthenticated)) return;
 
     const inAuthRoute =
       segments[0] === "(auth)" ||

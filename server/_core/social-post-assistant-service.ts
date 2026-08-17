@@ -9,7 +9,10 @@ import { TRPCError } from "@trpc/server";
 import { recordTransaction } from "./transaction-ledger-service";
 import { generateGoogleChatReply, isGoogleCloudAiConfigured } from "./google-ai";
 import { sanitizeUserText } from "./input-sanitize";
-import { SOCIAL_POST_ASSISTANT_SYSTEM_PROMPT } from "./multilingual-prompts";
+import {
+  SOCIAL_ASSIST_CAP_BY_PLAN,
+  SOCIAL_ASSIST_PRICE_CENTS,
+} from "../../lib/usage-caps-catalog";
 
 export type PostAssistantPlan = "day" | "week" | "month" | "year";
 
@@ -30,10 +33,30 @@ export const POST_ASSISTANT_PLANS: Record<
   PostAssistantPlan,
   { priceCents: number; assists: number; durationDays: number; label: string }
 > = {
-  day: { priceCents: 99, assists: 5, durationDays: 1, label: "Day pass" },
-  week: { priceCents: 299, assists: 25, durationDays: 7, label: "Weekly" },
-  month: { priceCents: 499, assists: 120, durationDays: 30, label: "Monthly" },
-  year: { priceCents: 3999, assists: 1500, durationDays: 365, label: "Yearly" },
+  day: {
+    priceCents: SOCIAL_ASSIST_PRICE_CENTS.day,
+    assists: SOCIAL_ASSIST_CAP_BY_PLAN.day,
+    durationDays: 1,
+    label: "Day pass",
+  },
+  week: {
+    priceCents: SOCIAL_ASSIST_PRICE_CENTS.week,
+    assists: SOCIAL_ASSIST_CAP_BY_PLAN.week,
+    durationDays: 7,
+    label: "Weekly",
+  },
+  month: {
+    priceCents: SOCIAL_ASSIST_PRICE_CENTS.month,
+    assists: SOCIAL_ASSIST_CAP_BY_PLAN.month,
+    durationDays: 30,
+    label: "Monthly",
+  },
+  year: {
+    priceCents: SOCIAL_ASSIST_PRICE_CENTS.year,
+    assists: SOCIAL_ASSIST_CAP_BY_PLAN.year,
+    durationDays: 365,
+    label: "Yearly",
+  },
 };
 
 const subscriptions = new Map<string, PostAssistantSubscription>();
@@ -134,7 +157,7 @@ function consumeAssistCredit(userId: string, isPlatformOwner: boolean): PostAssi
     throw new TRPCError({
       code: "FORBIDDEN",
       message:
-        "Subscribe to Social Post Assistant to get AI help writing posts — no creator account needed. Plans start at $0.99/day.",
+        "Subscribe to Social Post Assistant to get AI help writing posts — no creator account needed. Plans start at $2.49/day.",
     });
   }
   sub.assistsUsed += 1;

@@ -35,14 +35,25 @@ function serverUrlWithoutDatabase(url) {
   return withoutQuery.slice(0, idx);
 }
 
+function stripLeadingSqlComments(chunk) {
+  return chunk
+    .split("\n")
+    .filter(function (line) {
+      const trimmed = line.trim();
+      return trimmed.length > 0 && !trimmed.startsWith("--");
+    })
+    .join("\n")
+    .trim();
+}
+
 function splitSqlStatements(sql) {
   return sql
     .split(";")
     .map(function (s) {
-      return s.trim();
+      return stripLeadingSqlComments(s.trim());
     })
     .filter(function (s) {
-      return s.length > 0 && !s.startsWith("--");
+      return s.length > 0;
     });
 }
 

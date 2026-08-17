@@ -4,7 +4,15 @@
  */
 
 import { aiUserMemoryService } from "../../lib/ai-user-memory-service";
-import { webSearchSecurityEngine } from "../web-search-security";
+import {
+  assertAndConsumeWebSearch,
+  tryConsumeCredit,
+} from "./usage-credits-service";
+import { VISION_UPLOAD_MESSAGE_UNITS } from "../../lib/usage-caps-catalog";
+import {
+  ensureUserMemoryHydrated,
+  persistUserMemoryInteraction,
+} from "./ai-user-memory-persistence";
 import {
   getCreatorAi,
   listCreatorsForClient,
@@ -23,7 +31,8 @@ import {
   type GoogleChatTurn,
 } from "./google-ai";
 
-function formatMemoryContext(userId: string, creatorId: string): string {
+async function formatMemoryContext(userId: string, creatorId: string): Promise<string> {
+  await ensureUserMemoryHydrated(userId, creatorId);
   const memory = aiUserMemoryService.getUserMemoryContext(userId, creatorId);
   if (memory.isNewSession && memory.conversationHistory.length === 0) {
     return "";
@@ -54,7 +63,10 @@ async function formatWebSearchContext(
   message: string,
   creatorId: string,
   userId: string,
-): Promise<string> {
+  isPlatformOwner = false,
+): Promise<{ context: string; results: SearchResult[] }> {
+  assertAndConsumeWebSearch({ userId, creatorId, isPlatformOwner });
+
   const search = await webSearchSecurityEngine.performSearch(
     message.slice(0, 200),
     creatorId,
@@ -63,21 +75,24 @@ async function formatWebSearchContext(
   );
 
   if (!search.success || search.results.length === 0) {
-    return "";
+    return { context: "", results: [] };
   }
 
-  const snippets = search.results
-    .slice(0, 5)
+  const top = search.results.slice(0, 5);
+  const snippets = top
     .map(
       (r, i) =>
         `${i + 1}. **${r.title}** (${r.source})\n   ${r.description}\n   ${r.url}`,
     )
     .join("\n");
 
-  return `
+  return {
+    results: top,
+    context: `
 ## Web search results (use to supplement your knowledge — verify critical facts)
 ${snippets}
-`.trim();
+`.trim(),
+  };
 }
 
 function formatHivePeerContext(creatorId: string): string {
@@ -126,9 +141,10 @@ export async function buildHiveEnhancedSystemPrompt(params: {
   userId: string;
   message: string;
   basePrompt: string;
-}): Promise<string> {
+  isPlatformOwner?: boolean;
+}): Promise<{ systemPrompt: string; searchResults: SearchResult[] }> {
   const def = getCreatorAi(params.creatorId);
-  if (!def) return params.basePrompt;
+  if (!def) return { systemPrompt: params.basePrompt, searchResults: [] };
 
   const caps = getHiveCapabilities(params.creatorId);
   const blocks: string[] = [
@@ -136,9 +152,10 @@ export async function buildHiveEnhancedSystemPrompt(params: {
     HIVE_OMNI_PROMPT,
     formatDomainDominance(params.creatorId, def.name),
   ];
+  let searchResults: SearchResult[] = [];
 
   if (caps.longTermMemory) {
-    const mem = formatMemoryContext(params.userId, params.creatorId);
+    const mem = await formatMemoryContext(params.userId, params.creatorId);
     if (mem) blocks.push(mem);
   }
 
@@ -157,8 +174,10 @@ export async function buildHiveEnhancedSystemPrompt(params: {
       params.message,
       params.creatorId,
       params.userId,
+      params.isPlatformOwner,
     );
-    if (search) blocks.push(search);
+    if (search.context) blocks.push(search.context);
+    searchResults = search.results;
   }
 
   if (caps.troubleshooting) {
@@ -169,7 +188,7 @@ When the user reports a problem: (1) clarify symptoms, (2) list likely causes ra
 `.trim());
   }
 
-  return blocks.join("\n\n");
+  return { systemPrompt: blocks.join("\n\n"), searchResults };
 }
 
 export function recordHiveInteraction(params: {
@@ -185,6 +204,7 @@ export function recordHiveInteraction(params: {
     params.userMessage,
     params.aiReply,
   );
+  void persistUserMemoryInteraction(params);
 }
 
 /** Multi-AI hive consultation — primary specialist synthesizes peer insights. */
@@ -193,10 +213,12 @@ export async function runHiveConsultation(params: {
   message: string;
   userId: string;
   history?: GoogleChatTurn[];
+  attachments?: Array<{ mimeType: string; base64: string }>;
 }): Promise<{
   reply: string;
   model: string;
   consultedPeers: Array<{ id: string; name: string; insight: string }>;
+  searchResults: SearchResult[];
 }> {
   const def = getCreatorAi(params.creatorId);
   if (!def) {
@@ -211,7 +233,7 @@ export async function runHiveConsultation(params: {
     const peer = getCreatorAi(peerId);
     if (!peer) continue;
 
-    const peerPrompt = await buildHiveEnhancedSystemPrompt({
+    const peerPromptResult = await buildHiveEnhancedSystemPrompt({
       creatorId: peerId,
       userId: params.userId,
       message: params.message,
@@ -219,7 +241,7 @@ export async function runHiveConsultation(params: {
     });
 
     const { reply: insight } = await generateGoogleChatReply({
-      systemPrompt: peerPrompt,
+      systemPrompt: peerPromptResult.systemPrompt,
       history: [],
       message: `[Hive consultation request from ${def.name}]\n\nProblem: ${params.message}\n\nProvide your domain-specific insight only.`,
     });
@@ -233,7 +255,7 @@ export async function runHiveConsultation(params: {
         .join("\n\n")}`
     : "";
 
-  const basePrompt = await buildHiveEnhancedSystemPrompt({
+  const basePromptResult = await buildHiveEnhancedSystemPrompt({
     creatorId: params.creatorId,
     userId: params.userId,
     message: params.message,
@@ -241,12 +263,18 @@ export async function runHiveConsultation(params: {
   });
 
   const { reply, model } = await generateGoogleChatReply({
-    systemPrompt: basePrompt + synthesisBlock,
+    systemPrompt: basePromptResult.systemPrompt + synthesisBlock,
     history: params.history ?? [],
     message: params.message,
+    attachments: params.attachments?.length ? params.attachments : undefined,
   });
 
-  return { reply, model, consultedPeers };
+  return {
+    reply,
+    model,
+    consultedPeers,
+    searchResults: basePromptResult.searchResults,
+  };
 }
 
 export function getCreatorHiveProfile(creatorId: string) {

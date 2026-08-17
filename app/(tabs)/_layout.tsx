@@ -16,10 +16,7 @@ export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const bottomInset = Math.max(insets.bottom, LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET);
 
-  if (isLoading) {
-    if (!isAuthenticated) {
-      return <Redirect href="/login" />;
-    }
+  if (isLoading && !isAuthenticated) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />

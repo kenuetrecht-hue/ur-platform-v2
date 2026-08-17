@@ -29,7 +29,7 @@ import { TransactionHistoryList, CustomLinkCard } from "@/components/transaction
 import { CreatorPayoutSetupPanel } from "@/components/creator-payout-setup-panel";
 import { CreatorSocialShareBar, CreatorPromoCard } from "@/components/creator-social-share";
 import { CreatorContentMatePanel } from "@/components/creator-contentmate-panel";
-import { CreatorStorePanel } from "@/components/creator-store-panel";
+import { CreatorContentProtectionPanel } from "@/components/creator-content-protection-panel";
 
 type Tab = "overview" | "classes" | "promote" | "store" | "ai";
 
@@ -226,6 +226,7 @@ export function ContentCreatorDashboardPanel() {
               />
             ) : null}
             <CreatorPayoutSetupPanel />
+            <CreatorContentProtectionPanel />
             {analytics ? (
               <View style={styles.statGrid}>
                 <StatCard

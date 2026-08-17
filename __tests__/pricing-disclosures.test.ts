@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildSubscriptionPurchaseSummary,
   buildTalkPurchaseSummary,
+  buildUsageCreditPurchaseSummary,
   formatPurchaseReceiptMessage,
 } from "../lib/pricing-disclosures";
 import { calculateCustomerCheckout } from "../lib/stripe-checkout-pricing";
@@ -17,14 +18,16 @@ describe("pricing-disclosures", () => {
       stateCode: "FL",
     });
 
-    const checkout = calculateCustomerCheckout(1499, "FL");
-    expect(summary.pricing.subtotalDisplay).toContain("$14.99");
+    const checkout = calculateCustomerCheckout(2499, "FL");
+    expect(summary.pricing.subtotalDisplay).toContain("$24.99");
     expect(summary.pricing.salesTaxCents).toBeGreaterThan(0);
     expect(summary.youPay.value).toContain(checkout.totalDisplay);
     expect(summary.priceBreakdown.some((l) => l.label.includes("Florida"))).toBe(true);
     expect(summary.priceBreakdown.some((l) => l.label === "Stripe processing fee")).toBe(true);
     expect(summary.youReceive.some((l) => l.label === "Messages included")).toBe(true);
     expect(summary.notIncluded.some((s) => s.includes("Voice"))).toBe(true);
+    expect(summary.notIncluded.some((s) => s.includes("images"))).toBe(true);
+    expect(summary.youReceive.some((l) => l.label === "Web search included")).toBe(true);
     expect(summary.importantNotes.some((n) => n.includes("web browser"))).toBe(true);
     expect(summary.billingEntity).toBe("UR LLC");
   });
@@ -53,6 +56,18 @@ describe("pricing-disclosures", () => {
     expect(summary.notIncluded.some((s) => s.includes("Text chat"))).toBe(true);
     expect(summary.importantNotes.some((n) => n.includes("30 days"))).toBe(true);
     expect(summary.importantNotes.some((n) => n.toLowerCase().includes("millisecond"))).toBe(true);
+  });
+
+  it("usage credit summary states pay/receive for image packs", () => {
+    const summary = buildUsageCreditPurchaseSummary({
+      productId: "images-imagen",
+      period: "week",
+      stateCode: "FL",
+    });
+    expect(summary).not.toBeNull();
+    expect(summary!.youReceive.some((l) => l.value.includes("20 images"))).toBe(true);
+    expect(summary!.youReceive.some((l) => l.label === "Daily fair-use cap")).toBe(true);
+    expect(summary!.notIncluded.some((s) => s.includes("Text chat"))).toBe(true);
   });
 
   it("formats receipt message for confirmation", () => {

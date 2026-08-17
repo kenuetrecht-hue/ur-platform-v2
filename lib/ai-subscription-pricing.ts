@@ -1,19 +1,11 @@
 /**
- * Central AI specialist subscription pricing — flat rate per specialist.
- * Each AI: $5.99/day (24h) · $9.99/week · $14.99/month.
- * Tier labels remain for usage allowances only, not price multipliers.
+ * Central AI specialist subscription pricing — tiered by compute cost.
+ * Standard: $7.99/day · $15.99/week · $24.99/month (owner-approved Aug 2026).
  */
 
 export type AiSubscriptionPlan = "day" | "week" | "month";
 
 export type AiPriceTier = "standard" | "professional" | "premium";
-
-/** Flat per-AI prices in cents — same for every specialist on the platform. */
-export const AI_SUBSCRIPTION_BASE_CENTS: Record<AiSubscriptionPlan, number> = {
-  day: 599,
-  week: 999,
-  month: 1499,
-};
 
 export const AI_PRICE_TIER_LABEL: Record<AiPriceTier, string> = {
   standard: "Standard",
@@ -21,10 +13,21 @@ export const AI_PRICE_TIER_LABEL: Record<AiPriceTier, string> = {
   premium: "Premium",
 };
 
-/** Premium — high compute / translation API cost (usage caps differ) */
+/** Standard-tier prices in cents — listed in summaries for most specialists. */
+export const AI_SUBSCRIPTION_BASE_CENTS: Record<AiSubscriptionPlan, number> = {
+  day: 799,
+  week: 1599,
+  month: 2499,
+};
+
+export const AI_SUBSCRIPTION_TIER_CENTS: Record<AiPriceTier, Record<AiSubscriptionPlan, number>> = {
+  standard: { day: 799, week: 1599, month: 2499 },
+  professional: { day: 999, week: 1999, month: 2999 },
+  premium: { day: 899, week: 1799, month: 2799 },
+};
+
 const PREMIUM_CREATOR_IDS = new Set(["linguamate", "ai-translator-001"]);
 
-/** Professional — sandbox, blueprint, or heavy reasoning workloads */
 const PROFESSIONAL_CREATOR_IDS = new Set([
   "ai-coder-001",
   "ai-game-dev-001",
@@ -43,9 +46,8 @@ export function getAiPriceTier(creatorId: string): AiPriceTier {
   return "standard";
 }
 
-/** Same retail price for every AI on the platform. */
-export function getPlanPriceCents(_creatorId: string, plan: AiSubscriptionPlan): number {
-  return AI_SUBSCRIPTION_BASE_CENTS[plan];
+export function getPlanPriceCents(creatorId: string, plan: AiSubscriptionPlan): number {
+  return AI_SUBSCRIPTION_TIER_CENTS[getAiPriceTier(creatorId)][plan];
 }
 
 export function getPlanPriceDollars(creatorId: string, plan: AiSubscriptionPlan): number {
@@ -102,8 +104,9 @@ export function getAiSubscriptionPlans(creatorId: string): AiSubscriptionPlanQuo
   });
 }
 
-/** Platform-wide bundle (optional — separate from per-AI pricing). */
-export const PLATFORM_ALL_AI_MONTHLY_CENTS = 4999;
+export const PLATFORM_ALL_AI_DAY_CENTS = 1599;
+export const PLATFORM_ALL_AI_WEEK_CENTS = 3299;
+export const PLATFORM_ALL_AI_MONTHLY_CENTS = 6499;
 
 export const AI_SUBSCRIPTION_PLAN_DAYS: Record<AiSubscriptionPlan, number> = {
   day: 1,
@@ -111,7 +114,6 @@ export const AI_SUBSCRIPTION_PLAN_DAYS: Record<AiSubscriptionPlan, number> = {
   month: 30,
 };
 
-/** Platform-owned AI revenue stays with UR LLC (100%). Creator split applies to human creator stores only. */
 export const AI_SUBSCRIPTION_PLATFORM_SHARE_BPS = 10000;
 
 /** @deprecated Platform AIs — use AI_SUBSCRIPTION_PLATFORM_SHARE_BPS */

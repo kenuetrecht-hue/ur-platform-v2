@@ -32,6 +32,7 @@ export type ApiNamespace =
   | "aiTalk"
   | "landing"
   | "workspace3d"
+  | "usageCredits"
   | "default";
 
 type WindowBucket = {
@@ -78,6 +79,7 @@ const NAMESPACE_USER_LIMITS: Record<ApiNamespace, number> = {
   aiTalk: 40,
   landing: 20,
   workspace3d: 40,
+  usageCredits: 40,
   default: 500,
 };
 
@@ -179,6 +181,11 @@ export function recordNamespaceSuccess(namespace: ApiNamespace): void {
   const circuit = getCircuit(namespace);
   circuit.failures = 0;
   circuit.isOpen = false;
+}
+
+/** Owner-approved ops remediation — reset a tripped namespace circuit. */
+export function resetNamespaceCircuit(namespace: ApiNamespace): void {
+  recordNamespaceSuccess(namespace);
 }
 
 export function recordNamespaceFailure(namespace: ApiNamespace): void {

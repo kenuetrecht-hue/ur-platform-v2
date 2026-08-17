@@ -7,9 +7,10 @@ import { randomUUID } from "crypto";
 import { TRPCError } from "@trpc/server";
 import {
   LOYALTY_WELCOME_BONUS_POINTS,
-  LOYALTY_DAILY_SIGN_IN_POINTS,
   LOYALTY_POINTS_PER_TEXT_MESSAGE,
   LOYALTY_STREAK_MILESTONES,
+  LOYALTY_STREAK_30_FREE_DAY,
+  getDailySignInPointsForStreak,
   getMilestoneForStreak,
   utcDateKey,
   previousUtcDateKey,
@@ -51,6 +52,9 @@ function getOrCreateAccount(userId: string): LoyaltyAccount {
       lastSignInDate: null,
       welcomeBonusClaimed: false,
       milestonesClaimed: [],
+      currentStreakStartDate: null,
+      paidAiPurchaseDuringCurrentStreak: false,
+      streak30FreeDayClaimed: false,
       createdAt: new Date().toISOString(),
     };
     accounts.set(userId, account);
@@ -164,23 +168,34 @@ export async function claimDailySignIn(
         audit,
       });
       account.currentStreakDays = 1;
+      account.currentStreakStartDate = today;
+      account.paidAiPurchaseDuringCurrentStreak = false;
+      account.streak30FreeDayClaimed = false;
     } else {
       account.currentStreakDays = 1;
+      account.currentStreakStartDate = today;
+      account.paidAiPurchaseDuringCurrentStreak = false;
+      account.streak30FreeDayClaimed = false;
+    }
+
+    if (account.currentStreakStartDate == null) {
+      account.currentStreakStartDate = today;
     }
 
     account.longestStreakDays = Math.max(account.longestStreakDays, account.currentStreakDays);
     account.lastSignInDate = today;
     account.totalSignIns += 1;
 
-    addPoints(account, LOYALTY_DAILY_SIGN_IN_POINTS);
+    const dailyPoints = getDailySignInPointsForStreak(account.currentStreakDays);
+    addPoints(account, dailyPoints);
     recordLoyaltyEvent({
       userId,
       eventType: "daily_sign_in",
-      pointsDelta: LOYALTY_DAILY_SIGN_IN_POINTS,
+      pointsDelta: dailyPoints,
       balanceAfter: account.totalPoints,
       streakDays: account.currentStreakDays,
       signInDate: today,
-      description: `Daily sign-in — +${LOYALTY_DAILY_SIGN_IN_POINTS} LP (day ${account.currentStreakDays})`,
+      description: `Daily sign-in — +${dailyPoints} LP (${account.currentStreakDays}-day streak)`,
       audit,
     });
 
@@ -202,10 +217,28 @@ export async function claimDailySignIn(
       });
     }
 
+    const streak30Eligible =
+      account.currentStreakDays >= LOYALTY_STREAK_30_FREE_DAY.requiredStreakDays &&
+      account.paidAiPurchaseDuringCurrentStreak &&
+      !account.streak30FreeDayClaimed;
+
+    if (streak30Eligible) {
+      recordLoyaltyEvent({
+        userId,
+        eventType: "streak_30_free_day_pending",
+        pointsDelta: 0,
+        balanceAfter: account.totalPoints,
+        streakDays: account.currentStreakDays,
+        signInDate: today,
+        description: LOYALTY_STREAK_30_FREE_DAY.label,
+        audit,
+      });
+    }
+
     recordSignIn({
       userId,
       signInDate: today,
-      pointsEarned: LOYALTY_DAILY_SIGN_IN_POINTS,
+      pointsEarned: dailyPoints,
       welcomeBonusIncluded: welcomeBonusAwarded,
       streakDaysAfter: account.currentStreakDays,
       streakWasReset,
@@ -217,7 +250,7 @@ export async function claimDailySignIn(
 
     return buildSignInResponse(account, {
       alreadyClaimedToday: false,
-      pointsAwardedToday: LOYALTY_DAILY_SIGN_IN_POINTS,
+      pointsAwardedToday: dailyPoints + welcomeBonusAwarded,
       welcomeBonusAwarded,
       milestoneUnlocked,
       streakWasReset,
@@ -429,10 +462,59 @@ export function hasLoyaltyTextAccess(userId: string, creatorId: string): boolean
 
 export function getLoyaltyDashboardForUser(userId: string) {
   const account = getOrCreateAccount(userId);
+  const claimedToday = hasClaimedToday(userId);
   return buildLoyaltyDashboard({
     account,
     freeGrants: getAllFreeTextGrantsForUser(userId),
-    claimedToday: hasClaimedToday(userId),
+    claimedToday,
+    streak30FreeDayEligible: isStreak30FreeDayEligibleAccount(account),
+    todayDailySignInPoints: claimedToday
+      ? getDailySignInPointsForStreak(account.currentStreakDays)
+      : getDailySignInPointsForStreak(
+          account.lastSignInDate == null ? 1 : account.currentStreakDays + 1,
+        ),
+    nextDailySignInPoints: getDailySignInPointsForStreak(account.currentStreakDays + 1),
+  });
+}
+
+export function isStreak30FreeDayEligible(userId: string): boolean {
+  return isStreak30FreeDayEligibleAccount(getOrCreateAccount(userId));
+}
+
+function isStreak30FreeDayEligibleAccount(account: LoyaltyAccount): boolean {
+  return (
+    account.currentStreakDays >= LOYALTY_STREAK_30_FREE_DAY.requiredStreakDays &&
+    account.paidAiPurchaseDuringCurrentStreak &&
+    !account.streak30FreeDayClaimed
+  );
+}
+
+/** Call when user completes a paid AI subscription checkout during an active streak. */
+export function markPaidAiPurchaseDuringStreak(userId: string): void {
+  const account = getOrCreateAccount(userId);
+  if (account.currentStreakDays < 1 || !account.currentStreakStartDate) return;
+  account.paidAiPurchaseDuringCurrentStreak = true;
+  accounts.set(userId, account);
+}
+
+export function markStreak30FreeDayClaimed(
+  userId: string,
+  creatorId: string,
+  audit?: LoyaltyAuditContext,
+): void {
+  const account = getOrCreateAccount(userId);
+  account.streak30FreeDayClaimed = true;
+  accounts.set(userId, account);
+  recordLoyaltyEvent({
+    userId,
+    eventType: "streak_30_free_day_claimed",
+    pointsDelta: 0,
+    balanceAfter: account.totalPoints,
+    streakDays: account.currentStreakDays,
+    signInDate: utcDateKey(),
+    creatorId,
+    description: `Claimed free 1-day AI subscription — ${creatorId}`,
+    audit,
   });
 }
 
@@ -441,4 +523,39 @@ export function _clearLoyaltyStreakForTests(): void {
   freeTextGrants.clear();
   claimLocks.clear();
   _clearLoyaltyTrackingForTests();
+}
+
+/** Free text from loyalty redemption (not streak milestone). */
+export function grantLoyaltyFreeTextMessages(params: {
+  userId: string;
+  creatorId: string;
+  messages: number;
+  sourceLabel: string;
+}): FreeTextGrant {
+  assertUserId(params.userId);
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  const grant: FreeTextGrant = {
+    id: `lp-free-${randomUUID().slice(0, 10)}`,
+    userId: params.userId,
+    creatorId: params.creatorId,
+    messagesGranted: params.messages,
+    messagesUsed: 0,
+    source: "loyalty_redemption",
+    grantedAt: new Date().toISOString(),
+    expiresAt,
+    active: true,
+  };
+  freeTextGrants.set(grant.id, grant);
+  const account = getOrCreateAccount(params.userId);
+  recordLoyaltyEvent({
+    userId: params.userId,
+    eventType: "milestone_claimed",
+    pointsDelta: 0,
+    balanceAfter: account.totalPoints,
+    streakDays: account.currentStreakDays,
+    creatorId: params.creatorId,
+    messagesCount: params.messages,
+    description: `Loyalty redemption — ${params.messages} text message(s): ${params.sourceLabel}`,
+  });
+  return grant;
 }

@@ -1,7 +1,7 @@
 # UR Terms of Service
 
 **Effective Date:** May 13, 2026  
-**Last Updated:** May 13, 2026
+**Last Updated:** August 17, 2026
 
 ## 1. Introduction and Acceptance
 
@@ -106,12 +106,19 @@ Followers agree to:
 - Not attempt to circumvent payment systems or access content without payment
 - Comply with all applicable laws and regulations
 
-### 3.3 Prohibited Activities
+### 3.3 Prohibited Activities — Zero Harassment
+
+**No harassment whatsoever will be tolerated on UR Platform.** This includes bullying, threats, stalking, hate speech, sexual harassment, or targeted abuse in any form — AI chat, human messaging, social posts, live sessions, voice, or any other feature.
+
+**If you are found harassing others:**
+- Your privileges may be revoked immediately (suspended or permanently banned)
+- **No money will be returned** — no refunds for subscriptions, credits, talk time, or any paid access
+- UR LLC may remove content and report activity to authorities where required by law
 
 All users agree not to:
 
 - Engage in illegal activities or violate any laws
-- Harass, threaten, defame, or abuse other users
+- **Harass, threaten, defame, stalk, or abuse other users in any way**
 - Share non-consensual intimate content
 - Distribute malware, viruses, or harmful code
 - Attempt to hack, exploit, or compromise the Platform
@@ -152,13 +159,33 @@ UR retains 15% of all revenue generated through the Platform. Creators receive 8
 
 UR does not guarantee payout timing or accuracy and assumes no liability for withdrawal delays or banking errors.
 
-### 5.3 Refunds and Chargebacks
+### 5.3 AI & Digital Access — No Refunds
 
-Followers may request refunds within 7 days of purchase for unused content or services. Chargebacks initiated through payment processors may result in account suspension or termination. Creators are not responsible for chargebacks; disputes are handled between UR, the follower, and the payment processor.
+**All AI and platform digital access purchases from UR LLC are final. No returns. No refunds.**
 
-### 5.4 No Refund Guarantee
+This includes but is not limited to: AI specialist text subscriptions, image credits, code sandbox runs, book/chapter credits, web search packs, hive consults, voice talk time, 3D workspace access, and usage credit top-ups.
 
-UR does not guarantee refunds for any reason. Refund decisions are made at UR's sole discretion. Creators are not obligated to provide refunds to followers.
+- Unused or expired messages, credits, or minutes are forfeited
+- Partial use does not entitle you to a refund
+- Chargebacks may result in immediate account suspension without refund
+
+### 5.4 Content Creator Purchases — Creator Responsibility
+
+**UR LLC is not responsible for refunds, returns, or disputes on purchases from individual content creators.**
+
+Live classes, creator shop items, tips, and creator-specific offers are transactions between you and that creator. Any return or refund policy must be stated by the creator and enforced by the creator — not by UR Platform or UR LLC.
+
+### 5.5 Legacy Membership Refunds
+
+Followers may request refunds within 7 days of purchase for unused legacy membership content where explicitly offered. This does **not** apply to AI specialist subscriptions or usage credits (see §5.3).
+
+### 5.6 Chargebacks
+
+Chargebacks initiated through payment processors may result in account suspension or termination. Creators are not responsible for chargebacks on platform-facilitated payments; disputes are handled between UR LLC, the user, and the payment processor.
+
+### 5.7 No Refund Guarantee
+
+UR does not guarantee refunds for any reason except where required by applicable law. Refund decisions for non-AI legacy products are made at UR's sole discretion.
 
 ## 6. Account Suspension and Termination
 

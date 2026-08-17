@@ -15,6 +15,7 @@ import { usePlatformOwner } from "@/lib/use-platform-owner";
 import type { AdminStaffRole } from "@/lib/admin-access-types";
 import { AiSessionProgrammingPanel } from "@/components/ai-session-programming-panel";
 import { PlatformSectionMaintenancePanel } from "@/components/platform-section-maintenance-panel";
+import { PlatformContentProtectionPanel } from "@/components/platform-content-protection-panel";
 import { TransactionHistoryList } from "@/components/transaction-history-list";
 
 export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatformOwner?: boolean }) {
@@ -24,6 +25,8 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
   const utils = trpc.useUtils();
   const [selectedOpsAi, setSelectedOpsAi] = useState<string>("platform-security-ai");
   const [rejectNote, setRejectNote] = useState("");
+  const [ownerInstructions, setOwnerInstructions] = useState("");
+  const [instructionIncidentId, setInstructionIncidentId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [grantEmail, setGrantEmail] = useState("");
   const [grantReason, setGrantReason] = useState("");
@@ -71,6 +74,24 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
   const approve = trpc.platformOps.approveIncident.useMutation({
     onSuccess: () => {
       void utils.platformOps.listIncidents.invalidate();
+      void utils.platformOps.dashboard.invalidate();
+      void utils.platformOps.listSections.invalidate();
+    },
+  });
+
+  const sendInstructions = trpc.platformOps.submitOwnerInstructions.useMutation({
+    onSuccess: () => {
+      setOwnerInstructions("");
+      setInstructionIncidentId(null);
+      void utils.platformOps.listIncidents.invalidate();
+      void utils.platformOps.listNotifications.invalidate();
+    },
+  });
+
+  const reopenSection = trpc.platformOps.reopenIncidentSection.useMutation({
+    onSuccess: () => {
+      void utils.platformOps.listIncidents.invalidate();
+      void utils.platformOps.listSections.invalidate();
       void utils.platformOps.dashboard.invalidate();
     },
   });
@@ -125,10 +146,13 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
           🏛️ Administration & ops
         </Text>
         <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
-          Doctor, Administration, and Security AIs report here. Review findings and give final
-          approval before any platform action.
+          Doctor, Administration, and Security AIs monitor UR 24/7. When something breaks, they
+          isolate that section immediately, alert you with the problem + fix plan, and wait for your
+          OK before any deploy or reopen.
         </Text>
       </View>
+
+      {isPlatformOwner ? <PlatformContentProtectionPanel /> : null}
 
       {isPlatformOwner ? (
         <View style={{ gap: 10, paddingHorizontal: 16 }}>
@@ -330,7 +354,11 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
                 {inc.affectedSectionId ? (
                   <Text style={{ color: colors.primary, fontSize: 11, marginTop: 4 }}>
                     Section: {inc.affectedSectionId}
-                    {inc.sectionAction ? ` → ${inc.sectionAction}` : ""}
+                  </Text>
+                ) : null}
+                {inc.autoIsolated ? (
+                  <Text style={{ color: "#dc2626", fontSize: 11, marginTop: 4, fontWeight: "700" }}>
+                    🛑 Section auto-isolated — rest of UR still online
                   </Text>
                 ) : null}
               </Pressable>
@@ -338,27 +366,96 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
                 <View style={{ marginTop: 10, gap: 8 }}>
                   <Text style={{ color: colors.foreground, fontSize: 13 }}><Text style={{ fontWeight: "700" }}>Problem: </Text>{inc.problem}</Text>
                   <Text style={{ color: colors.foreground, fontSize: 13 }}><Text style={{ fontWeight: "700" }}>Proposed fix: </Text>{inc.proposedFix}</Text>
+                  {inc.deployProposal?.steps?.length ? (
+                    <View style={{ gap: 4 }}>
+                      <Text style={{ fontWeight: "700", color: colors.foreground, fontSize: 12 }}>
+                        Deploy / remediation plan
+                      </Text>
+                      {inc.deployProposal.steps.map((step, idx) => (
+                        <Text key={`${inc.id}-step-${idx}`} style={{ color: colors.muted, fontSize: 12 }}>
+                          {idx + 1}. {step}
+                        </Text>
+                      ))}
+                    </View>
+                  ) : null}
+                  {inc.ownerInstructions ? (
+                    <Text style={{ color: colors.foreground, fontSize: 12 }}>
+                      <Text style={{ fontWeight: "700" }}>Your instructions: </Text>
+                      {inc.ownerInstructions}
+                    </Text>
+                  ) : null}
+                  {inc.remediationResults?.length ? (
+                    <Text style={{ color: colors.muted, fontSize: 12 }}>
+                      Remediation:{" "}
+                      {inc.remediationResults.map((r) => `${r.success ? "✓" : "✗"} ${r.actionId}`).join(" · ")}
+                    </Text>
+                  ) : null}
                   {inc.actionsTaken.length > 0 ? (
                     <Text style={{ color: colors.muted, fontSize: 12 }}>
                       Actions: {inc.actionsTaken.join(" · ")}
                     </Text>
                   ) : null}
-                  {inc.status === "awaiting_owner_approval" && hasAdminPermission("manage_incidents") ? (
-                    <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
-                      <Pressable
-                        onPress={() => approve.mutate({ incidentId: inc.id, ownerNote: "Approved" })}
-                        style={[styles.actionBtn, { backgroundColor: "#059669" }]}
-                      >
-                        <Text style={styles.actionBtnText}>✅ Final OK</Text>
-                      </Pressable>
-                      <Pressable
-                        onPress={() => reject.mutate({ incidentId: inc.id, ownerNote: rejectNote || "Rejected" })}
-                        style={[styles.actionBtn, { backgroundColor: "#dc2626" }]}
-                      >
-                        <Text style={styles.actionBtnText}>Reject</Text>
-                      </Pressable>
+                  {isPlatformOwner && instructionIncidentId === inc.id ? (
+                    <TextInput
+                      value={ownerInstructions}
+                      onChangeText={setOwnerInstructions}
+                      placeholder="Tell your ops AIs what to do next…"
+                      placeholderTextColor={colors.muted}
+                      multiline
+                      style={[
+                        styles.grantInput,
+                        { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background, minHeight: 72 },
+                      ]}
+                    />
+                  ) : null}
+                  {(inc.status === "awaiting_owner_approval" ||
+                    inc.status === "section_isolated") &&
+                  hasAdminPermission("manage_incidents") ? (
+                    <View style={{ gap: 8, marginTop: 4 }}>
+                      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                        <Pressable
+                          onPress={() => approve.mutate({ incidentId: inc.id, ownerNote: "Approved fix plan" })}
+                          disabled={approve.isPending}
+                          style={[styles.actionBtn, { backgroundColor: "#059669" }]}
+                        >
+                          <Text style={styles.actionBtnText}>
+                            {approve.isPending ? "Running…" : "✅ Approve fix & deploy"}
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() =>
+                            instructionIncidentId === inc.id
+                              ? sendInstructions.mutate({
+                                  incidentId: inc.id,
+                                  instructions: ownerInstructions,
+                                })
+                              : setInstructionIncidentId(inc.id)
+                          }
+                          disabled={sendInstructions.isPending}
+                          style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+                        >
+                          <Text style={styles.actionBtnText}>
+                            {instructionIncidentId === inc.id ? "Send instructions" : "📋 Instruct AIs"}
+                          </Text>
+                        </Pressable>
+                        {inc.affectedSectionId && inc.autoIsolated ? (
+                          <Pressable
+                            onPress={() => reopenSection.mutate({ incidentId: inc.id, ownerNote: "Reopen without full deploy" })}
+                            disabled={reopenSection.isPending}
+                            style={[styles.actionBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
+                          >
+                            <Text style={[styles.actionBtnText, { color: colors.foreground }]}>Reopen section</Text>
+                          </Pressable>
+                        ) : null}
+                        <Pressable
+                          onPress={() => reject.mutate({ incidentId: inc.id, ownerNote: rejectNote || "Rejected" })}
+                          style={[styles.actionBtn, { backgroundColor: "#dc2626" }]}
+                        >
+                          <Text style={styles.actionBtnText}>Reject plan</Text>
+                        </Pressable>
+                      </View>
                     </View>
-                  ) : inc.status === "approved" && hasAdminPermission("manage_incidents") ? (
+                  ) : inc.status === "deploy_executed" || inc.status === "approved" ? (
                     <Pressable
                       onPress={() => resolve.mutate({ incidentId: inc.id })}
                       style={[styles.actionBtn, { backgroundColor: colors.primary, alignSelf: "flex-start" }]}

@@ -290,7 +290,7 @@ export class ContentSafetySystem {
 
       // Update user safety profile
       if (analysis.safetyLevel === "blocked") {
-        this.recordBlockedAttempt(userId);
+        this.recordBlockedAttempt(userId, analysis.harmCategories);
       } else if (analysis.safetyLevel === "warning") {
         this.recordWarning(userId);
       }
@@ -300,12 +300,21 @@ export class ContentSafetySystem {
   }
 
   /**
-   * Record blocked attempt
+   * Record blocked attempt — harassment/hate speech may result in immediate ban.
    */
-  private recordBlockedAttempt(userId: string): void {
+  private recordBlockedAttempt(userId: string, harmCategories: HarmCategory[] = []): void {
     const profile = this.getUserSafetyProfile(userId);
     profile.blockedAttempts++;
     profile.lastBlocked = new Date();
+
+    const severeAbuse = harmCategories.some((c) =>
+      c === "harassment" || c === "hate_speech" || c === "exploitation",
+    );
+    if (severeAbuse) {
+      profile.status = "banned";
+      profile.trustScore = 0;
+      return;
+    }
 
     if (profile.blockedAttempts > 5) {
       profile.status = "suspended";

@@ -27,8 +27,8 @@ import {
 } from "../_core/admin-access-service";
 import { OWNER_ONLY_PLATFORM_AI_IDS } from "../_core/platform-ops-ai";
 import {
-  approveOpsIncident,
   createOpsIncident,
+  executeIncidentRemediation,
   getOpsDashboardSummary,
   getOpsIncident,
   listOpsIncidents,
@@ -41,6 +41,7 @@ import {
   proposeSectionMaintenance,
   ownerDisableSection,
   ownerEnableSection,
+  submitOwnerInstructions,
 } from "../_core/platform-ops-service";
 import {
   getPublicSectionFlags,
@@ -217,7 +218,40 @@ export const platformOpsRouter = router({
         ownerNote: z.string().max(1000).optional(),
       }),
     )
-    .mutation(async ({ input }) => approveOpsIncident(input.incidentId, input.ownerNote)),
+    .mutation(async ({ input }) => executeIncidentRemediation(input.incidentId, input.ownerNote)),
+
+  submitOwnerInstructions: ownerProcedure
+    .input(
+      z.object({
+        incidentId: z.string().min(8).max(64),
+        instructions: z.string().trim().min(1).max(2000),
+      }),
+    )
+    .mutation(async ({ input }) =>
+      submitOwnerInstructions(input.incidentId, input.instructions),
+    ),
+
+  reopenIncidentSection: ownerProcedure
+    .input(
+      z.object({
+        incidentId: z.string().min(8).max(64),
+        ownerNote: z.string().max(1000).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const incident = getOpsIncident(input.incidentId);
+      if (!incident?.affectedSectionId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "No section linked to this incident." });
+      }
+      ownerEnableSection({
+        sectionId: incident.affectedSectionId,
+        ownerNote: input.ownerNote ?? "Owner reopened section manually",
+      });
+      incident.actionsTaken.push(`Owner reopened section: ${incident.affectedSectionId}`);
+      incident.updatedAt = new Date().toISOString();
+      incidents.set(incident.id, incident);
+      return incident;
+    }),
 
   rejectIncident: adminPermissionProcedure("manage_incidents")
     .input(

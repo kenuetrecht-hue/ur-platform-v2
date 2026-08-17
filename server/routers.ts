@@ -26,6 +26,7 @@ import { forgeAgentRouter } from "./routers/forge-agent-router";
 import { aiLiveSessionRouter } from "./routers/ai-live-session-router";
 import { partnerDashboardRouter } from "./routers/partner-dashboard-router";
 import { socialRouter } from "./routers/social-router";
+import { contentProtectionRouter } from "./routers/content-protection-router";
 import { commerceRouter } from "./routers/commerce-router";
 import { blueprintReaderRouter } from "./routers/blueprint-reader-router";
 import { aiSubscriptionRouter } from "./routers/ai-subscription-router";
@@ -33,6 +34,7 @@ import { aiTalkRouter } from "./routers/ai-talk-router";
 import { workspace3dRouter } from "./routers/workspace-3d-router";
 import { loyaltyRouter } from "./routers/loyalty-router";
 import { hiveTownHallRouter } from "./routers/hive-town-hall-router";
+import { usageCreditsRouter } from "./routers/usage-credits-router";
 import { landingRouter } from "./routers/landing-router";
 import { destroyAllSessionsForUser } from "./_core/forge-session-manager";
 
@@ -174,12 +176,14 @@ export const appRouter = router({
   aiLiveSessions: aiLiveSessionRouter,
   partnerDashboard: partnerDashboardRouter,
   social: socialRouter,
+  contentProtection: contentProtectionRouter,
   commerce: commerceRouter,
   blueprintReader: blueprintReaderRouter,
   aiSubscription: aiSubscriptionRouter,
   aiTalk: aiTalkRouter,
   workspace3d: workspace3dRouter,
   loyalty: loyaltyRouter,
+  usageCredits: usageCreditsRouter,
 });
 
 export type AppRouter = typeof appRouter;

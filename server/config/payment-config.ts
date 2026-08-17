@@ -37,9 +37,9 @@ export const paymentConfig = {
 
   // Per-AI subscription (each specialist — flat rate)
   aiSpecialistSubscription: {
-    day: { durationHours: 24, priceInCents: 599 },
-    week: { durationDays: 7, priceInCents: 999 },
-    month: { durationDays: 30, priceInCents: 1499 },
+    day: { durationHours: 24, priceInCents: 799 },
+    week: { durationDays: 7, priceInCents: 1599 },
+    month: { durationDays: 30, priceInCents: 2499 },
   },
 
   // Membership Configuration (legacy stamp bundles — separate from per-AI subs)
@@ -47,19 +47,19 @@ export const paymentConfig = {
     day: {
       name: "Day Membership",
       durationInDays: 1,
-      priceInCents: 599,
+      priceInCents: 799,
       paymentMethod: "web_browser",
     },
     week: {
       name: "Week Membership",
       durationInDays: 7,
-      priceInCents: 999,
+      priceInCents: 1599,
       paymentMethod: "web_browser",
     },
     month: {
       name: "Month Membership",
       durationInDays: 30,
-      priceInCents: 1499,
+      priceInCents: 2499,
       paymentMethod: "web_browser",
     },
     year: {
@@ -72,10 +72,10 @@ export const paymentConfig = {
 
   // 3D Workspace bundles (Option A)
   workspace3d: {
-    dayPass: { durationHours: 24, priceInCents: 799, concurrentAiSlots: 2 },
-    solo: { durationDays: 30, priceInCents: 1999, concurrentAiSlots: 1 },
-    pro: { durationDays: 30, priceInCents: 3999, concurrentAiSlots: 3 },
-    studio: { durationDays: 30, priceInCents: 6999, concurrentAiSlots: 5 },
+    dayPass: { durationHours: 24, priceInCents: 1099, concurrentAiSlots: 2 },
+    solo: { durationDays: 30, priceInCents: 2999, concurrentAiSlots: 1 },
+    pro: { durationDays: 30, priceInCents: 4999, concurrentAiSlots: 3 },
+    studio: { durationDays: 30, priceInCents: 7499, concurrentAiSlots: 5 },
     extraAiSlot: { durationDays: 30, priceInCents: 899 },
   },
 
@@ -87,7 +87,7 @@ export const paymentConfig = {
     stripeThresholdInCents: 499,
     /** All other services → web browser checkout */
     webBrowserRequiredNote:
-      "AI subscriptions ($5.99/$9.99/$14.99 per specialist) and $1 talk packs require web browser checkout.",
+      "AI subscriptions ($7.99/$15.99/$24.99 standard per specialist) and $1 talk packs require web browser checkout.",
   },
 
   // Stripe Configuration

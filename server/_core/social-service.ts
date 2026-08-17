@@ -5,6 +5,10 @@
 
 import { randomUUID } from "crypto";
 import { TRPCError } from "@trpc/server";
+import { ENV } from "./env";
+import { getPlatformOwnerDisplayName, isOwnerEmail } from "./owner-auth";
+import { getUserByEmail, getUserByOpenId } from "../db";
+import { toSupabaseOpenId } from "../supabase-auth";
 
 export type FriendshipStatus = "pending" | "accepted" | "blocked";
 
@@ -63,6 +67,166 @@ export function registerSocialUser(params: {
   displayName: string;
 }): void {
   emailIndex.set(params.email.toLowerCase().trim(), params.userId);
+  if (isOwnerEmail(params.email)) {
+    cachedOwnerUserId = params.userId;
+  }
+  void ensureOwnerWelcomeFriendship(params);
+}
+
+function buildOwnerWelcomeMessage(params: {
+  memberName: string;
+  ownerName: string;
+}): { subject: string; body: string } {
+  const greeting = params.memberName.trim() || "there";
+  return {
+    subject: `Thank you for joining UR — ${params.ownerName}`,
+    body:
+      `Hey ${greeting}! 👋\n\n` +
+      `Thank you for joining UR Platform — I'm really glad you're here.\n\n` +
+      `I'm ${params.ownerName}, and you're connected with me as your first friend on UR. ` +
+      `If you have any questions about the website or the app, message me anytime through ` +
+      `Friends & Messages or Internet Center — I'm happy to help.\n\n` +
+      `Welcome aboard!`,
+  };
+}
+
+function friendshipExists(userIdA: string, userIdB: string): boolean {
+  return [...friendships.values()].some(
+    (f) =>
+      f.status !== "blocked" &&
+      ((f.userId === userIdA && f.friendUserId === userIdB) ||
+        (f.userId === userIdB && f.friendUserId === userIdA)),
+  );
+}
+
+function establishAcceptedFriendship(params: {
+  ownerUserId: string;
+  ownerEmail: string;
+  ownerName: string;
+  memberUserId: string;
+  memberEmail: string;
+  memberName: string;
+}): Friendship {
+  const friendship: Friendship = {
+    id: randomUUID(),
+    userId: params.ownerUserId,
+    friendUserId: params.memberUserId,
+    friendEmail: params.memberEmail.toLowerCase().trim(),
+    friendName: params.memberName,
+    status: "accepted",
+    initiatedBy: params.ownerUserId,
+    createdAt: new Date().toISOString(),
+    acceptedAt: new Date().toISOString(),
+  };
+  friendships.set(friendship.id, friendship);
+  return friendship;
+}
+
+let cachedOwnerUserId: string | null | undefined;
+
+async function resolveOwnerSocialUserId(): Promise<string | null> {
+  if (cachedOwnerUserId !== undefined) {
+    return cachedOwnerUserId;
+  }
+
+  if (ENV.platformOwnerEmail) {
+    const indexed = emailIndex.get(ENV.platformOwnerEmail.toLowerCase().trim());
+    if (indexed) {
+      cachedOwnerUserId = indexed;
+      return indexed;
+    }
+  }
+
+  if (ENV.platformOwnerSupabaseId) {
+    const owner = await getUserByOpenId(toSupabaseOpenId(ENV.platformOwnerSupabaseId));
+    if (owner) {
+      cachedOwnerUserId = String(owner.id);
+      if (owner.email) {
+        emailIndex.set(owner.email.toLowerCase().trim(), cachedOwnerUserId);
+      }
+      return cachedOwnerUserId;
+    }
+  }
+
+  if (ENV.platformOwnerEmail) {
+    const owner = await getUserByEmail(ENV.platformOwnerEmail);
+    if (owner) {
+      cachedOwnerUserId = String(owner.id);
+      if (owner.email) {
+        emailIndex.set(owner.email.toLowerCase().trim(), cachedOwnerUserId);
+      }
+      return cachedOwnerUserId;
+    }
+  }
+
+  cachedOwnerUserId = null;
+  return null;
+}
+
+const welcomeFriendInFlight = new Set<string>();
+
+/** Platform owner becomes every new member's first accepted friend. */
+export async function ensureOwnerWelcomeFriendship(params: {
+  userId: string;
+  email: string;
+  displayName: string;
+}): Promise<Friendship | null> {
+  const memberEmail = params.email.toLowerCase().trim();
+  if (!memberEmail || isOwnerEmail(memberEmail)) {
+    return null;
+  }
+  if (welcomeFriendInFlight.has(params.userId)) {
+    return null;
+  }
+
+  welcomeFriendInFlight.add(params.userId);
+  try {
+    const ownerUserId = await resolveOwnerSocialUserId();
+    if (!ownerUserId || ownerUserId === params.userId) {
+      return null;
+    }
+    if (friendshipExists(ownerUserId, params.userId)) {
+      return null;
+    }
+
+    const ownerEmail = ENV.platformOwnerEmail.toLowerCase().trim();
+    const ownerName = getPlatformOwnerDisplayName();
+    const friendship = establishAcceptedFriendship({
+      ownerUserId,
+      ownerEmail,
+      ownerName,
+      memberUserId: params.userId,
+      memberEmail,
+      memberName: params.displayName || memberEmail.split("@")[0] || "Friend",
+    });
+
+    const welcome = buildOwnerWelcomeMessage({
+      memberName: params.displayName,
+      ownerName,
+    });
+    sendDirectMessage({
+      senderUserId: ownerUserId,
+      recipientUserId: params.userId,
+      subject: welcome.subject,
+      body: welcome.body,
+      senderEmail: ownerEmail,
+      recipientEmail: memberEmail,
+      requireFriend: false,
+    });
+
+    return friendship;
+  } finally {
+    welcomeFriendInFlight.delete(params.userId);
+  }
+}
+
+export function _resetSocialStateForTests(): void {
+  friendships.clear();
+  messages.length = 0;
+  subscriptions.clear();
+  emailIndex.clear();
+  cachedOwnerUserId = undefined;
+  welcomeFriendInFlight.clear();
 }
 
 export function resolveUserIdByEmail(email: string): string | null {

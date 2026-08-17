@@ -68,10 +68,10 @@ export function SocialPostAssistantBar({ onDraft, onAiAssisted }: Props) {
                   style={[styles.planBtn, { borderColor: colors.primary, backgroundColor: colors.surface }]}
                 >
                   <Text style={{ color: colors.foreground, fontWeight: "700" }}>
-                    {plan.label} — ${plan.priceUsd}
+                    You pay ${plan.priceUsd} → You get {plan.assists} AI post assists
                   </Text>
                   <Text style={{ color: colors.muted, fontSize: 11 }}>
-                    {plan.assists} AI post assists · {plan.durationDays} day{plan.durationDays > 1 ? "s" : ""}
+                    Valid for {plan.durationDays} day{plan.durationDays > 1 ? "s" : ""} · {plan.label} plan
                   </Text>
                 </Pressable>
               ))}

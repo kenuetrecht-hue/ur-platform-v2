@@ -27,6 +27,11 @@ import { useAuth } from "@/lib/auth-context";
 import { METER_HEARTBEAT_INTERVAL_MS } from "@/lib/ai-metering-policy";
 import { buildAiChatDisclosure, AI_WELCOME_DISCLOSURE_SUFFIX } from "@/lib/platform-disclosure-copy";
 import { brandDisclosureSurface, withAlpha } from "@/lib/brand-theme";
+import { UsageUpgradePanel } from "@/components/usage-upgrade-panel";
+import { UsageAllowanceBanner } from "@/components/usage-allowance-banner";
+import type { ChatMessageAttachmentPreview, ChatSearchCitation } from "@/lib/chat-attachment-types";
+import { AiChatSearchCitations } from "@/components/ai-chat-search-citations";
+import { AiChatMessageMedia } from "@/components/ai-chat-message-media";
 
 interface ChatMessage {
   role: "user" | "ai";
@@ -34,6 +39,9 @@ interface ChatMessage {
   id: string;
   /** Queued locally while offline — flushes when API is reachable. */
   pending?: boolean;
+  attachments?: ChatMessageAttachmentPreview[];
+  searchCitations?: ChatSearchCitation[];
+  generatedImageUrl?: string;
 }
 
 export type CreatorAIInterfaceProps = {
@@ -116,6 +124,9 @@ export function CreatorAIInterface({
     { role: "ai", text: defaultWelcome, id: `${creatorId}-welcome` },
   ]);
   const [inputText, setInputText] = useState("");
+  const [pendingAttachments, setPendingAttachments] = useState<PickedChatAttachment[]>([]);
+  const [imageGenPrompt, setImageGenPrompt] = useState("");
+  const [showImageGen, setShowImageGen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hiveMode, setHiveMode] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
@@ -194,6 +205,7 @@ export function CreatorAIInterface({
   }
 
   const chatMutation = trpc.aiCreators.sendMessage.useMutation();
+  const imageGenMutation = trpc.aiCreators.generateImage.useMutation();
   const voiceMutation = trpc.aiCreators.synthesizeVoice.useMutation();
   const premium = trpc.aiCreators.premiumMediaStatus.useQuery();
   const talkStatus = trpc.aiTalk.getStatus.useQuery();
@@ -259,10 +271,20 @@ export function CreatorAIInterface({
 
   const CHAT_TIMEOUT_MS = 45_000;
 
+  const supportsPhotoAnalysis = Boolean(hiveProfile.data?.capabilities.photoAnalysis);
+  const supportsImageGen = Boolean(hiveProfile.data?.capabilities.imageGeneration);
+
   const sendChatMessage = useCallback(
-    async (rawText: string) => {
+    async (rawText: string, attachmentOverride?: PickedChatAttachment[]) => {
       const userMessage = rawText.trim().slice(0, 2000);
-      if (!userMessage || loading) return;
+      const attachmentsToSend = attachmentOverride ?? pendingAttachments;
+      if ((!userMessage && attachmentsToSend.length === 0) || loading) return;
+
+      const displayText =
+        userMessage ||
+        (attachmentsToSend.length === 1
+          ? `[Attached ${attachmentsToSend[0]?.fileName ?? attachmentsToSend[0]?.mimeType}]`
+          : `[Attached ${attachmentsToSend.length} files]`);
 
       loadingRef.current = true;
       setLoading(true);
@@ -271,8 +293,17 @@ export function CreatorAIInterface({
       if (clearedInput) {
         setInputText("");
       }
+      if (!attachmentOverride) {
+        setPendingAttachments([]);
+      }
 
       if (isAuthenticated && !chatSyncConnected) {
+        if (attachmentsToSend.length > 0) {
+          setSendStatus("Attachments require an online connection.");
+          loadingRef.current = false;
+          setLoading(false);
+          return;
+        }
         const item = await enqueueOutbox({
           creatorId,
           message: userMessage,
@@ -288,7 +319,17 @@ export function CreatorAIInterface({
         return;
       }
 
-      setMessages((prev) => [...prev, makeMessage("user", userMessage)]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          ...makeMessage("user", displayText),
+          attachments: attachmentsToSend.map((a) => ({
+            mimeType: a.mimeType,
+            previewUri: a.previewUri,
+            fileName: a.fileName,
+          })),
+        },
+      ]);
       scrollToBottom();
 
       try {
@@ -306,9 +347,16 @@ export function CreatorAIInterface({
         const result = await Promise.race([
           chatMutation.mutateAsync({
             creatorId,
-            message: userMessage,
+            message: userMessage || "Please analyze the attached file(s).",
             history: priorTurns,
             useHiveConsult: hiveMode,
+            attachments: attachmentsToSend.length
+              ? attachmentsToSend.map((a) => ({
+                  mimeType: a.mimeType,
+                  base64: a.base64,
+                  fileName: a.fileName,
+                }))
+              : undefined,
           }),
           new Promise<never>((_, reject) => {
             setTimeout(
@@ -329,7 +377,13 @@ export function CreatorAIInterface({
           replyText += `\n\n🐝 Hive consulted: ${result.hiveConsulted.map((p) => p.name).join(", ")}`;
         }
 
-        setMessages((prev) => [...prev, makeMessage("ai", replyText)]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            ...makeMessage("ai", replyText),
+            searchCitations: result.searchResults,
+          },
+        ]);
         setAwaitingPitchConsent(Boolean(result.pitchConsentRequest));
         setSendStatus(null);
         void refetchChatThread();
@@ -357,10 +411,68 @@ export function CreatorAIInterface({
       loading,
       makeMessage,
       messages,
+      pendingAttachments,
       scrollToBottom,
       refetchChatThread,
     ],
   );
+
+  const attachFiles = useCallback(async () => {
+    if (!supportsPhotoAnalysis || loading) return;
+    try {
+      const picked = await pickChatAttachments();
+      if (picked.length === 0) return;
+      setPendingAttachments((prev) => [...prev, ...picked].slice(0, 2));
+    } catch (error) {
+      setSendStatus(error instanceof Error ? error.message : "Could not attach file.");
+    }
+  }, [loading, supportsPhotoAnalysis]);
+
+  const generateImageFromPrompt = useCallback(async () => {
+    const prompt = (imageGenPrompt || inputText).trim().slice(0, 2000);
+    if (!prompt || !supportsImageGen || imageGenMutation.isPending || loading) return;
+
+    setLoading(true);
+    setSendStatus("Generating image…");
+    setMessages((prev) => [...prev, makeMessage("user", `Generate image: ${prompt}`)]);
+
+    try {
+      const result = await imageGenMutation.mutateAsync({
+        creatorId,
+        prompt,
+        aspectRatio: "1:1",
+      });
+      setMessages((prev) => [
+        ...prev,
+        {
+          ...makeMessage("ai", "Here is your generated image. You own the prompt; verify rights before commercial use."),
+          generatedImageUrl: result.url,
+        },
+      ]);
+      setImageGenPrompt("");
+      setShowImageGen(false);
+      setSendStatus(null);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        makeMessage("ai", formatChatError(error)),
+      ]);
+      setSendStatus(formatChatError(error).slice(0, 120));
+    } finally {
+      setLoading(false);
+      scrollToBottom();
+    }
+  }, [
+    creatorId,
+    formatChatError,
+    imageGenMutation,
+    imageGenPrompt,
+    inputText,
+    loading,
+    makeMessage,
+    scrollToBottom,
+    supportsImageGen,
+  ]);
 
   const speakLastReply = useCallback(async () => {
     const lastAi = [...messages].reverse().find((m) => m.role === "ai");
@@ -465,10 +577,11 @@ export function CreatorAIInterface({
 
   return (
     <KeyboardAvoidingView
-      style={styles.root}
+      style={[styles.root, embedded && styles.rootEmbedded]}
       behavior={embedded && Platform.OS === "ios" ? overlap.keyboardBehavior : undefined}
       keyboardVerticalOffset={embedded && Platform.OS === "ios" ? overlap.keyboardVerticalOffset : 0}
     >
+      <View style={styles.column}>
       {!hideHeader ? (
       <View style={[styles.header, { backgroundColor: colors.primary }]}>
         <View style={styles.headerRow}>
@@ -555,9 +668,13 @@ export function CreatorAIInterface({
               Hive: {hiveProfile.data.hivePeers.length} peers ·{" "}
               {hiveProfile.data.supportsHiveConsult ? "consult enabled" : "solo mode"}
               {hiveProfile.data.capabilities.webSearch ? " · web search" : ""}
+              {hiveProfile.data.capabilities.photoAnalysis ? " · photo/PDF" : ""}
+              {hiveProfile.data.capabilities.imageGeneration ? " · image gen" : ""}
             </Text>
           </View>
         ) : null}
+
+        <UsageAllowanceBanner creatorId={creatorId} creatorName={creatorName} />
 
         <ScrollView
           ref={scrollViewRef}
@@ -568,6 +685,8 @@ export function CreatorAIInterface({
           ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
+          nestedScrollEnabled
+          showsVerticalScrollIndicator
         >
           {messages.map((msg) => (
             <View
@@ -587,6 +706,13 @@ export function CreatorAIInterface({
               >
                 {msg.text}
               </Text>
+              <AiChatMessageMedia
+                attachments={msg.attachments}
+                generatedImageUrl={msg.generatedImageUrl}
+              />
+              {msg.role === "ai" && msg.searchCitations?.length ? (
+                <AiChatSearchCitations citations={msg.searchCitations} />
+              ) : null}
             </View>
           ))}
           {loading ? (
@@ -766,7 +892,119 @@ export function CreatorAIInterface({
             </Text>
           ) : null}
 
+          {pendingAttachments.length > 0 ? (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 4, paddingBottom: 6 }}>
+              {pendingAttachments.map((att, i) => (
+                <View
+                  key={`pending-${i}`}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    backgroundColor: colors.surface,
+                  }}
+                >
+                  <Text style={{ color: colors.foreground, fontSize: 11 }} numberOfLines={1}>
+                    {att.mimeType.startsWith("image/") ? "🖼" : "📄"}{" "}
+                    {att.fileName ?? att.mimeType}
+                  </Text>
+                  <Pressable
+                    onPress={() =>
+                      setPendingAttachments((prev) => prev.filter((_, idx) => idx !== i))
+                    }
+                    hitSlop={6}
+                  >
+                    <Text style={{ color: colors.error, fontSize: 12 }}>✕</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {supportsImageGen && showImageGen ? (
+            <View style={{ paddingHorizontal: 4, paddingBottom: 6, gap: 6 }}>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    color: colors.foreground,
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    minHeight: 44,
+                  },
+                ]}
+                placeholder="Describe the image to generate…"
+                placeholderTextColor={colors.muted}
+                value={imageGenPrompt}
+                onChangeText={setImageGenPrompt}
+                maxLength={2000}
+              />
+              <Pressable
+                onPress={() => void generateImageFromPrompt()}
+                disabled={loading || imageGenMutation.isPending}
+                style={[styles.hiveToggle, { borderColor: colors.border, backgroundColor: colors.primary, marginTop: 0 }]}
+              >
+                <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>
+                  {imageGenMutation.isPending ? "Generating…" : "🎨 Generate image (Imagen)"}
+                </Text>
+              </Pressable>
+              <UsageUpgradePanel
+                productId="images-imagen"
+                creatorId={creatorId}
+                title="Image credits & upgrades"
+              />
+            </View>
+          ) : null}
+
+          {supportsPhotoAnalysis && pendingAttachments.length > 0 ? (
+            <UsageUpgradePanel
+              productId="images-vision"
+              creatorId={creatorId}
+              title="Photo/PDF analysis credits"
+              compact={false}
+            />
+          ) : null}
+
           <View style={styles.inputRow}>
+            {supportsPhotoAnalysis ? (
+              <Pressable
+                onPress={() => void attachFiles()}
+                disabled={loading || pendingAttachments.length >= 2}
+                hitSlop={8}
+                style={({ pressed }) => [
+                  styles.attachButton,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.surface,
+                    opacity: pressed ? 0.85 : 1,
+                  },
+                ]}
+              >
+                <Text style={{ fontSize: 18 }}>📎</Text>
+              </Pressable>
+            ) : null}
+            {supportsImageGen ? (
+              <Pressable
+                onPress={() => setShowImageGen((v) => !v)}
+                disabled={loading}
+                hitSlop={8}
+                style={({ pressed }) => [
+                  styles.attachButton,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: showImageGen ? colors.primary : colors.surface,
+                    opacity: pressed ? 0.85 : 1,
+                  },
+                ]}
+              >
+                <Text style={{ fontSize: 16 }}>🎨</Text>
+              </Pressable>
+            ) : null}
             <TextInput
               style={[
                 styles.input,
@@ -786,17 +1024,22 @@ export function CreatorAIInterface({
               returnKeyType="send"
               blurOnSubmit={false}
               onSubmitEditing={() => {
-                if (inputText.trim() && !loading) void sendChatMessage(inputText);
+                if ((inputText.trim() || pendingAttachments.length > 0) && !loading) {
+                  void sendChatMessage(inputText);
+                }
               }}
             />
             <Pressable
               onPress={() => void sendChatMessage(inputText)}
-              disabled={loading || !inputText.trim()}
+              disabled={loading || (!inputText.trim() && pendingAttachments.length === 0)}
               hitSlop={8}
               style={({ pressed }) => [
                 styles.sendButton,
                 {
-                  backgroundColor: loading || !inputText.trim() ? colors.muted : colors.primary,
+                  backgroundColor:
+                    loading || (!inputText.trim() && pendingAttachments.length === 0)
+                      ? colors.muted
+                      : colors.primary,
                   opacity: pressed ? 0.85 : 1,
                   minWidth: 72,
                 },
@@ -811,13 +1054,16 @@ export function CreatorAIInterface({
           </View>
         </View>
       </View>
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, minHeight: 0 },
-  chatBody: { flex: 1, minHeight: 0 },
+  root: { flex: 1, minHeight: 0, overflow: "hidden" },
+  rootEmbedded: { width: "100%" },
+  column: { flex: 1, minHeight: 0, overflow: "hidden" },
+  chatBody: { flex: 1, minHeight: 0, overflow: "hidden" },
   composerDock: {
     flexShrink: 0,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -838,8 +1084,8 @@ const styles = StyleSheet.create({
   },
   closeButton: { padding: 4 },
   closePlaceholder: { width: 28 },
-  messages: { flex: 1 },
-  messagesContent: { padding: 12, paddingBottom: 16, gap: 10, flexGrow: 1 },
+  messages: { flex: 1, minHeight: 0 },
+  messagesContent: { padding: 12, paddingBottom: 16, gap: 10 },
   typingRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 4 },
   bubble: { maxWidth: "88%", borderRadius: 16, padding: 12 },
   userBubble: { alignSelf: "flex-end" },
@@ -886,6 +1132,14 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingTop: 4,
   },
+  attachButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   apiBanner: {
     marginHorizontal: 12,
     marginBottom: 6,
@@ -900,6 +1154,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 8,
+    flexShrink: 0,
   },
   input: {
     flex: 1,

@@ -109,6 +109,10 @@ export function PurchaseSummaryCard({ summary }: Props) {
       <Text style={[styles.disclosure, { color: colors.muted, borderTopColor: withAlpha(colors.secondary, 0.15) }]}>
         {summary.aiDisclosure} Billed by {summary.billingEntity}.
       </Text>
+      <Text style={[styles.termsNote, { color: colors.muted }]}>
+        AI & digital access: no refunds. Harassment = revoked privileges, no refund. Creator purchases: UR LLC not
+        responsible — see Profile → Terms of Use.
+      </Text>
     </View>
   );
 }
@@ -167,5 +171,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  termsNote: {
+    fontSize: 9,
+    lineHeight: 14,
+    marginTop: 8,
+    fontWeight: "600",
   },
 });

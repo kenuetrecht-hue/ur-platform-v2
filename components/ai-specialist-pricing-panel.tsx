@@ -3,8 +3,13 @@ import { useColors } from "@/hooks/use-colors";
 import { AiSubscriptionPanel } from "@/components/ai-subscription-panel";
 import { AiTalkTimePanel } from "@/components/ai-talk-time-panel";
 import { PaymentChannelNotice } from "@/components/payment-channel-notice";
+import { PricingComingSoonPanel } from "@/components/pricing-coming-soon-panel";
+import { SpecialistAddonsPricingSection, SpecialistTextPricingCard } from "@/components/specialist-addons-pricing-section";
+import { PlatformTermsPanel } from "@/components/platform-terms-panel";
+import { TERMS_CHECKOUT_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
 import { AI_SUBSCRIPTION_PRICING_SUMMARY } from "@/lib/payment-channel-policy";
 import { AI_TALK_EXPIRY_PURCHASE_DISCLOSURE } from "@/lib/ai-talk-time-policy";
+import { PUBLIC_PRICING_ENABLED } from "@/lib/pricing-visibility";
 
 type Props = {
   creatorId: string;
@@ -19,6 +24,19 @@ export function AiSpecialistPricingPanel({
   creatorAvatar = "✨",
 }: Props) {
   const colors = useColors();
+
+  if (!PUBLIC_PRICING_ENABLED) {
+    return (
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <PricingComingSoonPanel contextLabel={`${creatorName} — specialist access`} />
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView
@@ -38,8 +56,19 @@ export function AiSpecialistPricingPanel({
       </View>
 
       <Text style={[styles.sectionTag, { color: colors.primary }]}>TEXT ACCESS</Text>
-      <Text style={[styles.sectionHint, { color: colors.muted }]}>{AI_SUBSCRIPTION_PRICING_SUMMARY}</Text>
+      <Text style={[styles.sectionHint, { color: colors.muted }]}>
+        {AI_SUBSCRIPTION_PRICING_SUMMARY} Every plan shows exactly how many messages you receive.
+      </Text>
+      <SpecialistTextPricingCard creatorId={creatorId} />
       <AiSubscriptionPanel creatorId={creatorId} creatorName={creatorName} mode="pricing" />
+
+      <SpecialistAddonsPricingSection creatorId={creatorId} creatorName={creatorName} />
+
+      <Text style={[styles.sectionTag, { color: colors.primary, marginTop: 8 }]}>TERMS OF USE</Text>
+      <Text style={[styles.sectionHint, { color: colors.muted }]}>
+        {TERMS_CHECKOUT_ACKNOWLEDGMENT}
+      </Text>
+      <PlatformTermsPanel compact showCheckoutAck />
 
       <Text style={[styles.sectionTag, { color: colors.primary, marginTop: 8 }]}>VOICE TALK-BACK</Text>
       <Text style={[styles.sectionHint, { color: colors.muted }]}>

@@ -16,8 +16,20 @@ import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/lib/auth-context";
 import { trpc } from "@/lib/trpc";
 import { SOCIAL_POST_DISCLOSURE, PLATFORM_DISCLOSURE_SHORT } from "@/lib/platform-disclosure-copy";
+import {
+  CREATOR_CONTENT_PROTECTION_NOTICE,
+  CREATOR_CONTENT_RIGHTS_ATTESTATION_ORIGINAL,
+  CREATOR_CONTENT_RIGHTS_ATTESTATION_REPOST,
+  LICENSED_REPOST_ATTRIBUTION_HINT,
+} from "@/lib/creator-content-protection-copy";
+import {
+  CONTENT_LICENSE_LABELS,
+  type ContentLicenseType,
+  type ContentRightsMode,
+} from "@/lib/creator-content-protection-core";
 import { SocialPostAssistantBar } from "@/components/social-post-assistant-bar";
 import { brandDisclosureSurface, brandHighlightSurface, brandGradientPair, withAlpha } from "@/lib/brand-theme";
+import { ContentProtectionReportSheet } from "@/components/content-protection-report-sheet";
 import { LinearGradient } from "expo-linear-gradient";
 
 type FeedSort = "latest" | "top" | "friends";
@@ -53,6 +65,9 @@ function PostCard({
     likedByMe: boolean;
     hasAffiliateContent: boolean;
     hasAiDisclosure: boolean;
+    contentRightsMode?: ContentRightsMode;
+    attributionSourceName?: string;
+    licenseType?: ContentLicenseType;
     hashtags: string[];
     createdAt: string;
     recentComments: Array<{ id: string; authorName: string; body: string }>;
@@ -63,6 +78,7 @@ function PostCard({
   const colors = useColors();
   const [commentText, setCommentText] = useState("");
   const [showComments, setShowComments] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const like = trpc.social.toggleLike.useMutation({ onSuccess: () => onRefresh() });
   const comment = trpc.social.addComment.useMutation({
     onSuccess: () => {
@@ -99,12 +115,34 @@ function PostCard({
           <Pressable onPress={() => del.mutate({ postId: post.id })}>
             <Text style={{ color: colors.muted, fontSize: 12 }}>Delete</Text>
           </Pressable>
-        ) : null}
+        ) : (
+          <Pressable onPress={() => setReportOpen(true)}>
+            <Text style={{ color: colors.muted, fontSize: 12 }}>Report</Text>
+          </Pressable>
+        )}
       </View>
+
+      <ContentProtectionReportSheet
+        visible={reportOpen}
+        onClose={() => setReportOpen(false)}
+        subjectUserId={post.authorUserId}
+        subjectLabel={post.authorName}
+        relatedAssetId={post.id}
+      />
 
       {(post.hasAffiliateContent || post.hasAiDisclosure) ? (
         <View style={[styles.disclosure, { backgroundColor: `${colors.primary}15`, borderColor: colors.primary }]}>
           <Text style={{ color: colors.muted, fontSize: 10, lineHeight: 14 }}>{SOCIAL_POST_DISCLOSURE}</Text>
+        </View>
+      ) : null}
+
+      {post.contentRightsMode === "licensed_repost" ? (
+        <View style={[styles.disclosure, { backgroundColor: `${colors.secondary}12`, borderColor: colors.secondary }]}>
+          <Text style={{ color: colors.muted, fontSize: 10, lineHeight: 14 }}>
+            Licensed repost
+            {post.attributionSourceName ? ` · Credit: ${post.attributionSourceName}` : ""}
+            {post.licenseType ? ` · ${CONTENT_LICENSE_LABELS[post.licenseType]}` : ""}
+          </Text>
         </View>
       ) : null}
 
@@ -202,6 +240,23 @@ export function SocialFeedPanel() {
   const [visibility, setVisibility] = useState<"public" | "friends">("public");
   const [showComposer, setShowComposer] = useState(true);
   const [aiAssisted, setAiAssisted] = useState(false);
+  const [contentRightsMode, setContentRightsMode] = useState<ContentRightsMode>("original");
+  const [attributionSourceName, setAttributionSourceName] = useState("");
+  const [attributionSourceUrl, setAttributionSourceUrl] = useState("");
+  const [licenseType, setLicenseType] = useState<ContentLicenseType>("platform_public");
+  const [ownsContent, setOwnsContent] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
+
+  const rightsAttestationText =
+    contentRightsMode === "licensed_repost"
+      ? CREATOR_CONTENT_RIGHTS_ATTESTATION_REPOST
+      : CREATOR_CONTENT_RIGHTS_ATTESTATION_ORIGINAL;
+
+  const canSubmitPost =
+    ownsContent &&
+    (body.trim().length > 0 || imageUrl.trim().length > 0 || videoUrl.trim().length > 0) &&
+    (contentRightsMode === "original" ||
+      (attributionSourceName.trim().length >= 2 && Boolean(licenseType)));
 
   const feed = trpc.social.feed.useQuery({ sort, hashtag });
   const trending = trpc.social.trendingHashtags.useQuery();
@@ -213,10 +268,17 @@ export function SocialFeedPanel() {
       setImageUrl("");
       setVideoUrl("");
       setAiAssisted(false);
+      setContentRightsMode("original");
+      setAttributionSourceName("");
+      setAttributionSourceUrl("");
+      setLicenseType("platform_public");
+      setOwnsContent(false);
+      setPostError(null);
       void utils.social.feed.invalidate();
       void utils.social.feedStats.invalidate();
       void utils.social.trendingHashtags.invalidate();
     },
+    onError: (err) => setPostError(err.message),
   });
 
   const refresh = () => {
@@ -346,6 +408,77 @@ export function SocialFeedPanel() {
             style={[styles.urlInput, { borderColor: colors.border, color: colors.foreground }]}
           />
           <View style={styles.visibilityRow}>
+            {(["original", "licensed_repost"] as const).map((mode) => {
+              const active = contentRightsMode === mode;
+              return (
+                <Pressable
+                  key={mode}
+                  onPress={() => {
+                    setContentRightsMode(mode);
+                    setOwnsContent(false);
+                  }}
+                  style={[
+                    styles.visChip,
+                    {
+                      backgroundColor: active ? colors.primary : colors.background,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: active ? "#fff" : colors.foreground, fontSize: 12, fontWeight: "600" }}>
+                    {mode === "original" ? "✍️ Original" : "↗️ Licensed repost"}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {contentRightsMode === "licensed_repost" ? (
+            <>
+              <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>{LICENSED_REPOST_ATTRIBUTION_HINT}</Text>
+              <TextInput
+                value={attributionSourceName}
+                onChangeText={setAttributionSourceName}
+                placeholder="Original creator or source name"
+                placeholderTextColor={colors.muted}
+                maxLength={80}
+                style={[styles.urlInput, { borderColor: colors.border, color: colors.foreground }]}
+              />
+              <TextInput
+                value={attributionSourceUrl}
+                onChangeText={setAttributionSourceUrl}
+                placeholder="Link to public post (optional)"
+                placeholderTextColor={colors.muted}
+                autoCapitalize="none"
+                maxLength={2000}
+                style={[styles.urlInput, { borderColor: colors.border, color: colors.foreground }]}
+              />
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+                {(Object.keys(CONTENT_LICENSE_LABELS) as ContentLicenseType[]).map((key) => {
+                  const active = licenseType === key;
+                  return (
+                    <Pressable
+                      key={key}
+                      onPress={() => setLicenseType(key)}
+                      style={[
+                        styles.chip,
+                        {
+                          backgroundColor: active ? withAlpha(colors.primary, 0.14) : colors.surface,
+                          borderColor: active ? colors.primary : colors.border,
+                        },
+                      ]}
+                    >
+                      <Text style={{ color: active ? colors.primary : colors.foreground, fontSize: 11, fontWeight: "600" }}>
+                        {CONTENT_LICENSE_LABELS[key]}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </>
+          ) : null}
+
+          <View style={styles.visibilityRow}>
             {(["public", "friends"] as const).map((v) => (
               <Pressable
                 key={v}
@@ -364,8 +497,35 @@ export function SocialFeedPanel() {
               </Pressable>
             ))}
           </View>
+          <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16, marginBottom: 8 }}>
+            {CREATOR_CONTENT_PROTECTION_NOTICE}
+          </Text>
           <Pressable
-            disabled={createPost.isPending || (!body.trim() && !imageUrl.trim() && !videoUrl.trim())}
+            onPress={() => setOwnsContent((v) => !v)}
+            style={styles.attestRow}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: ownsContent }}
+          >
+            <View
+              style={[
+                styles.attestBox,
+                {
+                  borderColor: ownsContent ? colors.primary : colors.border,
+                  backgroundColor: ownsContent ? colors.primary : colors.background,
+                },
+              ]}
+            >
+              {ownsContent ? <Text style={styles.attestCheck}>✓</Text> : null}
+            </View>
+            <Text style={{ color: colors.foreground, fontSize: 12, lineHeight: 17, flex: 1 }}>
+              {rightsAttestationText}
+            </Text>
+          </Pressable>
+          {postError ? (
+            <Text style={{ color: colors.error ?? "#ef4444", fontSize: 12, marginBottom: 8 }}>{postError}</Text>
+          ) : null}
+          <Pressable
+            disabled={createPost.isPending || !canSubmitPost}
             onPress={() =>
               createPost.mutate({
                 body,
@@ -373,9 +533,26 @@ export function SocialFeedPanel() {
                 videoUrl: videoUrl.trim() || undefined,
                 visibility,
                 aiAssisted: aiAssisted || undefined,
+                contentRightsMode,
+                rightsConfirmed: true,
+                attributionSourceName:
+                  contentRightsMode === "licensed_repost"
+                    ? attributionSourceName.trim()
+                    : undefined,
+                attributionSourceUrl:
+                  contentRightsMode === "licensed_repost"
+                    ? attributionSourceUrl.trim() || undefined
+                    : undefined,
+                licenseType: contentRightsMode === "licensed_repost" ? licenseType : undefined,
               })
             }
-            style={[styles.postBtn, { backgroundColor: colors.primary }]}
+            style={[
+              styles.postBtn,
+              {
+                backgroundColor: colors.primary,
+                opacity: createPost.isPending || !canSubmitPost ? 0.5 : 1,
+              },
+            ]}
           >
             {createPost.isPending ? (
               <ActivityIndicator color="#fff" />
@@ -432,6 +609,17 @@ const styles = StyleSheet.create({
   urlInput: { borderWidth: 1, borderRadius: 10, padding: 10, fontSize: 13 },
   visibilityRow: { flexDirection: "row", gap: 8 },
   visChip: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 },
+  attestRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 4 },
+  attestBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+  attestCheck: { color: "#fff", fontSize: 14, fontWeight: "800" },
   postBtn: { borderRadius: 10, padding: 14, alignItems: "center" },
   postBtnText: { color: "#fff", fontWeight: "800", fontSize: 14 },
   card: { borderRadius: 14, borderWidth: 1, padding: 14, gap: 10 },

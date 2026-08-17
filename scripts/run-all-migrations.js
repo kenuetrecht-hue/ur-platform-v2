@@ -17,6 +17,8 @@ const SUPPLEMENTAL_MIGRATIONS = [
   { file: "drizzle/coder-sandbox-migration.sql", label: "coder-sandbox" },
   { file: "drizzle/game-sandbox-migration.sql", label: "game-sandbox" },
   { file: "drizzle/schema-additions.sql", label: "schema-additions" },
+  { file: "drizzle/content-protection-migration.sql", label: "content-protection" },
+  { file: "drizzle/ai-user-memory-migration.sql", label: "ai-user-memory" },
 ];
 
 async function ensureDatabase() {

@@ -2,6 +2,7 @@ import { View, Text, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
+import { CONTENT_LICENSE_LABELS, type ContentLicenseType } from "@/lib/creator-content-protection-core";
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -55,7 +56,16 @@ export function SocialFeedPreview() {
           >
             <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
               {post.authorAvatar} {post.authorName}
+              {post.contentRightsMode === "licensed_repost" ? " · ↗️ repost" : ""}
             </Text>
+            {post.contentRightsMode === "licensed_repost" && post.attributionSourceName ? (
+              <Text style={{ color: colors.muted, fontSize: 10 }}>
+                Credit: {post.attributionSourceName}
+                {post.licenseType
+                  ? ` · ${CONTENT_LICENSE_LABELS[post.licenseType as ContentLicenseType]}`
+                  : ""}
+              </Text>
+            ) : null}
             <Text style={{ color: colors.foreground, fontSize: 13 }} numberOfLines={2}>
               {post.body || (post.kind === "photo" ? "📷 Photo" : post.kind === "video" ? "🎬 Video" : "Post")}
             </Text>

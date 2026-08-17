@@ -2,6 +2,8 @@ import { View, Text, ActivityIndicator, Pressable, StyleSheet } from "react-nati
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/auth-context";
+import { LoyaltyRedemptionPanel } from "@/components/loyalty-redemption-panel";
+import { LOYALTY_DAILY_SIGN_IN_BASE, LOYALTY_WELCOME_BONUS_POINTS, LOYALTY_STREAK_BONUS_PER_DAY } from "@/lib/loyalty-program-config";
 
 function formatEventLabel(type: string): string {
   switch (type) {
@@ -19,6 +21,18 @@ function formatEventLabel(type: string): string {
       return "Points spent (chat)";
     case "free_message_used":
       return "Free message used";
+    case "activity_social_post":
+      return "Social post";
+    case "activity_join_creator":
+      return "Joined creator";
+    case "activity_ai_subscription":
+      return "AI subscription purchase";
+    case "points_redeemed":
+      return "Redeemed reward";
+    case "streak_30_free_day_pending":
+      return "30-day reward ready";
+    case "streak_30_free_day_claimed":
+      return "Free AI day claimed";
     default:
       return type;
   }
@@ -31,6 +45,7 @@ export function LoyaltyTrackingPanel() {
     enabled: isAuthenticated,
   });
   const status = trpc.loyalty.getStatus.useQuery(undefined, { enabled: isAuthenticated });
+  const program = trpc.loyalty.getProgram.useQuery(undefined, { enabled: isAuthenticated });
   const claimSignIn = trpc.loyalty.claimDailySignIn.useMutation({
     onSuccess: () => {
       void dashboard.refetch();
@@ -39,6 +54,12 @@ export function LoyaltyTrackingPanel() {
   });
   const claimMilestone = trpc.loyalty.claimMilestone.useMutation({
     onSuccess: () => void dashboard.refetch(),
+  });
+  const claimStreak30 = trpc.loyalty.claimStreak30FreeDay.useMutation({
+    onSuccess: () => {
+      void dashboard.refetch();
+      void status.refetch();
+    },
   });
 
   if (!isAuthenticated) return null;
@@ -79,12 +100,20 @@ export function LoyaltyTrackingPanel() {
           </Text>
         </View>
         <View style={styles.stat}>
-          <Text style={{ color: colors.muted, fontSize: 10 }}>Sign-ins</Text>
+          <Text style={{ color: colors.muted, fontSize: 10 }}>Today&apos;s LP</Text>
           <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18 }}>
-            {account.totalSignIns}
+            {account.todayDailySignInPoints}
           </Text>
         </View>
       </View>
+
+      <Text style={{ color: colors.muted, fontSize: 10, marginTop: 4, lineHeight: 14 }}>
+        Streak formula: {LOYALTY_DAILY_SIGN_IN_BASE} + (day × {LOYALTY_STREAK_BONUS_PER_DAY}) · Next
+        sign-in: {account.nextDailySignInPoints} LP
+        {!account.paidAiPurchaseDuringCurrentStreak && account.currentStreakDays > 0
+          ? " · Buy any AI plan during this streak for the 30-day free-day bonus"
+          : ""}
+      </Text>
 
       {!account.claimedToday ? (
         <Pressable
@@ -130,17 +159,50 @@ export function LoyaltyTrackingPanel() {
         </>
       ) : null}
 
+      {account.streak30FreeDayEligible ? (
+        <Pressable
+          onPress={() =>
+            claimStreak30.mutate({
+              creatorId: "ai-wellness-001",
+            })
+          }
+          disabled={claimStreak30.isPending}
+          style={[styles.claimBtn, { backgroundColor: colors.secondary, marginTop: 8 }]}
+        >
+          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>
+            Claim free 1-day AI subscription
+          </Text>
+          <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 9, marginTop: 3 }}>
+            30-day streak + paid AI purchase during this run
+          </Text>
+        </Pressable>
+      ) : null}
+
       {freeMessageGrants.length > 0 ? (
         <>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Free message grants</Text>
           {freeMessageGrants.slice(0, 5).map((g) => (
             <Text key={g.id} style={{ color: colors.muted, fontSize: 11, marginBottom: 4 }}>
-              {g.creatorId}: {g.messagesRemaining}/{g.messagesGranted} left · day {g.milestoneDay}{" "}
-              streak
+              {g.creatorId}: {g.messagesRemaining}/{g.messagesGranted} left
+              {g.milestoneDay != null ? ` · day ${g.milestoneDay} streak` : " · redemption grant"}
             </Text>
           ))}
         </>
       ) : null}
+
+      <Text style={[styles.sectionTitle, { color: colors.foreground }]}>How to earn</Text>
+      <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+        • First sign-in: {LOYALTY_WELCOME_BONUS_POINTS} LP welcome + streak daily LP{"\n"}• Daily
+        sign-in: {LOYALTY_DAILY_SIGN_IN_BASE} + (streak day × {LOYALTY_STREAK_BONUS_PER_DAY}) — day 1
+        = 110, day 30 = 400{"\n"}• 30-day streak + paid AI during streak: free 1-day subscription
+        {"\n"}• Social post: {program.data?.activityEarn.socialPost ?? 25} LP (max{" "}
+        {program.data?.activityEarn.socialPostDailyCap ?? 4}/day){"\n"}• Join a creator:{" "}
+        {program.data?.activityEarn.joinCreatorOnce ?? 150} LP once per creator{"\n"}• AI subscription
+        purchase: {program.data?.activityEarn.aiSubscription.day ?? 75}–
+        {program.data?.activityEarn.aiSubscription.month ?? 800} LP
+      </Text>
+
+      <LoyaltyRedemptionPanel balance={account.totalPoints} />
 
       <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Recent activity</Text>
       {recentEvents.length === 0 ? (
@@ -177,7 +239,10 @@ export function LoyaltyTrackingPanel() {
 
       <Text style={{ color: colors.muted, fontSize: 9, marginTop: 10, lineHeight: 13 }}>
         Earned: {account.totalPointsEarned.toLocaleString()} · Spent:{" "}
-        {account.totalPointsSpent.toLocaleString()} · 500 LP per text message · Text-only via loyalty
+        {account.totalPointsSpent.toLocaleString()}
+        {"\n"}
+        {program.data?.competitiveNote ??
+          "Redemptions cost more than paying — subscribe for best value."}
       </Text>
     </View>
   );

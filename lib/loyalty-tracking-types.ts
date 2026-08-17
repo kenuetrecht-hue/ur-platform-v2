@@ -13,6 +13,12 @@ export type LoyaltyAccount = {
   lastSignInDate: string | null;
   welcomeBonusClaimed: boolean;
   milestonesClaimed: number[];
+  /** UTC date when the current consecutive streak started (day 1) */
+  currentStreakStartDate: string | null;
+  /** Paid AI subscription purchased during the current streak window */
+  paidAiPurchaseDuringCurrentStreak: boolean;
+  /** Free 1-day AI reward claimed for the current 30-day streak cycle */
+  streak30FreeDayClaimed: boolean;
   createdAt: string;
 };
 
@@ -22,8 +28,8 @@ export type FreeTextGrant = {
   creatorId: string;
   messagesGranted: number;
   messagesUsed: number;
-  source: "streak_milestone";
-  milestoneDay: number;
+  source: "streak_milestone" | "loyalty_redemption";
+  milestoneDay?: number;
   grantedAt: string;
   expiresAt: string;
   active: boolean;
@@ -37,7 +43,14 @@ export type LoyaltyTrackingEventType =
   | "milestone_claimed"
   | "points_spent_chat"
   | "free_message_used"
-  | "sign_in_duplicate_blocked";
+  | "sign_in_duplicate_blocked"
+  | "activity_social_post"
+  | "activity_join_creator"
+  | "activity_ai_subscription"
+  | "activity_creator_subscription"
+  | "points_redeemed"
+  | "streak_30_free_day_pending"
+  | "streak_30_free_day_claimed";
 
 export type LoyaltyTrackingEvent = {
   id: string;
@@ -87,6 +100,12 @@ export type LoyaltyDashboard = {
     welcomeBonusClaimed: boolean;
     milestonesClaimed: number[];
     claimedToday: boolean;
+    currentStreakStartDate: string | null;
+    paidAiPurchaseDuringCurrentStreak: boolean;
+    streak30FreeDayClaimed: boolean;
+    streak30FreeDayEligible: boolean;
+    todayDailySignInPoints: number;
+    nextDailySignInPoints: number;
   };
   recentEvents: LoyaltyTrackingEvent[];
   recentSignIns: LoyaltySignInRecord[];

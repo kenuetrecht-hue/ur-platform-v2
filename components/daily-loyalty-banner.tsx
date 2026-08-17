@@ -68,7 +68,7 @@ export function DailyLoyaltyBanner({
         </Text>
       ) : null}
       <Text style={{ color: withAlpha(colors.muted, 0.9), fontSize: 9, marginTop: 6 }}>
-        500 LP per text message · Streak resets if you miss a day
+        100 + (streak day × 10) LP per sign-in · Redeem in Profile
       </Text>
     </BrandGradient>
   );

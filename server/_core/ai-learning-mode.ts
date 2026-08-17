@@ -25,6 +25,7 @@ import { sanitizeChatHistory, sanitizeUserText } from "./input-sanitize";
 import { isOwnerOnlyPlatformAi } from "./platform-ops-ai";
 import { assertAiEntitled } from "./access-entitlements";
 import { assertAndConsumeAiUsage } from "./ai-usage-meter";
+import { assertAndConsumeCredit } from "./usage-credits-service";
 import {
   buildCoderTeachingPromptAddition,
   getCoderTeachingModules,
@@ -332,6 +333,12 @@ export async function handleCreatorLearningSession(params: {
   });
 
   if (!params.isPlatformOwner) {
+    assertAndConsumeCredit({
+      userId: params.userId,
+      productId: "longform-author",
+      units: 1,
+      isPlatformOwner: false,
+    });
     assertAndConsumeAiUsage({
       userId: params.userId,
       email: params.userEmail,

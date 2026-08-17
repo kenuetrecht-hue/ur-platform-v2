@@ -40,8 +40,8 @@ export function PlatformSectionMaintenancePanel({ canManage }: Props) {
         Section maintenance
       </Text>
       <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
-        Shut down one area without taking UR offline. Ops AIs can propose isolation via incidents;
-        you give final OK. Reopen when the fix is verified.
+        Shut down one area without taking UR offline. Ops AIs auto-isolate broken sections and
+        alert you instantly; you approve fix/deploy or send instructions before anything else runs.
       </Text>
 
       {sections.isLoading ? <ActivityIndicator color={colors.primary} /> : null}

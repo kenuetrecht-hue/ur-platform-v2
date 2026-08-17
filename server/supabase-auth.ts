@@ -98,6 +98,8 @@ export async function syncSupabaseUser(
   // Only the platform owner may receive admin — never trust user_metadata.role
   const role = resolveUserRole(openId, email);
 
+  const existing = await db.getUserByOpenId(openId);
+
   await db.upsertUser({
     openId,
     name: isOwnerEmail(email)
@@ -115,6 +117,22 @@ export async function syncSupabaseUser(
   if (!user) {
     console.error("[SupabaseAuth] User sync failed for openId:", openId);
     return null;
+  }
+
+  const { registerSocialUser, ensureOwnerWelcomeFriendship } = await import(
+    "./_core/social-service"
+  );
+  registerSocialUser({
+    userId: String(user.id),
+    email: user.email ?? "",
+    displayName: user.name ?? "User",
+  });
+  if (!existing && !isOwnerEmail(email)) {
+    await ensureOwnerWelcomeFriendship({
+      userId: String(user.id),
+      email: user.email ?? "",
+      displayName: user.name ?? "User",
+    });
   }
 
   return user;

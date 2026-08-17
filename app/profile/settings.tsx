@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { View, Text, Pressable } from "react-native";
+import { useRouter } from "expo-router";
 import { ProfileStackScreen } from "@/components/profile-stack-screen";
 import { WarningDisclosureModal } from "@/components/warning-banner";
 import { useColors } from "@/hooks/use-colors";
@@ -8,6 +9,7 @@ import type { ColorScheme } from "@/constants/theme";
 
 export default function ProfileSettingsScreen() {
   const colors = useColors();
+  const router = useRouter();
   const { colorScheme, setColorScheme } = useThemeContext();
 
   const themeOptions: { id: ColorScheme; label: string }[] = [
@@ -63,6 +65,23 @@ export default function ProfileSettingsScreen() {
         </View>
 
         <WarningDisclosureModal />
+
+        <Pressable
+          onPress={() => router.push("/profile/terms")}
+          style={{
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.border,
+            backgroundColor: colors.surface,
+            padding: 16,
+            gap: 6,
+          }}
+        >
+          <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>Terms of Use</Text>
+          <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>
+            No refunds on AI purchases · Zero harassment · Creator transactions are not UR LLC&apos;s responsibility
+          </Text>
+        </Pressable>
 
         <View
           style={{

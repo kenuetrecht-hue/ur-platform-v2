@@ -23,6 +23,9 @@ import { resolveSupabasePublicConfig } from "../../shared/supabase-config";
 import * as db from "../db";
 import { registerStaticWeb } from "./static-web";
 import { getCommerceMode, isSimulatedCommerceMode, DEV_SIMULATED_COMMERCE_NOTICE } from "../../lib/dev-commerce-mode";
+import { hydrateContentProtectionFromDatabase } from "./creator-content-protection-service";
+import { hydrateRecentAiUserMemory } from "./ai-user-memory-persistence";
+import { startPlatformOpsMonitor } from "./platform-ops-monitor";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -156,6 +159,9 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`[api] server listening on port ${port}`);
     startForgeSessionJanitor();
+    void hydrateContentProtectionFromDatabase();
+    void hydrateRecentAiUserMemory();
+    startPlatformOpsMonitor();
     console.log(
       `[env] Platform owner: ${isOwnerEmailConfigured() ? "configured" : "MISSING — set PLATFORM_OWNER_EMAIL in .env"}`,
     );

@@ -138,8 +138,18 @@ export function buildLoyaltyDashboard(params: {
   account: LoyaltyAccount;
   freeGrants: FreeTextGrant[];
   claimedToday: boolean;
+  streak30FreeDayEligible: boolean;
+  todayDailySignInPoints: number;
+  nextDailySignInPoints: number;
 }): LoyaltyDashboard {
-  const { account, freeGrants, claimedToday } = params;
+  const {
+    account,
+    freeGrants,
+    claimedToday,
+    streak30FreeDayEligible,
+    todayDailySignInPoints,
+    nextDailySignInPoints,
+  } = params;
   const recentEvents = getLoyaltyEvents(account.userId, 20).events;
   const recentSignIns = getLoyaltySignIns(account.userId, 14).signIns;
 
@@ -155,6 +165,12 @@ export function buildLoyaltyDashboard(params: {
       welcomeBonusClaimed: account.welcomeBonusClaimed,
       milestonesClaimed: account.milestonesClaimed,
       claimedToday,
+      currentStreakStartDate: account.currentStreakStartDate,
+      paidAiPurchaseDuringCurrentStreak: account.paidAiPurchaseDuringCurrentStreak,
+      streak30FreeDayClaimed: account.streak30FreeDayClaimed,
+      streak30FreeDayEligible,
+      todayDailySignInPoints,
+      nextDailySignInPoints,
     },
     recentEvents,
     recentSignIns,

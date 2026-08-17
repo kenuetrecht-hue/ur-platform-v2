@@ -3,9 +3,14 @@ import { secureProcedure, ownerProcedure, router, TRPCError } from "../_core/trp
 import { isCreatorAiId } from "../_core/ai-creator-registry";
 import {
   getLoyaltyProgramSummary,
+  getDailySignInPointsForStreak,
+  getNextDailySignInPoints,
   isValidMilestoneDay,
   LOYALTY_MILESTONE_DAYS,
+  type LoyaltyRedemptionId,
 } from "../../lib/loyalty-program-config";
+import { redeemLoyaltyReward } from "../_core/loyalty-activity-service";
+import { grantLoyaltyFreeDaySubscription } from "../_core/ai-subscription-service";
 import {
   claimDailySignIn,
   claimStreakMilestoneReward,
@@ -13,6 +18,8 @@ import {
   getFreeTextMessagesRemaining,
   getLoyaltyDashboardForUser,
   hasClaimedToday,
+  isStreak30FreeDayEligible,
+  markStreak30FreeDayClaimed,
 } from "../_core/loyalty-streak-service";
 import {
   fingerprintIp,
@@ -69,6 +76,7 @@ export const loyaltyRouter = router({
       (m) =>
         account.currentStreakDays >= m.day && !account.milestonesClaimed.includes(m.day),
     );
+    const claimedToday = hasClaimedToday(userId);
     return {
       totalPoints: account.totalPoints,
       totalSignIns: account.totalSignIns,
@@ -80,7 +88,20 @@ export const loyaltyRouter = router({
       milestonesClaimed: account.milestonesClaimed,
       pendingMilestones,
       pointsPerTextMessage: program.pointsPerTextMessage,
-      claimedToday: hasClaimedToday(userId),
+      claimedToday,
+      paidAiPurchaseDuringCurrentStreak: account.paidAiPurchaseDuringCurrentStreak,
+      streak30FreeDayEligible: isStreak30FreeDayEligible(userId),
+      streak30FreeDayClaimed: account.streak30FreeDayClaimed,
+      todayDailySignInPoints: claimedToday
+        ? getDailySignInPointsForStreak(account.currentStreakDays)
+        : getNextDailySignInPoints({
+            currentStreakDays: account.currentStreakDays,
+            claimedToday: false,
+          }),
+      nextDailySignInPoints: getNextDailySignInPoints({
+        currentStreakDays: account.currentStreakDays,
+        claimedToday,
+      }),
     };
   }),
 
@@ -136,11 +157,64 @@ export const loyaltyRouter = router({
       };
     }),
 
+  claimStreak30FreeDay: secureProcedure("loyalty")
+    .input(z.object({ creatorId: creatorIdSchema }))
+    .mutation(({ input, ctx }) => {
+      assertNotOwner(ctx);
+      const userId = String(ctx.user.id);
+      if (!isStreak30FreeDayEligible(userId)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "Complete a 30-day sign-in streak and purchase any AI plan during that streak to unlock a free day.",
+        });
+      }
+      const email = ctx.user.email ?? "";
+      const sub = grantLoyaltyFreeDaySubscription({
+        userId,
+        userEmail: email,
+        creatorId: input.creatorId,
+      });
+      markStreak30FreeDayClaimed(userId, input.creatorId, buildAudit(ctx));
+      return {
+        ok: true as const,
+        creatorId: sub.creatorId,
+        expiresAt: sub.expiresAt,
+        plan: sub.plan,
+        messagesIncluded: sub.messagesIncluded,
+      };
+    }),
+
   getFreeMessages: secureProcedure("loyalty")
     .input(z.object({ creatorId: creatorIdSchema }))
     .query(({ input, ctx }) => ({
       messagesRemaining: getFreeTextMessagesRemaining(String(ctx.user.id), input.creatorId),
     })),
+
+  redeem: secureProcedure("loyalty")
+    .input(
+      z.object({
+        rewardId: z.enum([
+          "text_1",
+          "text_3",
+          "image_1",
+          "vision_1",
+          "search_5",
+          "hive_1",
+          "chapter_1",
+        ]),
+        creatorId: creatorIdSchema.optional(),
+      }),
+    )
+    .mutation(({ input, ctx }) => {
+      assertNotOwner(ctx);
+      return redeemLoyaltyReward({
+        userId: String(ctx.user.id),
+        rewardId: input.rewardId as LoyaltyRedemptionId,
+        creatorId: input.creatorId,
+        audit: buildAudit(ctx),
+      });
+    }),
 
   /** Owner-only fraud / security audit — IP fingerprints never shown to members */
   ownerSecurityAudit: ownerProcedure

@@ -22,10 +22,10 @@ export type Workspace3dPlanQuote = {
 export const WORKSPACE_3D_EXTRA_AI_SLOT_CENTS = 899;
 
 export const WORKSPACE_3D_PLAN_CENTS: Record<Workspace3dPlanId, number> = {
-  day_pass: 799,
-  solo: 1999,
-  pro: 3999,
-  studio: 6999,
+  day_pass: 1099,
+  solo: 2999,
+  pro: 4999,
+  studio: 7499,
 };
 
 export const WORKSPACE_3D_CONCURRENT_SLOTS: Record<Workspace3dPlanId, number> = {
@@ -85,7 +85,7 @@ const PLAN_META: Record<
 };
 
 export const WORKSPACE_3D_PRICING_SUMMARY =
-  "3D Workspace: $7.99 day pass (2 AIs) · Solo $19.99/mo (1 AI) · Pro $39.99/mo (3 AIs) · Studio $69.99/mo (5 AIs). " +
+  "3D Workspace: $10.99 day pass (2 AIs) · Solo $29.99/mo (1 AI) · Pro $49.99/mo (3 AIs) · Studio $74.99/mo (5 AIs). " +
   "Extra AI slot: $8.99/mo each.";
 
 export function formatUsd(cents: number): string {

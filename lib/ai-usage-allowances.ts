@@ -1,39 +1,33 @@
 /**
  * Message allowances bundled with each subscription plan.
  * Sized so API cost at MAX usage stays ≤ ~25% of plan revenue → ~65%+ gross profit after Stripe.
- *
- * Est. cost basis (conservative):
- *   Standard message  ~$0.008
- *   Professional      ~$0.015 (sandbox / long context)
- *   Premium           ~$0.012 (translation)
- *   Hive consult      3× one message
  */
 
 import type { AiSubscriptionPlan, AiPriceTier } from "./ai-subscription-pricing";
+import {
+  HIVE_MESSAGE_UNITS,
+  LEARN_MODE_MESSAGE_UNITS,
+  MESSAGE_ALLOWANCE_BY_TIER,
+} from "./usage-caps-catalog";
 
 /** Hive mode consults multiple specialists — counts as 3 messages */
-export const HIVE_MESSAGE_MULTIPLIER = 3;
+export const HIVE_MESSAGE_MULTIPLIER = HIVE_MESSAGE_UNITS;
 
-/** Learn mode uses longer prompts — counts as 2 messages */
-export const LEARN_MESSAGE_MULTIPLIER = 2;
+/** Learn mode / long-form chapters — counts as 5 messages */
+export const LEARN_MESSAGE_MULTIPLIER = LEARN_MODE_MESSAGE_UNITS;
 
-/** Base message allowances per plan (standard tier) — tuned for profit, not break-even */
-export const AI_MESSAGE_ALLOWANCE: Record<AiSubscriptionPlan, number> = {
-  day: 45,
-  week: 175,
-  month: 500,
-};
+/** Base message allowances per plan (standard tier) — owner-approved caps */
+export const AI_MESSAGE_ALLOWANCE: Record<AiSubscriptionPlan, number> =
+  MESSAGE_ALLOWANCE_BY_TIER.standard;
 
-/** Scale allowances down for higher-cost tiers */
 export const TIER_ALLOWANCE_MULTIPLIER: Record<AiPriceTier, number> = {
   standard: 1,
-  professional: 0.7,
-  premium: 0.65,
+  professional: 1,
+  premium: 1,
 };
 
 export function getMessageAllowance(plan: AiSubscriptionPlan, tier: AiPriceTier): number {
-  const base = AI_MESSAGE_ALLOWANCE[plan];
-  return Math.floor(base * TIER_ALLOWANCE_MULTIPLIER[tier]);
+  return MESSAGE_ALLOWANCE_BY_TIER[tier][plan];
 }
 
 /** Platform-wide membership (legacy) — same caps as monthly per specialist */
@@ -52,6 +46,8 @@ export function getMembershipMessageAllowance(
 export type UsageAllowanceQuote = {
   messagesIncluded: number;
   hiveConsultsApprox: number;
+  learnChaptersApprox: number;
+  webSearchesIncludedPerDay: number;
   fairUseNote: string;
 };
 
@@ -63,6 +59,8 @@ export function getUsageAllowanceQuote(
   return {
     messagesIncluded,
     hiveConsultsApprox: Math.floor(messagesIncluded / HIVE_MESSAGE_MULTIPLIER),
-    fairUseNote: `${messagesIncluded} messages included — hive consults use 3 each.`,
+    learnChaptersApprox: Math.floor(messagesIncluded / LEARN_MESSAGE_MULTIPLIER),
+    webSearchesIncludedPerDay: 10,
+    fairUseNote: `${messagesIncluded} messages · hive uses 3 each · learn/chapters use 5 each · 10 web searches/day included.`,
   };
 }

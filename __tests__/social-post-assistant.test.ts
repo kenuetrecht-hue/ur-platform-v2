@@ -17,8 +17,8 @@ describe("Social Post Assistant", () => {
   const userEmail = "spa@test.com";
 
   it("exposes subscription plans with assists and pricing", () => {
-    expect(POST_ASSISTANT_PLANS.month.priceCents).toBe(499);
-    expect(POST_ASSISTANT_PLANS.month.assists).toBe(120);
+    expect(POST_ASSISTANT_PLANS.month.priceCents).toBe(1199);
+    expect(POST_ASSISTANT_PLANS.month.assists).toBe(80);
     expect(POST_ASSISTANT_PLANS.day.assists).toBe(5);
   });
 

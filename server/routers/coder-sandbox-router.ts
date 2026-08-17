@@ -14,6 +14,10 @@ import {
 } from "../_core/coder-sandbox-service";
 import { executeSandboxBuild } from "../_core/coder-sandbox-execution";
 import {
+  assertAndConsumeCredit,
+  sandboxRunProductForTier,
+} from "../_core/usage-credits-service";
+import {
   confirmSandboxUpgradePayment,
   createSandboxUpgradeCheckout,
 } from "../_core/coder-sandbox-payments";
@@ -137,6 +141,15 @@ export const coderSandboxRouter = router({
     .input(z.object({ projectId: z.string().min(4).max(128) }))
     .mutation(async ({ ctx, input }) => {
       assertSandboxAccess(ctx);
+      if (!ctx.isPlatformOwner) {
+        const status = await getSandboxStatus(String(ctx.user.id), false);
+        assertAndConsumeCredit({
+          userId: String(ctx.user.id),
+          productId: sandboxRunProductForTier(status.tier.id),
+          units: 1,
+          isPlatformOwner: false,
+        });
+      }
       const project = await getSandboxProject(
         String(ctx.user.id),
         ctx.isPlatformOwner,

@@ -19,7 +19,7 @@ export const PAYMENT_CHANNEL_POLICY_SUMMARY =
   "subscription (day, week, month) and $1 talk packs — must be purchased through your web browser.";
 
 export const AI_SUBSCRIPTION_PRICING_SUMMARY =
-  "Each AI specialist: $5.99 for 24 hours · $9.99 for one week · $14.99 for one month.";
+  "Standard: $7.99/day = 35 messages · $15.99/week = 130 messages · $24.99/month = 350 messages (+ 10 web searches/day). Professional and premium tiers vary.";
 
 export const AI_TALK_PRICING_SUMMARY =
   "AI voice talk-back: 25¢ per minute. Every $1 buys 5 minutes. $5 buys 25 minutes (mobile app only).";

@@ -15,6 +15,10 @@ import {
 } from "./user-link-service";
 import { recordTransaction, listAllTransactions } from "./transaction-ledger-service";
 import { processInstantCreatorPayout } from "./creator-payout-service";
+import {
+  mapContentProtectionError,
+  registerCreatorIdentity,
+} from "./creator-content-protection-service";
 
 export const AFFILIATE_BONUS_CENTS = 500;
 export const AFFILIATE_PAYOUT_AFTER_TRANSACTIONS = 5;
@@ -94,6 +98,15 @@ export function enrollContentCreator(params: {
 }): ContentCreatorProfile {
   const existing = creators.get(params.userId);
   if (existing) return existing;
+
+  try {
+    registerCreatorIdentity({
+      userId: params.userId,
+      displayName: params.displayName,
+    });
+  } catch (error) {
+    mapContentProtectionError(error);
+  }
 
   let referredByAffiliateUserId: string | undefined;
   let referredByAffiliateCode: string | undefined;

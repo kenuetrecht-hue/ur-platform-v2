@@ -13,6 +13,8 @@ import {
 } from "../../lib/ai-subscription-pricing";
 import { getMessageAllowance } from "../../lib/ai-usage-allowances";
 import { calculateCustomerCheckout } from "../../lib/stripe-checkout-pricing";
+import { awardAiSubscriptionPurchasePoints } from "./loyalty-activity-service";
+import { markPaidAiPurchaseDuringStreak } from "./loyalty-streak-service";
 
 /** Platform-owned AI specialists — UR LLC keeps 100% of subscription revenue */
 export const AI_SUBSCRIPTION_PLATFORM_SHARE_BPS = 10000;
@@ -29,7 +31,7 @@ export type AiSubscriptionRecord = {
   expiresAt: string;
   active: boolean;
   autoRenew: boolean;
-  source: "stripe" | "simulated";
+  source: "stripe" | "simulated" | "loyalty_reward";
   creatorShareCents: number;
   platformShareCents: number;
   messagesIncluded: number;
@@ -157,6 +159,65 @@ export function purchaseAiSubscription(params: {
     billingStateCode: params.billingStateCode,
     salesTaxCents: checkout.salesTaxCents,
     stateFeeCents: checkout.stateFeeCents,
+  };
+
+  subscriptionStore.set(key, record);
+  void awardAiSubscriptionPurchasePoints({
+    userId: params.userId,
+    creatorId: params.creatorId,
+    plan: params.plan,
+  });
+  if (checkout.totalCents > 0) {
+    markPaidAiPurchaseDuringStreak(params.userId);
+  }
+  return record;
+}
+
+/** Loyalty reward — free 1-day AI subscription after 30-day streak + paid purchase. */
+export function grantLoyaltyFreeDaySubscription(params: {
+  userId: string;
+  userEmail: string;
+  creatorId: string;
+}): AiSubscriptionRecord {
+  const email = normalizeEmail(params.userEmail);
+  if (!email.includes("@")) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Valid email required." });
+  }
+
+  const tier = getAiPriceTier(params.creatorId);
+  const messagesIncluded = getMessageAllowance("day", tier);
+  const now = new Date();
+  const expires = new Date(now.getTime() + AI_SUBSCRIPTION_PLAN_DAYS.day * 24 * 60 * 60 * 1000);
+
+  const key = subscriptionKey(params.userId, params.creatorId);
+  for (const [id, existing] of subscriptionStore) {
+    if (existing.userId === params.userId && existing.creatorId === params.creatorId) {
+      subscriptionStore.delete(id);
+    }
+  }
+
+  const record: AiSubscriptionRecord = {
+    id: `aisub-loyalty-${randomUUID().slice(0, 12)}`,
+    userId: params.userId,
+    userEmail: email,
+    creatorId: params.creatorId,
+    plan: "day",
+    priceCents: 0,
+    priceTier: tier,
+    startedAt: now.toISOString(),
+    expiresAt: expires.toISOString(),
+    active: true,
+    autoRenew: false,
+    source: "loyalty_reward",
+    creatorShareCents: 0,
+    platformShareCents: 0,
+    messagesIncluded,
+    messagesUsed: 0,
+    stripeFeeCents: 0,
+    totalChargedCents: 0,
+    billingStateCode: "FL",
+    salesTaxCents: 0,
+    stateFeeCents: 0,
   };
 
   subscriptionStore.set(key, record);

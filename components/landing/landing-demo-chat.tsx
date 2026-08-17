@@ -13,6 +13,7 @@ import { trpc } from "@/lib/trpc";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
 import { LandingConversionModal } from "@/components/landing/landing-conversion-modal";
 import { LANDING_DEMO_MESSAGE_MAX, LANDING_DEMO_REPLY_MAX } from "@/lib/landing-demo-policy";
+import { saveLandingDemoAttributionId } from "@/lib/landing-demo-attribution-storage";
 
 const DEMO_SPECIALISTS = [
   { id: "ai-coder-001", label: "TechBuilder", avatar: "💻" },
@@ -42,6 +43,7 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
   const [modalOpen, setModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
+  const [attributionId, setAttributionId] = useState<string | null>(null);
   const pageLoadedAtMs = useRef(Date.now());
 
   useEffect(() => {
@@ -52,6 +54,10 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
   const demoMutation = trpc.landing.sendDemoMessage.useMutation({
     onSuccess: (data) => {
       setReply(data.reply);
+      if (data.attributionId) {
+        setAttributionId(data.attributionId);
+        void saveLandingDemoAttributionId(data.attributionId);
+      }
       setModalOpen(true);
       onReply?.();
       void statusQuery.refetch();
@@ -74,6 +80,7 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
       demoToken,
       pageLoadedAtMs: pageLoadedAtMs.current,
       honeypot: honeypot || undefined,
+      platform: Platform.OS === "web" ? "web" : Platform.OS === "ios" ? "ios" : "android",
     });
   };
 
@@ -167,6 +174,7 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
         creatorId={creatorId}
         reply={reply ?? ""}
         creatorName={DEMO_SPECIALISTS.find((s) => s.id === creatorId)?.label ?? "AI"}
+        attributionId={attributionId}
       />
     </View>
   );

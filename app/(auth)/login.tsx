@@ -1,51 +1,39 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
   TextInput,
-  Pressable,
   ScrollView,
   Platform,
   StyleSheet,
+  KeyboardAvoidingView,
 } from "react-native";
-import { useRouter, Link } from "expo-router";
-import { useAuth } from "@/lib/auth-context";
+import { Link, Redirect } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
-import { showUserMessage } from "@/lib/show-user-message";
+import { PrimaryActionButton } from "@/components/primary-action-button";
+import { useLoginScreen } from "@/hooks/use-login-screen";
 
+/** Native login (iOS / Android). Browser uses login.web.tsx instead. */
 export default function LoginScreen() {
-  const router = useRouter();
-  const { login } = useAuth();
   const colors = useColors();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const {
+    emailRef,
+    passwordRef,
+    email,
+    password,
+    submitting,
+    displayError,
+    statusLine,
+    isAuthenticated,
+    handleLogin,
+    onEmailChange,
+    onPasswordChange,
+  } = useLoginScreen();
 
-  const handleLogin = async () => {
-    setFormError(null);
-
-    if (!email.trim() || !password.trim()) {
-      const msg = "Please enter email and password.";
-      setFormError(msg);
-      showUserMessage("Error", msg);
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await login(email.trim(), password.trim());
-      router.replace("/(tabs)");
-    } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : "Sign in failed. Please try again.";
-      setFormError(msg);
-      showUserMessage("Login Failed", msg);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  if (isAuthenticated) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   const inputStyle = {
     backgroundColor: colors.surface,
@@ -60,100 +48,99 @@ export default function LoginScreen() {
 
   return (
     <ScreenContainer className="bg-background">
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.form}>
-          <View style={styles.header}>
-            <Link href="/welcome" style={{ color: colors.muted, fontSize: 13 }}>
-              ← Back to homepage
-            </Link>
-            <Text style={[styles.title, { color: colors.foreground }]}>UR Platform</Text>
-            <Text style={{ fontSize: 16, color: colors.muted }}>
-              Sign in to your account
-            </Text>
-          </View>
-
-          {formError ? (
-            <View
-              style={[
-                styles.errorBox,
-                { backgroundColor: colors.surface, borderColor: colors.error ?? "#ef4444" },
-              ]}
-            >
-              <Text style={[styles.errorText, { color: colors.error ?? "#ef4444" }]}>
-                {formError}
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode="on-drag"
+        >
+          <View style={styles.form} testID="login-form">
+            <View style={styles.header}>
+              <Link href="/welcome" style={{ color: colors.muted, fontSize: 13 }}>
+                ← Back to homepage
+              </Link>
+              <Text style={[styles.title, { color: colors.foreground }]}>UR Platform</Text>
+              <Text style={{ fontSize: 16, color: colors.muted }}>
+                Sign in to your account
               </Text>
             </View>
-          ) : null}
 
-          <View style={styles.fields}>
-            <View>
-              <Text style={[styles.label, { color: colors.foreground }]}>Email</Text>
-              <TextInput
-                value={email}
-                onChangeText={(value) => {
-                  setEmail(value);
-                  if (formError) setFormError(null);
-                }}
-                placeholder="you@example.com"
-                placeholderTextColor={colors.muted}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                textContentType="emailAddress"
-                editable={!submitting}
-                style={inputStyle}
-                returnKeyType="next"
-              />
-            </View>
+            {displayError ? (
+              <View
+                style={[
+                  styles.errorBox,
+                  { backgroundColor: colors.surface, borderColor: colors.error ?? "#ef4444" },
+                ]}
+              >
+                <Text style={[styles.errorText, { color: colors.error ?? "#ef4444" }]}>
+                  {displayError}
+                </Text>
+              </View>
+            ) : null}
 
-            <View>
-              <Text style={[styles.label, { color: colors.foreground }]}>Password</Text>
-              <TextInput
-                value={password}
-                onChangeText={(value) => {
-                  setPassword(value);
-                  if (formError) setFormError(null);
-                }}
-                placeholder="Your password"
-                placeholderTextColor={colors.muted}
-                secureTextEntry
-                autoComplete="current-password"
-                textContentType="password"
-                editable={!submitting}
-                style={inputStyle}
-                returnKeyType="go"
-                onSubmitEditing={() => {
-                  void handleLogin();
-                }}
-              />
+            {statusLine && !displayError ? (
+              <Text style={[styles.statusText, { color: colors.primary }]}>{statusLine}</Text>
+            ) : null}
+
+            <View style={styles.fields}>
+              <View>
+                <Text style={[styles.label, { color: colors.foreground }]}>Email</Text>
+                <TextInput
+                  ref={emailRef}
+                  value={email}
+                  onChangeText={onEmailChange}
+                  placeholder="you@example.com"
+                  placeholderTextColor={colors.muted}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  testID="login-email"
+                  editable={!submitting}
+                  style={inputStyle}
+                  returnKeyType="next"
+                />
+              </View>
+
+              <View>
+                <Text style={[styles.label, { color: colors.foreground }]}>Password</Text>
+                <TextInput
+                  ref={passwordRef}
+                  value={password}
+                  onChangeText={onPasswordChange}
+                  placeholder="Your password"
+                  placeholderTextColor={colors.muted}
+                  secureTextEntry
+                  autoComplete="current-password"
+                  textContentType="password"
+                  testID="login-password"
+                  editable={!submitting}
+                  style={inputStyle}
+                  returnKeyType="go"
+                  onSubmitEditing={() => {
+                    void handleLogin();
+                  }}
+                />
+              </View>
             </View>
           </View>
+        </ScrollView>
 
-          <Pressable
-            onPress={() => {
-              void handleLogin();
-            }}
-            disabled={submitting}
-            accessibilityRole="button"
-            style={({ pressed }) => ({
-              backgroundColor: colors.primary,
-              borderRadius: 12,
-              padding: 16,
-              alignItems: "center",
-              opacity: submitting ? 0.6 : pressed ? 0.9 : 1,
-              ...(Platform.OS === "web" ? ({ cursor: submitting ? "default" : "pointer" } as object) : null),
-            })}
-          >
-            <Text style={{ fontSize: 16, fontWeight: "600", color: "#fff" }}>
-              {submitting ? "Signing in..." : "Sign In"}
-            </Text>
-          </Pressable>
+        <View style={styles.footer}>
+          <PrimaryActionButton
+            label="Sign In"
+            loadingLabel="Signing in..."
+            loading={submitting}
+            onPress={handleLogin}
+            backgroundColor={colors.primary}
+            testID="login-submit"
+          />
 
-          <View style={{ alignItems: "center" }}>
+          <View style={{ alignItems: "center", marginTop: 16 }}>
             <Text style={{ color: colors.muted, fontSize: 14 }}>
               Don&apos;t have an account?{" "}
               <Link href="/signup" style={{ color: colors.primary, fontWeight: "700" }}>
@@ -162,23 +149,30 @@ export default function LoginScreen() {
             </Text>
           </View>
         </View>
-      </ScrollView>
+      </KeyboardAvoidingView>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, zIndex: 1 },
+  flex: { flex: 1 },
+  scroll: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
     padding: 24,
+    paddingBottom: 12,
   },
-  form: { gap: 24, zIndex: 2 },
+  form: { gap: 24 },
   header: { alignItems: "center", gap: 8 },
   title: { fontSize: 32, fontWeight: "bold" },
   fields: { gap: 16 },
   label: { fontSize: 14, fontWeight: "600", marginBottom: 8 },
+  footer: {
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+    paddingTop: 8,
+  },
   errorBox: {
     borderWidth: 1,
     borderRadius: 12,
@@ -188,5 +182,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     textAlign: "center",
+  },
+  statusText: {
+    fontSize: 14,
+    textAlign: "center",
+    fontWeight: "600",
   },
 });

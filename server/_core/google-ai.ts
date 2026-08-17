@@ -16,6 +16,11 @@ export type GoogleChatTurn = {
   content: string;
 };
 
+export type GoogleChatAttachment = {
+  mimeType: string;
+  base64: string;
+};
+
 export type GoogleChatParams = {
   /** Server-side prompt only — never pass client-supplied system prompts. */
   systemPrompt: string;
@@ -25,6 +30,8 @@ export type GoogleChatParams = {
   /** Optional cap for short public demos — server-controlled only. */
   maxOutputTokens?: number;
   temperature?: number;
+  /** User-owned images/PDFs for vision analysis — server-sanitized only. */
+  attachments?: GoogleChatAttachment[];
 };
 
 export type GoogleChatResult = {
@@ -295,6 +302,25 @@ function buildUserMessage(message: string, responseLanguage?: string): string {
   return `${message}\n\n[Respond in ${lang}]`;
 }
 
+type GeminiContentPart =
+  | { text: string }
+  | { inlineData: { mimeType: string; data: string } };
+
+function buildUserContentParts(
+  message: string,
+  attachments?: GoogleChatAttachment[],
+): GeminiContentPart[] {
+  const parts: GeminiContentPart[] = [];
+  for (const att of (attachments ?? []).slice(0, 2)) {
+    const mimeType = att.mimeType.trim().toLowerCase();
+    const data = att.base64.replace(/\s/g, "");
+    if (!data || !mimeType) continue;
+    parts.push({ inlineData: { mimeType, data } });
+  }
+  parts.push({ text: message });
+  return parts;
+}
+
 function sanitizeParams(params: GoogleChatParams): GoogleChatParams {
   const maxOutputTokens =
     params.maxOutputTokens != null
@@ -317,6 +343,7 @@ function sanitizeParams(params: GoogleChatParams): GoogleChatParams {
     })),
     maxOutputTokens,
     temperature,
+    attachments: params.attachments?.slice(0, 2),
   };
 }
 
@@ -353,15 +380,17 @@ async function generateChatViaGeminiApiKey(
       },
     });
 
+    const userParts = buildUserContentParts(userMessage, safe.attachments);
+
     if (history.length === 0) {
-      const result = await model.generateContent(userMessage);
+      const result = await model.generateContent({ contents: [{ role: "user", parts: userParts }] });
       const text = result.response.text()?.trim();
       if (!text) throw new InternalServiceError("EMPTY_RESPONSE");
       return { reply: text, model: modelName };
     }
 
     const chat = model.startChat({ history });
-    const result = await chat.sendMessage(userMessage);
+    const result = await chat.sendMessage(userParts);
     const text = result.response.text()?.trim();
     if (!text) throw new InternalServiceError("EMPTY_RESPONSE");
     return { reply: text, model: modelName };
@@ -425,9 +454,11 @@ async function generateChatViaVertex(safe: GoogleChatParams): Promise<GoogleChat
     parts: [{ text: turn.content }],
   }));
 
+  const userParts = buildUserContentParts(userMessage, safe.attachments);
+
   if (history.length === 0) {
     const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: userMessage }] }],
+      contents: [{ role: "user", parts: userParts }],
     });
     return {
       reply: extractVertexReplyText(result),
@@ -436,7 +467,7 @@ async function generateChatViaVertex(safe: GoogleChatParams): Promise<GoogleChat
   }
 
   const chat = model.startChat({ history });
-  const result = await chat.sendMessage(userMessage);
+  const result = await chat.sendMessage(userParts);
 
   return {
     reply: extractVertexReplyText(result),

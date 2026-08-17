@@ -123,6 +123,7 @@ export class ConsolidatedNavigationService {
         { id: "account", label: "Account", route: "/profile/account" },
         { id: "admin", label: "Admin Panel", route: "/profile/admin" },
         { id: "help", label: "Help & Support", route: "/profile/help" },
+        { id: "terms", label: "Terms of Use", route: "/profile/terms" },
       ],
     });
   }

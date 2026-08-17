@@ -9,6 +9,7 @@ export type HiveCapabilityFlags = {
   troubleshooting: boolean;
   problemSolving: boolean;
   photoAnalysis: boolean;
+  imageGeneration: boolean;
   hiveCollaboration: boolean;
   safeguardedLearning: boolean;
   voiceAdaptation: boolean;
@@ -21,6 +22,7 @@ export const DEFAULT_HIVE_CAPABILITIES: HiveCapabilityFlags = {
   troubleshooting: true,
   problemSolving: true,
   photoAnalysis: true,
+  imageGeneration: false,
   hiveCollaboration: true,
   safeguardedLearning: true,
   voiceAdaptation: true,
@@ -31,12 +33,18 @@ export const DEFAULT_HIVE_CAPABILITIES: HiveCapabilityFlags = {
 export const HIVE_CAPABILITY_OVERRIDES: Partial<
   Record<string, Partial<HiveCapabilityFlags>>
 > = {
-  contentmate: { photoAnalysis: false },
+  contentmate: { photoAnalysis: false, imageGeneration: true },
   linguamate: { photoAnalysis: false, webSearch: false },
   "ai-translator-001": { photoAnalysis: false },
   "ai-crypto-001": { photoAnalysis: false },
   "ai-news-001": { photoAnalysis: false },
   "platform-administration-ai": { photoAnalysis: false },
+  "ai-creative-001": { imageGeneration: true },
+  "ai-logo-brand-001": { imageGeneration: true },
+  "ai-author-001": { imageGeneration: true },
+  "ai-poet-001": { imageGeneration: true },
+  "ai-songwriter-001": { imageGeneration: true },
+  "ai-content-helper-001": { imageGeneration: true },
 };
 
 export function getHiveCapabilities(creatorId: string): HiveCapabilityFlags {

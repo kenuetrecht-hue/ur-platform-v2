@@ -13,6 +13,12 @@ import {
 import { handleCreatorAiChat } from "./ai-chat-handler";
 import { isCreatorAiId } from "./ai-creator-registry";
 import { getTownHallPanelPreview } from "./hive-town-hall-service";
+import {
+  recordLandingDemoStart,
+  type LandingDemoPlatform,
+} from "./landing-demo-attribution-service";
+
+export type { LandingDemoPlatform };
 
 export {
   LANDING_DEMO_MESSAGE_MAX,
@@ -62,6 +68,7 @@ export async function runLandingDemoChat(params: {
   creatorId: string;
   message: string;
   ip: string;
+  platform?: LandingDemoPlatform;
 }) {
   if (!isLandingDemoCreator(params.creatorId) || !isCreatorAiId(params.creatorId)) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "That specialist is not available for demo." });
@@ -86,11 +93,18 @@ export async function runLandingDemoChat(params: {
 
   markDemoUsed(params.ip);
 
+  const attribution = recordLandingDemoStart({
+    ip: params.ip,
+    creatorId: params.creatorId,
+    platform: params.platform ?? "unknown",
+  });
+
   return {
     ...result,
     reply: truncateLandingDemoReply(result.reply, LANDING_DEMO_REPLY_MAX),
     demoUsed: true,
     signupRequired: true,
+    attributionId: attribution.id,
   };
 }
 

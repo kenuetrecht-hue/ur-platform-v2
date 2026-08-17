@@ -85,7 +85,8 @@ const config: ExpoConfig = {
   },
   web: {
     bundler: "metro",
-    output: "static",
+    // SPA mode — avoids SSR/hydration breaking clicks (Pressable, forms) in dev browser.
+    output: "single",
     favicon: "./assets/images/favicon.png",
   },
   plugins: [

@@ -7,6 +7,18 @@ import { randomUUID } from "crypto";
 import { TRPCError } from "@trpc/server";
 import { messageContainsAffiliateLink } from "../../lib/affiliate-disclosure";
 import { listFriends, registerSocialUser } from "./social-service";
+import {
+  assertCreatorDisplayNameAllowed,
+  assertContentRights,
+  assertUserCanPublish,
+  mapContentProtectionError,
+  registerAndVerifyContent,
+} from "./creator-content-protection-service";
+import {
+  bodyWithAttribution,
+  type ContentLicenseType,
+  type ContentRightsMode,
+} from "../../lib/creator-content-protection-core";
 
 export type PostVisibility = "public" | "friends";
 export type PostKind = "text" | "photo" | "video" | "link";
@@ -37,6 +49,10 @@ export type FeedPost = {
   shareCount: number;
   hasAffiliateContent: boolean;
   hasAiDisclosure: boolean;
+  contentRightsMode: ContentRightsMode;
+  attributionSourceName?: string;
+  attributionSourceUrl?: string;
+  licenseType?: ContentLicenseType;
   createdAt: string;
   updatedAt: string;
 };
@@ -76,6 +92,14 @@ export function upsertSocialProfile(params: {
   bio?: string;
 }): SocialUserProfile {
   registerSocialUser(params);
+  try {
+    assertCreatorDisplayNameAllowed({
+      userId: params.userId,
+      displayName: params.displayName,
+    });
+  } catch (error) {
+    mapContentProtectionError(error);
+  }
   const existing = profiles.get(params.userId);
   const profile: SocialUserProfile = {
     userId: params.userId,
@@ -112,6 +136,7 @@ function enrichPost(post: FeedPost, viewerUserId: string): FeedPostView {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   return {
     ...post,
+    contentRightsMode: post.contentRightsMode ?? "original",
     likeCount: postLikes.size,
     commentCount: postComments.length,
     shareCount: shares.get(post.id) ?? 0,
@@ -138,20 +163,72 @@ export function createFeedPost(params: {
   linkUrl?: string;
   visibility?: PostVisibility;
   aiAssisted?: boolean;
+  contentRightsMode?: ContentRightsMode;
+  rightsConfirmed?: boolean;
+  /** @deprecated Use rightsConfirmed */
+  ownsOrLicensedContent?: boolean;
+  attributionSourceName?: string;
+  attributionSourceUrl?: string;
+  licenseType?: ContentLicenseType;
 }): FeedPost {
+  const contentRightsMode = params.contentRightsMode ?? "original";
+  const rightsConfirmed = params.rightsConfirmed ?? params.ownsOrLicensedContent;
+
+  try {
+    assertUserCanPublish(params.authorUserId);
+    assertContentRights({
+      contentRightsMode,
+      rightsConfirmed,
+      attributionSourceName: params.attributionSourceName,
+      attributionSourceUrl: params.attributionSourceUrl,
+      licenseType: params.licenseType,
+    });
+  } catch (error) {
+    mapContentProtectionError(error);
+  }
+
   const profile = upsertSocialProfile({
     userId: params.authorUserId,
     email: params.authorEmail,
     displayName: params.authorName,
   });
 
-  const body = params.body.trim().slice(0, 4000);
+  let body = params.body.trim().slice(0, 4000);
   const imageUrl = params.imageUrl?.trim().slice(0, 2000);
   const videoUrl = params.videoUrl?.trim().slice(0, 2000);
   const linkUrl = params.linkUrl?.trim().slice(0, 2000);
 
+  if (contentRightsMode === "licensed_repost" && params.attributionSourceName && params.licenseType) {
+    body = bodyWithAttribution({
+      body,
+      attributionSourceName: params.attributionSourceName,
+      attributionSourceUrl: params.attributionSourceUrl,
+      licenseType: params.licenseType,
+    });
+  }
+
   if (!body && !imageUrl && !videoUrl) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Add text, a photo, or a video." });
+  }
+
+  const postId = randomUUID();
+
+  try {
+    registerAndVerifyContent({
+      ownerUserId: params.authorUserId,
+      source: "social_post",
+      sourceId: postId,
+      body,
+      imageUrl,
+      videoUrl,
+      linkUrl,
+      contentRightsMode,
+      attributionSourceName: params.attributionSourceName,
+      attributionSourceUrl: params.attributionSourceUrl,
+      licenseType: params.licenseType,
+    });
+  } catch (error) {
+    mapContentProtectionError(error);
   }
 
   let kind: PostKind = params.kind ?? "text";
@@ -163,7 +240,7 @@ export function createFeedPost(params: {
   if (params.aiAssisted) flags.ai = true;
 
   const post: FeedPost = {
-    id: randomUUID(),
+    id: postId,
     authorUserId: params.authorUserId,
     authorName: profile.displayName,
     authorAvatar: profile.avatarEmoji,
@@ -179,6 +256,10 @@ export function createFeedPost(params: {
     shareCount: 0,
     hasAffiliateContent: flags.affiliate,
     hasAiDisclosure: flags.ai,
+    contentRightsMode,
+    attributionSourceName: params.attributionSourceName?.trim() || undefined,
+    attributionSourceUrl: params.attributionSourceUrl?.trim() || undefined,
+    licenseType: params.licenseType,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

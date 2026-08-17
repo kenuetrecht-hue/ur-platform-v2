@@ -218,7 +218,13 @@ export default function AIsScreen() {
                   <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>Browse ▼</Text>
                 </Pressable>
               ) : (
-                <View style={styles.catalogBlock}>
+                <ScrollView
+                  style={styles.catalogBlock}
+                  nestedScrollEnabled
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator
+                >
+                  <View style={styles.catalogBlockInner}>
                   <View style={styles.catalogHeader}>
                     <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
                       Choose a specialist
@@ -268,7 +274,8 @@ export default function AIsScreen() {
                       No specialists in this category.
                     </Text>
                   )}
-                </View>
+                  </View>
+                </ScrollView>
               )}
             </>
           ) : null}
@@ -314,6 +321,7 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     minHeight: 0,
+    overflow: "hidden",
     paddingHorizontal: 4,
     paddingBottom: 2,
   },
@@ -344,8 +352,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   catalogBlock: {
-    maxHeight: 280,
+    flexGrow: 0,
+    maxHeight: 320,
     marginBottom: 4,
+  },
+  catalogBlockInner: {
+    paddingBottom: 8,
   },
   catalogHeader: {
     flexDirection: "row",

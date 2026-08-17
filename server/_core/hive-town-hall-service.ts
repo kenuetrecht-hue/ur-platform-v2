@@ -208,7 +208,7 @@ async function askSpecialist(params: {
   }
 
   const basePrompt = buildCreatorSystemPrompt(params.creatorId);
-  const systemPrompt = await buildHiveEnhancedSystemPrompt({
+  const promptResult = await buildHiveEnhancedSystemPrompt({
     creatorId: params.creatorId,
     userId: params.userId,
     message: params.userMessage,
@@ -219,7 +219,7 @@ async function askSpecialist(params: {
   });
 
   const { reply } = await generateGoogleChatReply({
-    systemPrompt,
+    systemPrompt: promptResult.systemPrompt,
     history: [],
     message: params.userMessage,
   });

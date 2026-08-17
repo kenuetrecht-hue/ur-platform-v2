@@ -4,7 +4,8 @@ export const PLATFORM_DISCLOSURE_TOP =
 
 /** Soft legal footer — shown once at the bottom of every screen. */
 export const PLATFORM_DISCLOSURE_BOTTOM =
-  "You're chatting with AI, not humans · Entertainment & education only — seek a professional if you want professional advice · Offers & affiliate links may appear · UR Platform may earn a commission";
+  "You're chatting with AI, not humans · Entertainment & education only · No refunds on AI purchases · " +
+  "Zero harassment tolerated (privileges revoked, no refund) · Creator purchases are between you & the creator · UR LLC is not responsible for third-party disputes";
 
 /** One-line summary for inline use (feeds, cards). */
 export const PLATFORM_DISCLOSURE_SHORT =
@@ -66,4 +67,4 @@ export const LEGAL_AI_DISCLAIMER =
 /** Shown on public feed posts that contain affiliate or AI-promotional content. */
 export const SOCIAL_POST_DISCLOSURE =
   "This post may include AI-assisted or affiliate content. UR Platform may earn a commission on qualifying purchases. " +
-  "For entertainment and educational purposes — not professional advice.";
+  "For entertainment and educational purposes — not professional advice. Harassment is not tolerated; violators lose access without refund.";

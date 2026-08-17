@@ -22,13 +22,14 @@ import type { AiPriceTier } from "@/lib/ai-subscription-pricing";
 
 import { PaymentChannelNotice } from "@/components/payment-channel-notice";
 
-import { AiHubTabRow } from "@/components/ai-hub-tab-row";
+import { UsageUpgradePanel } from "@/components/usage-upgrade-panel";
 
 import {
   buildAiSubscriptionWebPath,
   getClientPlatform,
   openWebBrowserCheckout,
 } from "@/lib/web-checkout";
+import { formatAllowanceHeadline } from "@/lib/pricing-transparency";
 
 
 
@@ -210,9 +211,17 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
         <Text style={{ color: colors.muted, fontSize: 10, marginTop: 6, lineHeight: 15 }}>
 
-          Text chat & learn included · Voice/video requires Talk Time · Hive uses 3 messages each
+          Text chat & learn included · Voice/video requires Talk Time · Hive uses 3 messages each · 10 web searches/day
 
         </Text>
+
+        {(access.data?.usage?.messagesRemaining ?? 999) <= 10 ? (
+          <UsageUpgradePanel
+            productId="search-web"
+            creatorId={creatorId}
+            title="Need more messages or searches?"
+          />
+        ) : null}
 
       </View>
 
@@ -257,7 +266,7 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
       <Text style={{ color: colors.muted, fontSize: 13, marginTop: 6, lineHeight: 19 }}>
 
-        $5.99/day · $9.99/week · $14.99/month — per specialist. Web browser checkout required.
+        Standard from $7.99/day · $15.99/week · $24.99/month — per specialist. Web browser checkout required.
 
         {tierLabel && tierLabel !== "Standard" ? ` (${tierLabel} usage tier.)` : null}
 
@@ -353,9 +362,9 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
                 {p.messagesIncluded ? (
 
-                  <Text style={{ color: colors.muted, fontSize: 10, marginTop: 4 }}>
+                  <Text style={{ color: colors.muted, fontSize: 10, marginTop: 4, textAlign: "center" }}>
 
-                    {p.messagesIncluded} messages
+                    {formatAllowanceHeadline(creatorId, p.plan)}
 
                   </Text>
 
@@ -386,6 +395,14 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
 
       {selectedSummary ? <PurchaseSummaryCard summary={selectedSummary} /> : null}
+
+
+
+      <Text style={{ color: colors.muted, fontSize: 10, lineHeight: 15, marginTop: 8 }}>
+
+        By paying you agree: AI access is non-refundable. Harassment on UR = revoked privileges, no refund. See Profile → Terms of Use.
+
+      </Text>
 
 
 

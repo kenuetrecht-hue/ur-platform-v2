@@ -14,6 +14,8 @@ import { LANDING_SPECIALIST_COUNT_LABEL } from "@/lib/landing-checkout-pricing";
 import { buildHandoffUrl } from "@/lib/app-handoff-url";
 import { PaymentChannelNotice } from "@/components/payment-channel-notice";
 import { LandingPaymentSuccessModal } from "@/components/landing/landing-payment-success-modal";
+import { PricingComingSoonPanel } from "@/components/pricing-coming-soon-panel";
+import { PUBLIC_PRICING_ENABLED } from "@/lib/pricing-visibility";
 
 export function LandingCheckoutCta() {
   const [email, setEmail] = useState("");
@@ -43,21 +45,22 @@ export function LandingCheckoutCta() {
       <View style={styles.wrap}>
         <Text style={styles.tag}>THE HANDOFF</Text>
         <Text style={styles.title}>Unlock the whole platform.</Text>
-        <Text style={styles.sub}>
-          All {LANDING_SPECIALIST_COUNT_LABEL} specialists share one UR account — one membership per
-          AI at $5.99/day, $9.99/week, or $14.99/month. Subscriptions via web browser; $5 talk
-          packs via mobile app.
-        </Text>
+        {PUBLIC_PRICING_ENABLED ? (
+          <>
+            <Text style={styles.sub}>
+              All {LANDING_SPECIALIST_COUNT_LABEL} specialists share one UR account — one membership per
+              AI. Subscriptions via web browser; talk packs via mobile app.
+            </Text>
 
-        <PaymentChannelNotice compact />
+            <PaymentChannelNotice compact />
 
-        <TextInput
-          value={email}
-          onChangeText={setEmail}
-          placeholder="Email for instant app login"
-          placeholderTextColor={T.muted}
-          keyboardType="email-address"
-          autoCapitalize="none"
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Email for instant app login"
+              placeholderTextColor={T.muted}
+              keyboardType="email-address"
+              autoCapitalize="none"
           autoCorrect={false}
           maxLength={120}
           style={styles.input}
@@ -84,12 +87,25 @@ export function LandingCheckoutCta() {
           By continuing you agree to platform disclosures. Secure checkout · Stripe integration
           online with UR LLC. AI output is educational and entertainment only.
         </Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.sub}>
+              All {LANDING_SPECIALIST_COUNT_LABEL} specialists on one UR account. Membership pricing
+              is being finalized for the live test — join free and message the platform owner for early
+              access.
+            </Text>
+            <PricingComingSoonPanel compact />
+          </>
+        )}
       </View>
 
-      <LandingPaymentSuccessModal
-        visible={Boolean(handoffUrl)}
-        handoffUrl={handoffUrl ?? ""}
-      />
+      {PUBLIC_PRICING_ENABLED ? (
+        <LandingPaymentSuccessModal
+          visible={Boolean(handoffUrl)}
+          handoffUrl={handoffUrl ?? ""}
+        />
+      ) : null}
     </>
   );
 }

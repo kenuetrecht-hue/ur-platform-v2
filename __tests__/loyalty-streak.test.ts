@@ -6,13 +6,24 @@ import {
   getFreeTextMessagesRemaining,
   getLoyaltyAccount,
   getLoyaltyDashboardForUser,
+  isStreak30FreeDayEligible,
+  markPaidAiPurchaseDuringStreak,
+  markStreak30FreeDayClaimed,
   _clearLoyaltyStreakForTests,
 } from "../server/_core/loyalty-streak-service";
+import { _clearLoyaltyActivityForTests } from "../server/_core/loyalty-activity-service";
+import {
+  _clearAiSubscriptionsForTests,
+  grantLoyaltyFreeDaySubscription,
+  getActiveAiSubscription,
+} from "../server/_core/ai-subscription-service";
 import { getLoyaltyEvents, getLoyaltySignIns } from "../server/_core/loyalty-tracking-service";
 import {
-  LOYALTY_DAILY_SIGN_IN_POINTS,
+  LOYALTY_DAILY_SIGN_IN_BASE,
   LOYALTY_POINTS_PER_TEXT_MESSAGE,
+  LOYALTY_STREAK_BONUS_PER_DAY,
   LOYALTY_WELCOME_BONUS_POINTS,
+  getDailySignInPointsForStreak,
   previousUtcDateKey,
 } from "../lib/loyalty-program-config";
 
@@ -21,14 +32,31 @@ describe("loyalty streak service", () => {
 
   beforeEach(() => {
     _clearLoyaltyStreakForTests();
+    _clearLoyaltyActivityForTests();
+    _clearAiSubscriptionsForTests();
   });
 
-  it("awards welcome bonus + first daily points on first sign-in", async () => {
+  it("awards welcome bonus + escalating daily points on first sign-in", async () => {
+    const day1Points = getDailySignInPointsForStreak(1);
+    expect(day1Points).toBe(LOYALTY_DAILY_SIGN_IN_BASE + LOYALTY_STREAK_BONUS_PER_DAY);
+
     const result = await claimDailySignIn(userId);
     expect(result.welcomeBonusAwarded).toBe(LOYALTY_WELCOME_BONUS_POINTS);
-    expect(result.pointsAwardedToday).toBe(LOYALTY_DAILY_SIGN_IN_POINTS);
-    expect(result.totalPoints).toBe(LOYALTY_WELCOME_BONUS_POINTS + LOYALTY_DAILY_SIGN_IN_POINTS);
+    expect(result.pointsAwardedToday).toBe(LOYALTY_WELCOME_BONUS_POINTS + day1Points);
+    expect(result.totalPoints).toBe(LOYALTY_WELCOME_BONUS_POINTS + day1Points);
     expect(result.currentStreakDays).toBe(1);
+  });
+
+  it("increases daily LP with consecutive streak days", async () => {
+    await claimDailySignIn(userId);
+    const account = getLoyaltyAccount(userId);
+    account.lastSignInDate = previousUtcDateKey();
+    account.currentStreakDays = 2;
+
+    const day3 = await claimDailySignIn(userId);
+    expect(day3.currentStreakDays).toBe(3);
+    expect(getDailySignInPointsForStreak(3)).toBe(130);
+    expect(day3.pointsAwardedToday).toBe(130);
   });
 
   it("does not double-claim on same day", async () => {
@@ -52,15 +80,18 @@ describe("loyalty streak service", () => {
     expect(getLoyaltySignIns(userId, 10).signIns).toHaveLength(2);
   });
 
-  it("resets streak after missed day", async () => {
+  it("resets streak after missed day and clears paid-AI streak flag", async () => {
     await claimDailySignIn(userId);
     const account = getLoyaltyAccount(userId);
+    markPaidAiPurchaseDuringStreak(userId);
     account.lastSignInDate = "2026-01-01";
     account.currentStreakDays = 9;
+    account.paidAiPurchaseDuringCurrentStreak = true;
 
     const afterMiss = await claimDailySignIn(userId);
     expect(afterMiss.currentStreakDays).toBe(1);
     expect(afterMiss.streakWasReset).toBe(true);
+    expect(getLoyaltyAccount(userId).paidAiPurchaseDuringCurrentStreak).toBe(false);
     expect(getLoyaltyEvents(userId, 20).events.some((e) => e.eventType === "streak_reset")).toBe(
       true,
     );
@@ -99,11 +130,43 @@ describe("loyalty streak service", () => {
     expect(dashboard.recentEvents.length).toBeGreaterThan(0);
     expect(dashboard.recentSignIns.length).toBe(1);
     expect(dashboard.account.claimedToday).toBe(true);
+    expect(dashboard.account.todayDailySignInPoints).toBe(getDailySignInPointsForStreak(1));
+  });
+
+  it("unlocks 30-day free day when streak and paid AI purchase align", async () => {
+    await claimDailySignIn(userId);
+    const account = getLoyaltyAccount(userId);
+    account.currentStreakDays = 29;
+    account.lastSignInDate = previousUtcDateKey();
+    account.currentStreakStartDate = "2026-01-01";
+    markPaidAiPurchaseDuringStreak(userId);
+
+    const day30 = await claimDailySignIn(userId);
+    expect(day30.currentStreakDays).toBe(30);
+    expect(isStreak30FreeDayEligible(userId)).toBe(true);
+    expect(
+      getLoyaltyEvents(userId, 20).events.some((e) => e.eventType === "streak_30_free_day_pending"),
+    ).toBe(true);
+
+    grantLoyaltyFreeDaySubscription({
+      userId,
+      userEmail: "member@test.com",
+      creatorId: "ai-wellness-001",
+    });
+    markStreak30FreeDayClaimed(userId, "ai-wellness-001");
+    expect(isStreak30FreeDayEligible(userId)).toBe(false);
+    expect(getActiveAiSubscription(userId, "ai-wellness-001")?.source).toBe("loyalty_reward");
   });
 });
 
 describe("loyalty-program-config", () => {
-  it("keeps redemption expensive vs daily earn rate", () => {
-    expect(LOYALTY_POINTS_PER_TEXT_MESSAGE / LOYALTY_DAILY_SIGN_IN_POINTS).toBeGreaterThanOrEqual(10);
+  it("keeps redemption expensive vs day-1 earn rate", () => {
+    expect(LOYALTY_POINTS_PER_TEXT_MESSAGE / getDailySignInPointsForStreak(1)).toBeGreaterThanOrEqual(
+      4,
+    );
+  });
+
+  it("scales daily LP linearly with streak day", () => {
+    expect(getDailySignInPointsForStreak(30)).toBe(400);
   });
 });

@@ -552,8 +552,8 @@ function AiLearnSurface({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, minHeight: 0 },
-  chatSurface: { flex: 1, minHeight: 0 },
+  root: { flex: 1, minHeight: 0, overflow: "hidden" },
+  chatSurface: { flex: 1, minHeight: 0, overflow: "hidden" },
   opsBlocked: {
     borderRadius: 14,
     borderWidth: 1,
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
   chip: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 8 },
   moduleRow: { paddingHorizontal: 12, paddingBottom: 6, gap: 8, flexGrow: 0 },
   moduleCard: { width: 140, borderRadius: 12, borderWidth: 1.5, padding: 10 },
-  learnMessages: { flex: 1, minHeight: 120 },
+  learnMessages: { flex: 1, minHeight: 0 },
   learnHeader: { borderRadius: 12, padding: 12, flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 },
   learnHeaderAvatar: { fontSize: 22 },
   learnHeaderTitle: { color: "#fff", fontWeight: "700", fontSize: 16, flex: 1 },

@@ -15,6 +15,7 @@ import {
 } from "../_core/game-dev-sandbox-service";
 import { getStripeIntegration } from "../stripe-integration";
 import { ENV } from "../_core/env";
+import { assertAndConsumeCredit } from "../_core/usage-credits-service";
 
 const tierSchema = z.enum(["starter", "builder", "studio", "enterprise"]);
 const pending = new Map<string, { userId: string; tierId: SandboxTierId }>();
@@ -69,6 +70,14 @@ export const gameDevSandboxRouter = router({
     .input(z.object({ projectId: z.string().min(4).max(128) }))
     .mutation(async ({ ctx, input }) => {
       assertAccess(ctx);
+      if (!ctx.isPlatformOwner) {
+        assertAndConsumeCredit({
+          userId: String(ctx.user.id),
+          productId: "code-gameforge",
+          units: 1,
+          isPlatformOwner: false,
+        });
+      }
       return executeGameBuild({ userId: String(ctx.user.id), isPlatformOwner: ctx.isPlatformOwner, projectId: input.projectId });
     }),
 

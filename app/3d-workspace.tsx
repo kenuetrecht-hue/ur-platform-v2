@@ -190,7 +190,7 @@ export default function Workspace3DScreen() {
               style={[styles.pricingLink, { borderColor: colors.primary, marginHorizontal: 16 }]}
             >
               <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 12 }}>
-                💳 Subscribe to use the 3D workspace — Day Pass $7.99 · Pro $39.99/mo (3 AIs)
+                💳 Subscribe to use the 3D workspace — see Pricing tab for plans
               </Text>
             </Pressable>
           ) : workspaceAccess.data?.hasAccess ? (
@@ -316,7 +316,7 @@ export default function Workspace3DScreen() {
                   style={[styles.pricingLink, { borderColor: colors.primary }]}
                 >
                   <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 12 }}>
-                    💳 {activeAi.name} — pricing ($5.99 / $9.99 / $14.99 + voice)
+                    💳 {activeAi.name} — see Pricing tab for access options
                   </Text>
                 </Pressable>
                 <AIDisclosureWrapper aiName={activeAi.name}>

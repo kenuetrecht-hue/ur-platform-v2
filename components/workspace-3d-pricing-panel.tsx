@@ -16,6 +16,8 @@ import { useBillingState } from "@/hooks/use-billing-state";
 import { PaymentChannelNotice } from "@/components/payment-channel-notice";
 import { AiHubTabRow } from "@/components/ai-hub-tab-row";
 import { getClientPlatform, openWebBrowserCheckout } from "@/lib/web-checkout";
+import { PricingComingSoonPanel } from "@/components/pricing-coming-soon-panel";
+import { PUBLIC_PRICING_ENABLED } from "@/lib/pricing-visibility";
 
 type PlanOption = {
   planId: Workspace3dPlanId;
@@ -28,6 +30,9 @@ type PlanOption = {
 
 export function Workspace3dPricingPanel() {
   const colors = useColors();
+  if (!PUBLIC_PRICING_ENABLED) {
+    return <PricingComingSoonPanel contextLabel="3D Workspace access" />;
+  }
   const { isAuthenticated } = useAuth();
   const utils = trpc.useUtils();
   const { stateCode, setStateCode, hasState } = useBillingState();
@@ -121,7 +126,7 @@ export function Workspace3dPricingPanel() {
       <Text style={[styles.sectionTag, { color: colors.primary }]}>BUNDLES</Text>
       <Text style={[styles.sectionHint, { color: colors.muted }]}>{WORKSPACE_3D_PRICING_SUMMARY}</Text>
       <Text style={[styles.sectionHint, { color: colors.muted }]}>
-        Text chat still uses each specialist&apos;s $5.99 / $9.99 / $14.99 plan. Voice uses Talk Time.
+        Text chat still uses each specialist&apos;s day/week/month plan. Voice uses Talk Time.
       </Text>
 
       <PaymentChannelNotice compact />

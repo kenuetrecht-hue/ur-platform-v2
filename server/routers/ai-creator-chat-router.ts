@@ -5,6 +5,10 @@ import {
   listCreatorsForClient,
 } from "../_core/ai-creator-registry";
 import { getCreatorHiveProfile } from "../_core/ai-hive-orchestrator";
+import { getHiveCapabilities } from "../_core/ai-hive-capabilities";
+import { generateImage } from "../_core/imageGeneration";
+import { ENV } from "../_core/env";
+import { sanitizeChatAttachments } from "../_core/chat-attachment-service";
 import { isOwnerOnlyPlatformAi, canChatOwnerOpsAi } from "../_core/platform-ops-ai";
 import { getAdminAccessForUser } from "../_core/admin-access-service";
 import { assertAiEntitled } from "../_core/access-entitlements";
@@ -30,6 +34,9 @@ import {
 } from "../_core/ai-chat-persistence-service";
 import { mapServiceErrorToTrpc } from "../_core/service-errors";
 import { notifyAiChatThreadUpdated } from "../_core/ai-chat-realtime-ws";
+import { assertUserCanUseAi } from "../_core/ai-guardrails";
+import { assertNoAiTakeoverInMessage } from "../_core/ai-control";
+import { assertAndConsumeCredit } from "../_core/usage-credits-service";
 
 const CREATOR_VOICE_PERSONA: Record<string, keyof typeof AI_PERSONA_VOICES> = {
   "ai-coder-001": "TECH_BUILDER",
@@ -51,6 +58,12 @@ const creatorIdSchema = z
   .min(1)
   .max(64)
   .refine(isCreatorAiId, { message: "Unknown AI assistant." });
+
+const chatAttachmentSchema = z.object({
+  mimeType: z.string().trim().min(3).max(64),
+  base64: z.string().min(16).max(6_000_000),
+  fileName: z.string().trim().max(120).optional(),
+});
 
 export const aiCreatorChatRouter = router({
   /** Public — browsing AI specialists does not require login. Owner ops AIs are never listed. */
@@ -165,6 +178,8 @@ export const aiCreatorChatRouter = router({
         history: chatHistorySchema.max(20).optional(),
         /** Explicitly invoke multi-AI hive consultation with peer specialists */
         useHiveConsult: z.boolean().optional(),
+        /** User-owned photos/PDFs for vision analysis (specialists with photoAnalysis). */
+        attachments: z.array(chatAttachmentSchema).max(2).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -204,11 +219,14 @@ export const aiCreatorChatRouter = router({
               content: turn.content,
             }));
 
+      const attachments = sanitizeChatAttachments(input.attachments);
+
       const result = await handleCreatorAiChat({
         creatorId: input.creatorId,
         message: input.message,
         history,
         useHiveConsult: input.useHiveConsult,
+        attachments,
         ctx: {
           userId,
           isPlatformOwner: ctx.isPlatformOwner,
@@ -246,6 +264,73 @@ export const aiCreatorChatRouter = router({
         threadId: syncMeta?.threadId,
         threadUpdatedAt: syncMeta?.updatedAt,
       };
+    }),
+
+  /** Generate an image via Imagen (creative specialists + ContentMate). Requires Vertex AI. */
+  generateImage: secureProcedure("aiCreators")
+    .input(
+      z.object({
+        creatorId: creatorIdSchema,
+        prompt: z.string().trim().min(1).max(2000),
+        aspectRatio: z.enum(["1:1", "3:4", "4:3", "9:16", "16:9"]).optional(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const caps = getHiveCapabilities(input.creatorId);
+      if (!caps.imageGeneration) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Image generation is not available for this specialist.",
+        });
+      }
+
+      if (isOwnerOnlyPlatformAi(input.creatorId) || isAffiliateOnlyAi(input.creatorId)) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "AI assistant not found." });
+      }
+
+      assertSectionEnabledForRequest("ai_chat", ctx.isPlatformOwner);
+      assertAiEntitled({
+        userId: ctx.user.id,
+        email: ctx.user.email,
+        isPlatformOwner: ctx.isPlatformOwner,
+        feature: "ai_chat",
+        creatorId: input.creatorId,
+      });
+
+      if (!ENV.googleCloudProject) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message:
+            "Image generation requires GOOGLE_CLOUD_PROJECT (Vertex AI Imagen). Text chat works with a Gemini API key alone.",
+        });
+      }
+
+      try {
+        assertUserCanUseAi(String(ctx.user.id), ctx.isPlatformOwner);
+        assertNoAiTakeoverInMessage(input.prompt, ctx.isPlatformOwner);
+
+        const image = await generateImage({
+          prompt: input.prompt,
+          aspectRatio: input.aspectRatio ?? "1:1",
+        });
+
+        if (!ctx.isPlatformOwner) {
+          assertAndConsumeCredit({
+            userId: String(ctx.user.id),
+            productId: "images-imagen",
+            units: 1,
+            isPlatformOwner: false,
+          });
+        }
+
+        return {
+          url: image.url,
+          model: image.model,
+          creatorId: input.creatorId,
+        };
+      } catch (error) {
+        throw mapServiceErrorToTrpc(error);
+      }
     }),
 
   /** Voice synthesis for specialists that support pair programming / read-aloud */

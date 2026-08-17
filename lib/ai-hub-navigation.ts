@@ -71,3 +71,10 @@ export function filterCreatorsByGroup<
     return words.every((word) => haystack.includes(word));
   });
 }
+
+/** Pick the first specialist in a hub category (used when switching tabs). */
+export function firstCreatorInGroup<
+  T extends { id: string; name: string; category: string; avatar: string; mission?: string },
+>(creators: T[], groupId: string, searchQuery = ""): T | undefined {
+  return filterCreatorsByGroup(creators, groupId, searchQuery)[0];
+}

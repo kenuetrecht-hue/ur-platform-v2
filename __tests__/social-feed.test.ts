@@ -23,6 +23,7 @@ describe("Social feed", () => {
       authorEmail: "author@test.com",
       authorName: "Author",
       body: "Check out my project #URPlatform https://amazon.com/dp/B001?tag=affiliate-20",
+      rightsConfirmed: true,
     });
     expect(post.visibility).toBe("public");
     expect(post.hashtags).toContain("#urplatform");
@@ -36,6 +37,7 @@ describe("Social feed", () => {
       authorEmail: "author@test.com",
       authorName: "Author",
       body: "Hello world #trending",
+      rightsConfirmed: true,
     });
 
     const like = togglePostLike({ postId: post.id, userId: viewerId });
@@ -67,6 +69,7 @@ describe("Social feed", () => {
       authorName: "Author",
       body: "Friends only #private",
       visibility: "friends",
+      rightsConfirmed: true,
     });
 
     const publicView = getFeed({ viewerUserId: viewerId, sort: "latest" });
@@ -82,6 +85,7 @@ describe("Social feed", () => {
       authorEmail: "author@test.com",
       authorName: "Author",
       body: "Temporary post",
+      rightsConfirmed: true,
     });
     expect(deleteFeedPost({ postId: post.id, userId: authorId })).toBe(true);
     const feed = getFeed({ viewerUserId: authorId });

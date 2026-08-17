@@ -65,10 +65,15 @@ export function guardUserInput(
 
   const analysis = contentSafety.analyzeContent(content, "text", userId);
   if (analysis.safetyLevel === "blocked") {
+    const isHarassment = analysis.harmCategories.some((c) =>
+      c === "harassment" || c === "hate_speech",
+    );
     return {
       allowed: false,
-      reason: "unsafe_input",
-      safeMessage: BLOCKED_INPUT_MESSAGE,
+      reason: isHarassment ? "harassment" : "unsafe_input",
+      safeMessage: isHarassment
+        ? "Harassment is not tolerated on UR Platform. Your message was blocked. Repeated or severe abuse may revoke your privileges without refund. See Terms of Use in Profile."
+        : BLOCKED_INPUT_MESSAGE,
     };
   }
 
@@ -135,7 +140,9 @@ export function assertUserCanUseAi(userId: string, isOwner: boolean): void {
   if (profile.status === "suspended" || profile.status === "banned") {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Your account is restricted from AI features. Contact support.",
+      message:
+        "Your UR Platform privileges have been revoked due to a Terms of Use violation (including harassment). " +
+        "No refunds are issued for restricted accounts. Contact support@urplatform.llc if you believe this is an error.",
     });
   }
 }

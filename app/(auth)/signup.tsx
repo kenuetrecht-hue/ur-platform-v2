@@ -6,6 +6,9 @@ import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { LAUNCH_PROMOTION_SUBLINE } from "@/lib/launch-promotion-config";
+import { CREATOR_CONTENT_PROTECTION_NOTICE } from "@/lib/creator-content-protection-copy";
+import { TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
+import { saveLandingDemoAttributionId } from "@/lib/landing-demo-attribution-storage";
 
 const ROLES: { id: UserRole; label: string; desc: string }[] = [
   { id: "creator", label: "Content creator", desc: "Host paid live classes · 85% instant payouts" },
@@ -16,7 +19,15 @@ const ROLES: { id: UserRole; label: string; desc: string }[] = [
 
 export default function SignUpScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ ref?: string; role?: string; email?: string; membership?: string }>();
+  const params = useLocalSearchParams<{
+    ref?: string;
+    role?: string;
+    email?: string;
+    membership?: string;
+    source?: string;
+    demoAttribution?: string;
+    demoCreator?: string;
+  }>();
   const { register } = useAuth();
   const colors = useColors();
   const [name, setName] = useState("");
@@ -25,6 +36,7 @@ export default function SignUpScreen() {
   const [referralCode, setReferralCode] = useState("");
   const [role, setRole] = useState<UserRole>("creator");
   const [submitting, setSubmitting] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const refValidation = trpc.partnerDashboard.validateReferralCode.useQuery(
     { code: referralCode.trim() },
@@ -42,7 +54,10 @@ export default function SignUpScreen() {
     if (typeof params.email === "string" && params.email.includes("@")) {
       setEmail(params.email);
     }
-  }, [params.ref, params.role, params.email]);
+    if (typeof params.demoAttribution === "string" && params.demoAttribution) {
+      void saveLandingDemoAttributionId(params.demoAttribution);
+    }
+  }, [params.ref, params.role, params.email, params.demoAttribution]);
 
   const handleSignUp = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
@@ -52,6 +67,11 @@ export default function SignUpScreen() {
 
     if (password.length < 6) {
       Alert.alert("Error", "Password must be at least 6 characters");
+      return;
+    }
+
+    if (!acceptedTerms) {
+      Alert.alert("Terms required", "Please agree to the Terms of Use to create an account.");
       return;
     }
 
@@ -119,6 +139,19 @@ export default function SignUpScreen() {
                 }}
               >
                 PAYMENT SUCCESSFUL — Your specialist pass is active. Finish signup to log in.
+              </Text>
+            ) : null}
+            {params.source === "landing_demo" ? (
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: colors.primary,
+                  fontWeight: "700",
+                  textAlign: "center",
+                  marginTop: 4,
+                }}
+              >
+                You tried a free AI sample — create your account to unlock full access
               </Text>
             ) : null}
             {params.ref ? (
@@ -318,23 +351,55 @@ export default function SignUpScreen() {
                 ))}
               </View>
               {role === "creator" ? (
-                <Text style={{ color: colors.muted, fontSize: 12, marginTop: 8, lineHeight: 18 }}>
-                  After signup, connect Uphold or a USDC wallet in your Creator Dashboard to receive
-                  85% of each class sale instantly on the blockchain.
-                </Text>
+                <>
+                  <Text style={{ color: colors.muted, fontSize: 12, marginTop: 8, lineHeight: 18 }}>
+                    After signup, connect Uphold or a USDC wallet in your Creator Dashboard to receive
+                    85% of each class sale instantly on the blockchain.
+                  </Text>
+                  <Text style={{ color: colors.muted, fontSize: 11, marginTop: 8, lineHeight: 16 }}>
+                    {CREATOR_CONTENT_PROTECTION_NOTICE}
+                  </Text>
+                </>
               ) : null}
             </View>
           </View>
 
           <Pressable
+            onPress={() => setAcceptedTerms((v) => !v)}
+            style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}
+          >
+            <View
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 6,
+                borderWidth: 2,
+                borderColor: acceptedTerms ? colors.primary : colors.border,
+                backgroundColor: acceptedTerms ? colors.primary : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
+                marginTop: 2,
+              }}
+            >
+              {acceptedTerms ? <Text style={{ color: "#fff", fontSize: 14, fontWeight: "800" }}>✓</Text> : null}
+            </View>
+            <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18, flex: 1 }}>
+              {TERMS_SIGNUP_ACKNOWLEDGMENT}{" "}
+              <Link href="/profile/terms" style={{ color: colors.primary, fontWeight: "700" }}>
+                Read full Terms
+              </Link>
+            </Text>
+          </Pressable>
+
+          <Pressable
             onPress={handleSignUp}
-            disabled={loading}
+            disabled={loading || !acceptedTerms}
             style={{
               backgroundColor: colors.primary,
               borderRadius: 12,
               padding: 16,
               alignItems: "center",
-              opacity: loading ? 0.6 : 1,
+              opacity: loading || !acceptedTerms ? 0.6 : 1,
             }}
           >
             <Text style={{ fontSize: 16, fontWeight: "600", color: "#fff" }}>

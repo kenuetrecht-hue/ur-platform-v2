@@ -15,7 +15,11 @@ import {
   subscribeToCreator,
   unsubscribeFromCreator,
 } from "../_core/social-service";
-import { getContentCreatorProfile } from "../_core/partner-program-service";
+import {
+  awardJoinCreatorPoints,
+  awardSocialPostPoints,
+  redeemLoyaltyReward,
+} from "../_core/loyalty-activity-service";
 import { listAllTransactions, getTransactionStats } from "../_core/transaction-ledger-service";
 import {
   addIceCandidate,
@@ -47,6 +51,43 @@ import {
   type PostAssistantPlan,
   type PostTone,
 } from "../_core/social-post-assistant-service";
+import { CONTENT_LICENSE_TYPES } from "../../lib/creator-content-protection-core";
+
+const createPostInputSchema = z
+  .object({
+    body: z.string().max(4000).default(""),
+    imageUrl: z.string().max(2000).optional(),
+    videoUrl: z.string().max(2000).optional(),
+    linkUrl: z.string().max(2000).optional(),
+    visibility: z.enum(["public", "friends"]).optional(),
+    aiAssisted: z.boolean().optional(),
+    contentRightsMode: z.enum(["original", "licensed_repost"]).default("original"),
+    rightsConfirmed: z.literal(true, {
+      errorMap: () => ({
+        message: "Confirm your content rights before publishing.",
+      }),
+    }),
+    attributionSourceName: z.string().max(80).trim().optional(),
+    attributionSourceUrl: z.string().max(2000).trim().optional(),
+    licenseType: z.enum(CONTENT_LICENSE_TYPES).optional(),
+  })
+  .superRefine((input, ctx) => {
+    if (input.contentRightsMode !== "licensed_repost") return;
+    if (!input.attributionSourceName || input.attributionSourceName.length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Credit the original creator or source by name.",
+        path: ["attributionSourceName"],
+      });
+    }
+    if (!input.licenseType) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Select how you are allowed to repost this content.",
+        path: ["licenseType"],
+      });
+    }
+  });
 
 function socialUser(ctx: { user: { id: string | number; email?: string | null; name?: string | null } }) {
   const userId = String(ctx.user.id);
@@ -171,15 +212,21 @@ export const socialRouter = router({
         rideAlongWithAi: z.boolean().optional(),
       }),
     )
-    .mutation(({ ctx, input }) =>
-      subscribeToCreator({
+    .mutation(({ ctx, input }) => {
+      const sub = subscribeToCreator({
         subscriberUserId: String(ctx.user.id),
         creatorUserId: input.creatorUserId,
         creatorName: input.creatorName,
         creatorSlug: input.creatorSlug,
         rideAlongWithAi: input.rideAlongWithAi,
-      }),
-    ),
+      });
+      const loyalty = awardJoinCreatorPoints({
+        userId: String(ctx.user.id),
+        creatorUserId: input.creatorUserId,
+        creatorName: input.creatorName,
+      });
+      return { ...sub, loyaltyPointsAwarded: loyalty.points };
+    }),
 
   unsubscribeCreator: secureProcedure("social")
     .input(z.object({ creatorUserId: z.string().min(1) }))
@@ -329,18 +376,9 @@ export const socialRouter = router({
     ),
 
   createPost: secureProcedure("social")
-    .input(
-      z.object({
-        body: z.string().max(4000).default(""),
-        imageUrl: z.string().max(2000).optional(),
-        videoUrl: z.string().max(2000).optional(),
-        linkUrl: z.string().max(2000).optional(),
-        visibility: z.enum(["public", "friends"]).optional(),
-        aiAssisted: z.boolean().optional(),
-      }),
-    )
-    .mutation(({ ctx, input }) =>
-      createFeedPost({
+    .input(createPostInputSchema)
+    .mutation(({ ctx, input }) => {
+      const post = createFeedPost({
         authorUserId: socialUser(ctx),
         authorEmail: ctx.user.email ?? "",
         authorName: ctx.user.name ?? "User",
@@ -350,8 +388,15 @@ export const socialRouter = router({
         linkUrl: input.linkUrl,
         visibility: input.visibility,
         aiAssisted: input.aiAssisted,
-      }),
-    ),
+        contentRightsMode: input.contentRightsMode,
+        rightsConfirmed: input.rightsConfirmed,
+        attributionSourceName: input.attributionSourceName,
+        attributionSourceUrl: input.attributionSourceUrl,
+        licenseType: input.licenseType,
+      });
+      const loyalty = awardSocialPostPoints(socialUser(ctx));
+      return { ...post, loyaltyPointsAwarded: loyalty.points };
+    }),
 
   deletePost: secureProcedure("social")
     .input(z.object({ postId: z.string().uuid() }))

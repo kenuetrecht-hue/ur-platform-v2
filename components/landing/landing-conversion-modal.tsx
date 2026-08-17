@@ -21,11 +21,25 @@ type Props = {
   creatorId: string;
   creatorName: string;
   reply: string;
+  attributionId?: string | null;
 };
 
-export function LandingConversionModal({ visible, onClose, creatorId, creatorName, reply }: Props) {
+export function LandingConversionModal({ visible, onClose, creatorId, creatorName, reply, attributionId }: Props) {
   const router = useRouter();
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const recordSignupClick = trpc.landing.recordDemoSignupClick.useMutation();
+
+  const goSignup = () => {
+    if (attributionId) {
+      recordSignupClick.mutate({ attributionId });
+    }
+    const query = new URLSearchParams({
+      source: "landing_demo",
+      demoCreator: creatorId,
+    });
+    if (attributionId) query.set("demoAttribution", attributionId);
+    router.push(`/signup?${query.toString()}`);
+  };
 
   const voiceMutation = trpc.landing.synthesizeDemoVoice.useMutation({
     onSuccess: (data) => {
@@ -73,7 +87,7 @@ export function LandingConversionModal({ visible, onClose, creatorId, creatorNam
             Every specialist runs on the same platform — unlock the full hive with one membership.
           </Text>
 
-          <Pressable onPress={() => router.push("/signup")} style={styles.primary}>
+          <Pressable onPress={goSignup} style={styles.primary}>
             <Text style={styles.primaryText}>Create free account →</Text>
           </Pressable>
           <Pressable onPress={() => router.push("/(tabs)/ais")} style={styles.secondary}>

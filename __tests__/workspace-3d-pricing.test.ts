@@ -17,10 +17,10 @@ import { TRPCError } from "@trpc/server";
 
 describe("workspace-3d-pricing", () => {
   it("defines Option A bundle prices", () => {
-    expect(WORKSPACE_3D_PLAN_CENTS.day_pass).toBe(799);
-    expect(WORKSPACE_3D_PLAN_CENTS.solo).toBe(1999);
-    expect(WORKSPACE_3D_PLAN_CENTS.pro).toBe(3999);
-    expect(WORKSPACE_3D_PLAN_CENTS.studio).toBe(6999);
+    expect(WORKSPACE_3D_PLAN_CENTS.day_pass).toBe(1099);
+    expect(WORKSPACE_3D_PLAN_CENTS.solo).toBe(2999);
+    expect(WORKSPACE_3D_PLAN_CENTS.pro).toBe(4999);
+    expect(WORKSPACE_3D_PLAN_CENTS.studio).toBe(7499);
   });
 
   it("maps concurrent AI slots per plan", () => {
@@ -33,7 +33,7 @@ describe("workspace-3d-pricing", () => {
   it("returns four plan quotes", () => {
     const plans = getWorkspace3dPlans();
     expect(plans).toHaveLength(4);
-    expect(getWorkspace3dPlanPriceCents("pro")).toBe(3999);
+    expect(getWorkspace3dPlanPriceCents("pro")).toBe(4999);
   });
 });
 

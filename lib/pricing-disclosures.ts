@@ -37,6 +37,17 @@ import {
   type Workspace3dPlanId,
 } from "./workspace-3d-pricing";
 import {
+  buildCreditProductPlainPricing,
+  type PlainProductPricing,
+} from "./pricing-transparency";
+import {
+  CREDIT_PRODUCTS,
+  resolveCreditPurchase,
+  type CreditProductId,
+  type BillingPeriod,
+} from "./usage-caps-catalog";
+import { formatUsd } from "./ai-subscription-pricing";
+import {
   LIVE_CLASS_PURCHASE_RULES,
   LIVE_CLASS_SCHEDULING_RULES_SUMMARY,
   LIVE_CLASS_NO_REFUND_AFTER_LOCKIN_SUMMARY,
@@ -44,7 +55,12 @@ import {
   LIVE_CLASS_FILL_WINDOW_RULE_SUMMARY,
   LIVE_CLASS_PATIENCE_GRACE_RULE_SUMMARY,
 } from "./live-class-scheduling-policy";
-import type { LiveClassPricingTier } from "./live-class-pricing-policy";
+import {
+  AI_PURCHASE_NO_REFUND_POLICY,
+  CREATOR_TRANSACTION_DISCLAIMER,
+  HARASSMENT_ENFORCEMENT_POLICY,
+  TERMS_CHECKOUT_ACKNOWLEDGMENT,
+} from "./platform-terms-of-use";
 
 export type PurchaseSummaryLine = {
   label: string;
@@ -55,7 +71,7 @@ export type PurchaseSummaryLine = {
 export type PurchasePricing = ReturnType<typeof calculateCustomerCheckout>;
 
 export type PurchaseSummary = {
-  productType: "ai_subscription" | "ai_talk" | "workspace_3d" | "workspace_3d_addon" | "live_class";
+  productType: "ai_subscription" | "ai_talk" | "workspace_3d" | "workspace_3d_addon" | "live_class" | "usage_credit";
   title: string;
   /** Itemized price — subtotal + tax + Stripe fee = total */
   pricing: PurchasePricing;
@@ -71,6 +87,12 @@ export type PurchaseSummary = {
 const BILLING_ENTITY = "UR LLC";
 const AI_DISCLOSURE =
   "You are subscribing to access an artificial intelligence (AI) specialist. AI responses are generated automatically and may contain errors. This is not human professional advice.";
+
+const AI_PURCHASE_TERMS_NOTES = [
+  AI_PURCHASE_NO_REFUND_POLICY,
+  TERMS_CHECKOUT_ACKNOWLEDGMENT,
+  HARASSMENT_ENFORCEMENT_POLICY,
+];
 
 function buildPricingBlock(
   subtotalCents: number,
@@ -182,8 +204,12 @@ export function buildSubscriptionPurchaseSummary(params: {
         emphasis: true,
       },
       {
+        label: "Web search included",
+        value: `${allowance.webSearchesIncludedPerDay} searches per day while your text plan is active`,
+      },
+      {
         label: "Message usage",
-        value: `Normal chat = 1 msg · Learn = ${LEARN_MESSAGE_MULTIPLIER} msgs · Hive consult = ${HIVE_MESSAGE_MULTIPLIER} msgs`,
+        value: `Normal chat = 1 msg · Learn/chapter = ${LEARN_MESSAGE_MULTIPLIER} msgs · Hive consult = ${HIVE_MESSAGE_MULTIPLIER} msgs · Photo upload = 2 msgs (or vision credits)`,
       },
       {
         label: "Access period",
@@ -191,8 +217,11 @@ export function buildSubscriptionPurchaseSummary(params: {
       },
     ],
     notIncluded: [
-      "Voice & video talk (buy a Talk Time pack separately)",
-      "Unlimited messages — allowance applies",
+      "Voice & video talk (buy Talk Time separately — priced per minute)",
+      "Logo/creative images (Imagen) — separate image credit packs",
+      "TechBuilder/GameForge code runs — separate run credits",
+      "Book/song/script chapters — separate chapter credits",
+      "Unlimited messages — your allowance is capped as shown above",
       "Other AI specialists (this plan is for this specialist only)",
     ],
     importantNotes: [
@@ -200,6 +229,7 @@ export function buildSubscriptionPurchaseSummary(params: {
       AI_TEXT_METERING_DISCLOSURE,
       AI_METERING_PAYBACK_PROTECTION,
       "AI subscriptions must be purchased through your web browser — not in the mobile app.",
+      ...AI_PURCHASE_TERMS_NOTES,
       ...stateTaxNotes(params.stateCode ?? null, pricing),
       "No auto-renew unless you choose it at checkout.",
     ],
@@ -252,10 +282,77 @@ export function buildTalkPurchaseSummary(
       AI_METERING_RESUME_DISCLOSURE,
       AI_TEXT_METERING_DISCLOSURE,
       AI_METERING_PAYBACK_PROTECTION,
+      AI_PURCHASE_NO_REFUND_POLICY,
       `Checkout via ${getPaymentChannelLabel(channel)}.`,
       PAYMENT_CHANNEL_POLICY_SUMMARY,
       ...stateTaxNotes(stateCode ?? null, pricing),
       "Each new purchase starts its own 30-day expiry window.",
+    ],
+    aiDisclosure: AI_DISCLOSURE,
+    billingEntity: BILLING_ENTITY,
+  };
+}
+
+export function buildUsageCreditPurchaseSummary(params: {
+  productId: CreditProductId;
+  period?: BillingPeriod;
+  addonId?: string;
+  stateCode?: UsStateCode | null;
+}): PurchaseSummary | null {
+  const resolved = resolveCreditPurchase({
+    productId: params.productId,
+    period: params.period,
+    addonId: params.addonId,
+  });
+  if (!resolved) return null;
+
+  const plain = buildCreditProductPlainPricing(params.productId);
+  const product = CREDIT_PRODUCTS[params.productId];
+  const { pricing, youPay, priceBreakdown } = buildPricingBlock(
+    resolved.priceCents,
+    params.stateCode,
+    params.addonId ? "one-time top-up" : "one-time",
+  );
+
+  const planPlain = params.addonId
+    ? plain.addons?.find((a) => a.label === resolved.label)
+    : plain.plans.find((p) => p.period === params.period);
+
+  return {
+    productType: "usage_credit",
+    title: plain.feature,
+    pricing,
+    youPay,
+    priceBreakdown,
+    youReceive: [
+      {
+        label: "Credits included",
+        value: `${resolved.included} ${product.unit}`,
+        emphasis: true,
+      },
+      {
+        label: "Valid for",
+        value: `${resolved.durationDays} day${resolved.durationDays === 1 ? "" : "s"} from purchase`,
+      },
+      {
+        label: "Daily fair-use cap",
+        value: `Max ${product.dailyHardCap} ${product.unit} per day — protects platform costs`,
+      },
+      {
+        label: "Plain summary",
+        value: planPlain?.payReceiveLine ?? resolved.label,
+      },
+    ],
+    notIncluded: [
+      "Text chat subscription (buy a specialist text plan if you also need messaging)",
+      "Unlimited daily use — daily cap applies even on monthly packs",
+    ],
+    importantNotes: [
+      "Credits are consumed when you generate images, run code, analyze photos, etc.",
+      "When credits run out, you'll see upgrade options with exact prices and quantities.",
+      "AI subscriptions must be purchased through your web browser — not in the mobile app.",
+      ...AI_PURCHASE_TERMS_NOTES,
+      ...stateTaxNotes(params.stateCode ?? null, pricing),
     ],
     aiDisclosure: AI_DISCLOSURE,
     billingEntity: BILLING_ENTITY,

@@ -43,7 +43,7 @@ export const SANDBOX_TIERS: Record<SandboxTierId, SandboxTier> = {
     maxFilesPerProject: 1000,
     maxFileBytes: 10 * 1024 * 1024,
     description: "Full-stack apps with hundreds of files.",
-    upgradePriceUsd: 19.99,
+    upgradePriceUsd: 29.99,
   },
   studio: {
     id: "studio",
@@ -53,7 +53,7 @@ export const SANDBOX_TIERS: Record<SandboxTierId, SandboxTier> = {
     maxFilesPerProject: 5000,
     maxFileBytes: 25 * 1024 * 1024,
     description: "Large monorepos, multi-service apps, heavy assets.",
-    upgradePriceUsd: 49.99,
+    upgradePriceUsd: 64.99,
   },
   enterprise: {
     id: "enterprise",

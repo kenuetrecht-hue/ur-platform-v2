@@ -4,7 +4,7 @@ import {
   getAiSubscriptionPlans,
   getPlanPriceCents,
   getPlanPriceDollars,
-  AI_SUBSCRIPTION_BASE_CENTS,
+  AI_SUBSCRIPTION_TIER_CENTS,
 } from "../lib/ai-subscription-pricing";
 import {
   _clearAiSubscriptionsForTests,
@@ -27,17 +27,17 @@ import {
 import { _clearTalkTimeForTests, getTalkMillisecondsRemaining } from "../server/_core/ai-talk-time-tracker";
 
 describe("ai-subscription-pricing", () => {
-  it("uses flat daily/weekly/monthly for every specialist", () => {
-    expect(getPlanPriceDollars("ai-wellness-001", "day")).toBe(5.99);
-    expect(getPlanPriceDollars("ai-wellness-001", "week")).toBe(9.99);
-    expect(getPlanPriceDollars("ai-wellness-001", "month")).toBe(14.99);
-    expect(getPlanPriceDollars("linguamate", "day")).toBe(5.99);
-    expect(getPlanPriceDollars("linguamate", "month")).toBe(14.99);
+  it("uses tiered daily/weekly/monthly pricing", () => {
+    expect(getPlanPriceDollars("ai-wellness-001", "day")).toBe(7.99);
+    expect(getPlanPriceDollars("ai-wellness-001", "week")).toBe(15.99);
+    expect(getPlanPriceDollars("ai-wellness-001", "month")).toBe(24.99);
+    expect(getPlanPriceDollars("linguamate", "day")).toBe(8.99);
+    expect(getPlanPriceDollars("linguamate", "month")).toBe(27.99);
   });
 
-  it("keeps tier labels for usage without changing price", () => {
+  it("keeps tier labels for usage with tier-specific prices", () => {
     expect(getAiPriceTier("linguamate")).toBe("premium");
-    expect(getPlanPriceCents("linguamate", "day")).toBe(AI_SUBSCRIPTION_BASE_CENTS.day);
+    expect(getPlanPriceCents("linguamate", "day")).toBe(AI_SUBSCRIPTION_TIER_CENTS.premium.day);
   });
 
   it("returns three plan quotes with savings on longer plans", () => {
@@ -119,7 +119,7 @@ describe("ai-subscription-service", () => {
       billingStateCode: "FL",
     });
     expect(sub.plan).toBe("week");
-    expect(sub.messagesIncluded).toBe(175);
+    expect(sub.messagesIncluded).toBe(130);
     expect(hasActiveAiSubscription("user-1", "fan@example.com", "ai-wellness-001")).toBe(true);
     expect(hasActiveAiSubscription("user-1", "fan@example.com", "ai-fitness-001")).toBe(false);
   });

@@ -22,16 +22,22 @@ import {
   hasLoyaltyTextAccess,
 } from "./loyalty-streak-service";
 import { LOYALTY_ALLOWS_LEARN_OR_HIVE, LOYALTY_POINTS_PER_TEXT_MESSAGE } from "../../lib/loyalty-program-config";
+import {
+  buildUsageLimitMessage,
+  getTextSubscriptionUpgradeOptions,
+} from "../../lib/usage-caps-catalog";
 
 export type UsageConsumeParams = {
   userId: string;
   email?: string | null;
   creatorId: string;
   isPlatformOwner: boolean;
-  /** Hive consult counts as 3 messages */
+  /** Hive consult counts as 3 messages unless hive credit consumed separately */
   useHive?: boolean;
-  /** Learn / long-form counts as 2 */
+  /** Learn / long-form counts as 5 messages */
   isLearnMode?: boolean;
+  /** Photo/PDF uploads without vision credits */
+  extraMessageUnits?: number;
 };
 
 export type UsageStatus = {
@@ -47,10 +53,15 @@ function membershipPeriodKey(userId: string, plan: string, expiresAt: string): s
   return `${userId}:${plan}:${expiresAt.slice(0, 10)}`;
 }
 
-function messageUnits(params: { useHive?: boolean; isLearnMode?: boolean }): number {
-  if (params.useHive) return HIVE_MESSAGE_MULTIPLIER;
-  if (params.isLearnMode) return LEARN_MESSAGE_MULTIPLIER;
-  return 1;
+function messageUnits(params: {
+  useHive?: boolean;
+  isLearnMode?: boolean;
+  extraMessageUnits?: number;
+}): number {
+  let units = 1;
+  if (params.useHive) units = HIVE_MESSAGE_MULTIPLIER;
+  else if (params.isLearnMode) units = LEARN_MESSAGE_MULTIPLIER;
+  return units + (params.extraMessageUnits ?? 0);
 }
 
 export function getAiUsageStatus(params: {
@@ -145,9 +156,21 @@ export function assertAndConsumeAiUsage(params: UsageConsumeParams): UsageStatus
 
   if (sub) {
     if (sub.messagesUsed + units > sub.messagesIncluded) {
+      const tier = getAiPriceTier(params.creatorId);
+      const upgradeOptions = getTextSubscriptionUpgradeOptions({
+        tier,
+        creatorId: params.creatorId,
+        currentPlan: sub.plan,
+        messagesRemaining: Math.max(0, sub.messagesIncluded - sub.messagesUsed),
+      });
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: `Message limit reached (${sub.messagesIncluded} included on your ${sub.plan} plan). Renew or upgrade to continue chatting.`,
+        message: buildUsageLimitMessage({
+          productLabel: "Text messages",
+          unit: "messages",
+          remaining: Math.max(0, sub.messagesIncluded - sub.messagesUsed),
+          upgradeOptions,
+        }),
       });
     }
     incrementSubscriptionMessageUsage(params.userId, params.creatorId, units);

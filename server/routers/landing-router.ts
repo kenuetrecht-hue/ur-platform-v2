@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { securePublicProcedure, router, TRPCError } from "../_core/trpc";
+import { securePublicProcedure, secureProcedure, ownerProcedure, router, TRPCError } from "../_core/trpc";
 import {
   getLandingPublicStats,
   getLandingTownHallPreview,
@@ -30,6 +30,11 @@ import {
   LANDING_SPECIALIST_COUNT_LABEL,
 } from "../../lib/landing-checkout-pricing";
 import { truncateLandingDemoReply } from "../../lib/landing-demo-policy";
+import {
+  getLandingDemoConversionStats,
+  recordLandingDemoConversion,
+  recordLandingDemoSignupClick,
+} from "../_core/landing-demo-attribution-service";
 
 const demoCreatorSchema = z
   .string()
@@ -84,6 +89,7 @@ export const landingRouter = router({
         demoToken: z.string().trim().min(32).max(128),
         pageLoadedAtMs: z.number().finite(),
         honeypot: z.string().max(200).optional(),
+        platform: z.enum(["web", "ios", "android", "unknown"]).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -105,8 +111,41 @@ export const landingRouter = router({
         creatorId: input.creatorId,
         message,
         ip: ctx.ip,
+        platform: input.platform ?? "unknown",
       });
     }),
+
+  recordDemoSignupClick: securePublicProcedure("landing")
+    .input(
+      z.object({
+        attributionId: z.string().trim().min(8).max(64),
+      }),
+    )
+    .mutation(({ input }) => {
+      const record = recordLandingDemoSignupClick(input.attributionId);
+      return { ok: true as const, attributionId: record.id };
+    }),
+
+  recordDemoConversion: secureProcedure("landing")
+    .input(
+      z.object({
+        attributionId: z.string().trim().min(8).max(64),
+      }),
+    )
+    .mutation(({ input, ctx }) => {
+      const record = recordLandingDemoConversion({
+        attributionId: input.attributionId,
+        userId: String(ctx.user.id),
+      });
+      return {
+        ok: true as const,
+        attributionId: record.id,
+        creatorId: record.creatorId,
+        convertedAt: record.convertedAt,
+      };
+    }),
+
+  ownerDemoConversionStats: ownerProcedure.query(() => getLandingDemoConversionStats()),
 
   synthesizeDemoVoice: securePublicProcedure("landing")
     .input(

@@ -11,6 +11,9 @@ import {
   assertMessageWithinAiRole,
   sanitizeAiReplyForRole,
 } from "./ai-roles";
+import { sanitizeChatAttachments, type SanitizedChatAttachment } from "./chat-attachment-service";
+import { getHiveCapabilities } from "./ai-hive-capabilities";
+import type { ChatSearchCitation } from "../../lib/chat-attachment-types";
 import {
   buildHiveEnhancedSystemPrompt,
   isComplexHiveProblem,
@@ -36,6 +39,8 @@ import {
 import { isOwnerOnlyPlatformAi, canChatOwnerOpsAi } from "./platform-ops-ai";
 import { assertAiEntitled } from "./access-entitlements";
 import { assertAndConsumeAiUsage } from "./ai-usage-meter";
+import { tryConsumeCredit } from "./usage-credits-service";
+import { VISION_UPLOAD_MESSAGE_UNITS } from "../../lib/usage-caps-catalog";
 import {
   createOpsIncident,
   inferIncidentFromOpsChat,
@@ -73,12 +78,15 @@ export async function handleCreatorAiChat(params: {
   history?: GoogleChatTurn[];
   ctx: AiChatContext;
   useHiveConsult?: boolean;
+  attachments?: SanitizedChatAttachment[];
 }): Promise<{
   reply: string;
   model: string;
   creatorId: string;
   creatorName: string;
   hiveConsulted?: Array<{ id: string; name: string }>;
+  searchResults?: ChatSearchCitation[];
+  attachmentsAnalyzed?: number;
   opsIncidentId?: string;
   pitchConsentRequest?: boolean;
   pitchAccepted?: boolean;
@@ -183,6 +191,22 @@ export async function handleCreatorAiChat(params: {
 
     const history = sanitizeChatHistory(params.history ?? [], 20, 4000);
 
+    const caps = getHiveCapabilities(params.creatorId);
+    const attachments = params.attachments ?? [];
+    if (attachments.length > 0) {
+      if (!caps.photoAnalysis) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This specialist does not support photo or document analysis.",
+        });
+      }
+    }
+
+    const visionAttachments = attachments.map((a) => ({
+      mimeType: a.mimeType,
+      base64: a.base64,
+    }));
+
     const useHive =
       !params.ctx.landingDemo &&
       !isAffiliateOnlyAi(params.creatorId) &&
@@ -199,6 +223,7 @@ export async function handleCreatorAiChat(params: {
     let rawReply: string;
     let model: string;
     let hiveConsulted: Array<{ id: string; name: string }> | undefined;
+    let searchResults: ChatSearchCitation[] | undefined;
 
     if (useHive) {
       const hiveResult = await runHiveConsultation({
@@ -206,12 +231,19 @@ export async function handleCreatorAiChat(params: {
         message,
         userId,
         history,
+        attachments: visionAttachments,
       });
       rawReply = hiveResult.reply;
       model = hiveResult.model;
       hiveConsulted = hiveResult.consultedPeers.map((p) => ({
         id: p.id,
         name: p.name,
+      }));
+      searchResults = hiveResult.searchResults.map((s) => ({
+        title: s.title,
+        description: s.description,
+        url: s.url,
+        source: s.source,
       }));
     } else {
       let basePrompt = buildCreatorSystemPrompt(params.creatorId);
@@ -244,6 +276,15 @@ export async function handleCreatorAiChat(params: {
           userId,
           message,
           basePrompt,
+          isPlatformOwner: params.ctx.isPlatformOwner,
+        }).then((r) => {
+          searchResults = r.searchResults.map((s) => ({
+            title: s.title,
+            description: s.description,
+            url: s.url,
+            source: s.source,
+          }));
+          return r.systemPrompt;
         });
       }
 
@@ -253,6 +294,7 @@ export async function handleCreatorAiChat(params: {
         message,
         maxOutputTokens: params.ctx.landingDemo ? 80 : undefined,
         temperature: params.ctx.landingDemo ? 0.85 : undefined,
+        attachments: visionAttachments.length ? visionAttachments : undefined,
       });
       rawReply = result.reply;
       model = result.model;
@@ -305,10 +347,15 @@ export async function handleCreatorAiChat(params: {
           proposedFix: inferred.proposedFix,
           affectedSectionId: inferred.affectedSectionId,
           sectionAction: inferred.sectionAction,
-          actionsTaken: ["Ops AI analyzed the report", "Notification sent to platform owner"],
+          autoIsolateSection: inferred.sectionAction !== "reopen",
+          actionsTaken: ["Ops AI analyzed the report", "Owner notified immediately"],
         });
         opsIncidentId = incident.id;
-        reply += `\n\n🔔 **Incident filed** (${incident.id.slice(0, 8)}…) — awaiting your final approval in Owner Ops.`;
+        if (incident.autoIsolated && incident.affectedSectionId) {
+          reply += `\n\n🛑 **Section offline:** \`${incident.affectedSectionId}\` — isolated while we investigate.\n🔔 **Incident filed** (${incident.id.slice(0, 8)}…) — review problem + fix in Owner Ops, then approve or send instructions.`;
+        } else {
+          reply += `\n\n🔔 **Incident filed** (${incident.id.slice(0, 8)}…) — review in Owner Ops and approve the fix plan when ready.`;
+        }
       }
     }
 
@@ -339,13 +386,44 @@ export async function handleCreatorAiChat(params: {
       !params.ctx.isPlatformOwner &&
       !isAffiliateOnlyAi(params.creatorId)
     ) {
+      let extraMessageUnits = 0;
+      if (attachments.length > 0) {
+        let visionCreditsUsed = 0;
+        for (let i = 0; i < attachments.length; i++) {
+          if (
+            tryConsumeCredit({
+              userId,
+              productId: "images-vision",
+              units: 1,
+              isPlatformOwner: false,
+            })
+          ) {
+            visionCreditsUsed++;
+          }
+        }
+        const unpaidAttachments = attachments.length - visionCreditsUsed;
+        if (unpaidAttachments > 0) {
+          extraMessageUnits += unpaidAttachments * VISION_UPLOAD_MESSAGE_UNITS;
+        }
+      }
+
+      const hiveCreditUsed =
+        useHive &&
+        tryConsumeCredit({
+          userId,
+          productId: "hive-consult",
+          units: 1,
+          isPlatformOwner: false,
+        });
+
       assertAndConsumeAiUsage({
         userId,
         email: params.ctx.userEmail,
         creatorId: params.creatorId,
         isPlatformOwner: false,
-        useHive,
+        useHive: useHive && !hiveCreditUsed,
         isLearnMode: false,
+        extraMessageUnits,
       });
     }
 
@@ -355,6 +433,8 @@ export async function handleCreatorAiChat(params: {
       creatorId: def.id,
       creatorName: def.name,
       hiveConsulted,
+      searchResults,
+      attachmentsAnalyzed: attachments.length > 0 ? attachments.length : undefined,
       opsIncidentId,
       pitchConsentRequest,
       pitchAccepted,
