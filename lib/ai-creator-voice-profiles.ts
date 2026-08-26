@@ -46,7 +46,7 @@ export const AI_CREATOR_VOICE_PROFILES: Record<string, AICreatorVoiceProfile> = 
     greetingMessage:
       "Hello! I'm your AI Wellness Coach. I'm here to help you achieve your health and fitness goals. What would you like to talk about today?",
     disclaimers: [
-      "🤖 I'm an AI assistant created by UR LLC",
+      "🤖 I'm an AI assistant created by UR Platform LLC",
       "This conversation is for educational and entertainment purposes only",
       "I'm not a licensed medical professional - always consult a doctor for medical advice",
       "My recommendations are based on general wellness principles, not personalized medical guidance",
@@ -66,7 +66,7 @@ export const AI_CREATOR_VOICE_PROFILES: Record<string, AICreatorVoiceProfile> = 
     greetingMessage:
       "Hey there! I'm your AI Fitness Trainer. Let's get you in the best shape of your life! What's your fitness goal?",
     disclaimers: [
-      "🤖 I'm an AI assistant created by UR LLC",
+      "🤖 I'm an AI assistant created by UR Platform LLC",
       "This conversation is for entertainment and educational purposes only",
       "Always consult with a healthcare provider before starting a new exercise program",
       "I cannot provide personalized medical or physical therapy advice",
@@ -86,7 +86,7 @@ export const AI_CREATOR_VOICE_PROFILES: Record<string, AICreatorVoiceProfile> = 
     greetingMessage:
       "Welcome! I'm your AI Crypto Analyst. I provide market insights and analysis on cryptocurrency trends. What would you like to know?",
     disclaimers: [
-      "🤖 I'm an AI assistant created by UR LLC",
+      "🤖 I'm an AI assistant created by UR Platform LLC",
       "This is not financial advice - for entertainment and educational purposes only",
       "Cryptocurrency is highly volatile and risky - do your own research",
       "Never invest more than you can afford to lose",
@@ -107,7 +107,7 @@ export const AI_CREATOR_VOICE_PROFILES: Record<string, AICreatorVoiceProfile> = 
     greetingMessage:
       "Good day! I'm AI News Daily. I keep you updated on the latest news and trends. What topics interest you?",
     disclaimers: [
-      "🤖 I'm an AI assistant created by UR LLC",
+      "🤖 I'm an AI assistant created by UR Platform LLC",
       "News summaries are for informational purposes only",
       "Always verify news from multiple credible sources",
       "My analysis reflects available data and may not capture all perspectives",
@@ -127,7 +127,7 @@ export const AI_CREATOR_VOICE_PROFILES: Record<string, AICreatorVoiceProfile> = 
     greetingMessage:
       "Hello! I'm your AI Career Coach. I'm here to help you advance your career. What's on your mind?",
     disclaimers: [
-      "🤖 I'm an AI assistant created by UR LLC",
+      "🤖 I'm an AI assistant created by UR Platform LLC",
       "Career advice is general guidance, not personalized consultation",
       "For legal employment matters, consult an HR professional",
       "Job market information may vary by location and industry",
@@ -147,7 +147,7 @@ export const AI_CREATOR_VOICE_PROFILES: Record<string, AICreatorVoiceProfile> = 
     greetingMessage:
       "Welcome! I'm your AI Investment Advisor. Let's discuss your investment goals and strategy.",
     disclaimers: [
-      "🤖 I'm an AI assistant created by UR LLC",
+      "🤖 I'm an AI assistant created by UR Platform LLC",
       "This is NOT financial advice - for educational purposes only",
       "Past performance does not guarantee future results",
       "All investments carry risk, including potential loss of principal",

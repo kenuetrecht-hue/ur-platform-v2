@@ -14,6 +14,10 @@ import { LANDING_THEME as T } from "@/lib/landing-theme";
 import { LandingConversionModal } from "@/components/landing/landing-conversion-modal";
 import { LANDING_DEMO_MESSAGE_MAX, LANDING_DEMO_REPLY_MAX } from "@/lib/landing-demo-policy";
 import { saveLandingDemoAttributionId } from "@/lib/landing-demo-attribution-storage";
+import { useAuth } from "@/lib/auth-context";
+import { Link } from "expo-router";
+import { AGE_KYC_REQUIRED_MESSAGE } from "@/lib/age-kyc-policy";
+import { TurnstileWidget } from "@/components/turnstile-widget";
 
 const DEMO_SPECIALISTS = [
   { id: "ai-coder-001", label: "TechBuilder", avatar: "💻" },
@@ -31,6 +35,12 @@ type Props = {
 };
 
 export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCreatorIdChange }: Props) {
+  const { isAuthenticated } = useAuth();
+  const kycQuery = trpc.ageKyc.getStatus.useQuery(undefined, {
+    enabled: isAuthenticated,
+    staleTime: 15_000,
+  });
+  const kycVerified = kycQuery.data?.verified === true;
   const [internalCreatorId, setInternalCreatorId] = useState<string>(DEMO_SPECIALISTS[0].id);
   const creatorId = controlledCreatorId ?? internalCreatorId;
 
@@ -44,6 +54,7 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
   const [error, setError] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
   const [attributionId, setAttributionId] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
   const pageLoadedAtMs = useRef(Date.now());
 
   useEffect(() => {
@@ -69,7 +80,13 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
   const demoToken = statusQuery.data?.demoToken ?? null;
   const messageMax = statusQuery.data?.limits?.messageMax ?? LANDING_DEMO_MESSAGE_MAX;
   const loading = demoMutation.isPending;
-  const canSend = !demoUsed && !loading && Boolean(demoToken) && message.trim().length >= 4;
+  const canSend =
+    isAuthenticated &&
+    kycVerified &&
+    !demoUsed &&
+    !loading &&
+    Boolean(demoToken) &&
+    message.trim().length >= 4;
 
   const send = () => {
     if (!canSend || !demoToken) return;
@@ -81,16 +98,38 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
       pageLoadedAtMs: pageLoadedAtMs.current,
       honeypot: honeypot || undefined,
       platform: Platform.OS === "web" ? "web" : Platform.OS === "ios" ? "ios" : "android",
+      turnstileToken: turnstileToken || undefined,
     });
   };
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.sectionTag}>INTERACTIVE TEST DRIVE</Text>
-      <Text style={styles.title}>Try a specialist — one free preview message</Text>
+      <Text style={styles.sectionTag}>18+ INTERACTIVE DEMO</Text>
+      <Text style={styles.title}>Try a specialist after ID verification</Text>
       <Text style={styles.sub}>
-        Pick your specialist below for a single demo reply ({messageMax} characters in).
+        Adults only. Create an account, photograph your ID front and back plus a selfie, then send
+        one demo message ({messageMax} characters in).
       </Text>
+
+      {!isAuthenticated ? (
+        <View style={{ marginBottom: 12 }}>
+          <Text style={styles.sub}>{AGE_KYC_REQUIRED_MESSAGE}</Text>
+          <Link href="/signup" asChild>
+            <Pressable style={styles.sendBtn}>
+              <Text style={styles.sendText}>Create account to verify age</Text>
+            </Pressable>
+          </Link>
+        </View>
+      ) : !kycVerified ? (
+        <View style={{ marginBottom: 12 }}>
+          <Text style={styles.sub}>Finish the ID and selfie check before this demo will send.</Text>
+          <Link href="/age-verify" asChild>
+            <Pressable style={styles.sendBtn}>
+              <Text style={styles.sendText}>Open 18+ ID check</Text>
+            </Pressable>
+          </Link>
+        </View>
+      ) : null}
 
       {!onCreatorIdChange ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pills}>
@@ -147,6 +186,12 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {demoUsed ? (
         <Text style={styles.usedNote}>Free demo used — create an account for unlimited chat.</Text>
+      ) : null}
+
+      {isAuthenticated && kycVerified && !demoUsed ? (
+        <View style={{ marginBottom: 10 }}>
+          <TurnstileWidget action="landing_demo" onToken={setTurnstileToken} />
+        </View>
       ) : null}
 
       <Pressable

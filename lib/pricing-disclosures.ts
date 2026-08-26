@@ -19,6 +19,8 @@ import {
 import {
   AI_TALK_EXPIRY_PURCHASE_DISCLOSURE,
   AI_TALK_METERING_DISCLOSURE,
+  computeLotExpiresAt,
+  formatTalkExpiryDate,
   getTalkPackPurchaseDisclosures,
   minutesToMilliseconds,
 } from "./ai-talk-time-policy";
@@ -60,6 +62,7 @@ import {
   CREATOR_TRANSACTION_DISCLAIMER,
   HARASSMENT_ENFORCEMENT_POLICY,
   TERMS_CHECKOUT_ACKNOWLEDGMENT,
+  TERMS_BILLING_ENTITY,
 } from "./platform-terms-of-use";
 
 export type PurchaseSummaryLine = {
@@ -84,7 +87,7 @@ export type PurchaseSummary = {
   billingEntity: string;
 };
 
-const BILLING_ENTITY = "UR LLC";
+const BILLING_ENTITY = TERMS_BILLING_ENTITY;
 const AI_DISCLOSURE =
   "You are subscribing to access an artificial intelligence (AI) specialist. AI responses are generated automatically and may contain errors. This is not human professional advice.";
 
@@ -158,13 +161,13 @@ function stateTaxNotes(stateCode: UsStateCode | null | undefined, pricing: Purch
   }
   if (pricing.stateName) {
     notes.push(
-      `Taxes and fees shown for ${pricing.stateName} (${stateCode}). UR LLC collects and remits applicable sales tax.`,
+      `Taxes and fees shown for ${pricing.stateName} (${stateCode}). UR Platform LLC collects and remits applicable sales tax.`,
     );
   }
   if (pricing.stateTaxNotes) {
     notes.push(pricing.stateTaxNotes);
   }
-  notes.push("The Stripe processing fee is added to your total — UR LLC receives the service subtotal plus tax.");
+  notes.push("The Stripe processing fee is added to your total — UR Platform LLC receives the service subtotal plus tax.");
   return notes;
 }
 
@@ -189,14 +192,14 @@ export function buildSubscriptionPurchaseSummary(params: {
 
   return {
     productType: "ai_subscription",
-    title: `${params.creatorName} — Text Access`,
+    title: `UR text pass — all specialists`,
     pricing,
     youPay,
     priceBreakdown,
     youReceive: [
       {
         label: "Specialist access",
-        value: `Text chat & learn mode with ${params.creatorName} for ${planLabel}`,
+        value: `Text chat & learn mode with every UR specialist for ${planLabel} — one AI at a time (you can start from ${params.creatorName})`,
       },
       {
         label: "Messages included",
@@ -215,6 +218,10 @@ export function buildSubscriptionPurchaseSummary(params: {
         label: "Access period",
         value: `Active for ${days} day${days === 1 ? "" : "s"} from purchase`,
       },
+      {
+        label: "Concurrent AIs",
+        value: "1 specialist at a time included — switch anytime. Extra slot required for Hive / Town Hall",
+      },
     ],
     notIncluded: [
       "Voice & video talk (buy Talk Time separately — priced per minute)",
@@ -222,7 +229,7 @@ export function buildSubscriptionPurchaseSummary(params: {
       "TechBuilder/GameForge code runs — separate run credits",
       "Book/song/script chapters — separate chapter credits",
       "Unlimited messages — your allowance is capped as shown above",
-      "Other AI specialists (this plan is for this specialist only)",
+      "Talking to more than one AI at the same time (Hive / Town Hall) — buy an extra concurrent slot",
     ],
     importantNotes: [
       "When your message allowance runs out, chat pauses until you renew or upgrade.",
@@ -268,13 +275,18 @@ export function buildTalkPurchaseSummary(
       },
       {
         label: "Must use within",
-        value: "30 days of purchase — unused time expires automatically",
+        value: `30 days of purchase — use by ${formatTalkExpiryDate(computeLotExpiresAt(Date.now()))} or you lose what isn't used`,
+        emphasis: true,
+      },
+      {
+        label: "If unused after 30 days",
+        value: "Unused minutes are forfeited automatically. No rollover. No refunds. Each purchase has its own use-by date.",
         emphasis: true,
       },
     ],
     notIncluded: [
       "Text chat subscription (buy a specialist plan separately)",
-      "Rollover — expired minutes are forfeited",
+      "Rollover — expired minutes are forfeited. You lose what isn't used.",
     ],
     importantNotes: [
       ...getTalkPackPurchaseDisclosures(packId),

@@ -17,6 +17,10 @@ import { AiSessionProgrammingPanel } from "@/components/ai-session-programming-p
 import { PlatformSectionMaintenancePanel } from "@/components/platform-section-maintenance-panel";
 import { PlatformContentProtectionPanel } from "@/components/platform-content-protection-panel";
 import { TransactionHistoryList } from "@/components/transaction-history-list";
+import {
+  OWNER_REMEDIATION_CONFIRM_PHRASE,
+  isOwnerRemediationConfirmed,
+} from "@/lib/platform-ops-remediation-types";
 
 export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatformOwner?: boolean }) {
   const colors = useColors();
@@ -33,6 +37,8 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
   const [staffEmail, setStaffEmail] = useState("");
   const [staffNote, setStaffNote] = useState("");
   const [staffRole, setStaffRole] = useState<AdminStaffRole>("viewer");
+  const [approveConfirm, setApproveConfirm] = useState("");
+  const [approveIncidentId, setApproveIncidentId] = useState<string | null>(null);
 
   const roleOptions = trpc.platformOps.listAdminRoleOptions.useQuery(undefined, {
     enabled: isPlatformOwner,
@@ -73,6 +79,8 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
 
   const approve = trpc.platformOps.approveIncident.useMutation({
     onSuccess: () => {
+      setApproveConfirm("");
+      setApproveIncidentId(null);
       void utils.platformOps.listIncidents.invalidate();
       void utils.platformOps.dashboard.invalidate();
       void utils.platformOps.listSections.invalidate();
@@ -410,16 +418,60 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
                   ) : null}
                   {(inc.status === "awaiting_owner_approval" ||
                     inc.status === "section_isolated") &&
-                  hasAdminPermission("manage_incidents") ? (
+                  isPlatformOwner ? (
                     <View style={{ gap: 8, marginTop: 4 }}>
+                      <Text style={{ color: colors.muted, fontSize: 12 }}>
+                        Type {OWNER_REMEDIATION_CONFIRM_PHRASE} to finalize. Doctor, Administration, and Security
+                        AIs stop here until you okay it.
+                      </Text>
+                      {approveIncidentId === inc.id ? (
+                        <TextInput
+                          value={approveConfirm}
+                          onChangeText={setApproveConfirm}
+                          placeholder={OWNER_REMEDIATION_CONFIRM_PHRASE}
+                          placeholderTextColor={colors.muted}
+                          autoCapitalize="characters"
+                          style={[
+                            styles.grantInput,
+                            { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background },
+                          ]}
+                        />
+                      ) : null}
                       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                         <Pressable
-                          onPress={() => approve.mutate({ incidentId: inc.id, ownerNote: "Approved fix plan" })}
-                          disabled={approve.isPending}
-                          style={[styles.actionBtn, { backgroundColor: "#059669" }]}
+                          onPress={() => {
+                            if (approveIncidentId !== inc.id) {
+                              setApproveIncidentId(inc.id);
+                              setApproveConfirm("");
+                              return;
+                            }
+                            approve.mutate({
+                              incidentId: inc.id,
+                              ownerNote: "Approved fix plan",
+                              confirmPhrase: approveConfirm,
+                            });
+                          }}
+                          disabled={
+                            approve.isPending ||
+                            (approveIncidentId === inc.id && !isOwnerRemediationConfirmed(approveConfirm))
+                          }
+                          style={[
+                            styles.actionBtn,
+                            {
+                              backgroundColor: "#059669",
+                              opacity:
+                                approveIncidentId === inc.id && !isOwnerRemediationConfirmed(approveConfirm)
+                                  ? 0.5
+                                  : 1,
+                            },
+                          ]}
                         >
                           <Text style={styles.actionBtnText}>
-                            {approve.isPending ? "Running…" : "✅ Approve fix & deploy"}
+                            {approve.isPending
+                              ? "Running…"
+                              : approveIncidentId === inc.id
+                                ? "Finalize fix & bring online"
+                                : "Review & approve"}
                           </Text>
                         </Pressable>
                         <Pressable
@@ -435,7 +487,7 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
                           style={[styles.actionBtn, { backgroundColor: colors.primary }]}
                         >
                           <Text style={styles.actionBtnText}>
-                            {instructionIncidentId === inc.id ? "Send instructions" : "📋 Instruct AIs"}
+                            {instructionIncidentId === inc.id ? "Send instructions" : "Instruct AIs"}
                           </Text>
                         </Pressable>
                         {inc.affectedSectionId && inc.autoIsolated ? (
@@ -455,13 +507,25 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
                         </Pressable>
                       </View>
                     </View>
+                  ) : (inc.status === "awaiting_owner_approval" || inc.status === "section_isolated") &&
+                    !isPlatformOwner ? (
+                    <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>
+                      Awaiting the platform owner to type {OWNER_REMEDIATION_CONFIRM_PHRASE}. Staff and ops AIs
+                      cannot finalize this.
+                    </Text>
                   ) : inc.status === "deploy_executed" || inc.status === "approved" ? (
+                    isPlatformOwner ? (
                     <Pressable
                       onPress={() => resolve.mutate({ incidentId: inc.id })}
                       style={[styles.actionBtn, { backgroundColor: colors.primary, alignSelf: "flex-start" }]}
                     >
                       <Text style={styles.actionBtnText}>Mark resolved</Text>
                     </Pressable>
+                    ) : (
+                      <Text style={{ color: colors.muted, fontSize: 12 }}>
+                        Fix ran after owner approval. Only the owner can mark this resolved.
+                      </Text>
+                    )
                   ) : null}
                 </View>
               ) : null}
@@ -520,7 +584,7 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
             creatorId={selectedOpsAi}
             creatorName={selectedMeta.name}
             creatorAvatar={selectedMeta.avatar}
-            welcomeMessage={`Owner channel active. I'm ${selectedMeta.name}. Report issues, request scans, propose section isolation (one area offline while UR stays up), or ask for compliance/security status. I'll file incidents and notify you for final approval.`}
+            welcomeMessage={`Owner channel active. I'm ${selectedMeta.name}. I can diagnose, isolate a broken section, and draft a fix. Nothing is finalized until you type ${OWNER_REMEDIATION_CONFIRM_PHRASE} in Owner Ops.`}
           />
         </View>
       </View>

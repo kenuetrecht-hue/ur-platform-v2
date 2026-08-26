@@ -61,6 +61,13 @@ const HANDOFF_GRAPH: Record<string, HandoffSuggestion[]> = {
   ],
   "ai-3d-specialist": [
     {
+      targetCreatorId: "ai-cnc-master-001",
+      targetName: "Master CNC & Mill AI",
+      reason: "Turn this CAD into a machinable setup — lathe, mill, or drill.",
+      prefillPrompt: "I have a 3D/CAD part. Help me plan a CNC or lathe setup: workholding, tools, and a safe first program.",
+      route: "/(tabs)/ais",
+    },
+    {
       targetCreatorId: "ai-blueprint-reader-001",
       targetName: "Blueprint Reader AI",
       reason: "Read plans and schematics for your 3D build.",
@@ -83,6 +90,13 @@ const HANDOFF_GRAPH: Record<string, HandoffSuggestion[]> = {
     },
   ],
   "ai-blueprint-reader-001": [
+    {
+      targetCreatorId: "ai-cnc-master-001",
+      targetName: "Master CNC & Mill AI",
+      reason: "Machine this print on a lathe, mill, or CNC.",
+      prefillPrompt: "Help me set up this print on a lathe or CNC mill — datums, stock, tools, and a safe first cut.",
+      route: "/(tabs)/ais",
+    },
     {
       targetCreatorId: "ai-3d-specialist",
       targetName: "AI 3D Designer",
@@ -307,6 +321,52 @@ const HANDOFF_GRAPH: Record<string, HandoffSuggestion[]> = {
       route: "/(tabs)/ais",
     },
   ],
+  "ai-business-001": [
+    {
+      targetCreatorId: "ai-funding-001",
+      targetName: "Funding AI",
+      reason: "Find grants, loans, and startup capital for the plan.",
+      prefillPrompt: "Help me find financing for my business — grants, SBA loans, state programs, or private capital. I'll share my industry, state, and use of funds.",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-accountant-001",
+      targetName: "Accountant Pro AI",
+      reason: "Books and projections lenders will ask for.",
+      prefillPrompt: "Help me build clean books and a simple projection package for a loan or grant application.",
+      route: "/(tabs)/ais",
+    },
+  ],
+  "ai-funding-001": [
+    {
+      targetCreatorId: "ai-business-001",
+      targetName: "AI Business Advisor",
+      reason: "Tighten the business plan and entity setup before you apply.",
+      prefillPrompt: "Help me strengthen my business plan and entity setup so I am ready for funding.",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-accountant-001",
+      targetName: "Accountant Pro AI",
+      reason: "Financial statements and use-of-funds math.",
+      prefillPrompt: "Help me prepare financial statements and a use-of-funds budget for a grant or loan package.",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-attorney-credit-001",
+      targetName: "Credit & Consumer Attorney AI",
+      reason: "Personal and business credit readiness (educational).",
+      prefillPrompt: "Help me understand business credit, personal credit, and what lenders typically review (educational).",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-marketing-001",
+      targetName: "Marketing Expert AI",
+      reason: "Pitch story and traction narrative.",
+      prefillPrompt: "Help me write a funding pitch narrative and traction story for investors or a grant.",
+      route: "/(tabs)/ais",
+    },
+  ],
   "ai-marina-mechanic-001": [
     {
       targetCreatorId: "ai-3d-specialist",
@@ -335,6 +395,66 @@ const HANDOFF_GRAPH: Record<string, HandoffSuggestion[]> = {
       reason: "Marina business planning and operations.",
       prefillPrompt: "Help me plan marina operations — slips, pricing, fuel dock, and seasonal workflow.",
       route: "/(tabs)/ais",
+    },
+  ],
+  "ai-cnc-master-001": [
+    {
+      targetCreatorId: "ai-3d-specialist",
+      targetName: "AI 3D Designer",
+      reason: "Model the part or fixture before you cut metal.",
+      prefillPrompt: "Help me model this part or fixture in 3D so I can plan toolpaths.",
+      route: "/3d-workspace",
+    },
+    {
+      targetCreatorId: "ai-blueprint-reader-001",
+      targetName: "Blueprint Reader AI",
+      reason: "Decode the print, GD&T, and title block.",
+      prefillPrompt: "Read this machining print — datums, tolerances, and what the shop needs to hold.",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-welder-001",
+      targetName: "AI Welder",
+      reason: "Weldment or fabrication before or after machining.",
+      prefillPrompt: "This job is a weldment — help me with joint prep and what to machine after weld.",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-robotics-001",
+      targetName: "AI Robotics Engineer",
+      reason: "Automation, probing, or robot tending.",
+      prefillPrompt: "Help me think through probing or robot tending for this CNC cell (educational).",
+      route: "/(tabs)/ais",
+    },
+  ],
+  "ai-culinary-001": [
+    {
+      targetCreatorId: "ai-fitness-001",
+      targetName: "AI Fitness Trainer",
+      reason: "Macros and training around the meals you cook.",
+      prefillPrompt: "Help me plan training and macros around the meals Culinary Arts AI is teaching me to cook.",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-business-001",
+      targetName: "AI Business Advisor",
+      reason: "Turn the kitchen into a food business plan.",
+      prefillPrompt: "Help me plan a food business — pop-up, catering, or restaurant — around what I can actually cook.",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-funding-001",
+      targetName: "Funding AI",
+      reason: "Find capital for a kitchen, truck, or restaurant.",
+      prefillPrompt: "Help me find financing for a food business — kitchen equipment, a truck, or a small restaurant.",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-3d-specialist",
+      targetName: "AI 3D Designer",
+      reason: "Layout the kitchen, pass, or food truck.",
+      prefillPrompt: "Help me model this kitchen or food-truck layout in the 3D workspace.",
+      route: "/3d-workspace",
     },
   ],
 };

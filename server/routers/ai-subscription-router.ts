@@ -10,17 +10,23 @@ import {
   purchaseAiSubscription,
 } from "../_core/ai-subscription-service";
 import {
-  getAiPriceTier,
   getAiSubscriptionPlans,
-  AI_PRICE_TIER_LABEL,
+  getConcurrentSlotPlans,
+  getConcurrentSlotPriceCents,
+  getPlatformPassPriceCents,
+  INCLUDED_CONCURRENT_AI_SLOTS,
   type AiSubscriptionPlan,
 } from "../../lib/ai-subscription-pricing";
 import { getUsageAllowanceQuote } from "../../lib/ai-usage-allowances";
 import { getAiUsageStatus } from "../_core/ai-usage-meter";
+import { getUsageDashboard } from "../_core/usage-dashboard-service";
+import {
+  getConcurrentSlotQuote,
+  purchaseExtraConcurrentSlot,
+} from "../_core/ai-platform-pass-slots";
 import { buildSubscriptionPurchaseSummary, formatPurchaseReceiptMessage } from "../../lib/pricing-disclosures";
 import { optionalBillingStateSchema, billingStateSchema } from "../../lib/billing-state-schema";
 import { assertPaymentChannelAllowed, assertSimulatedPurchaseAllowed, paymentChannelNote } from "../_core/payment-channel-guard";
-import { getPlanPriceCents } from "../../lib/ai-subscription-pricing";
 import { AI_SUBSCRIPTION_PRICING_SUMMARY } from "../../lib/payment-channel-policy";
 
 const clientPlatformSchema = z.enum(["web", "native"]);
@@ -45,31 +51,33 @@ export const aiSubscriptionRouter = router({
     )
     .query(({ input }) => {
       const plans = getAiSubscriptionPlans(input.creatorId);
-      const tier = getAiPriceTier(input.creatorId);
       const creatorName = getCreatorAi(input.creatorId)?.name ?? "AI Specialist";
       return {
         creatorId: input.creatorId,
         creatorName,
-        tier,
-        tierLabel: AI_PRICE_TIER_LABEL[tier],
+        tier: "standard" as const,
+        tierLabel: "Platform pass",
+        includedConcurrentSlots: INCLUDED_CONCURRENT_AI_SLOTS,
+        concurrentSlotPlans: getConcurrentSlotPlans(),
         plans: plans.map((p) => ({
           ...p,
-          ...getUsageAllowanceQuote(p.plan, tier),
+          ...getUsageAllowanceQuote(p.plan, "standard"),
           requiredPaymentChannel: "web_browser" as const,
           purchaseSummary: buildSubscriptionPurchaseSummary({
             creatorId: input.creatorId,
             creatorName,
             plan: p.plan,
-            tier,
-            tierLabel: AI_PRICE_TIER_LABEL[tier],
+            tier: "standard",
+            tierLabel: "Platform pass",
             stateCode: input.stateCode ?? null,
           }),
         })),
-        usageNote: "Each plan includes a capped message allowance. Hive = 3 messages · Learn/chapters = 5 · 10 web searches/day included. Upgrade for more images, code runs, talk time, and chapters.",
+        usageNote:
+          "Day, week, or month unlocks every UR specialist — one at a time. Hive and Town Hall need an extra concurrent slot. Hive = 3 messages · Learn/chapters = 5 · 10 web searches/day included.",
         pricingNote: AI_SUBSCRIPTION_PRICING_SUMMARY,
         paymentNote: "AI subscriptions must be purchased through your web browser — not in the mobile app.",
         baseNote:
-          "Standard specialist pricing — $7.99/day (24 hours), $15.99/week, $24.99/month. Professional and premium tiers vary.",
+          "Platform text pass — $7.99/day, $15.99/week, $24.99/month. Talk to every AI one at a time. Extra concurrent slot: $4.99/day · $9.99/week · $14.99/month.",
       };
     }),
 
@@ -88,6 +96,7 @@ export const aiSubscriptionRouter = router({
           hasAccess: true,
           source: ctx.isPlatformOwner ? ("owner" as const) : platform.source,
           subscription: null,
+          slots: getConcurrentSlotQuote(userId),
         };
       }
 
@@ -103,6 +112,7 @@ export const aiSubscriptionRouter = router({
         source: subscription ? ("ai_subscription" as const) : ("none" as const),
         subscription,
         usage,
+        slots: getConcurrentSlotQuote(userId),
       };
     }),
 
@@ -127,7 +137,7 @@ export const aiSubscriptionRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Account email required." });
       }
 
-      const priceCents = getPlanPriceCents(input.creatorId, input.plan as AiSubscriptionPlan);
+      const priceCents = getPlatformPassPriceCents(input.plan as AiSubscriptionPlan);
       assertPaymentChannelAllowed({
         subtotalCents: priceCents,
         clientPlatform: input.clientPlatform,
@@ -163,13 +173,12 @@ export const aiSubscriptionRouter = router({
       });
 
       const creatorName = getCreatorAi(input.creatorId)?.name ?? "AI Specialist";
-      const tier = getAiPriceTier(input.creatorId);
       const receipt = buildSubscriptionPurchaseSummary({
         creatorId: input.creatorId,
         creatorName,
         plan: input.plan as AiSubscriptionPlan,
-        tier,
-        tierLabel: AI_PRICE_TIER_LABEL[tier],
+        tier: "standard",
+        tierLabel: "Platform pass",
         stateCode: input.stateCode,
       });
 
@@ -177,9 +186,61 @@ export const aiSubscriptionRouter = router({
         ok: true as const,
         subscription: record,
         receipt,
+        tracker: getUsageDashboard({
+          userId,
+          email,
+          creatorId: input.creatorId,
+          isPlatformOwner: false,
+        }),
         message: formatPurchaseReceiptMessage(receipt),
         expiresAt: record.expiresAt,
         paymentChannel: paymentChannelNote(priceCents),
+      };
+    }),
+
+  purchaseConcurrentSlot: secureProcedure("aiSubscription")
+    .input(
+      z.object({
+        creatorId: creatorIdSchema,
+        plan: planSchema,
+        stateCode: billingStateSchema,
+        clientPlatform: clientPlatformSchema,
+      }),
+    )
+    .mutation(({ input, ctx }) => {
+      assertSimulatedPurchaseAllowed();
+      const email = ctx.user.email;
+      if (!email) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Account email required." });
+      }
+      if (ctx.isPlatformOwner) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Platform owner already has full concurrent AI access.",
+        });
+      }
+
+      const priceCents = getConcurrentSlotPriceCents(input.plan as AiSubscriptionPlan);
+      assertPaymentChannelAllowed({
+        subtotalCents: priceCents,
+        clientPlatform: input.clientPlatform,
+      });
+
+      const lot = purchaseExtraConcurrentSlot({
+        userId: String(ctx.user.id),
+        userEmail: email,
+        creatorId: input.creatorId,
+        plan: input.plan as AiSubscriptionPlan,
+        billingStateCode: input.stateCode,
+      });
+
+      return {
+        ok: true as const,
+        lot,
+        slots: getConcurrentSlotQuote(String(ctx.user.id)),
+        paymentChannel: paymentChannelNote(priceCents),
+        message:
+          "Extra concurrent slot added. You can talk to more than one AI at a time until it expires.",
       };
     }),
 

@@ -80,7 +80,7 @@ function buildCheckoutPricing(
     stateFeeDisplay: formatUsd(stateFeeCents),
     stripeFeeDisplay: formatUsd(stripeFeeCents),
     totalDisplay: formatUsd(totalCents),
-    stripeFeeExplanation: "Stripe payment processing (2.9% + $0.30) — paid by you, not UR LLC",
+    stripeFeeExplanation: "Stripe payment processing (2.9% + $0.30) — paid by you, not UR Platform LLC",
     stateCode: stateTax?.stateCode ?? null,
     stateName: stateTax?.stateName ?? null,
     stateTaxNotes: stateTax?.notes,

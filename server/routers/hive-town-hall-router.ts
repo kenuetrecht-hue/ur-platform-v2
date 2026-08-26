@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { assertAiEntitled } from "../_core/access-entitlements";
+import { assertCanTalkToMultipleAis } from "../_core/ai-platform-pass-slots";
 import {
   endTownHallSession,
   getTownHallPanelPreview,
@@ -77,6 +78,9 @@ export const hiveTownHallRouter = router({
         isPlatformOwner: ctx.isPlatformOwner,
         feature: "ai_hive",
       });
+      if (!ctx.isPlatformOwner) {
+        assertCanTalkToMultipleAis(String(ctx.user.id));
+      }
 
       const session = scheduleTownHallSession({
         hostUserId: String(ctx.user.id),
@@ -114,6 +118,9 @@ export const hiveTownHallRouter = router({
         isPlatformOwner: ctx.isPlatformOwner,
         feature: "ai_hive",
       });
+      if (!ctx.isPlatformOwner) {
+        assertCanTalkToMultipleAis(String(ctx.user.id));
+      }
 
       return sendTownHallMessage({
         sessionId: input.sessionId,

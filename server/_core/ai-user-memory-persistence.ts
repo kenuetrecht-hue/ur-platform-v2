@@ -105,7 +105,13 @@ export async function persistUserMemoryInteraction(params: {
 
   try {
     const context = aiUserMemoryService.getUserMemoryContext(params.userId, params.creatorId);
-    const topicsJson = JSON.stringify(context.recentTopics.slice(0, 20));
+    const preferenceTags = aiUserMemoryService.getPersistedPreferenceTags(
+      params.userId,
+      params.creatorId,
+    );
+    const topicsJson = JSON.stringify(
+      [...preferenceTags, ...context.recentTopics].slice(0, 24),
+    );
 
     const [existing] = await db
       .select({ id: aiUserMemoryProfiles.id })

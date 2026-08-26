@@ -25,8 +25,10 @@ import { getClientPlatform } from "@/lib/web-checkout";
 
 import {
   AI_TALK_EXPIRY_PURCHASE_DISCLOSURE,
+  AI_TALK_EXPIRY_TRACKER_HEADLINE,
   AI_TALK_METERING_DISCLOSURE,
 } from "@/lib/ai-talk-time-policy";
+import { AiTalkTimeTracker } from "@/components/ai-talk-time-tracker";
 import {
   AI_METERING_PAYBACK_PROTECTION,
   AI_METERING_RESUME_DISCLOSURE,
@@ -114,6 +116,7 @@ export function AiTalkTimePanel({
       void utils.partnerDashboard.premiumMediaStatus.invalidate();
 
       void utils.aiCreators.premiumMediaStatus.invalidate();
+      void utils.usageCredits.getMyTracker.invalidate();
 
     },
 
@@ -124,7 +127,9 @@ export function AiTalkTimePanel({
   const minutesLeft = status.data?.minutesRemaining ?? 0;
   const msLeft = status.data?.millisecondsRemaining ?? minutesLeft * 60_000;
   const timeDisplay = status.data?.timeRemainingDisplay;
-  const expiryAt = status.data?.earliestExpiryAt;
+  const timeVerbose = status.data?.timeRemainingVerbose;
+  const trackerLots = status.data?.trackerLots ?? [];
+  const purchasedTrackerLots = purchase.data?.trackerLots ?? trackerLots;
 
   const hasTalk = isAuthenticated && (status.data?.hasTalkAccess ?? false);
 
@@ -147,21 +152,23 @@ export function AiTalkTimePanel({
 
 
   if (compact && hasTalk && !showPurchase) {
-
+    if (trackerLots.length > 0) {
+      return (
+        <AiTalkTimeTracker
+          compact
+          lots={trackerLots}
+          totalRemainingDisplay={timeDisplay ?? `${minutesLeft} min`}
+          millisecondsRemaining={msLeft}
+        />
+      );
+    }
     return (
-
       <View style={[styles.balance, { borderColor: colors.primary, backgroundColor: colors.surface }]}>
-
         <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
-
-          🎙️ {timeDisplay ?? `${minutesLeft} min`} left · metered to the millisecond
-
+          🎙️ {timeDisplay ?? `${minutesLeft} min`} left · use within 30 days or it is lost
         </Text>
-
       </View>
-
     );
-
   }
 
 
@@ -188,7 +195,7 @@ export function AiTalkTimePanel({
 
       <View style={[styles.expiryBox, { borderColor: colors.primary, backgroundColor: `${colors.primary}12` }]}>
         <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 12 }}>
-          30-day use-it-or-lose-it
+          {AI_TALK_EXPIRY_TRACKER_HEADLINE}
         </Text>
         <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4, lineHeight: 16 }}>
           {AI_TALK_EXPIRY_PURCHASE_DISCLOSURE}
@@ -209,25 +216,28 @@ export function AiTalkTimePanel({
 
       <Text style={{ color: colors.muted, fontSize: 12, marginTop: 8, lineHeight: 17 }}>
 
-        Voice & video with {creatorName ?? "AI specialists"}. 25¢/min reference · $1 = 5 min · $5 = 25 min (app).
+        Voice & video with {creatorName ?? "AI specialists"}. 25¢/min reference · $1 = 5 min · $5 = 25 min (app) · $120 = 500 min (web) · $200 = 1,000 min (web).
+        Loyalty points cost more: 250 LP = 1 min · 500 LP = 2 min. Paying cash is the better deal.
         Every second of AI speech is tracked.
 
       </Text>
 
 
 
-      {hasTalk ? (
-
+      {hasTalk && trackerLots.length > 0 ? (
+        <AiTalkTimeTracker
+          lots={trackerLots}
+          totalRemainingDisplay={timeDisplay ?? `${minutesLeft} min`}
+          totalRemainingVerbose={
+            timeVerbose ??
+            `${timeDisplay ?? `${minutesLeft} min`} remaining (${msLeft.toLocaleString()} ms)`
+          }
+          millisecondsRemaining={msLeft}
+        />
+      ) : hasTalk ? (
         <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13, marginTop: 10 }}>
-
-          Balance: {timeDisplay ?? `${minutesLeft} min`} ({msLeft.toLocaleString()} ms) remaining
-
-          {expiryAt
-            ? ` · earliest expiry ${new Date(expiryAt).toLocaleDateString()}`
-            : ""}
-
+          Balance: {timeDisplay ?? `${minutesLeft} min`} ({msLeft.toLocaleString()} ms) remaining — use within 30 days or you lose what isn't used
         </Text>
-
       ) : null}
 
 
@@ -360,7 +370,7 @@ export function AiTalkTimePanel({
 
               : isAuthenticated
 
-                ? `I understand — pay ${selectedSummary?.pricing.totalDisplay ?? ""}`
+                ? `I understand unused time is lost after 30 days — pay ${selectedSummary?.pricing.totalDisplay ?? ""}`
 
                 : "Sign in to buy talk time"}
 
@@ -377,6 +387,22 @@ export function AiTalkTimePanel({
         <View style={[styles.successBox, { borderColor: colors.primary }]}>
 
           <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>Purchase confirmed</Text>
+          <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 12, marginTop: 6, lineHeight: 17 }}>
+            {purchase.data?.expiryHeadline ?? AI_TALK_EXPIRY_TRACKER_HEADLINE}
+          </Text>
+          {purchase.data?.useByWarning ? (
+            <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12, marginTop: 4, lineHeight: 17 }}>
+              This purchase: {purchase.data.useByWarning}
+            </Text>
+          ) : null}
+          {purchasedTrackerLots.length > 0 ? (
+            <AiTalkTimeTracker
+              lots={purchasedTrackerLots}
+              totalRemainingDisplay={purchase.data?.timeRemainingDisplay ?? timeDisplay}
+              totalRemainingVerbose={purchase.data?.timeRemainingVerbose ?? timeVerbose}
+              millisecondsRemaining={purchase.data?.millisecondsRemaining ?? msLeft}
+            />
+          ) : null}
 
           <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4, lineHeight: 16 }}>
 

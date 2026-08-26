@@ -168,9 +168,43 @@ export function LiveSessionRoomPanel({ sessionId, creatorName, onLeft }: LiveSes
         <Text style={[styles.title, { color: colors.foreground }]}>Speak with the AI — $5</Text>
         <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>{data.speak.disclosure}</Text>
         {data.speak.hasAccess ? (
-          <Text style={{ color: colors.primary, fontWeight: "700", marginTop: 8 }}>
-            Talk time: {data.speak.minutesRemainingDisplay}
-          </Text>
+          <>
+            <Text style={{ color: colors.primary, fontWeight: "700", marginTop: 8 }}>
+              Talk time: {data.speak.minutesRemainingDisplay}
+            </Text>
+            {data.speak.lowBalance && data.speak.lowBalanceNotice ? (
+              <View style={{ marginTop: 8, gap: 8 }}>
+                <Text style={{ color: "#c47b17", fontWeight: "700", fontSize: 12, lineHeight: 17 }}>
+                  {data.speak.lowBalanceNotice}
+                </Text>
+                <Pressable
+                  onPress={() => setShowSpeakCheckout(true)}
+                  style={[styles.btn, { backgroundColor: colors.primary }]}
+                >
+                  <Text style={styles.btnText}>Re-up before you run out</Text>
+                </Pressable>
+              </View>
+            ) : null}
+            {showSpeakCheckout ? (
+              <View style={{ marginTop: 10, gap: 8 }}>
+                <BillingStatePicker value={stateCode} onChange={setStateCode} />
+                <Pressable
+                  onPress={() => {
+                    if (!hasState) return;
+                    purchaseSpeak.mutate({
+                      sessionId,
+                      stateCode: stateCode!,
+                      clientPlatform: getClientPlatform(),
+                    });
+                  }}
+                  disabled={busy || !hasState}
+                  style={[styles.btn, { backgroundColor: colors.primary, opacity: hasState ? 1 : 0.5 }]}
+                >
+                  <Text style={styles.btnText}>Pay $5 — 25 min speak time</Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </>
         ) : showSpeakCheckout ? (
           <View style={{ marginTop: 10, gap: 8 }}>
             <BillingStatePicker value={stateCode} onChange={setStateCode} />

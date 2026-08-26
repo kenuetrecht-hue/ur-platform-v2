@@ -9,6 +9,7 @@ import { PlatformTermsPanel } from "@/components/platform-terms-panel";
 import { TERMS_CHECKOUT_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
 import { AI_SUBSCRIPTION_PRICING_SUMMARY } from "@/lib/payment-channel-policy";
 import { AI_TALK_EXPIRY_PURCHASE_DISCLOSURE } from "@/lib/ai-talk-time-policy";
+import { UsageTrackerDashboard } from "@/components/usage-tracker-dashboard";
 import { PUBLIC_PRICING_ENABLED } from "@/lib/pricing-visibility";
 
 type Props = {
@@ -50,10 +51,12 @@ export function AiSpecialistPricingPanel({
         <View style={{ flex: 1 }}>
           <Text style={[styles.heroTitle, { color: colors.foreground }]}>{creatorName}</Text>
           <Text style={[styles.heroSub, { color: colors.muted }]}>
-            Pricing for this specialist only — separate from every other AI on the platform.
+            Day, week, or month unlocks every UR specialist — one at a time. Voice talk is separate.
           </Text>
         </View>
       </View>
+
+      <UsageTrackerDashboard creatorId={creatorId} />
 
       <Text style={[styles.sectionTag, { color: colors.primary }]}>TEXT ACCESS</Text>
       <Text style={[styles.sectionHint, { color: colors.muted }]}>

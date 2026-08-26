@@ -4,6 +4,7 @@ import {
   isGoogleCloudAiConfigured,
 } from "../_core/google-ai";
 import { assertUserCanUseAi, enforceAiGuardrails } from "../_core/ai-guardrails";
+import { assertUserIsAgeVerified } from "../_core/age-kyc-service";
 import { assertNoAiTakeoverInMessage } from "../_core/ai-control";
 import { assertMessageWithinAiRole } from "../_core/ai-roles";
 import { sanitizeChatHistory, sanitizeUserText } from "../_core/input-sanitize";
@@ -35,6 +36,7 @@ export const chatRouter = router({
       }
 
       try {
+        await assertUserIsAgeVerified(ctx.user.id);
         assertUserCanUseAi(String(ctx.user.id), ctx.isPlatformOwner);
 
         const message = sanitizeUserText(input.message, 2000);

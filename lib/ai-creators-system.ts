@@ -521,6 +521,180 @@ export const AIBusinessAdvisor: AICreator = {
 };
 
 /**
+ * Funding AI
+ * Helps people find grants, loans, state/federal programs, private capital, and startup funding.
+ */
+export const AIFundingAdvisor: AICreator = {
+  id: "ai-funding-001",
+  name: "Funding AI",
+  handle: "@aifunding",
+  avatar: "💰",
+  bio: "Your AI capital scout. Grants, SBA and bank loans, state and federal programs, CDFIs, angels, and startup capital readiness — with official-source research. Entertainment & educational purposes only. Not a lender or broker.",
+  category: "Business",
+  tier: "platinum",
+  price: 14.99,
+  followers: 51200,
+  rating: 4.9,
+  updateFrequency: "Real-time (24/7 availability)",
+  dataSource:
+    "SBA.gov, Grants.gov, USDA Rural Development, EDA, Treasury SSBCI, state economic-development agencies, CDFI Fund, SBIR/STTR agency portals",
+  disclaimer:
+    "⚠️ AI-Generated Content: This creator is powered by artificial intelligence. Content is for entertainment and educational purposes only. NOT a loan offer, grant award, or investment advice. Program rules and deadlines change — verify on official government or lender sites. Always consult qualified attorneys, accountants, and licensed lenders before you apply or sign.",
+  topics: [
+    "Startup Capital",
+    "Federal Grants",
+    "State Grants",
+    "SBA Loans",
+    "CDFI & Community Lenders",
+    "Private Financiers",
+    "SBIR / STTR",
+    "Pitch Decks",
+    "Credit Readiness",
+    "Grant Scam Defense",
+  ],
+  contentStyle:
+    "Practical, official-source first, step-by-step readiness coaching with scam warnings and specialist handoffs",
+  omniCapabilities: {
+    ...OMNI_CAPABILITIES_TEMPLATE,
+    longTermMemory: {
+      ...OMNI_CAPABILITIES_TEMPLATE.longTermMemory,
+      retentionDays: 365,
+      description:
+        "Remembers industry, state, entity type, funding goals, and prior applications across sessions",
+    },
+    safeguardedLearning: {
+      ...OMNI_CAPABILITIES_TEMPLATE.safeguardedLearning,
+      rateLimitPerHour: 200,
+      requiresApproval: true,
+      protectedPatterns: [
+        "guaranteed_funding",
+        "loan_approval_claims",
+        "advance_fee_grant_scam",
+        "unlicensed_broker",
+      ],
+    },
+  },
+};
+
+/**
+ * Master CNC AI
+ * Lathes, mills, drills, CNC mills and turning centers — shop-safe educational machining.
+ */
+export const AIMasterCnc: AICreator = {
+  id: "ai-cnc-master-001",
+  name: "Master CNC & Mill AI",
+  handle: "@mastercnc",
+  avatar: "🔩",
+  bio: "Your shop-floor machining master. Any brand, any year — look up the OEM model on the web, remember this shop's machines, and troubleshoot on the job. Mills, lathes, drills, CNC, and NBC cells. Entertainment & educational purposes only. Not a substitute for the machine manual or lockout training.",
+  category: "Manufacturing",
+  tier: "platinum",
+  price: 12.99,
+  followers: 28400,
+  rating: 4.9,
+  updateFrequency: "Real-time (24/7 availability)",
+  dataSource:
+    "Live web lookup of OEM manuals for any brand/year, NIMS machining competencies, OSHA machine-guarding concepts, standard G/M-code practice, tooling catalogs",
+  disclaimer:
+    "⚠️ AI-Generated Content: This creator is powered by artificial intelligence. Content is for entertainment and educational purposes only. Speeds, feeds, and offsets are starting points — confirm in the machine manual and on a test cut. Never defeat guards or E-stops. Always follow your shop lockout/tagout rules.",
+  topics: [
+    "Manual Mill",
+    "CNC Mills / VMC",
+    "NBC / Nesting Cell",
+    "NCB Six-Sided Drill",
+    "CNC Lathes",
+    "Manual Lathe",
+    "Drills & Hole-making",
+    "G-code / M-code",
+    "Speeds & Feeds",
+    "Workholding",
+    "Tooling & Inserts",
+    "Shop Safety",
+    "CAM Setup",
+    "Brand / Model Lookup",
+    "Jobsite Troubleshooting",
+  ],
+  contentStyle:
+    "Shop-floor, safety-first, step-by-step setup coaching with dry-run checks and specialist handoffs",
+  omniCapabilities: {
+    ...OMNI_CAPABILITIES_TEMPLATE,
+    longTermMemory: {
+      ...OMNI_CAPABILITIES_TEMPLATE.longTermMemory,
+      retentionDays: 365,
+      description:
+        "Remembers this shop's machines by brand, model, year, and control so the next jobsite question starts from the data plate, not from scratch",
+    },
+    safeguardedLearning: {
+      ...OMNI_CAPABILITIES_TEMPLATE.safeguardedLearning,
+      rateLimitPerHour: 200,
+      requiresApproval: true,
+      protectedPatterns: [
+        "disable_interlock",
+        "bypass_estop",
+        "unattended_unsafe_run",
+        "controller_exploit",
+      ],
+    },
+  },
+};
+
+/**
+ * Culinary Arts AI
+ * Kitchen craft, food safety, any-brand equipment, and on-the-line coaching.
+ */
+export const AICulinaryArts: AICreator = {
+  id: "ai-culinary-001",
+  name: "Culinary Arts AI",
+  handle: "@culinaryarts",
+  avatar: "🍳",
+  bio: "Your kitchen instructor and line coach. Any cuisine, any kitchen — look up the OEM mixer or range, remember this cook's skill and allergies, and troubleshoot on the line. Entertainment & educational purposes only. Not a substitute for ServSafe or a licensed dietitian.",
+  category: "Culinary",
+  tier: "platinum",
+  price: 9.99,
+  followers: 22100,
+  rating: 4.9,
+  updateFrequency: "Real-time (24/7 availability)",
+  dataSource:
+    "Live web lookup of OEM kitchen manuals, USDA temperature charts, classic technique, ServSafe-style food-handler competencies",
+  disclaimer:
+    "⚠️ AI-Generated Content: This creator is powered by artificial intelligence. Content is for entertainment and educational purposes only. Confirm temperatures on current USDA charts. Allergies are a hard constraint — this is not medical diet therapy. Never defeat kitchen fire-suppression.",
+  topics: [
+    "Knife Skills",
+    "Mise en Place",
+    "Mother Sauces",
+    "Heat Control",
+    "Baking & Pastry",
+    "Allergens & Diets",
+    "Kitchen Equipment Lookup",
+    "Recipe Costing",
+    "Service / The Pass",
+    "Food Safety",
+    "Jobsite Troubleshooting",
+  ],
+  contentStyle:
+    "Line-cook clear, safety-first, step-by-step technique with temps, allergens, and specialist handoffs",
+  omniCapabilities: {
+    ...OMNI_CAPABILITIES_TEMPLATE,
+    longTermMemory: {
+      ...OMNI_CAPABILITIES_TEMPLATE.longTermMemory,
+      retentionDays: 365,
+      description:
+        "Remembers this cook's skill level, allergies, diets, kitchen equipment, and last Learn lesson so the next session continues — not restarts",
+    },
+    safeguardedLearning: {
+      ...OMNI_CAPABILITIES_TEMPLATE.safeguardedLearning,
+      rateLimitPerHour: 200,
+      requiresApproval: true,
+      protectedPatterns: [
+        "unsafe_undercook",
+        "ignore_allergen",
+        "defeat_ansul",
+        "medical_diet_therapy",
+      ],
+    },
+  },
+};
+
+/**
  * AI Legal Reference Assistant
  * Provides federal & state laws for all 50 US states, legal document generation, and compliance guidance
  */
@@ -589,6 +763,9 @@ export function generateAIContent(creator: AICreator): AIContent {
     "ai-author-001": generateAuthorContent,
     "ai-coder-001": generateCoderContent,
     "ai-business-001": generateBusinessContent,
+    "ai-funding-001": generateFundingContent,
+    "ai-cnc-master-001": generateCncContent,
+    "ai-culinary-001": generateCulinaryContent,
     "ai-legal-001": generateLegalContent,
     // New Tier 1 Educational AIs
     "ai-realestate-001": generateRealEstateContent,
@@ -678,6 +855,27 @@ function generateContentTitle(creator: AICreator): string {
       "LLC Formation Checklist for 2026",
       "Avoiding Common Business Startup Mistakes",
       "From Idea to Registered Business",
+    ],
+    "ai-funding-001": [
+      "Where Real Business Grants Live (and the Scams to Ignore)",
+      "SBA 7(a) vs 504 vs Microloan — Which Path Fits?",
+      "Startup Capital Stack: Grants, Debt, and Equity",
+      "How to Get Application-Ready in One Week",
+      "State and CDFI Money Most Founders Miss",
+    ],
+    "ai-cnc-master-001": [
+      "Lathe, Mill, or Drill — Pick the Right Machine for the Cut",
+      "First CNC Setup: Offsets, Dry Run, Then Metal",
+      "Look Up Any Brand and Model on the Job",
+      "How to Read G-code Without Guessing",
+      "Shop Safety: Guards, Chips, and Lockout",
+    ],
+    "ai-culinary-001": [
+      "Knife Skills Before the Burner Goes On",
+      "Mother Sauces You Can Actually Hold on a Line",
+      "Look Up Any Mixer or Range on the Job",
+      "Allergens: Ask, Label, Don't Cross-Contact",
+      "ServSafe-Style Food Safety Without the Scare Tactics",
     ],
     "ai-legal-001": [
       "Understanding Federal vs. State Business Laws",
@@ -1022,6 +1220,92 @@ You have a story inside you. Let it out. 📖✨
 ⚠️ For professional editing and publishing advice, consult industry experts.`;
 }
 
+function generateCncContent(): string {
+  return `🔩 MASTER CNC & MILL — LATHES, MILLS, DRILLS
+
+A good cut starts before the spindle. Walk the job in this order:
+
+**1. What machine is this? (brand, model, year)**
+- Read the nameplate — Haas VF-2, 1987 Bridgeport, Biesse NBC, whatever is on the floor
+- Manual mill or CNC VMC; NBC nesting cell, six-sided NCB drill, or gantry
+- Manual lathe or CNC turning center
+- Drill press (or mill used as a drill)
+- If they have internet, we pull the OEM manual for that exact model — old or new
+
+**2. Safety before the green button**
+- Guards on. E-stop works. Work is clamped — not "held by hand."
+- Hair, gloves, and rags stay away from a rotating chuck.
+- Lockout before you reach into the envelope.
+
+**3. Setup**
+- Print / model → datums → stock → work offset (G54…) → tool length
+- Dry run or graphics. Then a skim cut. Then size.
+
+**4. Starting points (not gospel)**
+- Speeds and feeds come from the tool chart and the material, then you listen to the cut.
+- If it screams, chatters, or the chip is dust, stop and change something one at a time.
+
+**This week:** send the nameplate (brand, model, year) and the alarm or the first face. We remember this shop's machines and look up the rest.
+
+⚠️ Educational only. Confirm every number in the OEM manual. Never defeat an interlock.`;
+}
+
+function generateCulinaryContent(): string {
+  return `🍳 CULINARY ARTS — ON THE LINE AND AT HOME
+
+A good plate starts before the burner. Walk the job in this order:
+
+**1. Who is eating, and what kitchen is this?**
+- Allergies and diets first — they are a hard stop, not a garnish note
+- Home stove, restaurant range, or food truck — name the brand if you can
+- Skill level: first time with a chef's knife, or holding a station
+
+**2. Safety before the first cut**
+- Hands washed. Board clean. Raw proteins stay off ready-to-eat.
+- Thermometer, not guesswork. USDA temps are starting points — confirm the live chart.
+- Oil fire: lid, not water.
+
+**3. Technique**
+- Mise en place → heat → season → taste → plate
+- If the sauce breaks or the protein overshoots, we diagnose one variable at a time
+
+**This week:** send the dish, the allergy list, and the equipment nameplate. We remember this kitchen and pick up the last lesson.
+
+⚠️ Educational only. Not medical diet therapy. Confirm temps. Never skip an allergen.`;
+}
+
+function generateFundingContent(): string {
+  return `💰 FINDING REAL MONEY FOR YOUR BUSINESS
+
+Most "guaranteed government grants" ads are scams. Here is where legitimate capital actually lives:
+
+**1. Grants (usually no repayment — competitive)**
+- Grants.gov for federal listings
+- SBIR/STTR if you have R&D (NSF, NIH, DoD, DOE, USDA)
+- USDA Rural Development (Value-Added Producer, REAP)
+- Some state innovation and workforce grants
+
+**2. Government-backed loans (you repay — apply through a lender)**
+- SBA 7(a): working capital and general use
+- SBA 504: buildings and major equipment via a CDC
+- SBA microloans and Community Advantage
+- State SSBCI programs through local lenders
+
+**3. Community and private capital**
+- CDFIs and credit unions
+- Community banks
+- Angels / VC only if the business is built to scale
+- Equipment leases, invoice factoring (compare the true cost)
+
+**4. Startup stack**
+- Bootstrap, friends-and-family, rewards crowdfunding, Reg CF
+- Pitch deck + 12-month use-of-funds before you ask anyone
+
+**This week:** pick one path, gather entity docs, and write a one-page use-of-funds. Then we match programs to your state and industry.
+
+⚠️ Educational only. Not a loan offer or grant award. Verify every program on the official site.`;
+}
+
 function generateBusinessContent(): string {
   return `🚀 Starting Your LLC: A Step-by-Step Guide
 
@@ -1211,7 +1495,7 @@ export const AIElectricianExpert: AICreator = {
   name: "Electrician Expert AI",
   handle: "@electrician_expert",
   avatar: "⚡",
-  bio: "Master electrician AI providing code compliance guidance, wiring design, safety standards, and troubleshooting. Prepare for electrician certification exams.",
+  bio: "Master electrician AI — any brand, any year. Look up the OEM panel or device, remember this site's gear, and troubleshoot electrical on the job.",
   category: "Trades",
   tier: "platinum",
   price: 8.99,
@@ -1241,7 +1525,7 @@ export const AIContractorPro: AICreator = {
   name: "Contractor Pro AI",
   handle: "@contractor_pro",
   avatar: "🔨",
-  bio: "Professional contractor AI for project management, budgeting, scheduling, compliance, and 3D project visualization. Master construction business operations.",
+  bio: "Professional contractor AI — any brand, any year. Look up jobsite equipment, remember this site's gear, and solve problems on the job.",
   category: "Construction",
   tier: "platinum",
   price: 9.99,
@@ -1265,7 +1549,7 @@ export const AIHVACSpecialist: AICreator = {
   name: "HVAC Specialist AI",
   handle: "@hvac_specialist",
   avatar: "❄️",
-  bio: "HVAC expert AI providing system design, efficiency calculations, maintenance scheduling, and EPA compliance guidance. Prepare for HVAC certification.",
+  bio: "HVAC expert AI — any brand, any year. Look up the OEM furnace, heat pump, or AC, remember this site's systems, and troubleshoot on the job.",
   category: "Trades",
   tier: "platinum",
   price: 8.99,
@@ -1295,7 +1579,7 @@ export const AILandscapingMaster: AICreator = {
   name: "Landscaping Master AI",
   handle: "@landscaping_master",
   avatar: "🌳",
-  bio: "Expert landscaping AI with photo-to-3D design, plant database, cost estimation, and project execution planning. Master landscape design and business.",
+  bio: "Expert landscaping AI — any brand, any year. Look up irrigation and outdoor equipment, remember this site's gear, and troubleshoot in the field.",
   category: "Landscaping",
   tier: "platinum",
   price: 7.99,
@@ -1653,7 +1937,7 @@ export const AI3DSpecialist: AICreator = {
   name: "AI 3D Designer",
   handle: "@ai3ddesigner",
   avatar: "🎨",
-  bio: "Professional 3D design specialist for architecture, product design, robotics, landscaping, and 3D printing. Expert in CAD, parametric design, and real-time collaboration.",
+  bio: "Professional 3D design specialist — any printer or scanner brand. Look up the OEM, remember this shop's machines, and troubleshoot the hardware.",
   category: "3D Design",
   tier: "platinum",
   price: 12.99,
@@ -1818,6 +2102,7 @@ export const ALL_AI_CREATORS: AICreator[] = [
   AILogoBrand,
   TechBuilder,
   AIBusinessAdvisor,
+  AIFundingAdvisor,
   AILegalReferenceAssistant,
   // Tier 1: Educational AI Specialists (14 new AIs)
   AIRealEstateMaster,
@@ -1840,6 +2125,8 @@ export const ALL_AI_CREATORS: AICreator[] = [
   AIProductManager,
   AIContentCreatorHelper,
   AI3DSpecialist,
+  AIMasterCnc,
+  AICulinaryArts,
   AIBlueprintReader,
   AIUniversalTranslator,
 ];
@@ -1857,7 +2144,7 @@ export const AIRoboticsEngineer: AICreator = {
   description: "Expert in robot design, programming, and 3D visualization for robotics projects",
   handle: "@robotics_engineer",
   avatar: "🤖",
-  bio: "Specialized AI for designing and programming robots with real-time 3D visualization. Analyzes photos of mechanical systems, solves robotics problems, and collaborates with other AIs. Full learning and memory capabilities.",
+  bio: "Robotics AI — any brand, any year. Look up the OEM robot or controller, remember this cell's machines, and troubleshoot automation on the floor.",
   category: "Engineering & Design",
   tier: "gold",
   price: 9.99,
@@ -1886,7 +2173,7 @@ export const AIDynamicsAnalyst: AICreator = {
   description: "Expert in dynamics, aerodynamics, physics simulations, and structural analysis",
   handle: "@dynamics_analyst",
   avatar: "⚙️",
-  bio: "Specialized AI for analyzing forces, motion, aerodynamics, and structural integrity. Takes photos of structures, analyzes wind loads, performs critical thinking on complex engineering problems. Full learning and memory.",
+  bio: "Dynamics AI — any brand, any year. Look up the OEM part or analysis tool, remember this site's equipment, and work the physics on the job.",
   category: "Engineering & Analysis",
   tier: "gold",
   price: 9.99,
@@ -1915,7 +2202,7 @@ export const AITreeServiceExpert: AICreator = {
   description: "Expert in tree care, cutting techniques, safety procedures, and landscape visualization",
   handle: "@tree_service_expert",
   avatar: "🌳",
-  bio: "Specialized AI for tree identification, care recommendations, safe cutting procedures, and 3D landscape visualization. Analyzes tree photos, identifies diseases, provides critical thinking on landscaping solutions. Full learning and memory.",
+  bio: "Tree-service AI — any brand, any year. Look up the OEM saw or chipper, remember this crew's gear, and troubleshoot in the field.",
   category: "Landscaping & Arboriculture",
   tier: "silver",
   price: 4.99,
@@ -1944,7 +2231,7 @@ export const AIWindLoadAnalyst: AICreator = {
   description: "Expert in wind load calculations, aerodynamic testing, and tall structure analysis",
   handle: "@wind_load_analyst",
   avatar: "💨",
-  bio: "Specialized AI for calculating wind forces on structures, aerodynamic analysis, and ensuring structural safety for tall buildings. Analyzes building photos, performs critical thinking on wind resistance. Collaborates with structural engineers.",
+  bio: "Wind-load AI — any brand, any year. Look up hurricane hardware and codes, remember this site's systems, and work wind problems on the job.",
   category: "Engineering & Analysis",
   tier: "gold",
   price: 9.99,
@@ -1972,7 +2259,7 @@ export const AIStructuralEngineer: AICreator = {
   description: "Expert in structural systems, foundation design, and load bearing analysis",
   handle: "@structural_engineer",
   avatar: "🏗️",
-  bio: "Specialized AI for designing structural systems, calculating foundation requirements, and analyzing load bearing capacity. Analyzes foundation photos, solves structural problems with critical thinking. Works collaboratively on complex projects.",
+  bio: "Structural AI — any brand, any year. Look up connectors and analysis tools, remember this site's systems, and work structural problems on the job.",
   category: "Engineering & Design",
   tier: "gold",
   price: 9.99,
@@ -2000,7 +2287,7 @@ export const AISeismicAnalyst: AICreator = {
   description: "Expert in seismic analysis, earthquake resistance testing, and safety design",
   handle: "@seismic_specialist",
   avatar: "🌍",
-  bio: "Specialized AI for analyzing earthquake resistance, seismic forces, and ensuring structural safety in seismic zones. Analyzes building photos, performs critical thinking on seismic safety. Provides comprehensive testing and recommendations.",
+  bio: "Seismic AI — any brand, any year. Look up retrofit hardware and codes, remember this site's systems, and work seismic problems on the job.",
   category: "Engineering & Analysis",
   tier: "gold",
   price: 9.99,
@@ -2039,6 +2326,7 @@ export const ALL_AI_CREATORS_WITH_NEW: AICreator[] = [
   AILogoBrand,
   TechBuilder,
   AIBusinessAdvisor,
+  AIFundingAdvisor,
   AILegalReferenceAssistant,
   // Tier 1: Educational AI Specialists (14 AIs)
   AIRealEstateMaster,
@@ -2061,6 +2349,8 @@ export const ALL_AI_CREATORS_WITH_NEW: AICreator[] = [
   AIProductManager,
   AIContentCreatorHelper,
   AI3DSpecialist,
+  AIMasterCnc,
+  AICulinaryArts,
   AIBlueprintReader,
   // Tier 2: Advanced Specialized AIs (6 new AIs)
   AIRoboticsEngineer,

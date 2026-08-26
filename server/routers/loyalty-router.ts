@@ -7,6 +7,7 @@ import {
   getNextDailySignInPoints,
   isValidMilestoneDay,
   LOYALTY_MILESTONE_DAYS,
+  LOYALTY_REDEMPTION_IDS,
   type LoyaltyRedemptionId,
 } from "../../lib/loyalty-program-config";
 import { redeemLoyaltyReward } from "../_core/loyalty-activity-service";
@@ -194,15 +195,7 @@ export const loyaltyRouter = router({
   redeem: secureProcedure("loyalty")
     .input(
       z.object({
-        rewardId: z.enum([
-          "text_1",
-          "text_3",
-          "image_1",
-          "vision_1",
-          "search_5",
-          "hive_1",
-          "chapter_1",
-        ]),
+        rewardId: z.enum(LOYALTY_REDEMPTION_IDS),
         creatorId: creatorIdSchema.optional(),
       }),
     )

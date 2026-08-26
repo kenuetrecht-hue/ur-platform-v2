@@ -9,13 +9,16 @@ const WEB_ORIGIN = `http://localhost:${WEB_PORT}`;
 const API_ORIGIN = `http://localhost:${API_PORT}`;
 
 const WEB_ROUTES = [
+  "/",
   "/welcome",
   "/login",
   "/signup",
+  "/age-verify",
   "/ais",
   "/shop",
   "/3d-workspace",
   "/playroom",
+  "/jobsite",
   "/affiliate-dashboard",
   "/creator-dashboard",
 ];

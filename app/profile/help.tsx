@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { View, Text, Linking, Pressable } from "react-native";
 import { ProfileStackScreen } from "@/components/profile-stack-screen";
 import { useColors } from "@/hooks/use-colors";
+import { TERMS_SUPPORT_EMAIL } from "@/lib/platform-terms-of-use";
 import { getPlatformPublicOrigin } from "@/lib/platform-urls";
 
 const FAQ = [
@@ -19,7 +20,7 @@ const FAQ = [
   },
   {
     q: "Can I get a refund on AI subscriptions or credits?",
-    a: "No. All AI specialist subscriptions, usage credits, talk time, and other digital access sold by UR LLC are final — no returns and no refunds, including unused messages or credits.",
+    a: "No. All AI specialist subscriptions, usage credits, talk time, and other digital access sold by UR Platform LLC are final — no returns and no refunds, including unused messages or credits.",
   },
   {
     q: "What about refunds from a content creator?",
@@ -37,7 +38,7 @@ const FAQ = [
 
 export default function ProfileHelpScreen() {
   const colors = useColors();
-  const supportEmail = "support@urplatform.llc";
+  const supportEmail = TERMS_SUPPORT_EMAIL;
   const platformUrl = getPlatformPublicOrigin();
 
   return (

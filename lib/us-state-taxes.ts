@@ -2,7 +2,7 @@
  * US state sales tax & fees for digital AI services (subscriptions, talk packs).
  *
  * Rates are estimated combined state + local averages where digital SaaS is taxable.
- * UR LLC remits collected tax; customers see itemized tax per their billing state.
+ * UR Platform LLC remits collected tax; customers see itemized tax per their billing state.
  *
  * Production: replace with Stripe Tax or a certified tax engine for live rates.
  */

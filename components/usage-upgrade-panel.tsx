@@ -10,6 +10,7 @@ import { getClientPlatform } from "@/lib/web-checkout";
 import type { CreditProductId } from "@/lib/usage-caps-catalog";
 import { buildUsageCreditPurchaseSummary } from "@/lib/pricing-disclosures";
 import { PurchaseSummaryCard } from "@/components/purchase-summary-card";
+import { PurchaseUsageTracker } from "@/components/purchase-usage-tracker";
 
 type Props = {
   productId: CreditProductId;
@@ -30,9 +31,12 @@ export function UsageUpgradePanel({ productId, creatorId, title, compact = false
     { enabled: isAuthenticated },
   );
 
+  const utils = trpc.useUtils();
   const purchase = trpc.usageCredits.purchase.useMutation({
     onSuccess: () => {
       void options.refetch();
+      void utils.usageCredits.getMyBalances.invalidate();
+      void utils.usageCredits.getMyTracker.invalidate();
     },
   });
 
@@ -71,11 +75,18 @@ export function UsageUpgradePanel({ productId, creatorId, title, compact = false
         You pay a fixed price → You receive a fixed number of credits. No unlimited use.
       </Text>
 
-      {balance ? (
-        <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6, lineHeight: 18 }}>
-          {balance.remaining} {balance.unit} left
-          {balance.dailyHardCap ? ` · max ${balance.dailyHardCap}/day` : ""}
-        </Text>
+      {balance && balance.included > 0 ? (
+        <PurchaseUsageTracker
+          title={balance.label}
+          used={balance.used}
+          included={balance.included}
+          remaining={balance.remaining}
+          unit={balance.unit}
+          loseByLabel={balance.lots[0]?.loseByLabel}
+          lots={balance.lots}
+          dailyNote={`Usable now: ${balance.remaining} · ${balance.usedToday} used today · max ${balance.dailyHardCap}/day`}
+          lowBalance={balance.lots.some((lot) => lot.lowBalance)}
+        />
       ) : null}
 
       {options.data?.includedWebSearchesToday != null && creatorId ? (
@@ -172,7 +183,21 @@ export function UsageUpgradePanel({ productId, creatorId, title, compact = false
       ) : null}
 
       {purchase.isSuccess ? (
-        <Text style={{ color: colors.primary, fontSize: 11, marginTop: 8 }}>{purchase.data?.message}</Text>
+        <View>
+          <Text style={{ color: colors.primary, fontSize: 11, marginTop: 8 }}>{purchase.data?.message}</Text>
+          {purchase.data?.tracker ? (
+            <PurchaseUsageTracker
+              title={purchase.data.tracker.label}
+              used={purchase.data.tracker.used}
+              included={purchase.data.tracker.included}
+              remaining={purchase.data.tracker.remaining}
+              unit={purchase.data.tracker.unit}
+              loseByLabel={purchase.data.tracker.lots[0]?.loseByLabel}
+              lots={purchase.data.tracker.lots}
+              dailyNote={`Usable now: ${purchase.data.tracker.remaining} · max ${purchase.data.tracker.dailyHardCap}/day`}
+            />
+          ) : null}
+        </View>
       ) : null}
       {purchase.error ? (
         <Text style={{ color: "#e55", fontSize: 11, marginTop: 8 }}>{purchase.error.message}</Text>

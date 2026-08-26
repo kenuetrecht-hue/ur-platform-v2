@@ -23,6 +23,8 @@ import type { AiPriceTier } from "@/lib/ai-subscription-pricing";
 import { PaymentChannelNotice } from "@/components/payment-channel-notice";
 
 import { UsageUpgradePanel } from "@/components/usage-upgrade-panel";
+import { PurchaseUsageTracker } from "@/components/purchase-usage-tracker";
+import { UsageTrackerDashboard } from "@/components/usage-tracker-dashboard";
 
 import {
   buildAiSubscriptionWebPath,
@@ -108,9 +110,16 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
       void utils.aiSubscription.getAccess.invalidate({ creatorId });
 
       void utils.platformOps.getMyAccess.invalidate();
+      void utils.usageCredits.getMyTracker.invalidate();
 
     },
 
+  });
+
+  const purchaseSlot = trpc.aiSubscription.purchaseConcurrentSlot.useMutation({
+    onSuccess: () => {
+      void utils.aiSubscription.getAccess.invalidate({ creatorId });
+    },
   });
 
 
@@ -185,7 +194,7 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
         <Text style={{ color: colors.foreground, fontWeight: "700" }}>
 
-          ✓ Active — {creatorName}
+          ✓ Text pass active — talk to any specialist, one at a time
 
         </Text>
 
@@ -199,7 +208,19 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
         ) : null}
 
-        {activeUsageLine ? (
+        {access.data?.usage ? (
+          <PurchaseUsageTracker
+            title="Text pass"
+            used={access.data.usage.messagesUsed}
+            included={access.data.usage.messagesIncluded}
+            remaining={access.data.usage.messagesRemaining}
+            unit="messages"
+            loseByLabel={
+              sub ? `Use by ${new Date(sub.expiresAt).toLocaleDateString()} or unused messages are lost` : undefined
+            }
+            compact
+          />
+        ) : activeUsageLine ? (
 
           <Text style={{ color: colors.primary, fontSize: 12, marginTop: 4, fontWeight: "600" }}>
 
@@ -211,9 +232,42 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
         <Text style={{ color: colors.muted, fontSize: 10, marginTop: 6, lineHeight: 15 }}>
 
-          Text chat & learn included · Voice/video requires Talk Time · Hive uses 3 messages each · 10 web searches/day
+          Text chat & learn included · Voice/video requires Talk Time · Hive / Town Hall need an extra concurrent slot · 10 web searches/day
 
         </Text>
+
+        {access.data?.slots ? (
+          <Text style={{ color: colors.muted, fontSize: 11, marginTop: 8, lineHeight: 16 }}>
+            Concurrent AIs: {access.data.slots.maxSlots} (1 included
+            {access.data.slots.extraSlots > 0 ? ` + ${access.data.slots.extraSlots} extra` : ""})
+          </Text>
+        ) : null}
+
+        {hasState && isWebCheckout && access.data?.subscription ? (
+          <Pressable
+            disabled={purchaseSlot.isPending || !stateCode}
+            onPress={() => {
+              if (!stateCode) return;
+              purchaseSlot.mutate({
+                creatorId,
+                plan: access.data.subscription?.plan ?? "month",
+                stateCode,
+                clientPlatform: "web",
+              });
+            }}
+            style={{ marginTop: 10, paddingVertical: 8 }}
+          >
+            <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>
+              {purchaseSlot.isPending
+                ? "Adding slot…"
+                : "Add extra concurrent slot — talk to more than one AI at once"}
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {purchaseSlot.error ? (
+          <Text style={{ color: "#e55", fontSize: 12, marginTop: 6 }}>{purchaseSlot.error.message}</Text>
+        ) : null}
 
         {(access.data?.usage?.messagesRemaining ?? 999) <= 10 ? (
           <UsageUpgradePanel
@@ -232,7 +286,7 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
   const activeStatusBanner =
     mode === "pricing" && isAuthenticated && access.data?.hasAccess ? (
       <View style={[styles.activeBox, { borderColor: colors.primary, backgroundColor: colors.surface, marginBottom: 10 }]}>
-        <Text style={{ color: colors.foreground, fontWeight: "700" }}>✓ Subscribed to {creatorName}</Text>
+        <Text style={{ color: colors.foreground, fontWeight: "700" }}>✓ Text pass active (all specialists)</Text>
         {access.data.subscription ? (
           <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>
             {access.data.subscription.plan} plan · renew or extend below
@@ -260,15 +314,13 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
       <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
 
-        Subscribe to {creatorName}
+        Text pass — start with {creatorName}
 
       </Text>
 
       <Text style={{ color: colors.muted, fontSize: 13, marginTop: 6, lineHeight: 19 }}>
 
-        Standard from $7.99/day · $15.99/week · $24.99/month — per specialist. Web browser checkout required.
-
-        {tierLabel && tierLabel !== "Standard" ? ` (${tierLabel} usage tier.)` : null}
+        $7.99/day · $15.99/week · $24.99/month — every specialist, one at a time. Extra slot to talk to more than one AI at once. Web browser checkout required.
 
       </Text>
 
@@ -483,6 +535,21 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
             {purchase.data?.message}
 
           </Text>
+          {access.data?.usage ? (
+            <PurchaseUsageTracker
+              title="Text pass"
+              used={access.data.usage.messagesUsed}
+              included={access.data.usage.messagesIncluded}
+              remaining={access.data.usage.messagesRemaining}
+              unit="messages"
+              loseByLabel={
+                purchase.data?.subscription
+                  ? `Use by ${new Date(purchase.data.subscription.expiresAt).toLocaleDateString()} or unused messages are lost`
+                  : undefined
+              }
+              compact
+            />
+          ) : null}
 
         </View>
 

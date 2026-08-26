@@ -11,7 +11,9 @@ import {
   type CreatorAiDefinition,
 } from "./ai-creator-registry";
 import { assertUserCanUseAi, enforceAiGuardrails } from "./ai-guardrails";
+import { assertUserIsAgeVerified } from "./age-kyc-service";
 import { assertNoAiTakeoverInMessage } from "./ai-control";
+import { assertMissionUseAllowed } from "./ai-mission-use";
 import {
   assertMessageWithinAiRole,
   sanitizeAiReplyForRole,
@@ -26,6 +28,11 @@ import { isOwnerOnlyPlatformAi } from "./platform-ops-ai";
 import { assertAiEntitled } from "./access-entitlements";
 import { assertAndConsumeAiUsage } from "./ai-usage-meter";
 import { assertAndConsumeCredit } from "./usage-credits-service";
+import {
+  getUserMemoryPromptBlock,
+  recordHiveInteraction,
+} from "./ai-hive-orchestrator";
+import { aiUserMemoryService } from "../../lib/ai-user-memory-service";
 import {
   buildCoderTeachingPromptAddition,
   getCoderTeachingModules,
@@ -51,6 +58,21 @@ import {
   getLegalMasterTeachingModules,
   isLegalMasterTeachingCreator,
 } from "./legal-masters-teaching-curriculum";
+import {
+  buildFundingTeachingPromptAddition,
+  getFundingTeachingModules,
+  isFundingTeachingCreator,
+} from "./funding-teaching-curriculum";
+import {
+  buildCncTeachingPromptAddition,
+  getCncTeachingModules,
+  isCncTeachingCreator,
+} from "./cnc-teaching-curriculum";
+import {
+  buildCulinaryTeachingPromptAddition,
+  getCulinaryTeachingModules,
+  isCulinaryTeachingCreator,
+} from "./culinary-teaching-curriculum";
 
 export type LearningLevel = "beginner" | "intermediate" | "advanced";
 
@@ -118,6 +140,7 @@ const CATEGORY_MODULES: Record<string, Omit<LearningModule, "id">[]> = {
   Business: [
     { title: "Business fundamentals", description: "Strategy, KPIs, and operations." },
     { title: "Growth & planning", description: "Roadmaps, markets, and execution." },
+    { title: "Funding & capital readiness", description: "Grants, loans, and startup capital paths (educational)." },
     { title: "Certification orientation", description: "MBA-style study guidance (educational).", certificationPrep: true },
   ],
   Marketing: [
@@ -171,6 +194,12 @@ const CATEGORY_MODULES: Record<string, Omit<LearningModule, "id">[]> = {
   Platform: [
     { title: "Platform workflows", description: "Core UR creator platform skills." },
     { title: "Best practices", description: "Tips for getting the most from the platform." },
+  ],
+  "Culinary": [
+    { title: "Kitchen safety & sanitation", description: "Temps, cross-contamination, and line hygiene." },
+    { title: "Technique & mise en place", description: "Knife work, heat, sauces, and plating." },
+    { title: "Allergens & diets", description: "Ask, label, and avoid cross-contact (educational)." },
+    { title: "ServSafe-style cert orientation", description: "Food-handler study path (educational).", certificationPrep: true },
   ],
   Career: [
     { title: "Career planning", description: "Goals, skills, and pivots." },
@@ -230,6 +259,15 @@ export function getCurriculumForCreator(def: CreatorAiDefinition): LearningModul
   if (isLegalMasterTeachingCreator(def.id)) {
     return getLegalMasterTeachingModules(def.id);
   }
+  if (isFundingTeachingCreator(def.id)) {
+    return getFundingTeachingModules();
+  }
+  if (isCncTeachingCreator(def.id)) {
+    return getCncTeachingModules();
+  }
+  if (isCulinaryTeachingCreator(def.id)) {
+    return getCulinaryTeachingModules();
+  }
 
   const fromCategory = CATEGORY_MODULES[def.category] ?? DEFAULT_MODULES;
   const fromScope = def.inScope.slice(0, 4).map((title) => ({
@@ -287,6 +325,9 @@ ${isGameTeachingCreator(def.id) ? `\n\n${buildGameTeachingPromptAddition(level, 
 ${isBlueprintTeachingCreator(def.id) ? `\n\n${buildBlueprintTeachingPromptAddition(level, mode, topic)}` : ""}
 ${isCreativeTeachingCreator(def.id) ? `\n\n${buildCreativeTeachingPromptAddition(def.id, level, mode, topic)}` : ""}
 ${isLegalMasterTeachingCreator(def.id) ? `\n\n${buildLegalMasterTeachingPromptAddition(def.id, level, mode, topic)}` : ""}
+${isFundingTeachingCreator(def.id) ? `\n\n${buildFundingTeachingPromptAddition(level, mode, topic)}` : ""}
+${isCncTeachingCreator(def.id) ? `\n\n${buildCncTeachingPromptAddition(level, mode, topic)}` : ""}
+${isCulinaryTeachingCreator(def.id) ? `\n\n${buildCulinaryTeachingPromptAddition(level, mode, topic)}` : ""}
 
 Rules:
 - Educational and recreational purposes only — not licensed professional advice.
@@ -351,17 +392,25 @@ export async function handleCreatorLearningSession(params: {
   const def = getCreatorAi(params.creatorId)!;
 
   assertUserCanUseAi(params.userId, params.isPlatformOwner);
+  await assertUserIsAgeVerified(params.userId);
   const message = sanitizeUserText(params.message, 4000);
   assertNoAiTakeoverInMessage(message, params.isPlatformOwner);
+  assertMissionUseAllowed(message, params.isPlatformOwner);
   assertMessageWithinAiRole(message, params.creatorId, params.isPlatformOwner);
 
   const history = sanitizeChatHistory(params.history ?? [], 20, 4000);
-  const systemPrompt = buildLearningPrompt(
-    def,
-    params.level,
-    params.mode,
-    params.topic?.slice(0, 200),
-  );
+  const memoryBlock = await getUserMemoryPromptBlock(params.userId, params.creatorId);
+  const systemPrompt = [
+    buildLearningPrompt(
+      def,
+      params.level,
+      params.mode,
+      params.topic?.slice(0, 200),
+    ),
+    memoryBlock,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const { reply: rawReply, model } = await generateGoogleChatReply({
     systemPrompt,
@@ -375,6 +424,19 @@ export async function handleCreatorLearningSession(params: {
     userId: params.userId,
     isPlatformOwner: params.isPlatformOwner,
     role: isOwnerOnlyPlatformAi(params.creatorId) ? "admin" : undefined,
+  });
+
+  aiUserMemoryService.initializeUser(params.userId, params.creatorId, "User");
+  aiUserMemoryService.recordLearningProgress(params.userId, params.creatorId, {
+    level: params.level,
+    mode: params.mode,
+    topic: params.topic?.slice(0, 80) || message.slice(0, 80),
+  });
+  recordHiveInteraction({
+    userId: params.userId,
+    creatorId: params.creatorId,
+    userMessage: message,
+    aiReply: lesson,
   });
 
   return { lesson, model, creatorName: def.name };

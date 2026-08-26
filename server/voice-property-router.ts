@@ -1,4 +1,4 @@
-import { router, publicProcedure } from "./_core/trpc";
+import { router, secureProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { ElevenLabsVoiceService, AI_PERSONA_VOICES } from "./elevenlabs-integration";
 import { ZillowMLSService } from "./zillow-mls-integration";
@@ -24,7 +24,7 @@ export const voicePropertyRouter = router({
   /**
    * ElevenLabs Voice Synthesis
    */
-  synthesizeVoice: publicProcedure
+  synthesizeVoice: secureProcedure("voiceProperty")
     .input(
       z.object({
         text: z.string().min(1).max(5000),
@@ -68,7 +68,7 @@ export const voicePropertyRouter = router({
   /**
    * Stream Voice Synthesis
    */
-  streamVoiceSynthesis: publicProcedure
+  streamVoiceSynthesis: secureProcedure("voiceProperty")
     .input(
       z.object({
         text: z.string().min(1).max(5000),
@@ -110,7 +110,7 @@ export const voicePropertyRouter = router({
   /**
    * Search Property
    */
-  searchProperty: publicProcedure
+  searchProperty: secureProcedure("voiceProperty")
     .input(
       z.object({
         address: z.string(),
@@ -138,7 +138,7 @@ export const voicePropertyRouter = router({
   /**
    * Get Comparable Sales
    */
-  getComparableSales: publicProcedure
+  getComparableSales: secureProcedure("voiceProperty")
     .input(
       z.object({
         zpid: z.string(),
@@ -167,7 +167,7 @@ export const voicePropertyRouter = router({
   /**
    * Estimate ARV
    */
-  estimateARV: publicProcedure
+  estimateARV: secureProcedure("voiceProperty")
     .input(
       z.object({
         zpid: z.string(),
@@ -198,7 +198,7 @@ export const voicePropertyRouter = router({
   /**
    * Calculate MAO
    */
-  calculateMAO: publicProcedure
+  calculateMAO: secureProcedure("voiceProperty")
     .input(
       z.object({
         arvEstimate: z.number().min(1),
@@ -229,7 +229,7 @@ export const voicePropertyRouter = router({
   /**
    * Create Voice Stream Session
    */
-  createVoiceSession: publicProcedure
+  createVoiceSession: secureProcedure("voiceProperty")
     .input(
       z.object({
         userId: z.string(),
@@ -273,7 +273,7 @@ export const voicePropertyRouter = router({
   /**
    * Add Audio Chunk
    */
-  addAudioChunk: publicProcedure
+  addAudioChunk: secureProcedure("voiceProperty")
     .input(
       z.object({
         sessionId: z.string(),
@@ -299,7 +299,7 @@ export const voicePropertyRouter = router({
   /**
    * End Voice Session
    */
-  endVoiceSession: publicProcedure
+  endVoiceSession: secureProcedure("voiceProperty")
     .input(
       z.object({
         sessionId: z.string(),
@@ -326,7 +326,7 @@ export const voicePropertyRouter = router({
   /**
    * Get Session Stats
    */
-  getSessionStats: publicProcedure
+  getSessionStats: secureProcedure("voiceProperty")
     .input(
       z.object({
         sessionId: z.string(),
@@ -351,7 +351,7 @@ export const voicePropertyRouter = router({
   /**
    * Cleanup Old Sessions
    */
-  cleanupSessions: publicProcedure.mutation(() => {
+  cleanupSessions: secureProcedure("voiceProperty").mutation(() => {
     try {
       voiceStreamManager.cleanupOldSessions();
       return {

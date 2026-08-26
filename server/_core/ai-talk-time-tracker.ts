@@ -6,18 +6,20 @@
 import { randomUUID } from "crypto";
 import { TRPCError } from "@trpc/server";
 import type { AiTalkPackId } from "../../lib/ai-talk-pricing";
-import { getAiTalkPack } from "../../lib/ai-talk-pricing";
 import {
-  AI_TALK_LOT_EXPIRY_MS,
+  buildTalkLotTrackerView,
   computeLotExpiresAt,
+  LOYALTY_TALK_LOT_ID,
   minutesToMilliseconds,
   packTotalMilliseconds,
+  type TalkLotSourceId,
+  type TalkLotTrackerView,
 } from "../../lib/ai-talk-time-policy";
 
 export type TalkTimeLot = {
   id: string;
   userId: string;
-  packId: AiTalkPackId;
+  packId: TalkLotSourceId;
   purchasedAt: string;
   expiresAt: string;
   millisecondsIncluded: number;
@@ -63,24 +65,43 @@ function purgeExpiredLots(userId?: string): void {
 
 export function createTalkTimeLot(params: {
   userId: string;
-  packId: AiTalkPackId;
+  packId: TalkLotSourceId;
   priceCents: number;
   purchasedAtMs?: number;
+  millisecondsIncluded?: number;
 }): TalkTimeLot {
   const purchasedAtMs = params.purchasedAtMs ?? nowMs();
+  const millisecondsIncluded =
+    params.millisecondsIncluded ??
+    (params.packId === LOYALTY_TALK_LOT_ID
+      ? minutesToMilliseconds(1)
+      : packTotalMilliseconds(params.packId));
   const lot: TalkTimeLot = {
     id: randomUUID(),
     userId: params.userId,
     packId: params.packId,
     purchasedAt: new Date(purchasedAtMs).toISOString(),
     expiresAt: computeLotExpiresAt(purchasedAtMs),
-    millisecondsIncluded: packTotalMilliseconds(params.packId),
+    millisecondsIncluded,
     millisecondsUsed: 0,
     priceCents: params.priceCents,
     active: true,
   };
   lots.set(lot.id, lot);
   return lot;
+}
+
+export function grantLoyaltyTalkMinutes(params: {
+  userId: string;
+  minutes: number;
+}): TalkTimeLot {
+  const minutes = Math.max(1, Math.round(params.minutes));
+  return createTalkTimeLot({
+    userId: params.userId,
+    packId: LOYALTY_TALK_LOT_ID,
+    priceCents: 0,
+    millisecondsIncluded: minutesToMilliseconds(minutes),
+  });
 }
 
 export function getActiveTalkLots(userId: string): TalkTimeLot[] {
@@ -106,12 +127,13 @@ export function getTalkTimeStatus(userId: string): {
   earliestExpiryAt: string | null;
   lots: Array<{
     id: string;
-    packId: AiTalkPackId;
+    packId: TalkLotSourceId;
     purchasedAt: string;
     expiresAt: string;
     millisecondsRemaining: number;
     millisecondsUsed: number;
     millisecondsIncluded: number;
+    tracker: TalkLotTrackerView;
   }>;
   speechSessionsLogged: number;
 } {
@@ -137,15 +159,24 @@ export function getTalkTimeStatus(userId: string): {
     millisecondsIncluded,
     minutesRemainingDisplay: Math.floor(millisecondsRemaining / 60_000),
     earliestExpiryAt,
-    lots: activeLots.map((lot) => ({
-      id: lot.id,
-      packId: lot.packId,
-      purchasedAt: lot.purchasedAt,
-      expiresAt: lot.expiresAt,
-      millisecondsRemaining: lotRemainingMs(lot),
-      millisecondsUsed: lot.millisecondsUsed,
-      millisecondsIncluded: lot.millisecondsIncluded,
-    })),
+    lots: activeLots.map((lot) => {
+      const millisecondsRemaining = lotRemainingMs(lot);
+      return {
+        id: lot.id,
+        packId: lot.packId,
+        purchasedAt: lot.purchasedAt,
+        expiresAt: lot.expiresAt,
+        millisecondsRemaining,
+        millisecondsUsed: lot.millisecondsUsed,
+        millisecondsIncluded: lot.millisecondsIncluded,
+        tracker: buildTalkLotTrackerView({
+          id: lot.id,
+          packId: lot.packId,
+          expiresAt: lot.expiresAt,
+          millisecondsRemaining,
+        }),
+      };
+    }),
     speechSessionsLogged: speechLog.filter((s) => s.userId === userId).length,
   };
 }

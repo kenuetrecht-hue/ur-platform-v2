@@ -179,7 +179,7 @@ describe("live session room service", () => {
         channel: "voice",
         questionText: "Can I speak?",
       }),
-    ).toThrow(/\$5 talk pack/);
+    ).toThrow(/talk time/);
   });
 
   it("supports overtime opt-in and leave", async () => {

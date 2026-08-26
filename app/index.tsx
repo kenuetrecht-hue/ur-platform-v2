@@ -1,8 +1,9 @@
 import { Redirect } from "expo-router";
-import { ActivityIndicator, Platform, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 
+/** Same entry on website and native app: homepage first, ID check after sign-in. */
 export default function Index() {
   const { isAuthenticated, isLoading } = useAuth();
   const [clientReady, setClientReady] = useState(false);
@@ -11,15 +12,10 @@ export default function Index() {
     setClientReady(true);
   }, []);
 
-  // Web: send visitors to the landing page immediately (auth restores in the background).
-  if (Platform.OS === "web") {
-    if (!isLoading && isAuthenticated) {
-      return <Redirect href="/(tabs)" />;
+  if (!clientReady || isLoading) {
+    if (isAuthenticated) {
+      return <Redirect href="/age-verify" />;
     }
-    return <Redirect href="/welcome" />;
-  }
-
-  if (clientReady && isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
@@ -27,13 +23,9 @@ export default function Index() {
     );
   }
 
-  if (!clientReady) {
-    return null;
-  }
-
   if (isAuthenticated) {
-    return <Redirect href="/(tabs)" />;
+    return <Redirect href="/age-verify" />;
   }
 
-  return <Redirect href="/login" />;
+  return <Redirect href="/welcome" />;
 }

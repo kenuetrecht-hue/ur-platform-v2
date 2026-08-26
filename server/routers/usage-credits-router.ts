@@ -14,15 +14,15 @@ import {
   getPlatformPricingCatalog,
 } from "../../lib/pricing-transparency";
 import {
-  assertAndConsumeCredit,
   getAllCreditBalances,
   getCreditBalance,
   getIncludedWebSearchRemaining,
   grantCreditLot,
 } from "../_core/usage-credits-service";
+import { getUsageDashboard } from "../_core/usage-dashboard-service";
 import { assertSimulatedPurchaseAllowed, assertPaymentChannelAllowed } from "../_core/payment-channel-guard";
 import { billingStateSchema } from "../../lib/billing-state-schema";
-import { getAiPriceTier } from "../../lib/ai-subscription-pricing";
+import { formatUsd, getAiPriceTier } from "../../lib/ai-subscription-pricing";
 import { getActiveAiSubscription } from "../_core/ai-subscription-service";
 import { getAiUsageStatus } from "../_core/ai-usage-meter";
 
@@ -87,6 +87,21 @@ export const usageCreditsRouter = router({
         : getAllCreditBalances(userId),
     };
   }),
+
+  getMyTracker: secureProcedure("usageCredits")
+    .input(
+      z.object({
+        creatorId: z.string().trim().min(1).max(64).optional(),
+      }).optional(),
+    )
+    .query(({ ctx, input }) =>
+      getUsageDashboard({
+        userId: String(ctx.user.id),
+        email: ctx.user.email,
+        creatorId: input?.creatorId,
+        isPlatformOwner: ctx.isPlatformOwner,
+      }),
+    ),
 
   getUpgradeOptions: secureProcedure("usageCredits")
     .input(
@@ -171,10 +186,12 @@ export const usageCreditsRouter = router({
       });
 
       const product = CREDIT_PRODUCTS[input.productId];
+      const balance = getCreditBalance(String(ctx.user.id), input.productId);
       return {
         ok: true as const,
         lot,
-        message: `Added ${lot.included} ${product.unit} (${formatUsd(lot.priceCents)}). ${product.dailyHardCap}/day max.`,
+        tracker: balance,
+        message: `Added ${lot.included} ${product.unit} (${formatUsd(lot.priceCents)}). ${balance.usedLeftLine}. ${product.dailyHardCap}/day max.`,
       };
     }),
 });

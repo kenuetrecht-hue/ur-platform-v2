@@ -20,6 +20,8 @@ export function LoyaltyRedemptionPanel({ balance, defaultCreatorId = "ai-wellnes
       void utils.loyalty.getStatus.invalidate();
       void utils.loyalty.getDashboard.invalidate();
       void utils.usageCredits.getMyBalances.invalidate();
+      void utils.usageCredits.getMyTracker.invalidate();
+      void utils.aiTalk.getStatus.invalidate();
     },
   });
 

@@ -27,6 +27,7 @@ const API_NAMESPACES: ApiNamespace[] = [
   "aiRealEstate",
   "auth",
   "system",
+  "jobsite",
 ];
 
 function isApiNamespace(value: string): value is ApiNamespace {

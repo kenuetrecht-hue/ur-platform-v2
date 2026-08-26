@@ -54,7 +54,7 @@ export function TechnoFuturistExperience() {
   const signupHref = buildCreatorSignupHref();
 
   if (!isLoading && isAuthenticated) {
-    return <Redirect href="/(tabs)" />;
+    return <Redirect href="/age-verify" />;
   }
 
   return (
@@ -82,15 +82,16 @@ export function TechnoFuturistExperience() {
               </View>
             </View>
 
-            <Text style={styles.kicker}>TECHNO-FUTURIST · INTERACTIVE EXPERIENCE</Text>
+            <Text style={styles.kicker}>18+ ONLY · ID + SELFIE REQUIRED TO ENTER</Text>
             <Text style={styles.headline}>
               {display}
               {!done ? <Text style={styles.cursor}>|</Text> : null}
             </Text>
             <Text style={styles.lede}>
-              {LANDING_PLATFORM_UNITY_LINE} Sign in for full access to every specialist, live
-              classes, and your creator hub. Preview one demo message below — no account needed
-              for the test drive.
+              {LANDING_PLATFORM_UNITY_LINE} UR Platform is for adults. You must photograph a
+              government ID (front and back) and a matching selfie before you can enter the app,
+              website product, or AI demo. This exists because AI, social, and paid features can
+              be addictive under 18.
             </Text>
 
             <View style={styles.heroCtaRow}>

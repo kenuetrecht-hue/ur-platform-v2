@@ -1,11 +1,13 @@
 import ContentSafetySystem from "../content-safety-system";
 import { TRPCError } from "@trpc/server";
 import { matchesAiTakeoverAttempt } from "./ai-control";
+import { matchesForbiddenMissionUse, MISSION_USE_REFUSAL } from "./ai-mission-use";
 import {
   sanitizeAiReplyForRole,
   type PlatformAiRole,
 } from "./ai-roles";
 import { applyAffiliateDisclosures } from "./affiliate-disclosure-service";
+import { TERMS_SUPPORT_EMAIL } from "../../lib/platform-terms-of-use";
 
 const contentSafety = new ContentSafetySystem();
 
@@ -52,6 +54,14 @@ export function guardUserInput(
       reason: "ai_takeover_attempt",
       safeMessage:
         "AIs on this platform are controlled only by the administrator. You can ask for help, but you cannot change how an AI behaves.",
+    };
+  }
+
+  if (matchesForbiddenMissionUse(content)) {
+    return {
+      allowed: false,
+      reason: "forbidden_mission_use",
+      safeMessage: MISSION_USE_REFUSAL,
     };
   }
 
@@ -142,7 +152,7 @@ export function assertUserCanUseAi(userId: string, isOwner: boolean): void {
       code: "FORBIDDEN",
       message:
         "Your UR Platform privileges have been revoked due to a Terms of Use violation (including harassment). " +
-        "No refunds are issued for restricted accounts. Contact support@urplatform.llc if you believe this is an error.",
+        `No refunds are issued for restricted accounts. Contact ${TERMS_SUPPORT_EMAIL} if you believe this is an error.`,
     });
   }
 }

@@ -68,6 +68,11 @@ const contentByHash = new Map<string, ContentAssetRecord>();
 const contentByOwner = new Map<string, ContentAssetRecord[]>();
 const userStrikes = new Map<string, UserStrikeRecord>();
 const reports = new Map<string, ProtectionReport>();
+/** Users who passed 18+ KYC — names lock even if they have not posted yet. */
+const kycVerifiedUserIds = new Set<string>();
+const reportsByReporterDay = new Map<string, { count: number; dayKey: string }>();
+
+const MAX_PROTECTION_REPORTS_PER_DAY = 8;
 
 function sha256(input: string): string {
   return createHash("sha256").update(input, "utf8").digest("hex");
@@ -88,11 +93,19 @@ export function registerCreatorIdentity(params: {
 }): RegisteredCreatorIdentity {
   const displayName = sanitizeUserText(params.displayName, 80);
   const normalizedName = normalizeDisplayName(displayName);
+  const existing = creatorIdentities.get(params.userId);
 
   if (isReservedCreatorName(displayName)) {
     throw new ContentProtectionError(
       "reserved_name",
       "This display name is reserved for the UR Platform. Choose a unique creator name.",
+    );
+  }
+
+  if (existing?.verified && existing.normalizedName !== normalizedName) {
+    throw new ContentProtectionError(
+      "verified_name_locked",
+      "Your verified creator name is locked after ID verification so nobody can take it over. Email support@urplatform.llc if you need a change.",
     );
   }
 
@@ -113,12 +126,54 @@ export function registerCreatorIdentity(params: {
     userId: params.userId,
     displayName,
     normalizedName,
-    enrolledAt: new Date().toISOString(),
-    verified: params.verified ?? false,
+    enrolledAt: existing?.enrolledAt ?? new Date().toISOString(),
+    verified: params.verified ?? existing?.verified ?? kycVerifiedUserIds.has(params.userId),
   };
   creatorIdentities.set(params.userId, record);
   void persistCreatorIdentity(record);
   return record;
+}
+
+/** Marks the account ID-verified. Locks display name on the next profile save. */
+export function markCreatorIdentityVerified(userId: string): RegisteredCreatorIdentity | null {
+  const id = String(userId);
+  kycVerifiedUserIds.add(id);
+  const existing = creatorIdentities.get(id);
+  if (!existing) return null;
+  if (existing.verified) return existing;
+  existing.verified = true;
+  creatorIdentities.set(id, existing);
+  void persistCreatorIdentity(existing);
+  return existing;
+}
+
+export function getCreatorIdentity(userId: string): RegisteredCreatorIdentity | null {
+  return creatorIdentities.get(userId) ?? null;
+}
+
+export function assertPublicHandleAllowed(params: {
+  userId: string;
+  handle: string;
+}): void {
+  const handle = sanitizeUserText(params.handle, 64);
+  if (isReservedCreatorName(handle)) {
+    throw new ContentProtectionError(
+      "reserved_name",
+      "This public link is reserved for the UR Platform.",
+    );
+  }
+  const impersonation = findImpersonationMatch(
+    handle.replace(/-/g, " "),
+    [...creatorIdentities.values()],
+    params.userId,
+    IMPERSONATION_NAME_THRESHOLD,
+  );
+  if (impersonation) {
+    throw new ContentProtectionError(
+      "lookalike_handle",
+      "This public link is too similar to another creator. Choose a distinct handle.",
+    );
+  }
 }
 
 export function assertCreatorDisplayNameAllowed(params: {
@@ -329,6 +384,20 @@ export function submitProtectionReport(params: {
     });
   }
 
+  const dayKey = new Date().toISOString().slice(0, 10);
+  const reporterKey = params.reporterUserId;
+  const bucket = reportsByReporterDay.get(reporterKey);
+  if (!bucket || bucket.dayKey !== dayKey) {
+    reportsByReporterDay.set(reporterKey, { count: 1, dayKey });
+  } else if (bucket.count >= MAX_PROTECTION_REPORTS_PER_DAY) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: "Too many reports today. Email support@urplatform.llc if this is urgent.",
+    });
+  } else {
+    bucket.count += 1;
+  }
+
   const report: ProtectionReport = {
     id: randomUUID(),
     reporterUserId: params.reporterUserId,
@@ -429,6 +498,8 @@ export function __resetContentProtectionForTests(): void {
   contentByOwner.clear();
   userStrikes.clear();
   reports.clear();
+  kycVerifiedUserIds.clear();
+  reportsByReporterDay.clear();
   hydrateStarted = false;
 }
 
@@ -442,6 +513,7 @@ export async function hydrateContentProtectionFromDatabase(): Promise<void> {
   const data = await loadContentProtectionFromDb();
   for (const identity of data.identities) {
     creatorIdentities.set(identity.userId, identity);
+    if (identity.verified) kycVerifiedUserIds.add(identity.userId);
   }
   for (const asset of data.assets) {
     contentByHash.set(asset.contentHash, asset);

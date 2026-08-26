@@ -17,7 +17,11 @@ import { getTalkTimeStatus, purchaseAiTalkPack } from "./ai-premium-media-servic
 import { sanitizeUserText } from "./input-sanitize";
 import { assertSimulatedPurchaseAllowed, assertPaymentChannelAllowed } from "./payment-channel-guard";
 import { getAiTalkPack } from "../../lib/ai-talk-pricing";
-import { formatTalkTimeRemaining } from "../../lib/ai-talk-time-policy";
+import {
+  formatTalkTimeRemaining,
+  getTalkLowBalanceNotice,
+  isTalkTimeLowBalance,
+} from "../../lib/ai-talk-time-policy";
 
 export type LiveSessionQuestionStatus = "queued" | "active" | "answered";
 
@@ -210,6 +214,11 @@ export function getLiveSessionRoomState(params: {
       minutesRemainingDisplay: params.isPlatformOwner
         ? "Unlimited (owner)"
         : formatTalkTimeRemaining(talk.millisecondsRemaining),
+      millisecondsRemaining: params.isPlatformOwner ? null : talk.millisecondsRemaining,
+      lowBalance: !params.isPlatformOwner && isTalkTimeLowBalance(talk.millisecondsRemaining),
+      lowBalanceNotice: params.isPlatformOwner
+        ? null
+        : getTalkLowBalanceNotice(talk.millisecondsRemaining),
       packPriceCents: 500,
       disclosure: LIVE_SESSION_SPEAK_DISCLOSURE,
     },
@@ -274,7 +283,7 @@ export function submitLiveSessionQuestion(params: {
   if (params.channel === "voice" && !userHasSpeakAccess(params.userId, params.isPlatformOwner)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Purchase the $5 talk pack to ask voice questions and speak with the AI.",
+      message: "Purchase talk time ($1 / 5 min, $5 / 25 min, $120 / 500 min, or $200 / 1,000 min) to ask voice questions and speak with the AI.",
     });
   }
 

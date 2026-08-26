@@ -1,5 +1,12 @@
 /** Owner-approved remediation actions — no arbitrary shell commands. */
 
+/** Owner must type this exactly in Owner Ops before any fix is finalized. */
+export const OWNER_REMEDIATION_CONFIRM_PHRASE = "I APPROVE" as const;
+
+export function isOwnerRemediationConfirmed(phrase: string | undefined): boolean {
+  return phrase?.trim() === OWNER_REMEDIATION_CONFIRM_PHRASE;
+}
+
 export const REMEDIATION_ACTION_IDS = [
   "reset_api_circuit",
   "rerun_health_scan",

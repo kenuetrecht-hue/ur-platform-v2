@@ -3,8 +3,12 @@ import {
   AI_PURCHASE_NO_REFUND_POLICY,
   HARASSMENT_ENFORCEMENT_POLICY,
   CREATOR_TRANSACTION_DISCLAIMER,
+  HUMAN_CONDUCT_POLICY,
   PLATFORM_TERMS_SECTIONS,
   TERMS_SIGNUP_ACKNOWLEDGMENT,
+  TERMS_HOME_STATE,
+  TERMS_BILLING_ENTITY,
+  TERMS_GOVERNING_LAW,
 } from "../lib/platform-terms-of-use";
 import { buildSubscriptionPurchaseSummary } from "../lib/pricing-disclosures";
 
@@ -24,15 +28,30 @@ describe("platform-terms-of-use", () => {
     expect(HARASSMENT_ENFORCEMENT_POLICY.toLowerCase()).toContain("no refund");
   });
 
-  it("includes dedicated harassment and ai-no-refunds sections", () => {
+  it("states misuse is the human user's conduct, not the AI or owner", () => {
+    expect(HUMAN_CONDUCT_POLICY.toLowerCase()).toContain("human user");
+    expect(HUMAN_CONDUCT_POLICY.toLowerCase()).toMatch(/not the ai/);
+    expect(HUMAN_CONDUCT_POLICY.toLowerCase()).toMatch(/not ur platform llc|not the platform owner/);
+  });
+
+  it("includes dedicated harassment, refunds, and human-conduct sections", () => {
     expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "harassment")).toBe(true);
     expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "ai-no-refunds")).toBe(true);
     expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "creator-transactions")).toBe(true);
+    expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "human-conduct")).toBe(true);
   });
 
-  it("signup acknowledgment mentions harassment and no refunds", () => {
+  it("signup acknowledgment mentions harassment, no refunds, and 18+", () => {
     expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("harassment");
     expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("no refunds");
+    expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("18");
+  });
+
+  it("names Indiana as the home state and governing law", () => {
+    expect(TERMS_BILLING_ENTITY).toBe("UR Platform LLC");
+    expect(TERMS_HOME_STATE).toBe("Indiana");
+    expect(TERMS_GOVERNING_LAW).toContain("Indiana");
+    expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "governing-law")).toBe(true);
   });
 });
 

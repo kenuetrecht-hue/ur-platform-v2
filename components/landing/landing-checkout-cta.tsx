@@ -84,8 +84,9 @@ export function LandingCheckoutCta() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <Text style={styles.note}>
-          By continuing you agree to platform disclosures. Secure checkout · Stripe integration
-          online with UR LLC. AI output is educational and entertainment only.
+          Adults 18+ only. Sign in, photograph ID front and back plus a matching selfie, then
+          purchase. By continuing you agree to platform disclosures. Secure checkout with UR
+          Platform LLC. AI output is educational and entertainment only.
         </Text>
           </>
         ) : (

@@ -260,11 +260,11 @@ export function getTextSubscriptionUpgradeOptions(params: {
 }): UpgradeOption[] {
   const plans: AiSubscriptionPlan[] = ["day", "week", "month"];
   const currentIncluded = params.currentPlan
-    ? MESSAGE_ALLOWANCE_BY_TIER[params.tier][params.currentPlan]
+    ? MESSAGE_ALLOWANCE_BY_TIER.standard[params.currentPlan]
     : 0;
 
   return plans.map((plan) => {
-    const included = MESSAGE_ALLOWANCE_BY_TIER[params.tier][plan];
+    const included = MESSAGE_ALLOWANCE_BY_TIER.standard[plan];
     const priceCents = getPlanPriceCents(params.creatorId, plan);
     const extra =
       currentIncluded > 0 && included > currentIncluded

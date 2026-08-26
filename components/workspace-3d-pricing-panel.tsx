@@ -18,6 +18,8 @@ import { AiHubTabRow } from "@/components/ai-hub-tab-row";
 import { getClientPlatform, openWebBrowserCheckout } from "@/lib/web-checkout";
 import { PricingComingSoonPanel } from "@/components/pricing-coming-soon-panel";
 import { PUBLIC_PRICING_ENABLED } from "@/lib/pricing-visibility";
+import { PurchaseUsageTracker } from "@/components/purchase-usage-tracker";
+import { UsageTrackerDashboard } from "@/components/usage-tracker-dashboard";
 
 type PlanOption = {
   planId: Workspace3dPlanId;
@@ -51,6 +53,7 @@ export function Workspace3dPricingPanel() {
     onSuccess: (data) => {
       if (data.receipt) setLastReceipt(data.receipt);
       void utils.workspace3d.getAccess.invalidate();
+      void utils.usageCredits.getMyTracker.invalidate();
     },
   });
 
@@ -58,6 +61,7 @@ export function Workspace3dPricingPanel() {
     onSuccess: (data) => {
       if (data.receipt) setLastReceipt(data.receipt);
       void utils.workspace3d.getAccess.invalidate();
+      void utils.usageCredits.getMyTracker.invalidate();
     },
   });
 
@@ -101,6 +105,17 @@ export function Workspace3dPricingPanel() {
             +{access.data.extraAiSlots} extra slot{access.data.extraAiSlots === 1 ? "" : "s"}
           </Text>
         ) : null}
+        {access.data.expiresAt ? (
+          <PurchaseUsageTracker
+            title="3D workspace"
+            used={0}
+            included={access.data.maxConcurrentAiSlots}
+            remaining={access.data.maxConcurrentAiSlots}
+            unit="concurrent AI slots"
+            loseByLabel={`Use by ${new Date(access.data.expiresAt).toLocaleDateString()} or unused workspace time is lost`}
+            compact
+          />
+        ) : null}
       </View>
     ) : null;
 
@@ -122,6 +137,7 @@ export function Workspace3dPricingPanel() {
       </View>
 
       {activeBanner}
+      <UsageTrackerDashboard />
 
       <Text style={[styles.sectionTag, { color: colors.primary }]}>BUNDLES</Text>
       <Text style={[styles.sectionHint, { color: colors.muted }]}>{WORKSPACE_3D_PRICING_SUMMARY}</Text>

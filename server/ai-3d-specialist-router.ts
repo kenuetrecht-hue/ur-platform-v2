@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure, router } from "./_core/trpc";
+import { secureProcedure, router } from "./_core/trpc";
 
 /**
  * AI 3D Specialist Router
@@ -141,7 +141,7 @@ export const ai3dSpecialistRouter = router({
    * - Contextual responses
    * - Auto-suggests related AIs if needed
    */
-  chat: publicProcedure
+  chat: secureProcedure("ai3dSpecialist")
     .input(ChatMessageSchema)
     .output(ChatResponseSchema)
     .mutation(async ({ input }: { input: z.infer<typeof ChatMessageSchema> }) => {
@@ -168,7 +168,7 @@ export const ai3dSpecialistRouter = router({
    * - Converts spaces to 3D models
    * - Identifies materials
    */
-  analyzeImage: publicProcedure
+  analyzeImage: secureProcedure("ai3dSpecialist")
     .input(ImageAnalysisSchema)
     .output(ImageAnalysisResponseSchema)
     .mutation(async ({ input }: { input: z.infer<typeof ImageAnalysisSchema> }) => {
@@ -190,7 +190,7 @@ export const ai3dSpecialistRouter = router({
    * - Creates STL, OBJ, STEP, G-code, DXF, SVG
    * - Includes specifications and estimates
    */
-  generateModel: publicProcedure
+  generateModel: secureProcedure("ai3dSpecialist")
     .input(ModelGenerationSchema)
     .output(ModelGenerationResponseSchema)
     .mutation(async ({ input }: { input: z.infer<typeof ModelGenerationSchema> }) => {
@@ -216,7 +216,7 @@ export const ai3dSpecialistRouter = router({
    * - Real-time learning from latest sources
    * - Categorized results (materials, tools, techniques, pricing, standards)
    */
-  webSearch: publicProcedure
+  webSearch: secureProcedure("ai3dSpecialist")
     .input(WebSearchSchema)
     .output(WebSearchResponseSchema)
     .mutation(async ({ input }: { input: z.infer<typeof WebSearchSchema> }) => {
@@ -239,7 +239,7 @@ export const ai3dSpecialistRouter = router({
    * - Compare costs
    * - Generate bill of materials (BOM)
    */
-  estimateCosts: publicProcedure
+  estimateCosts: secureProcedure("ai3dSpecialist")
     .input(z.object({
       materials: z.array(z.string()),
       quantity: z.number().optional(),
@@ -280,7 +280,7 @@ export const ai3dSpecialistRouter = router({
    * - Assess skill level required
    * - Provide difficulty rating
    */
-  estimateProject: publicProcedure
+  estimateProject: secureProcedure("ai3dSpecialist")
     .input(z.object({
       projectDescription: z.string(),
       userExperience: z.enum(["beginner", "intermediate", "advanced"]).optional(),
@@ -315,7 +315,7 @@ export const ai3dSpecialistRouter = router({
    * - OSHA compliance
    * - Proper ventilation/PPE
    */
-  getSafetyInfo: publicProcedure
+  getSafetyInfo: secureProcedure("ai3dSpecialist")
     .input(z.object({
       projectType: z.string(),
       materials: z.array(z.string()).optional(),
@@ -349,7 +349,7 @@ export const ai3dSpecialistRouter = router({
    * - Cost comparison
    * - Difficulty comparison
    */
-  getAlternatives: publicProcedure
+  getAlternatives: secureProcedure("ai3dSpecialist")
     .input(z.object({
       problem: z.string(),
       constraints: z.record(z.string(), z.any()).optional(),
@@ -383,7 +383,7 @@ export const ai3dSpecialistRouter = router({
    * - Auto-suggest additional AIs
    * - Unified problem-solving in shared 3D workspace
    */
-  collaborateWithAIs: publicProcedure
+  collaborateWithAIs: secureProcedure("ai3dSpecialist")
     .input(CollaborationSchema)
     .output(CollaborationResponseSchema)
     .mutation(async ({ input }: any) => {
@@ -415,7 +415,7 @@ export const ai3dSpecialistRouter = router({
    * - Graphs and charts
    * - Complete project packages (ZIP)
    */
-  exportProject: publicProcedure
+  exportProject: secureProcedure("ai3dSpecialist")
     .input(ExportSchema)
     .output(ExportResponseSchema)
     .mutation(async ({ input }: any) => {
@@ -437,7 +437,7 @@ export const ai3dSpecialistRouter = router({
    * - Sync across app and website
    * - Retrieve project history
    */
-  saveProject: publicProcedure
+  saveProject: secureProcedure("ai3dSpecialist")
     .input(z.object({
       projectId: z.string().optional(),
       projectName: z.string(),
@@ -470,7 +470,7 @@ export const ai3dSpecialistRouter = router({
    * - Provide practice questions
    * - Identify weak areas
    */
-  getLearningProgress: publicProcedure
+  getLearningProgress: secureProcedure("ai3dSpecialist")
     .input(z.object({
       userId: z.string(),
       topic: z.string().optional(),
@@ -506,7 +506,7 @@ export const ai3dSpecialistRouter = router({
    * - Provide step-by-step solutions
    * - Recovery procedures
    */
-  getTroubleshootingGuide: publicProcedure
+  getTroubleshootingGuide: secureProcedure("ai3dSpecialist")
     .input(z.object({
       issue: z.string(),
       equipment: z.string().optional(),
@@ -540,7 +540,7 @@ export const ai3dSpecialistRouter = router({
    * - View community projects
    * - Get feedback
    */
-  getCommunityProjects: publicProcedure
+  getCommunityProjects: secureProcedure("ai3dSpecialist")
     .input(z.object({
       category: z.string().optional(),
       limit: z.number().default(10),

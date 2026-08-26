@@ -169,7 +169,7 @@ export function assertAiEntitled(params: {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: params.creatorId
-        ? "Subscribe to this AI specialist, or use loyalty points for simple text chat."
+        ? "Buy a day, week, or month text pass to talk to UR specialists — one AI at a time — or use loyalty points for simple text chat."
         : "AI access requires a membership or subscription. Contact the platform owner if you were offered complimentary access.",
     });
   }

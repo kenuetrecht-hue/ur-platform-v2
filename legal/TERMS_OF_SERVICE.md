@@ -1,7 +1,7 @@
 # UR Terms of Service
 
 **Effective Date:** May 13, 2026  
-**Last Updated:** August 17, 2026
+**Last Updated:** August 26, 2026
 
 ## 1. Introduction and Acceptance
 
@@ -113,7 +113,7 @@ Followers agree to:
 **If you are found harassing others:**
 - Your privileges may be revoked immediately (suspended or permanently banned)
 - **No money will be returned** — no refunds for subscriptions, credits, talk time, or any paid access
-- UR LLC may remove content and report activity to authorities where required by law
+- UR Platform LLC may remove content and report activity to authorities where required by law
 
 All users agree not to:
 
@@ -161,7 +161,7 @@ UR does not guarantee payout timing or accuracy and assumes no liability for wit
 
 ### 5.3 AI & Digital Access — No Refunds
 
-**All AI and platform digital access purchases from UR LLC are final. No returns. No refunds.**
+**All AI and platform digital access purchases from UR Platform LLC are final. No returns. No refunds.**
 
 This includes but is not limited to: AI specialist text subscriptions, image credits, code sandbox runs, book/chapter credits, web search packs, hive consults, voice talk time, 3D workspace access, and usage credit top-ups.
 
@@ -171,9 +171,9 @@ This includes but is not limited to: AI specialist text subscriptions, image cre
 
 ### 5.4 Content Creator Purchases — Creator Responsibility
 
-**UR LLC is not responsible for refunds, returns, or disputes on purchases from individual content creators.**
+**UR Platform LLC is not responsible for refunds, returns, or disputes on purchases from individual content creators.**
 
-Live classes, creator shop items, tips, and creator-specific offers are transactions between you and that creator. Any return or refund policy must be stated by the creator and enforced by the creator — not by UR Platform or UR LLC.
+Live classes, creator shop items, tips, and creator-specific offers are transactions between you and that creator. Any return or refund policy must be stated by the creator and enforced by the creator — not by UR Platform or UR Platform LLC.
 
 ### 5.5 Legacy Membership Refunds
 
@@ -181,7 +181,7 @@ Followers may request refunds within 7 days of purchase for unused legacy member
 
 ### 5.6 Chargebacks
 
-Chargebacks initiated through payment processors may result in account suspension or termination. Creators are not responsible for chargebacks on platform-facilitated payments; disputes are handled between UR LLC, the user, and the payment processor.
+Chargebacks initiated through payment processors may result in account suspension or termination. Creators are not responsible for chargebacks on platform-facilitated payments; disputes are handled between UR Platform LLC, the user, and the payment processor.
 
 ### 5.7 No Refund Guarantee
 
@@ -227,25 +227,31 @@ UR collects and processes user data as described in our Privacy Policy. By using
 
 UR reserves the right to modify these Terms at any time. Modifications become effective upon posting to the Platform. Your continued use of the Platform constitutes acceptance of modified Terms.
 
-## 10. Governing Law
+## 10. Age Requirement (18+)
 
-These Terms are governed by the laws of the State of [User's State], without regard to conflict of law principles. Any legal proceedings shall be conducted in the state or federal courts located in [User's State], and you consent to the jurisdiction of these courts.
+UR Platform is for adults 18 years of age or older. Before entering the app or website product, every user must photograph a government-issued ID (front and back) and a live selfie that matches the ID. This is mandatory. The purpose is to keep minors out of AI, social, and paid features that can be addictive.
 
-## 11. Severability
+Using another person's ID, a fake ID, or a selfie that is not a live photo of the account holder is a violation of these Terms. UR Platform LLC will refuse entry and may delete the account.
+
+## 11. Governing Law
+
+UR Platform LLC is a limited liability company formed in Indiana. These Terms are governed by the laws of the State of Indiana, without regard to conflict of law principles. Any court proceeding shall be in the state or federal courts located in Indiana, and you consent to that venue.
+
+## 12. Severability
 
 If any provision of these Terms is found to be invalid or unenforceable, the remaining provisions shall remain in full force and effect.
 
-## 12. Entire Agreement
+## 13. Entire Agreement
 
 These Terms, together with the Privacy Policy and Community Guidelines, constitute the entire agreement between you and UR regarding the use of the Platform and supersede all prior agreements and understandings.
 
-## 13. Contact Information
+## 14. Contact Information
 
 For questions about these Terms, please contact:
 
 **UR Support**  
-Email: support@urapp.com  
-Website: www.urapp.com
+Email: support@urplatform.llc  
+Website: https://urplatform.llc
 
 ---
 

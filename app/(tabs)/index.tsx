@@ -163,6 +163,22 @@ export default function HomeScreen() {
                     }),
                 },
                 {
+                  label: "Master CNC & Mill AI",
+                  onPress: () =>
+                    router.push({
+                      pathname: "/(tabs)/ais",
+                      params: { ai: "ai-cnc-master-001" },
+                    }),
+                },
+                {
+                  label: "Culinary Arts AI",
+                  onPress: () =>
+                    router.push({
+                      pathname: "/(tabs)/ais",
+                      params: { ai: "ai-culinary-001" },
+                    }),
+                },
+                {
                   label: "AI Playroom",
                   onPress: () => router.push("/playroom"),
                 },
@@ -177,6 +193,10 @@ export default function HomeScreen() {
                 {
                   label: "UR Shop",
                   onPress: () => router.push("/shop"),
+                },
+                {
+                  label: "Jobsite & Office",
+                  onPress: () => router.push("/jobsite"),
                 },
                 {
                   label: "Social Feed",

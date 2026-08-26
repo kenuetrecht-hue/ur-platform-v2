@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { TRPCError } from "@trpc/server";
 import { ENV } from "./env";
 import { isGoogleCloudAiConfigured } from "./google-ai";
 import { notifyOwner } from "./notification";
@@ -18,7 +19,11 @@ import {
   countDisabledSections,
   listPlatformSectionStates,
 } from "./platform-section-flags-service";
-import type { OpsDeployProposal } from "../../lib/platform-ops-remediation-types";
+import {
+  OWNER_REMEDIATION_CONFIRM_PHRASE,
+  isOwnerRemediationConfirmed,
+  type OpsDeployProposal,
+} from "../../lib/platform-ops-remediation-types";
 import { buildDefaultDeployProposal, apiNamespaceToSection } from "../../lib/platform-ops-section-map";
 import {
   executeApprovedRemediation,
@@ -46,6 +51,34 @@ export type OpsIncidentStatus =
   | "deploy_executed";
 
 export type OpsSectionAction = "isolate" | "reopen";
+
+/** Isolate immediately for attacks or outages; never isolate a reopen request. */
+export function shouldAutoIsolateIncident(input: {
+  autoIsolateSection?: boolean;
+  affectedSectionId?: PlatformSectionId;
+  sectionAction?: OpsSectionAction;
+  severity: OpsIncidentSeverity;
+  category: OpsIncidentCategory;
+}): boolean {
+  if (input.autoIsolateSection === false) return false;
+  if (!input.affectedSectionId) return false;
+  if (input.sectionAction === "reopen") return false;
+  const securityEvent =
+    input.category === "security" ||
+    input.category === "malware" ||
+    input.severity === "critical";
+  if (securityEvent) return true;
+  return input.severity !== "low";
+}
+
+export function assertOwnerRemediationConfirmation(phrase: string | undefined): void {
+  if (!isOwnerRemediationConfirmed(phrase)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Type ${OWNER_REMEDIATION_CONFIRM_PHRASE} to finalize this fix. Nothing is applied until you confirm.`,
+    });
+  }
+}
 
 export type OpsIncident = {
   id: string;
@@ -146,11 +179,13 @@ export async function createOpsIncident(input: {
   }
 
   const now = new Date().toISOString();
-  const shouldAutoIsolate =
-    input.autoIsolateSection !== false &&
-    Boolean(input.affectedSectionId) &&
-    input.sectionAction !== "reopen" &&
-    input.severity !== "low";
+  const shouldAutoIsolate = shouldAutoIsolateIncident({
+    autoIsolateSection: input.autoIsolateSection,
+    affectedSectionId: input.affectedSectionId,
+    sectionAction: input.sectionAction,
+    severity: input.severity,
+    category: input.category,
+  });
 
   const deployProposal = sanitizeDeployProposal(
     input.deployProposal ??
@@ -215,7 +250,7 @@ export async function createOpsIncident(input: {
       ? `ACTIONS TAKEN:\n${incident.actionsTaken.map((a) => `• ${a}`).join("\n")}`
       : "",
     "",
-    "⏳ Review in Owner Ops Console — approve the fix/deploy plan or send instructions to your ops AIs.",
+    `⏳ Awaiting YOUR typed ${OWNER_REMEDIATION_CONFIRM_PHRASE} in Owner Ops. Doctor / Administration / Security AIs cannot finalize.`,
   ].join("\n");
 
   await dispatchOwnerAlert(`[UR Ops] ${incident.title}`, content, incident.id);
@@ -225,21 +260,24 @@ export async function createOpsIncident(input: {
 export async function approveOpsIncident(
   incidentId: string,
   ownerNote?: string,
+  confirmPhrase?: string,
 ): Promise<OpsIncident> {
-  return executeIncidentRemediation(incidentId, ownerNote);
+  return executeIncidentRemediation(incidentId, ownerNote, confirmPhrase);
 }
 
 /** Owner final OK — run allowlisted remediation/deploy steps only. */
 export async function executeIncidentRemediation(
   incidentId: string,
   ownerNote?: string,
+  confirmPhrase?: string,
 ): Promise<OpsIncident> {
+  assertOwnerRemediationConfirmation(confirmPhrase);
   const incident = incidents.get(incidentId);
   if (!incident) {
-    throw new Error("Incident not found");
+    throw new TRPCError({ code: "NOT_FOUND", message: "Incident not found." });
   }
   if (incident.status === "rejected" || incident.status === "resolved") {
-    throw new Error("Incident is already closed");
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Incident is already closed." });
   }
 
   const now = new Date().toISOString();
@@ -302,7 +340,7 @@ export async function submitOwnerInstructions(
 ): Promise<OpsIncident> {
   const incident = incidents.get(incidentId);
   if (!incident) {
-    throw new Error("Incident not found");
+    throw new TRPCError({ code: "NOT_FOUND", message: "Incident not found." });
   }
   const trimmed = instructions.trim().slice(0, 2000);
   incident.ownerInstructions = trimmed;
@@ -324,7 +362,7 @@ export async function rejectOpsIncident(
 ): Promise<OpsIncident> {
   const incident = incidents.get(incidentId);
   if (!incident) {
-    throw new Error("Incident not found");
+    throw new TRPCError({ code: "NOT_FOUND", message: "Incident not found." });
   }
   const now = new Date().toISOString();
   incident.status = "rejected";
@@ -344,7 +382,7 @@ export async function rejectOpsIncident(
 export async function resolveOpsIncident(incidentId: string): Promise<OpsIncident> {
   const incident = incidents.get(incidentId);
   if (!incident) {
-    throw new Error("Incident not found");
+    throw new TRPCError({ code: "NOT_FOUND", message: "Incident not found." });
   }
   incident.status = "resolved";
   incident.updatedAt = new Date().toISOString();
@@ -359,6 +397,7 @@ export async function proposeSectionMaintenance(input: {
   reason: string;
   proposedFix: string;
   severity?: OpsIncidentSeverity;
+  autoIsolateSection?: boolean;
 }): Promise<OpsIncident> {
   const meta = listPlatformSectionStates().find((s) => s.id === input.sectionId);
   const actionLabel = input.action === "isolate" ? "Isolate section" : "Reopen section";
@@ -371,9 +410,10 @@ export async function proposeSectionMaintenance(input: {
     proposedFix: input.proposedFix,
     affectedSectionId: input.sectionId,
     sectionAction: input.action,
+    autoIsolateSection: input.autoIsolateSection,
     actionsTaken: [
       `${input.sourceAi} proposed ${input.action} for ${input.sectionId}`,
-      "Awaiting owner final OK before changing section availability",
+      "Awaiting owner typed I APPROVE before changing section availability",
     ],
   });
 }

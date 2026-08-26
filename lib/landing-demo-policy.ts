@@ -72,6 +72,9 @@ export function isSuspiciousDemoUserAgent(userAgent: string | undefined): boolea
   return BOT_UA_PATTERNS.some((pattern) => pattern.test(ua));
 }
 
+/** Same scanner/bot UA check used on login, signup, and KYC. */
+export const isSuspiciousBotUserAgent = isSuspiciousDemoUserAgent;
+
 export function isSuspiciousDemoMessage(message: string): boolean {
   const text = message.trim();
   if (text.length < 4) return true;

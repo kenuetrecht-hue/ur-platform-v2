@@ -4,16 +4,15 @@
 
 import { TRPCError } from "@trpc/server";
 import {
-  getMessageAllowance,
   getMembershipMessageAllowance,
   HIVE_MESSAGE_MULTIPLIER,
   LEARN_MESSAGE_MULTIPLIER,
 } from "../../lib/ai-usage-allowances";
-import { getAiPriceTier, type AiSubscriptionPlan } from "../../lib/ai-subscription-pricing";
 import {
   getActiveAiSubscription,
   incrementSubscriptionMessageUsage,
 } from "./ai-subscription-service";
+import { claimAiSpecialistSlot } from "./ai-platform-pass-slots";
 import { getAccessStatus } from "./access-entitlements";
 import {
   consumeLoyaltyTextMessage,
@@ -38,6 +37,8 @@ export type UsageConsumeParams = {
   isLearnMode?: boolean;
   /** Photo/PDF uploads without vision credits */
   extraMessageUnits?: number;
+  /** Hive / Town Hall — talking to more than one AI at once */
+  requireConcurrentAis?: boolean;
 };
 
 export type UsageStatus = {
@@ -155,10 +156,15 @@ export function assertAndConsumeAiUsage(params: UsageConsumeParams): UsageStatus
   const sub = getActiveAiSubscription(params.userId, params.creatorId);
 
   if (sub) {
+    claimAiSpecialistSlot({
+      userId: params.userId,
+      creatorId: params.creatorId,
+      requireConcurrent: params.requireConcurrentAis,
+    });
+
     if (sub.messagesUsed + units > sub.messagesIncluded) {
-      const tier = getAiPriceTier(params.creatorId);
       const upgradeOptions = getTextSubscriptionUpgradeOptions({
-        tier,
+        tier: "standard",
         creatorId: params.creatorId,
         currentPlan: sub.plan,
         messagesRemaining: Math.max(0, sub.messagesIncluded - sub.messagesUsed),
@@ -184,6 +190,11 @@ export function assertAndConsumeAiUsage(params: UsageConsumeParams): UsageStatus
   });
 
   if (access.source === "owner_grant") {
+    claimAiSpecialistSlot({
+      userId: params.userId,
+      creatorId: params.creatorId,
+      requireConcurrent: params.requireConcurrentAis,
+    });
     return getAiUsageStatus(params);
   }
 
@@ -209,6 +220,11 @@ export function assertAndConsumeAiUsage(params: UsageConsumeParams): UsageStatus
     }
     bucket.used += units;
     membershipUsageStore.set(storeKey, bucket);
+    claimAiSpecialistSlot({
+      userId: params.userId,
+      creatorId: params.creatorId,
+      requireConcurrent: params.requireConcurrentAis,
+    });
     return getAiUsageStatus(params);
   }
 
@@ -227,12 +243,17 @@ export function assertAndConsumeAiUsage(params: UsageConsumeParams): UsageStatus
       creatorId: params.creatorId,
       units,
     });
+    claimAiSpecialistSlot({
+      userId: params.userId,
+      creatorId: params.creatorId,
+      requireConcurrent: params.requireConcurrentAis,
+    });
     return getAiUsageStatus(params);
   }
 
   throw new TRPCError({
     code: "FORBIDDEN",
-    message: "Subscribe to this AI specialist to start chatting.",
+    message: "Buy a day, week, or month text pass to chat with UR specialists — one AI at a time.",
   });
 }
 

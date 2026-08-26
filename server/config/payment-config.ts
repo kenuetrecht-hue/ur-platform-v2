@@ -23,7 +23,7 @@ export const paymentConfig = {
   // Loyalty Points Configuration
   loyaltyPoints: {
     // Cost per individual AI chat (in loyalty points)
-    chatCostInPoints: 1, // TBD - Update this value
+    chatCostInPoints: 500,
     // Loyalty points earning rules (TBD)
     earning: {
       perReferral: 10, // TBD
@@ -87,7 +87,7 @@ export const paymentConfig = {
     stripeThresholdInCents: 499,
     /** All other services → web browser checkout */
     webBrowserRequiredNote:
-      "AI subscriptions ($7.99/$15.99/$24.99 standard per specialist) and $1 talk packs require web browser checkout.",
+      "AI text passes ($7.99/$15.99/$24.99 for every specialist, one at a time), extra concurrent slots, $1 talk packs, and the $120 / 500-minute and $200 / 1,000-minute packs require web browser checkout.",
   },
 
   // Stripe Configuration

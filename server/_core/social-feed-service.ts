@@ -8,17 +8,20 @@ import { TRPCError } from "@trpc/server";
 import { messageContainsAffiliateLink } from "../../lib/affiliate-disclosure";
 import { listFriends, registerSocialUser } from "./social-service";
 import {
-  assertCreatorDisplayNameAllowed,
   assertContentRights,
   assertUserCanPublish,
+  getCreatorIdentity,
   mapContentProtectionError,
   registerAndVerifyContent,
+  registerCreatorIdentity,
 } from "./creator-content-protection-service";
 import {
   bodyWithAttribution,
   type ContentLicenseType,
   type ContentRightsMode,
 } from "../../lib/creator-content-protection-core";
+import { buildPlatformPublicUrl } from "../../lib/platform-urls";
+import { CREATOR_CANONICAL_SHARE_NOTICE } from "../../lib/creator-content-protection-copy";
 
 export type PostVisibility = "public" | "friends";
 export type PostKind = "text" | "photo" | "video" | "link";
@@ -29,6 +32,7 @@ export type SocialUserProfile = {
   displayName: string;
   avatarEmoji: string;
   bio?: string;
+  identityVerified: boolean;
   updatedAt: string;
 };
 
@@ -37,6 +41,7 @@ export type FeedPost = {
   authorUserId: string;
   authorName: string;
   authorAvatar: string;
+  authorVerified: boolean;
   body: string;
   kind: PostKind;
   imageUrl?: string;
@@ -92,21 +97,24 @@ export function upsertSocialProfile(params: {
   bio?: string;
 }): SocialUserProfile {
   registerSocialUser(params);
+  let identityVerified = getCreatorIdentity(params.userId)?.verified ?? false;
   try {
-    assertCreatorDisplayNameAllowed({
+    const identity = registerCreatorIdentity({
       userId: params.userId,
       displayName: params.displayName,
     });
+    identityVerified = identity.verified;
   } catch (error) {
     mapContentProtectionError(error);
   }
   const existing = profiles.get(params.userId);
   const profile: SocialUserProfile = {
     userId: params.userId,
-    email: params.email.toLowerCase().trim(),
-    displayName: params.displayName.trim().slice(0, 80) || "UR Member",
+    email: params.email.toLowerCase().trim() || existing?.email || "",
+    displayName: params.displayName.trim().slice(0, 80) || existing?.displayName || "UR Member",
     avatarEmoji: existing?.avatarEmoji ?? avatarFor(params.userId),
-    bio: params.bio?.slice(0, 280),
+    bio: params.bio !== undefined ? params.bio.slice(0, 280) : existing?.bio,
+    identityVerified,
     updatedAt: new Date().toISOString(),
   };
   profiles.set(params.userId, profile);
@@ -114,7 +122,35 @@ export function upsertSocialProfile(params: {
 }
 
 export function getSocialProfile(userId: string): SocialUserProfile | null {
-  return profiles.get(userId) ?? null;
+  const profile = profiles.get(userId);
+  if (!profile) return null;
+  const verified = getCreatorIdentity(userId)?.verified ?? profile.identityVerified;
+  if (verified === profile.identityVerified) return profile;
+  const next = { ...profile, identityVerified: verified };
+  profiles.set(userId, next);
+  return next;
+}
+
+export function resolveCreatorDisplayName(userId: string, fallback: string): string {
+  return getSocialProfile(userId)?.displayName?.trim() || fallback.trim().slice(0, 80) || "UR Member";
+}
+
+export function buildCanonicalShareText(params: {
+  authorName: string;
+  authorVerified?: boolean;
+  body: string;
+  postId: string;
+}): string {
+  const credit = params.authorVerified
+    ? `${params.authorName} (ID verified) on UR Platform`
+    : `${params.authorName} on UR Platform`;
+  const origin = buildPlatformPublicUrl(`/post/${params.postId}`);
+  return [
+    credit,
+    params.body.trim().slice(0, 200) || "(media post)",
+    CREATOR_CANONICAL_SHARE_NOTICE,
+    origin,
+  ].join("\n");
 }
 
 function extractHashtags(text: string): string[] {
@@ -134,8 +170,11 @@ function enrichPost(post: FeedPost, viewerUserId: string): FeedPostView {
   const postComments = comments
     .filter((c) => c.postId === post.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const profile = getSocialProfile(post.authorUserId);
   return {
     ...post,
+    authorName: profile?.displayName ?? post.authorName,
+    authorVerified: getCreatorIdentity(post.authorUserId)?.verified ?? post.authorVerified ?? false,
     contentRightsMode: post.contentRightsMode ?? "original",
     likeCount: postLikes.size,
     commentCount: postComments.length,
@@ -190,7 +229,7 @@ export function createFeedPost(params: {
   const profile = upsertSocialProfile({
     userId: params.authorUserId,
     email: params.authorEmail,
-    displayName: params.authorName,
+    displayName: resolveCreatorDisplayName(params.authorUserId, params.authorName),
   });
 
   let body = params.body.trim().slice(0, 4000);
@@ -244,6 +283,7 @@ export function createFeedPost(params: {
     authorUserId: params.authorUserId,
     authorName: profile.displayName,
     authorAvatar: profile.avatarEmoji,
+    authorVerified: profile.identityVerified,
     body,
     kind,
     imageUrl: imageUrl || undefined,
@@ -309,17 +349,13 @@ export function addPostComment(params: {
   const body = params.body.trim().slice(0, 1000);
   if (!body) throw new TRPCError({ code: "BAD_REQUEST", message: "Comment cannot be empty." });
 
-  upsertSocialProfile({
-    userId: params.authorUserId,
-    email: "",
-    displayName: params.authorName,
-  });
+  const commenterName = resolveCreatorDisplayName(params.authorUserId, params.authorName);
 
   const comment: FeedComment = {
     id: randomUUID(),
     postId: params.postId,
     authorUserId: params.authorUserId,
-    authorName: params.authorName.slice(0, 80),
+    authorName: commenterName,
     body,
     createdAt: new Date().toISOString(),
   };
@@ -337,12 +373,24 @@ export function listPostComments(postId: string, limit = 50): FeedComment[] {
     .slice(-limit);
 }
 
-export function recordPostShare(postId: string): number {
+export function recordPostShare(postId: string): {
+  shareCount: number;
+  shareText: string;
+} {
   const post = posts.get(postId);
   if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found." });
   const count = (shares.get(postId) ?? 0) + 1;
   shares.set(postId, count);
-  return count;
+  const profile = getSocialProfile(post.authorUserId);
+  return {
+    shareCount: count,
+    shareText: buildCanonicalShareText({
+      authorName: profile?.displayName ?? post.authorName,
+      authorVerified: getCreatorIdentity(post.authorUserId)?.verified ?? post.authorVerified,
+      body: post.body,
+      postId: post.id,
+    }),
+  };
 }
 
 export type FeedSort = "latest" | "top" | "friends";

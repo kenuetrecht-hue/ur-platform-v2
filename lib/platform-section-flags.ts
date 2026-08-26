@@ -14,6 +14,7 @@ export const PLATFORM_SECTION_IDS = [
   "loyalty",
   "landing_demo",
   "voice_talk",
+  "jobsite",
 ] as const;
 
 export type PlatformSectionId = (typeof PLATFORM_SECTION_IDS)[number];
@@ -86,6 +87,12 @@ export const PLATFORM_SECTION_CATALOG: PlatformSectionMeta[] = [
     description: "Voice synthesis and talk-time playback",
     routes: [],
   },
+  {
+    id: "jobsite",
+    label: "Jobsite & Office",
+    description: "Clock, inventory, equipment map, daily logs",
+    routes: ["/jobsite"],
+  },
 ];
 
 export function isPlatformSectionId(value: string): value is PlatformSectionId {
@@ -109,6 +116,9 @@ export function inferSectionFromOpsText(text: string): PlatformSectionId | null 
   if (/loyalty|stamps/.test(lower)) return "loyalty";
   if (/landing|homepage demo/.test(lower)) return "landing_demo";
   if (/voice talk|talk time|elevenlabs/.test(lower)) return "voice_talk";
+  if (/jobsite|job site|clock in|geofence|heavy equipment|yard inventory/.test(lower)) {
+    return "jobsite";
+  }
   return null;
 }
 

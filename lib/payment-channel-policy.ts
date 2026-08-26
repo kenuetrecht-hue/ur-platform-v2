@@ -2,7 +2,7 @@
  * UR payment routing — enforced in UI and server mutations.
  *
  * - Exactly $5.00 service purchases → native app (in-app purchase)
- * - All other services (AI day/week/month subs, $1 talk packs, etc.) → web browser
+ * - All other services (AI day/week/month subs, $1 talk packs, $120 / 500-min and $200 / 1,000-min packs, etc.) → web browser
  */
 
 export type PaymentChannel = "in_app" | "web_browser";
@@ -16,13 +16,13 @@ export const PAYMENT_CHANNEL_POLICY_HEADLINE = "How UR payments work";
 
 export const PAYMENT_CHANNEL_POLICY_SUMMARY =
   "$5 purchases must be completed in the UR mobile app. All other services — including every AI " +
-  "subscription (day, week, month) and $1 talk packs — must be purchased through your web browser.";
+  "subscription (day, week, month), $1 talk packs, and the $120 / 500-minute and $200 / 1,000-minute packs — must be purchased through your web browser.";
 
 export const AI_SUBSCRIPTION_PRICING_SUMMARY =
-  "Standard: $7.99/day = 35 messages · $15.99/week = 130 messages · $24.99/month = 350 messages (+ 10 web searches/day). Professional and premium tiers vary.";
+  "Platform text pass (every specialist, one at a time): $7.99/day = 35 messages · $15.99/week = 130 messages · $24.99/month = 350 messages (+ 10 web searches/day). Extra concurrent slot: $4.99/day · $9.99/week · $14.99/month.";
 
 export const AI_TALK_PRICING_SUMMARY =
-  "AI voice talk-back: 25¢ per minute. Every $1 buys 5 minutes. $5 buys 25 minutes (mobile app only).";
+  "AI voice talk-back: 25¢ per minute. Every $1 buys 5 minutes. $5 buys 25 minutes (mobile app only). $120 buys 500 minutes (web). $200 buys 1,000 minutes (web).";
 
 export function getRequiredPaymentChannel(subtotalCents: number): PaymentChannel {
   return subtotalCents === IN_APP_ONLY_SUBTOTAL_CENTS ? "in_app" : "web_browser";

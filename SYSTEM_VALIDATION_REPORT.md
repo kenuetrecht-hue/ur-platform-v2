@@ -88,7 +88,7 @@
 #### Creator Pricing Rules
 - [x] $4.99 minimum enforced
 - [x] Stamp-based pricing for sub-$4.99 offerings
-- [x] All profits to UR LLC
+- [x] All profits to UR Platform LLC
 - [x] Creator notification system
 
 ---

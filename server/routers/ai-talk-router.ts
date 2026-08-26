@@ -11,9 +11,17 @@ import {
 import {
   getTalkPackPurchaseDisclosures,
   AI_TALK_EXPIRY_PURCHASE_DISCLOSURE,
+  AI_TALK_EXPIRY_TRACKER_HEADLINE,
   AI_TALK_FIVE_DOLLAR_PACK_DISCLOSURE,
+  AI_TALK_BULK_500_PACK_DISCLOSURE,
+  AI_TALK_BULK_1000_PACK_DISCLOSURE,
   AI_TALK_METERING_DISCLOSURE,
+  formatTalkExpiryDate,
+  formatTalkLotLoseBy,
   formatTalkTimeRemaining,
+  formatTalkTimeRemainingVerbose,
+  getTalkLowBalanceNotice,
+  isTalkTimeLowBalance,
 } from "../../lib/ai-talk-time-policy";
 import {
   AI_METERING_PAYBACK_PROTECTION,
@@ -34,6 +42,7 @@ import {
   listAiTalkPacks,
   getAiTalkPack,
   formatTalkPrice,
+  AI_TALK_PACK_IDS,
   type AiTalkPackId,
 } from "../../lib/ai-talk-pricing";
 import { buildTalkPurchaseSummary, formatPurchaseReceiptMessage } from "../../lib/pricing-disclosures";
@@ -44,7 +53,7 @@ import {
   PAYMENT_CHANNEL_POLICY_SUMMARY,
 } from "../../lib/payment-channel-policy";
 
-const packIdSchema = z.enum(["talk_1", "talk_5"]);
+const packIdSchema = z.enum(AI_TALK_PACK_IDS);
 const clientPlatformSchema = z.enum(["web", "native"]);
 
 export const aiTalkRouter = router({
@@ -66,7 +75,9 @@ export const aiTalkRouter = router({
       resumeDisclosure: AI_METERING_RESUME_DISCLOSURE,
       paybackProtection: AI_METERING_PAYBACK_PROTECTION,
       fiveDollarDisclosure: AI_TALK_FIVE_DOLLAR_PACK_DISCLOSURE,
-      bonusRule: "Every $1 = 5 talk minutes · $5 = 25 minutes (app only) · Use within 30 days",
+      bulk500Disclosure: AI_TALK_BULK_500_PACK_DISCLOSURE,
+      bulk1000Disclosure: AI_TALK_BULK_1000_PACK_DISCLOSURE,
+      bonusRule: "Every $1 = 5 talk minutes · $5 = 25 minutes (app only) · $120 = 500 minutes (web) · $200 = 1,000 minutes (web) · Use within 30 days",
     })),
 
   getStatus: secureProcedure("aiTalk").query(({ ctx }) => {
@@ -78,8 +89,19 @@ export const aiTalkRouter = router({
       millisecondsRemaining: talkTime.millisecondsRemaining,
       millisecondsUsed: talkTime.millisecondsUsed,
       timeRemainingDisplay: formatTalkTimeRemaining(talkTime.millisecondsRemaining),
+      timeRemainingVerbose: formatTalkTimeRemainingVerbose(talkTime.millisecondsRemaining),
       earliestExpiryAt: talkTime.earliestExpiryAt,
+      earliestExpiryDisplay: talkTime.earliestExpiryAt
+        ? formatTalkExpiryDate(talkTime.earliestExpiryAt)
+        : null,
+      earliestLoseByLabel: talkTime.earliestExpiryAt
+        ? formatTalkLotLoseBy(talkTime.earliestExpiryAt)
+        : null,
+      expiryHeadline: AI_TALK_EXPIRY_TRACKER_HEADLINE,
+      lowBalance: isTalkTimeLowBalance(talkTime.millisecondsRemaining),
+      lowBalanceNotice: getTalkLowBalanceNotice(talkTime.millisecondsRemaining),
       activeLots: talkTime.lots,
+      trackerLots: talkTime.lots.map((lot) => lot.tracker),
       openMeterSession: getOpenMeterSession(userId),
       hasTalkAccess: ctx.isPlatformOwner || talkTime.millisecondsRemaining > 0,
       activeEntitlement: status.aiTalk,
@@ -119,6 +141,7 @@ export const aiTalkRouter = router({
       });
 
       const receipt = buildTalkPurchaseSummary(input.packId as AiTalkPackId, input.stateCode);
+      const talkTime = getTalkTimeStatus(String(ctx.user.id));
 
       return {
         ok: true as const,
@@ -126,8 +149,14 @@ export const aiTalkRouter = router({
         minutesAdded: pack.totalMinutes,
         millisecondsAdded: pack.totalMinutes * 60_000,
         minutesRemaining: getAiTalkMinutesRemaining(String(ctx.user.id)),
-        millisecondsRemaining: getTalkTimeStatus(String(ctx.user.id)).millisecondsRemaining,
+        millisecondsRemaining: talkTime.millisecondsRemaining,
+        timeRemainingDisplay: formatTalkTimeRemaining(talkTime.millisecondsRemaining),
+        timeRemainingVerbose: formatTalkTimeRemainingVerbose(talkTime.millisecondsRemaining),
         expiresAt: entitlement.expiresAt,
+        expiresAtDisplay: formatTalkExpiryDate(entitlement.expiresAt),
+        useByWarning: formatTalkLotLoseBy(entitlement.expiresAt),
+        expiryHeadline: AI_TALK_EXPIRY_TRACKER_HEADLINE,
+        trackerLots: talkTime.lots.map((lot) => lot.tracker),
         entitlement,
         receipt,
         message: formatPurchaseReceiptMessage(receipt),

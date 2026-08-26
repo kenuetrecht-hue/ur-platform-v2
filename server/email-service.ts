@@ -67,7 +67,7 @@ export function generateVerificationEmailHTML(verificationCode: string, userName
             <p>This code will expire in 24 hours.</p>
             <p>If you didn't sign up for UR, please ignore this email.</p>
             <div class="footer">
-              <p>© 2026 UR LLC. All rights reserved.</p>
+              <p>© 2026 UR Platform LLC. All rights reserved.</p>
             </div>
           </div>
         </div>
@@ -142,7 +142,7 @@ export function generatePromotionEmailHTML(payload: PromotionEmailPayload): stri
             <p>Questions? Reply to this email or visit our help center.</p>
 
             <div class="footer">
-              <p>© 2026 UR LLC. All rights reserved.</p>
+              <p>© 2026 UR Platform LLC. All rights reserved.</p>
               <p>You're receiving this email because you signed up for UR.</p>
             </div>
           </div>

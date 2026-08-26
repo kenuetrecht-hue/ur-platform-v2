@@ -29,6 +29,10 @@ import { buildAiChatDisclosure, AI_WELCOME_DISCLOSURE_SUFFIX } from "@/lib/platf
 import { brandDisclosureSurface, withAlpha } from "@/lib/brand-theme";
 import { UsageUpgradePanel } from "@/components/usage-upgrade-panel";
 import { UsageAllowanceBanner } from "@/components/usage-allowance-banner";
+import { UsageTrackerDashboard } from "@/components/usage-tracker-dashboard";
+import { AiTalkLowBalanceNotice } from "@/components/ai-talk-low-balance-notice";
+import { AiTalkTimePanel } from "@/components/ai-talk-time-panel";
+import { isTalkTimeLowBalance } from "@/lib/ai-talk-time-policy";
 import type { ChatMessageAttachmentPreview, ChatSearchCitation } from "@/lib/chat-attachment-types";
 import { AiChatSearchCitations } from "@/components/ai-chat-search-citations";
 import { AiChatMessageMedia } from "@/components/ai-chat-message-media";
@@ -132,6 +136,7 @@ export function CreatorAIInterface({
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
   const [awaitingPitchConsent, setAwaitingPitchConsent] = useState(false);
   const [showExtras, setShowExtras] = useState(false);
+  const [showTalkTopUp, setShowTalkTopUp] = useState(false);
   const [apiReachable, setApiReachable] = useState<boolean | null>(null);
   const [aiReachable, setAiReachable] = useState<boolean | null>(null);
   const [aiHint, setAiHint] = useState<string | null>(null);
@@ -235,7 +240,10 @@ export function CreatorAIInterface({
   const handoffs = trpc.aiCreators.getHandoffs.useQuery({ creatorId });
   const isAssociateAi = creatorId === AFFILIATE_ASSOCIATE_ID;
   const talkMinutes = talkStatus.data?.minutesRemaining ?? premium.data?.talkMinutesRemaining ?? 0;
+  const talkMsLeft = talkStatus.data?.millisecondsRemaining ?? talkMinutes * 60_000;
+  const talkLoseBy = talkStatus.data?.earliestLoseByLabel;
   const hasTalkTime = talkMinutes > 0;
+  const talkLowBalance = talkStatus.data?.lowBalance ?? isTalkTimeLowBalance(talkMsLeft);
   const supportsVoice = isForgeSpecialist(creatorId) || isAssociateAi || hasTalkTime;
   const forgeEmbedded = embedded && isForgeSpecialist(creatorId);
   const showVoiceHiveControls = !embedded || forgeEmbedded;
@@ -487,7 +495,7 @@ export function CreatorAIInterface({
       }
     } else if (!isAssociateAi && !hasTalkTime) {
       setVoiceStatus(
-        "Purchase talk time first — $5 in the app (25 min) or $1 on web (5 min). Open AI Talk Time below.",
+        "Purchase talk time first — $5 in the app (25 min), $1 on web (5 min), $120 on web (500 min), or $200 on web (1,000 min). Open AI Talk Time below.",
       );
       return;
     }
@@ -560,7 +568,7 @@ export function CreatorAIInterface({
     try {
       if (!hasTalkTime) {
         setVoiceStatus(
-          "Purchase talk time first — $5 in the mobile app (25 min) or $1 on web (5 min).",
+          "Purchase talk time first — $5 in the mobile app (25 min), $1 on web (5 min), $120 on web (500 min), or $200 on web (1,000 min).",
         );
         return;
       }
@@ -675,6 +683,7 @@ export function CreatorAIInterface({
         ) : null}
 
         <UsageAllowanceBanner creatorId={creatorId} creatorName={creatorName} />
+        <UsageTrackerDashboard creatorId={creatorId} compact />
 
         <ScrollView
           ref={scrollViewRef}
@@ -733,6 +742,19 @@ export function CreatorAIInterface({
             },
           ]}
         >
+          {showVoiceHiveControls && !isAssociateAi && talkLowBalance ? (
+            <AiTalkLowBalanceNotice
+              millisecondsRemaining={talkMsLeft}
+              onReUp={() => {
+                setShowTalkTopUp(true);
+                setShowExtras(true);
+              }}
+            />
+          ) : null}
+          {showVoiceHiveControls && showTalkTopUp ? (
+            <AiTalkTimePanel creatorName={creatorName} showPurchase />
+          ) : null}
+
           {showVoiceHiveControls ? (
             <Pressable
               onPress={() => setShowExtras((v) => !v)}
@@ -775,7 +797,7 @@ export function CreatorAIInterface({
                       ? "🎙️ Hear Associate AI"
                       : `🎙️ Voice pack $${premium.data?.affiliateVoicePriceUsd ?? "2.99"}`
                     : hasTalkTime
-                      ? `🎙️ Voice — ${talkMinutes} min left`
+                      ? `🎙️ Voice — ${talkMinutes} min left${talkLowBalance ? " · last 5 min, re-up now" : ""}${talkLoseBy ? ` · ${talkLoseBy}` : " · use within 30 days or it is lost"}`
                       : "🎙️ Voice — buy talk time"}
               </Text>
               {voiceStatus ? (

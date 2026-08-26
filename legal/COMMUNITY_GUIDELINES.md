@@ -1,7 +1,7 @@
 # UR Community Guidelines
 
 **Effective Date:** May 13, 2026  
-**Last Updated:** May 13, 2026
+**Last Updated:** August 26, 2026
 
 ## 1. Our Community Values
 
@@ -158,7 +158,7 @@ Followers agree to:
 Users can report content or behavior that violates these guidelines by:
 
 - Using the report button on any post, message, or profile
-- Contacting our support team at support@urapp.com
+- Contacting our support team at support@urplatform.llc
 - Providing specific details about the violation
 
 All reports are reviewed by our moderation team and treated confidentially.
@@ -186,7 +186,7 @@ Severe violations (such as CSAM, human trafficking, or violent threats) may resu
 
 If you believe a moderation decision was made in error, you may appeal by:
 
-- Emailing appeals@urapp.com within 30 days of the action
+- Emailing support@urplatform.llc with “Appeal” in the subject line within 30 days of the action
 - Providing specific details about why you believe the decision was incorrect
 - Submitting any evidence supporting your appeal
 
@@ -234,8 +234,8 @@ UR reserves the right to modify these Community Guidelines at any time. Changes 
 For questions about these Community Guidelines or to report violations, please contact:
 
 **UR Community Team**  
-Email: community@urapp.com  
-Website: www.urapp.com
+Email: support@urplatform.llc  
+Website: https://urplatform.llc
 
 ---
 

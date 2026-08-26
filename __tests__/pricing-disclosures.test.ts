@@ -29,7 +29,7 @@ describe("pricing-disclosures", () => {
     expect(summary.notIncluded.some((s) => s.includes("images"))).toBe(true);
     expect(summary.youReceive.some((l) => l.label === "Web search included")).toBe(true);
     expect(summary.importantNotes.some((n) => n.includes("web browser"))).toBe(true);
-    expect(summary.billingEntity).toBe("UR LLC");
+    expect(summary.billingEntity).toBe("UR Platform LLC");
   });
 
   it("Oregon subscription shows zero sales tax", () => {
@@ -53,6 +53,8 @@ describe("pricing-disclosures", () => {
     expect(summary.pricing.salesTaxCents).toBeGreaterThan(0);
     expect(summary.youPay.value).toContain(checkout.totalDisplay);
     expect(summary.youReceive.some((l) => l.value.includes("25 minutes"))).toBe(true);
+    expect(summary.youReceive.some((l) => l.label === "Must use within" && l.value.includes("lose what isn't used"))).toBe(true);
+    expect(summary.youReceive.some((l) => l.label === "If unused after 30 days")).toBe(true);
     expect(summary.notIncluded.some((s) => s.includes("Text chat"))).toBe(true);
     expect(summary.importantNotes.some((n) => n.includes("30 days"))).toBe(true);
     expect(summary.importantNotes.some((n) => n.toLowerCase().includes("millisecond"))).toBe(true);
@@ -68,6 +70,21 @@ describe("pricing-disclosures", () => {
     expect(summary!.youReceive.some((l) => l.value.includes("20 images"))).toBe(true);
     expect(summary!.youReceive.some((l) => l.label === "Daily fair-use cap")).toBe(true);
     expect(summary!.notIncluded.some((s) => s.includes("Text chat"))).toBe(true);
+  });
+
+  it("bulk talk pack summary states 500 minutes and web checkout", () => {
+    const summary = buildTalkPurchaseSummary("talk_120", "FL");
+    expect(summary.pricing.subtotalDisplay).toContain("$120.00");
+    expect(summary.youReceive.some((l) => l.value.includes("500 minutes"))).toBe(true);
+    expect(summary.importantNotes.some((n) => n.toLowerCase().includes("web browser"))).toBe(true);
+  });
+
+  it("heavy talk pack summary states 1,000 minutes and web checkout", () => {
+    const summary = buildTalkPurchaseSummary("talk_200", "FL");
+    expect(summary.pricing.subtotalDisplay).toContain("$200.00");
+    expect(summary.youReceive.some((l) => l.value.includes("1000 minutes"))).toBe(true);
+    expect(summary.importantNotes.some((n) => n.toLowerCase().includes("1,000 minutes"))).toBe(true);
+    expect(summary.importantNotes.some((n) => n.toLowerCase().includes("web browser"))).toBe(true);
   });
 
   it("formats receipt message for confirmation", () => {

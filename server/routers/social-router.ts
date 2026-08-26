@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { secureProcedure, router } from "../_core/trpc";
+import { assertUserIsAgeVerified } from "../_core/age-kyc-service";
 import {
   acceptFriendRequest,
   getSocialDashboard,
@@ -43,6 +44,7 @@ import {
   togglePostLike,
   upsertSocialProfile,
   getSocialProfile,
+  resolveCreatorDisplayName,
 } from "../_core/social-feed-service";
 import {
   generateSocialPostDraft,
@@ -92,11 +94,6 @@ const createPostInputSchema = z
 function socialUser(ctx: { user: { id: string | number; email?: string | null; name?: string | null } }) {
   const userId = String(ctx.user.id);
   registerSocialUser({
-    userId,
-    email: ctx.user.email ?? "",
-    displayName: ctx.user.name ?? "User",
-  });
-  upsertSocialProfile({
     userId,
     email: ctx.user.email ?? "",
     displayName: ctx.user.name ?? "User",
@@ -366,22 +363,27 @@ export const socialRouter = router({
 
   updateProfile: secureProcedure("social")
     .input(z.object({ bio: z.string().max(280).optional(), displayName: z.string().max(80).optional() }))
-    .mutation(({ ctx, input }) =>
-      upsertSocialProfile({
-        userId: socialUser(ctx),
+    .mutation(async ({ ctx, input }) => {
+      await assertUserIsAgeVerified(ctx.user.id);
+      const userId = socialUser(ctx);
+      const existing = getSocialProfile(userId);
+      return upsertSocialProfile({
+        userId,
         email: ctx.user.email ?? "",
-        displayName: input.displayName ?? ctx.user.name ?? "User",
+        displayName: input.displayName?.trim() || existing?.displayName || ctx.user.name || "User",
         bio: input.bio,
-      }),
-    ),
+      });
+    }),
 
   createPost: secureProcedure("social")
     .input(createPostInputSchema)
-    .mutation(({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
+      await assertUserIsAgeVerified(ctx.user.id);
+      const userId = socialUser(ctx);
       const post = createFeedPost({
-        authorUserId: socialUser(ctx),
+        authorUserId: userId,
         authorEmail: ctx.user.email ?? "",
-        authorName: ctx.user.name ?? "User",
+        authorName: resolveCreatorDisplayName(userId, ctx.user.name ?? "User"),
         body: input.body,
         imageUrl: input.imageUrl,
         videoUrl: input.videoUrl,
@@ -389,7 +391,7 @@ export const socialRouter = router({
         visibility: input.visibility,
         aiAssisted: input.aiAssisted,
         contentRightsMode: input.contentRightsMode,
-        rightsConfirmed: input.rightsConfirmed,
+        rightsConfirmed: input.rightsConfirmed === true,
         attributionSourceName: input.attributionSourceName,
         attributionSourceUrl: input.attributionSourceUrl,
         licenseType: input.licenseType,
@@ -407,18 +409,23 @@ export const socialRouter = router({
 
   toggleLike: secureProcedure("social")
     .input(z.object({ postId: z.string().uuid() }))
-    .mutation(({ ctx, input }) => togglePostLike({ postId: input.postId, userId: socialUser(ctx) })),
+    .mutation(async ({ ctx, input }) => {
+      await assertUserIsAgeVerified(ctx.user.id);
+      return togglePostLike({ postId: input.postId, userId: socialUser(ctx) });
+    }),
 
   addComment: secureProcedure("social")
     .input(z.object({ postId: z.string().uuid(), body: z.string().min(1).max(1000) }))
-    .mutation(({ ctx, input }) =>
-      addPostComment({
+    .mutation(async ({ ctx, input }) => {
+      await assertUserIsAgeVerified(ctx.user.id);
+      const userId = socialUser(ctx);
+      return addPostComment({
         postId: input.postId,
-        authorUserId: socialUser(ctx),
-        authorName: ctx.user.name ?? "User",
+        authorUserId: userId,
+        authorName: resolveCreatorDisplayName(userId, ctx.user.name ?? "User"),
         body: input.body,
-      }),
-    ),
+      });
+    }),
 
   listComments: secureProcedure("social")
     .input(z.object({ postId: z.string().uuid(), limit: z.number().int().min(1).max(100).optional() }))
@@ -426,7 +433,10 @@ export const socialRouter = router({
 
   sharePost: secureProcedure("social")
     .input(z.object({ postId: z.string().uuid() }))
-    .mutation(({ input }) => ({ shareCount: recordPostShare(input.postId) })),
+    .mutation(async ({ ctx, input }) => {
+      await assertUserIsAgeVerified(ctx.user.id);
+      return recordPostShare(input.postId);
+    }),
 
   // ── Social Post Assistant (AI subscription for basic users) ──
 

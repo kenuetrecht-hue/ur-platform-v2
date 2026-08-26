@@ -6,7 +6,7 @@
  * - Welcome bonus on first sign-in; redemption stays expensive vs paid plans.
  * - Activity rewards for engagement (posts, follows, paid subs) with caps.
  * - Streak milestones grant small free TEXT-only message bundles.
- * - No voice/video via loyalty points (paid Talk Time / subscriptions only).
+ * - Voice via loyalty costs more than cash Talk Time (250 LP / 1 min, 500 LP / 2 min).
  */
 
 /** One-time welcome bonus on first ever sign-in */
@@ -71,11 +71,28 @@ export const LOYALTY_ACTIVITY_EARN = {
 export type LoyaltyRedemptionId =
   | "text_1"
   | "text_3"
+  | "talk_1"
+  | "talk_2"
   | "image_1"
   | "vision_1"
   | "search_5"
   | "hive_1"
   | "chapter_1";
+
+export const LOYALTY_REDEMPTION_IDS = [
+  "text_1",
+  "text_3",
+  "talk_1",
+  "talk_2",
+  "image_1",
+  "vision_1",
+  "search_5",
+  "hive_1",
+  "chapter_1",
+] as const satisfies readonly LoyaltyRedemptionId[];
+
+/** 250 LP = 1 talk minute — worse than cash ($1 = 5 min). */
+export const LOYALTY_POINTS_PER_TALK_MINUTE = 250;
 
 export type LoyaltyRedemptionOffer = {
   id: LoyaltyRedemptionId;
@@ -88,6 +105,7 @@ export type LoyaltyRedemptionOffer = {
   creditProductId?: string;
   creditIncluded?: number;
   freeTextMessages?: number;
+  talkMinutes?: number;
 };
 
 /**
@@ -110,6 +128,22 @@ export const LOYALTY_REDEMPTION_CATALOG: LoyaltyRedemptionOffer[] = [
     youReceive: "3 simple text messages",
     valueNote: "≈14 daily sign-ins · Better than 3× singles",
     freeTextMessages: 3,
+  },
+  {
+    id: "talk_1",
+    label: "1 talk minute",
+    pointsCost: 250,
+    youReceive: "1 minute of AI voice talk-back (metered to the ms)",
+    valueNote: "≈2–3 daily sign-ins · Cash is $1 for 5 min — paying is cheaper",
+    talkMinutes: 1,
+  },
+  {
+    id: "talk_2",
+    label: "2 talk minutes",
+    pointsCost: 500,
+    youReceive: "2 minutes of AI voice talk-back (metered to the ms)",
+    valueNote: "≈5 daily sign-ins · Cash $1 still buys 5 min — LP costs more",
+    talkMinutes: 2,
   },
   {
     id: "image_1",
@@ -198,7 +232,7 @@ export function getLoyaltyProgramSummary(): LoyaltyProgramSummary {
     redemptionCatalog: LOYALTY_REDEMPTION_CATALOG,
     streakMilestones: LOYALTY_STREAK_MILESTONES,
     textOnlyNote:
-      "Loyalty chat is text-only and simple — no learn mode, hive, or voice/video unless you redeem those credits. Subscribe for best value.",
+      "Loyalty redemptions cost more than paying cash. Talk-back is 250 LP per minute (or 500 LP for 2 minutes). Paid Talk Time and subscriptions stay the better deal.",
     competitiveNote:
       "UR loyalty rewards daily habit + community action. Each consecutive sign-in day earns 100 LP + 10 LP per streak day " +
       "(day 1 = 110 LP, day 30 = 400 LP). Hit a 30-day streak and buy any AI plan during that run to unlock a free 1-day subscription. " +

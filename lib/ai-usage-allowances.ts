@@ -30,7 +30,7 @@ export function getMessageAllowance(plan: AiSubscriptionPlan, tier: AiPriceTier)
   return MESSAGE_ALLOWANCE_BY_TIER[tier][plan];
 }
 
-/** Platform-wide membership (legacy) — same caps as monthly per specialist */
+/** Platform-wide membership (legacy) — same caps as the monthly text pass */
 export function getMembershipMessageAllowance(
   plan: "day" | "week" | "month" | "year",
 ): number {

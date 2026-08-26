@@ -75,6 +75,23 @@ async function startServer() {
 
   app.use("/api", apiIpGuardMiddleware);
 
+  app.get("/robots.txt", (_req, res) => {
+    res
+      .type("text/plain")
+      .setHeader("Cache-Control", "public, max-age=86400")
+      .send(
+        [
+          "User-agent: *",
+          "Allow: /",
+          "Disallow: /api/",
+          "Disallow: /age-verify",
+          "Disallow: /login",
+          "Disallow: /signup",
+          "",
+        ].join("\n"),
+      );
+  });
+
   registerStorageProxy(app);
   registerOAuthRoutes(app);
 

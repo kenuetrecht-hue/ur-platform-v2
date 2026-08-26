@@ -24,7 +24,7 @@ export const UR_FORGE_GLOBAL_CONFIG = {
 // 1. Legal Compliance Content
 export const LEGAL_AI_COMPLIANCE = {
   mandatoryDisclaimerText: `
-⚠️ NOTICE & DISCLAIMER: This assistant is a synthetic AI model built strictly for educational and informational reference purposes. It is NOT an attorney, a law firm, or a licensed legal professional. No interaction with this AI constitutes legal advice, nor does it establish an attorney-client relationship. Always consult a qualified, licensed attorney in your jurisdiction for formal legal matters. UR LLC assumes no liability for the use or reference of this material.
+⚠️ NOTICE & DISCLAIMER: This assistant is a synthetic AI model built strictly for educational and informational reference purposes. It is NOT an attorney, a law firm, or a licensed legal professional. No interaction with this AI constitutes legal advice, nor does it establish an attorney-client relationship. Always consult a qualified, licensed attorney in your jurisdiction for formal legal matters. UR Platform LLC assumes no liability for the use or reference of this material.
   `.trim(),
 };
 

@@ -1,6 +1,7 @@
 /**
- * Central AI specialist subscription pricing — tiered by compute cost.
- * Standard: $7.99/day · $15.99/week · $24.99/month (owner-approved Aug 2026).
+ * Platform text pass — day / week / month unlocks every UR specialist, one at a time.
+ * $7.99/day · $15.99/week · $24.99/month (competitive with ChatGPT Plus / Claude Pro).
+ * Talking to more than one AI at once (Hive / Town Hall) requires a paid extra slot.
  */
 
 export type AiSubscriptionPlan = "day" | "week" | "month";
@@ -13,17 +14,41 @@ export const AI_PRICE_TIER_LABEL: Record<AiPriceTier, string> = {
   premium: "Premium",
 };
 
-/** Standard-tier prices in cents — listed in summaries for most specialists. */
+/** Stored subscription key — one pass per user, valid for every specialist. */
+export const PLATFORM_PASS_ID = "platform-pass";
+
+/** Standard-tier / platform-pass prices in cents. */
 export const AI_SUBSCRIPTION_BASE_CENTS: Record<AiSubscriptionPlan, number> = {
   day: 799,
   week: 1599,
   month: 2499,
 };
 
+/** Historical compute-tier catalog — checkout uses the platform pass, not these. */
 export const AI_SUBSCRIPTION_TIER_CENTS: Record<AiPriceTier, Record<AiSubscriptionPlan, number>> = {
   standard: { day: 799, week: 1599, month: 2499 },
   professional: { day: 999, week: 1999, month: 2999 },
   premium: { day: 899, week: 1799, month: 2799 },
+};
+
+export const PLATFORM_PASS_CENTS: Record<AiSubscriptionPlan, number> = {
+  day: 799,
+  week: 1599,
+  month: 2499,
+};
+
+export const PLATFORM_ALL_AI_DAY_CENTS = PLATFORM_PASS_CENTS.day;
+export const PLATFORM_ALL_AI_WEEK_CENTS = PLATFORM_PASS_CENTS.week;
+export const PLATFORM_ALL_AI_MONTHLY_CENTS = PLATFORM_PASS_CENTS.month;
+
+/** Included concurrent specialists on a text pass — switch freely, one chat at a time. */
+export const INCLUDED_CONCURRENT_AI_SLOTS = 1;
+
+/** Extra concurrent AI slot (Hive / Town Hall / two chats at once). */
+export const CONCURRENT_AI_SLOT_CENTS: Record<AiSubscriptionPlan, number> = {
+  day: 499,
+  week: 999,
+  month: 1499,
 };
 
 const PREMIUM_CREATOR_IDS = new Set(["linguamate", "ai-translator-001"]);
@@ -38,6 +63,7 @@ const PROFESSIONAL_CREATOR_IDS = new Set([
   "ai-seismic-001",
   "ai-wind-load-001",
   "ai-dynamics-001",
+  "ai-cnc-master-001",
 ]);
 
 export function getAiPriceTier(creatorId: string): AiPriceTier {
@@ -46,8 +72,22 @@ export function getAiPriceTier(creatorId: string): AiPriceTier {
   return "standard";
 }
 
-export function getPlanPriceCents(creatorId: string, plan: AiSubscriptionPlan): number {
+export function getPlatformPassPriceCents(plan: AiSubscriptionPlan): number {
+  return PLATFORM_PASS_CENTS[plan];
+}
+
+export function getConcurrentSlotPriceCents(plan: AiSubscriptionPlan): number {
+  return CONCURRENT_AI_SLOT_CENTS[plan];
+}
+
+/** Legacy compute-tier list price — not charged at checkout. */
+export function getComputeTierPriceCents(creatorId: string, plan: AiSubscriptionPlan): number {
   return AI_SUBSCRIPTION_TIER_CENTS[getAiPriceTier(creatorId)][plan];
+}
+
+/** Checkout price — platform pass is the same for every specialist. */
+export function getPlanPriceCents(_creatorId: string, plan: AiSubscriptionPlan): number {
+  return getPlatformPassPriceCents(plan);
 }
 
 export function getPlanPriceDollars(creatorId: string, plan: AiSubscriptionPlan): number {
@@ -78,10 +118,10 @@ export function formatUsd(cents: number): string {
 export function getAiSubscriptionPlans(creatorId: string): AiSubscriptionPlanQuote[] {
   const tier = getAiPriceTier(creatorId);
   const plans: AiSubscriptionPlan[] = ["day", "week", "month"];
-  const dailyCents = getPlanPriceCents(creatorId, "day");
+  const dailyCents = getPlatformPassPriceCents("day");
 
   return plans.map((plan) => {
-    const priceCents = getPlanPriceCents(creatorId, plan);
+    const priceCents = getPlatformPassPriceCents(plan);
     const meta = PLAN_META[plan];
     let savingsVsDaily: string | undefined;
     if (plan !== "day") {
@@ -104,9 +144,23 @@ export function getAiSubscriptionPlans(creatorId: string): AiSubscriptionPlanQuo
   });
 }
 
-export const PLATFORM_ALL_AI_DAY_CENTS = 1599;
-export const PLATFORM_ALL_AI_WEEK_CENTS = 3299;
-export const PLATFORM_ALL_AI_MONTHLY_CENTS = 6499;
+export type ConcurrentSlotQuote = {
+  plan: AiSubscriptionPlan;
+  label: string;
+  priceCents: number;
+  priceDisplay: string;
+  durationDays: number;
+};
+
+export function getConcurrentSlotPlans(): ConcurrentSlotQuote[] {
+  return (["day", "week", "month"] as AiSubscriptionPlan[]).map((plan) => ({
+    plan,
+    label: PLAN_META[plan].label,
+    priceCents: getConcurrentSlotPriceCents(plan),
+    priceDisplay: formatUsd(getConcurrentSlotPriceCents(plan)),
+    durationDays: PLAN_META[plan].durationDays,
+  }));
+}
 
 export const AI_SUBSCRIPTION_PLAN_DAYS: Record<AiSubscriptionPlan, number> = {
   day: 1,

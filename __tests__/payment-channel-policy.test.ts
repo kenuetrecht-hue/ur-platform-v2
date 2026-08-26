@@ -24,6 +24,11 @@ describe("payment-channel-policy", () => {
     expect(getRequiredPaymentChannel(getAiTalkPack("talk_1").priceCents)).toBe("web_browser");
   });
 
+  it("routes $120 and $200 talk packs through web browser", () => {
+    expect(getRequiredPaymentChannel(getAiTalkPack("talk_120").priceCents)).toBe("web_browser");
+    expect(getRequiredPaymentChannel(getAiTalkPack("talk_200").priceCents)).toBe("web_browser");
+  });
+
   it("blocks wrong client platform at purchase time", () => {
     expect(isPaymentChannelAllowed({ subtotalCents: 500, clientPlatform: "native" })).toBe(true);
     expect(isPaymentChannelAllowed({ subtotalCents: 500, clientPlatform: "web" })).toBe(false);

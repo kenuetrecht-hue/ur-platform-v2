@@ -20,6 +20,7 @@ import {
   CREATOR_CONTENT_PROTECTION_NOTICE,
   CREATOR_CONTENT_RIGHTS_ATTESTATION_ORIGINAL,
   CREATOR_CONTENT_RIGHTS_ATTESTATION_REPOST,
+  CREATOR_VERIFIED_BADGE_HINT,
   LICENSED_REPOST_ATTRIBUTION_HINT,
 } from "@/lib/creator-content-protection-copy";
 import {
@@ -54,6 +55,7 @@ function PostCard({
     authorUserId: string;
     authorName: string;
     authorAvatar: string;
+    authorVerified?: boolean;
     body: string;
     kind: string;
     imageUrl?: string;
@@ -94,10 +96,9 @@ function PostCard({
   );
 
   const sharePost = async () => {
-    const text = `${post.authorName} on UR Platform:\n${post.body.slice(0, 200)}`;
-    share.mutate({ postId: post.id });
     try {
-      await Share.share({ message: text });
+      const result = await share.mutateAsync({ postId: post.id });
+      await Share.share({ message: result.shareText });
     } catch {
       if (post.linkUrl) void Linking.openURL(post.linkUrl);
     }
@@ -108,7 +109,12 @@ function PostCard({
       <View style={styles.postHeader}>
         <Text style={{ fontSize: 22 }}>{post.authorAvatar}</Text>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.foreground, fontWeight: "800" }}>{post.authorName}</Text>
+          <Text style={{ color: colors.foreground, fontWeight: "800" }}>
+            {post.authorName}
+            {post.authorVerified ? (
+              <Text style={{ color: colors.primary, fontWeight: "700" }}> · {CREATOR_VERIFIED_BADGE_HINT}</Text>
+            ) : null}
+          </Text>
           <Text style={{ color: colors.muted, fontSize: 11 }}>{timeAgo(post.createdAt)} · {post.kind}</Text>
         </View>
         {post.authorUserId === myUserId ? (

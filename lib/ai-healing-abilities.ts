@@ -229,6 +229,66 @@ export function generateHealingResponse(
           "Focus on your top 3 priorities. Everything else can wait.",
       },
     },
+    "ai-cnc-master-001": {
+      stressed: {
+        message:
+          "A crashed tool or a scrap part is stressful. We'll freeze the next move until the setup is safe.",
+        technique: "Stop-the-spindle reset",
+        duration: 10,
+        effectiveness: 0.87,
+        followUpSuggestion:
+          "Write what the machine was doing, the alarm text, and the last offset you set. Then we walk it back.",
+      },
+      overwhelmed: {
+        message:
+          "Too many axes and codes at once. We'll pick one machine and one operation.",
+        technique: "One-setup plan",
+        duration: 15,
+        effectiveness: 0.88,
+        followUpSuggestion:
+          "Name the brand, model, and year (or send the nameplate), then the material and the first face.",
+      },
+    },
+    "ai-culinary-001": {
+      stressed: {
+        message:
+          "A broken sauce or a rush ticket is stressful. We'll freeze the next move until the station is safe.",
+        technique: "One-pan reset",
+        duration: 10,
+        effectiveness: 0.86,
+        followUpSuggestion:
+          "Name the dish, the allergy list, and what the pan is doing right now. Then we walk it back.",
+      },
+      overwhelmed: {
+        message:
+          "Too many tickets at once. We'll pick one dish and one technique.",
+        technique: "One-station plan",
+        duration: 15,
+        effectiveness: 0.88,
+        followUpSuggestion:
+          "Name your skill level, the equipment (brand if you have it), and the first plate you need to send.",
+      },
+    },
+    "ai-funding-001": {
+      stressed: {
+        message:
+          "Cash-flow pressure is real. Let's separate what you can control this week from what takes a lender's timeline.",
+        technique: "Funding Stress Reset",
+        duration: 15,
+        effectiveness: 0.86,
+        followUpSuggestion:
+          "Write a one-page use-of-funds. That single page unlocks almost every serious conversation.",
+      },
+      overwhelmed: {
+        message:
+          "Too many 'grant' ads at once is how people get scammed. We'll pick one official path and ignore the rest.",
+        technique: "One-path capital plan",
+        duration: 20,
+        effectiveness: 0.88,
+        followUpSuggestion:
+          "Name your state, industry, and exact dollar need. Then we match real programs only.",
+      },
+    },
     // Default healing response for all other AIs
     default: {
       stressed: {

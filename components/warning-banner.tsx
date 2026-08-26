@@ -78,7 +78,7 @@ export function WarningDisclosureModal() {
             Affiliate links & commissions
           </Text>
           <Text style={[styles.sectionBody, { color: colors.muted }]}>
-            This platform may contain affiliate links to third-party services. UR LLC may
+            This platform may contain affiliate links to third-party services. UR Platform LLC may
             receive commissions from purchases made through these links. These commissions
             do not affect your purchase price.
           </Text>
@@ -101,7 +101,7 @@ export function WarningDisclosureModal() {
           </Text>
           <Text style={[styles.sectionBody, { color: colors.muted }]}>
             Users are solely responsible for verifying information and making independent
-            decisions. UR LLC is not liable for any losses or consequences resulting from
+            decisions. UR Platform LLC is not liable for any losses or consequences resulting from
             reliance on platform content.
           </Text>
         </View>

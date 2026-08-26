@@ -16,6 +16,7 @@ import {
 } from "./loyalty-streak-service";
 import { recordLoyaltyEvent } from "./loyalty-tracking-service";
 import { grantLoyaltyCreditLot } from "./usage-credits-service";
+import { grantLoyaltyTalkMinutes } from "./ai-talk-time-tracker";
 import type { CreditProductId } from "../../lib/usage-caps-catalog";
 
 /** userId → set of one-time claim keys */
@@ -198,6 +199,13 @@ export function redeemLoyaltyReward(params: {
       productId: offer.creditProductId as CreditProductId,
       included: offer.creditIncluded,
       label: `Loyalty: ${offer.label}`,
+    });
+  }
+
+  if (offer.talkMinutes && offer.talkMinutes > 0) {
+    grantLoyaltyTalkMinutes({
+      userId: params.userId,
+      minutes: offer.talkMinutes,
     });
   }
 

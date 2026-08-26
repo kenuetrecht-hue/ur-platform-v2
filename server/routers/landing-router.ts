@@ -23,6 +23,10 @@ import { sanitizeUserText } from "../_core/input-sanitize";
 import { assertNoAiTakeoverInMessage } from "../_core/ai-control";
 import { purchaseLandingPlatformPass } from "../_core/landing-checkout-service";
 import { assertSimulatedPurchaseAllowed } from "../_core/payment-channel-guard";
+import { assertUserIsAgeVerified } from "../_core/age-kyc-service";
+import { AGE_KYC_REQUIRED_MESSAGE } from "../../lib/age-kyc-policy";
+import { assertTurnstileToken, getTurnstileClientConfig } from "../_core/turnstile";
+import { TURNSTILE_TOKEN_MAX_LENGTH } from "../../lib/turnstile";
 import { redeemHandoffToken } from "../_core/app-handoff-service";
 import {
   getLandingPlatformPassPriceDisplay,
@@ -73,6 +77,7 @@ export const landingRouter = router({
       demoUsed,
       voiceUsed: !canUseDemoVoice(ctx.ip),
       demoToken: demoUsed ? null : issueLandingDemoToken(ctx.ip),
+      turnstile: getTurnstileClientConfig(),
       limits: {
         messageMax: LANDING_DEMO_MESSAGE_MAX,
         replyMax: LANDING_DEMO_REPLY_MAX,
@@ -90,10 +95,23 @@ export const landingRouter = router({
         pageLoadedAtMs: z.number().finite(),
         honeypot: z.string().max(200).optional(),
         platform: z.enum(["web", "ios", "android", "unknown"]).optional(),
+        turnstileToken: z.string().trim().max(TURNSTILE_TOKEN_MAX_LENGTH).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
       assertLandingDemoSection(ctx.isPlatformOwner);
+      if (!ctx.user) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: AGE_KYC_REQUIRED_MESSAGE,
+        });
+      }
+      await assertUserIsAgeVerified(ctx.user.id);
+      await assertTurnstileToken({
+        token: input.turnstileToken,
+        action: "landing_demo",
+        ip: ctx.ip,
+      });
 
       const message = sanitizeUserText(input.message, LANDING_DEMO_MESSAGE_MAX);
       assertNoAiTakeoverInMessage(message, false);
@@ -156,6 +174,13 @@ export const landingRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       assertLandingDemoSection(ctx.isPlatformOwner);
+      if (!ctx.user) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: AGE_KYC_REQUIRED_MESSAGE,
+        });
+      }
+      await assertUserIsAgeVerified(ctx.user.id);
 
       if (!hasUsedDemo(ctx.ip)) {
         throw new TRPCError({
@@ -212,8 +237,15 @@ export const landingRouter = router({
         email: z.string().trim().email().max(120),
       }),
     )
-    .mutation(({ input, ctx }) => {
+    .mutation(async ({ input, ctx }) => {
       assertSimulatedPurchaseAllowed();
+      if (!ctx.user) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: AGE_KYC_REQUIRED_MESSAGE,
+        });
+      }
+      await assertUserIsAgeVerified(ctx.user.id);
       const email = sanitizeUserText(input.email, 120);
       if (!email.includes("@")) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Enter a valid email address." });

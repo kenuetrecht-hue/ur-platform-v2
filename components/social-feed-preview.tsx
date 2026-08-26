@@ -56,6 +56,7 @@ export function SocialFeedPreview() {
           >
             <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
               {post.authorAvatar} {post.authorName}
+              {post.authorVerified ? " · ID verified" : ""}
               {post.contentRightsMode === "licensed_repost" ? " · ↗️ repost" : ""}
             </Text>
             {post.contentRightsMode === "licensed_repost" && post.attributionSourceName ? (

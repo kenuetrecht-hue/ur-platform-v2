@@ -5,6 +5,7 @@
 import { randomUUID } from "crypto";
 import { TRPCError } from "@trpc/server";
 import { getPlatformPublicOrigin } from "../../lib/platform-urls";
+import { assertPublicHandleAllowed } from "./creator-content-protection-service";
 
 export type UserLinkRole = "member" | "creator" | "affiliate";
 
@@ -51,6 +52,16 @@ function uniqueSlug(displayName: string, email: string): string {
   return slug;
 }
 
+function uniquePublicSlug(userId: string, displayName: string, email: string): string {
+  const slug = uniqueSlug(displayName, email);
+  try {
+    assertPublicHandleAllowed({ userId, handle: slug.replace(/-[a-z0-9]{4}$/i, "") });
+    return slug;
+  } catch {
+    return `ur-${randomUUID().slice(0, 8)}`;
+  }
+}
+
 export function buildCustomUrl(slug: string): string {
   return `${appBaseUrl()}/link/${encodeURIComponent(slug)}`;
 }
@@ -76,7 +87,7 @@ export function getOrCreateUserLink(params: {
     return existing;
   }
 
-  const slug = uniqueSlug(params.displayName, params.userEmail);
+  const slug = uniquePublicSlug(params.userId, params.displayName, params.userEmail);
   const profile: UserLinkProfile = {
     userId: params.userId,
     slug,

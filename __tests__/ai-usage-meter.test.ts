@@ -8,6 +8,7 @@ import {
   _clearAiSubscriptionsForTests,
   purchaseAiSubscription,
 } from "../server/_core/ai-subscription-service";
+import { _clearPlatformPassSlotsForTests } from "../server/_core/ai-platform-pass-slots";
 import {
   assertAndConsumeAiUsage,
   _clearUsageMeterForTests,
@@ -33,6 +34,7 @@ describe("ai-usage-meter", () => {
   beforeEach(() => {
     _clearAiSubscriptionsForTests();
     _clearUsageMeterForTests();
+    _clearPlatformPassSlotsForTests();
   });
 
   it("blocks chat when message allowance is exhausted", () => {
@@ -94,5 +96,43 @@ describe("ai-usage-meter", () => {
     ).toThrow(/limit reached|Upgrade for more/);
 
     expect(HIVE_MESSAGE_MULTIPLIER).toBe(3);
+  });
+
+  it("lets a wellness purchase consume messages on another specialist", () => {
+    purchaseAiSubscription({
+      userId: "u3",
+      userEmail: "u3@test.com",
+      creatorId: "ai-wellness-001",
+      plan: "day",
+      billingStateCode: "FL",
+    });
+
+    expect(() =>
+      assertAndConsumeAiUsage({
+        userId: "u3",
+        creatorId: "ai-fitness-001",
+        isPlatformOwner: false,
+      }),
+    ).not.toThrow();
+  });
+
+  it("blocks hive concurrent consults until an extra slot is paid", () => {
+    purchaseAiSubscription({
+      userId: "u4",
+      userEmail: "u4@test.com",
+      creatorId: "ai-wellness-001",
+      plan: "day",
+      billingStateCode: "FL",
+    });
+
+    expect(() =>
+      assertAndConsumeAiUsage({
+        userId: "u4",
+        creatorId: "ai-wellness-001",
+        isPlatformOwner: false,
+        useHive: true,
+        requireConcurrentAis: true,
+      }),
+    ).toThrow(/extra concurrent slot/);
   });
 });

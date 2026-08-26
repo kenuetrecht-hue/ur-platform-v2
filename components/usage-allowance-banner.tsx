@@ -3,6 +3,7 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/auth-context";
 import { formatAllowanceHeadline } from "@/lib/pricing-transparency";
+import { PurchaseUsageTracker } from "@/components/purchase-usage-tracker";
 
 type Props = {
   creatorId: string;
@@ -54,19 +55,20 @@ export function UsageAllowanceBanner({ creatorId, creatorName }: Props) {
   if (!usage) return null;
 
   return (
-    <View style={[styles.box, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-      <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
-        Your text plan — {usage.messagesRemaining} of {usage.messagesIncluded} messages left
-      </Text>
-      {sub ? (
-        <Text style={{ color: colors.muted, fontSize: 10, marginTop: 4, lineHeight: 14 }}>
-          {sub.plan} plan until {new Date(sub.expiresAt).toLocaleDateString()} ·{" "}
-          {formatAllowanceHeadline(creatorId, sub.plan)} · Learn = 5 msgs · Hive = 3 msgs
-        </Text>
-      ) : null}
-      <Text style={{ color: colors.muted, fontSize: 9, marginTop: 6, lineHeight: 13 }}>
-        Images, voice, code runs and chapters are separate — see Pricing tab for exact amounts.
-      </Text>
+    <View>
+      <PurchaseUsageTracker
+        title="Text pass"
+        used={usage.messagesUsed}
+        included={usage.messagesIncluded}
+        remaining={usage.messagesRemaining}
+        unit="messages"
+        loseByLabel={
+          sub
+            ? `${sub.plan} plan · ${formatAllowanceHeadline(creatorId, sub.plan)} · Learn = 5 msgs · Hive = 3 msgs`
+            : undefined
+        }
+        compact
+      />
     </View>
   );
 }

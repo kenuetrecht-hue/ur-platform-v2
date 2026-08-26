@@ -1,6 +1,6 @@
 /**
  * 3D Workspace bundle pricing (Option A) — workspace access + concurrent AI slots.
- * Text chat still uses per-specialist subscriptions; voice uses Talk Time packs.
+ * Text chat uses the platform text pass (one AI at a time); voice uses Talk Time packs.
  */
 
 export type Workspace3dPlanId = "day_pass" | "solo" | "pro" | "studio";

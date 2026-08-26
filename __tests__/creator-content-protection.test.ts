@@ -7,6 +7,7 @@ import {
 } from "../lib/creator-content-protection-core";
 import {
   __resetContentProtectionForTests,
+  markCreatorIdentityVerified,
   registerAndVerifyContent,
   registerCreatorIdentity,
   ContentProtectionError,
@@ -117,5 +118,18 @@ describe("creator-content-protection-service", () => {
     const status = getUserProtectionStatus("bad-actor");
     expect(status.strikes.strikeCount).toBe(3);
     expect(status.canPublish).toBe(false);
+  });
+
+  it("locks a verified creator name so it cannot be stolen by a rename", () => {
+    registerCreatorIdentity({ userId: "real-creator", displayName: "Harbor Hanna" });
+    markCreatorIdentityVerified("real-creator");
+
+    expect(() =>
+      registerCreatorIdentity({ userId: "real-creator", displayName: "Totally Different" }),
+    ).toThrow(ContentProtectionError);
+
+    expect(() =>
+      registerCreatorIdentity({ userId: "imposter", displayName: "Harbor Hanna" }),
+    ).toThrow(ContentProtectionError);
   });
 });

@@ -12,9 +12,11 @@ import { Link, Redirect } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { PrimaryActionButton } from "@/components/primary-action-button";
+import { WebLoginSubmit } from "@/components/web-login-submit";
 import { useLoginScreen } from "@/hooks/use-login-screen";
+import { TurnstileWidget } from "@/components/turnstile-widget";
 
-/** Native login (iOS / Android). Browser uses login.web.tsx instead. */
+/** Same login on website and native app — web uses a DOM submit button so clicks register. */
 export default function LoginScreen() {
   const colors = useColors();
   const {
@@ -29,10 +31,11 @@ export default function LoginScreen() {
     handleLogin,
     onEmailChange,
     onPasswordChange,
+    onTurnstileToken,
   } = useLoginScreen();
 
   if (isAuthenticated) {
-    return <Redirect href="/(tabs)" />;
+    return <Redirect href="/age-verify" />;
   }
 
   const inputStyle = {
@@ -43,6 +46,7 @@ export default function LoginScreen() {
     padding: 12,
     fontSize: 16,
     color: colors.foreground,
+    width: "100%" as const,
     ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as object) : null),
   };
 
@@ -58,16 +62,14 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="always"
           keyboardDismissMode="on-drag"
         >
-          <View style={styles.form} testID="login-form">
-            <View style={styles.header}>
-              <Link href="/welcome" style={{ color: colors.muted, fontSize: 13 }}>
-                ← Back to homepage
-              </Link>
-              <Text style={[styles.title, { color: colors.foreground }]}>UR Platform</Text>
-              <Text style={{ fontSize: 16, color: colors.muted }}>
-                Sign in to your account
-              </Text>
-            </View>
+          <View style={styles.card} testID="login-form">
+            <Link href="/welcome" style={{ color: colors.muted, fontSize: 13, marginBottom: 8 }}>
+              ← Back to homepage
+            </Link>
+            <Text style={[styles.title, { color: colors.foreground }]}>UR Platform</Text>
+            <Text style={{ fontSize: 16, color: colors.muted, marginBottom: 24 }}>
+              Sign in to your account
+            </Text>
 
             {displayError ? (
               <View
@@ -83,72 +85,78 @@ export default function LoginScreen() {
             ) : null}
 
             {statusLine && !displayError ? (
-              <Text style={[styles.statusText, { color: colors.primary }]}>{statusLine}</Text>
+              <Text style={[styles.status, { color: colors.primary }]}>{statusLine}</Text>
             ) : null}
 
-            <View style={styles.fields}>
-              <View>
-                <Text style={[styles.label, { color: colors.foreground }]}>Email</Text>
-                <TextInput
-                  ref={emailRef}
-                  value={email}
-                  onChangeText={onEmailChange}
-                  placeholder="you@example.com"
-                  placeholderTextColor={colors.muted}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  textContentType="emailAddress"
-                  testID="login-email"
-                  editable={!submitting}
-                  style={inputStyle}
-                  returnKeyType="next"
-                />
-              </View>
+            <Text style={[styles.label, { color: colors.foreground }]}>Email</Text>
+            <TextInput
+              ref={emailRef}
+              value={email}
+              onChangeText={onEmailChange}
+              placeholder="you@example.com"
+              placeholderTextColor={colors.muted}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              textContentType="emailAddress"
+              testID="login-email"
+              editable={!submitting}
+              style={inputStyle}
+              returnKeyType="next"
+            />
 
-              <View>
-                <Text style={[styles.label, { color: colors.foreground }]}>Password</Text>
-                <TextInput
-                  ref={passwordRef}
-                  value={password}
-                  onChangeText={onPasswordChange}
-                  placeholder="Your password"
-                  placeholderTextColor={colors.muted}
-                  secureTextEntry
-                  autoComplete="current-password"
-                  textContentType="password"
-                  testID="login-password"
-                  editable={!submitting}
-                  style={inputStyle}
-                  returnKeyType="go"
-                  onSubmitEditing={() => {
-                    void handleLogin();
-                  }}
-                />
-              </View>
+            <Text style={[styles.label, { color: colors.foreground, marginTop: 16 }]}>Password</Text>
+            <TextInput
+              ref={passwordRef}
+              value={password}
+              onChangeText={onPasswordChange}
+              placeholder="Your password"
+              placeholderTextColor={colors.muted}
+              secureTextEntry
+              autoComplete="current-password"
+              textContentType="password"
+              testID="login-password"
+              editable={!submitting}
+              style={inputStyle}
+              returnKeyType="go"
+              onSubmitEditing={() => {
+                void handleLogin();
+              }}
+            />
+
+            <View style={{ marginTop: 16, marginBottom: 4 }}>
+              <TurnstileWidget action="login" onToken={onTurnstileToken} />
             </View>
-          </View>
-        </ScrollView>
 
-        <View style={styles.footer}>
-          <PrimaryActionButton
-            label="Sign In"
-            loadingLabel="Signing in..."
-            loading={submitting}
-            onPress={handleLogin}
-            backgroundColor={colors.primary}
-            testID="login-submit"
-          />
+            {Platform.OS === "web" ? (
+              <WebLoginSubmit
+                label="Sign In"
+                loadingLabel="Signing in..."
+                loading={submitting}
+                backgroundColor={colors.primary}
+                onPress={handleLogin}
+              />
+            ) : (
+              <View style={{ marginTop: 24 }}>
+                <PrimaryActionButton
+                  label="Sign In"
+                  loadingLabel="Signing in..."
+                  loading={submitting}
+                  onPress={handleLogin}
+                  backgroundColor={colors.primary}
+                  testID="login-submit"
+                />
+              </View>
+            )}
 
-          <View style={{ alignItems: "center", marginTop: 16 }}>
-            <Text style={{ color: colors.muted, fontSize: 14 }}>
+            <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 20 }}>
               Don&apos;t have an account?{" "}
               <Link href="/signup" style={{ color: colors.primary, fontWeight: "700" }}>
                 Sign up
               </Link>
             </Text>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </ScreenContainer>
   );
@@ -160,32 +168,38 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
+    alignItems: "center",
     padding: 24,
-    paddingBottom: 12,
   },
-  form: { gap: 24 },
-  header: { alignItems: "center", gap: 8 },
-  title: { fontSize: 32, fontWeight: "bold" },
-  fields: { gap: 16 },
-  label: { fontSize: 14, fontWeight: "600", marginBottom: 8 },
-  footer: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    paddingTop: 8,
+  card: {
+    width: "100%",
+    maxWidth: 420,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
   },
   errorBox: {
     borderWidth: 1,
     borderRadius: 12,
     padding: 12,
+    marginBottom: 16,
   },
   errorText: {
     fontSize: 14,
     lineHeight: 20,
     textAlign: "center",
   },
-  statusText: {
+  status: {
     fontSize: 14,
-    textAlign: "center",
     fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 12,
   },
 });

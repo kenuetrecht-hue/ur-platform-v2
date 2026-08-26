@@ -4,6 +4,7 @@ import {
   isGoogleCloudAiConfigured,
 } from "./_core/google-ai";
 import { assertUserCanUseAi, enforceAiGuardrails } from "./_core/ai-guardrails";
+import { assertUserIsAgeVerified } from "./_core/age-kyc-service";
 import { assertNoAiTakeoverInMessage } from "./_core/ai-control";
 import { assertMessageWithinAiRole } from "./_core/ai-roles";
 import { assertAiEntitled } from "./_core/access-entitlements";
@@ -77,6 +78,7 @@ export const aiLanguageRouter = router({
       try {
         assertLinguamateEntitled(ctx);
         consumeLinguamateMessage(ctx);
+        await assertUserIsAgeVerified(ctx.user.id);
         assertUserCanUseAi(String(ctx.user.id), ctx.isPlatformOwner);
 
         const message = sanitizeUserText(input.message, 4000);
@@ -169,6 +171,7 @@ export const aiLanguageRouter = router({
       try {
         assertLinguamateEntitled(ctx);
         consumeLinguamateMessage(ctx);
+        await assertUserIsAgeVerified(ctx.user.id);
         assertUserCanUseAi(String(ctx.user.id), ctx.isPlatformOwner);
 
         const text = sanitizeUserText(input.text, 4000);
@@ -243,6 +246,7 @@ ${text}
       try {
         assertLinguamateEntitled(ctx);
         consumeLinguamateMessage(ctx);
+        await assertUserIsAgeVerified(ctx.user.id);
         assertUserCanUseAi(String(ctx.user.id), ctx.isPlatformOwner);
 
         const targetLanguage = sanitizeLanguageLabel(input.targetLanguage);

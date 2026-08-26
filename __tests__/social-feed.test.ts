@@ -52,8 +52,10 @@ describe("Social feed", () => {
     });
     expect(comment.body).toBe("Nice post!");
 
-    const shareCount = recordPostShare(post.id);
-    expect(shareCount).toBeGreaterThanOrEqual(1);
+    const share = recordPostShare(post.id);
+    expect(share.shareCount).toBeGreaterThanOrEqual(1);
+    expect(share.shareText).toContain("Author");
+    expect(share.shareText).toContain("UR Platform");
 
     const feed = getFeed({ viewerUserId: viewerId, sort: "top" });
     const found = feed.posts.find((p) => p.id === post.id);
@@ -90,5 +92,25 @@ describe("Social feed", () => {
     expect(deleteFeedPost({ postId: post.id, userId: authorId })).toBe(true);
     const feed = getFeed({ viewerUserId: authorId });
     expect(feed.posts.some((p) => p.id === post.id)).toBe(false);
+  });
+
+  it("blocks another member from republishing an original caption to farm views", () => {
+    const body = "My exclusive winterization walkthrough for twin Yamaha outboards this season.";
+    createFeedPost({
+      authorUserId: authorId,
+      authorEmail: "author@test.com",
+      authorName: "Author",
+      body,
+      rightsConfirmed: true,
+    });
+    expect(() =>
+      createFeedPost({
+        authorUserId: viewerId,
+        authorEmail: "viewer@test.com",
+        authorName: "Viewer",
+        body,
+        rightsConfirmed: true,
+      }),
+    ).toThrow(/already registered to another creator/);
   });
 });

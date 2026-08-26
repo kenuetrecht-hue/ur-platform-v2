@@ -15,6 +15,11 @@ import {
 } from "../../lib/usage-caps-catalog";
 import { recordTransaction } from "./transaction-ledger-service";
 import { getActiveAiSubscription } from "./ai-subscription-service";
+import {
+  buildUsageLotTrackerView,
+  formatUsedLeftLine,
+  type UsageLotTrackerView,
+} from "../../lib/usage-lot-tracker";
 
 export type CreditLot = {
   id: string;
@@ -41,14 +46,37 @@ function dayKey(userId: string, productId: CreditProductId | "web_search_include
   return `${userId}:${productId}:${ymd}`;
 }
 
-function activeLots(userId: string, productId: CreditProductId): CreditLot[] {
+function unexpiredLots(userId: string, productId?: CreditProductId): CreditLot[] {
   const now = Date.now();
-  return [...creditLots.values()].filter(
-    (lot) =>
-      lot.userId === userId &&
-      lot.productId === productId &&
-      new Date(lot.expiresAt).getTime() > now &&
-      lot.used < lot.included,
+  return [...creditLots.values()]
+    .filter(
+      (lot) =>
+        lot.userId === userId &&
+        (!productId || lot.productId === productId) &&
+        new Date(lot.expiresAt).getTime() > now,
+    )
+    .sort((a, b) => a.expiresAt.localeCompare(b.expiresAt));
+}
+
+function activeLots(userId: string, productId: CreditProductId): CreditLot[] {
+  return unexpiredLots(userId, productId).filter((lot) => lot.used < lot.included);
+}
+
+export function listCreditLotTrackers(
+  userId: string,
+  productId: CreditProductId,
+): UsageLotTrackerView[] {
+  const product = CREDIT_PRODUCTS[productId];
+  return unexpiredLots(userId, productId).map((lot) =>
+    buildUsageLotTrackerView({
+      id: lot.id,
+      productId: lot.productId,
+      productLabel: lot.label || product.label,
+      unit: product.unit,
+      included: lot.included,
+      used: lot.used,
+      expiresAt: lot.expiresAt,
+    }),
   );
 }
 
@@ -64,15 +92,19 @@ export function getCreditBalance(userId: string, productId: CreditProductId): {
   dailyRemaining: number;
   activePeriod: BillingPeriod | "addon" | null;
   expiresAt: string | null;
+  lots: UsageLotTrackerView[];
+  usedLeftLine: string;
 } {
   const product = CREDIT_PRODUCTS[productId];
-  const lots = activeLots(userId, productId);
-  const remaining = lots.reduce((sum, lot) => sum + (lot.included - lot.used), 0);
-  const included = lots.reduce((sum, lot) => sum + lot.included, 0);
-  const used = lots.reduce((sum, lot) => sum + lot.used, 0);
+  const spendable = activeLots(userId, productId);
+  const tracked = unexpiredLots(userId, productId);
+  const remaining = spendable.reduce((sum, lot) => sum + (lot.included - lot.used), 0);
+  const included = tracked.reduce((sum, lot) => sum + lot.included, 0);
+  const used = tracked.reduce((sum, lot) => sum + lot.used, 0);
   const usedToday = dailyUsage.get(dayKey(userId, productId)) ?? 0;
   const dailyRemaining = Math.max(0, product.dailyHardCap - usedToday);
-  const primary = lots[0];
+  const primary = spendable[0] ?? tracked[0];
+  const lots = listCreditLotTrackers(userId, productId);
 
   return {
     productId,
@@ -86,6 +118,13 @@ export function getCreditBalance(userId: string, productId: CreditProductId): {
     dailyRemaining,
     activePeriod: primary?.period ?? null,
     expiresAt: primary?.expiresAt ?? null,
+    lots,
+    usedLeftLine: formatUsedLeftLine({
+      used,
+      included,
+      remaining: Math.min(remaining, dailyRemaining),
+      unit: product.unit,
+    }),
   };
 }
 

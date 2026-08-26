@@ -79,7 +79,7 @@ export default function ProfileSettingsScreen() {
         >
           <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>Terms of Use</Text>
           <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>
-            No refunds on AI purchases · Zero harassment · Creator transactions are not UR LLC&apos;s responsibility
+            No refunds on AI purchases · Zero harassment · Creator transactions are not UR Platform LLC&apos;s responsibility
           </Text>
         </Pressable>
 

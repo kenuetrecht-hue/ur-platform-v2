@@ -1,6 +1,6 @@
 import { z } from "zod";
 import axios from "axios";
-import { router, publicProcedure } from "./_core/trpc";
+import { router, secureProcedure } from "./_core/trpc";
 import { applyAffiliateDisclosures } from "../lib/affiliate-disclosure";
 
 /**
@@ -148,7 +148,7 @@ export const aiRealEstateRouter = router({
    * Voice-enabled real estate consulting
    * User asks a question, AI responds with multi-format answer
    */
-  askConsultant: publicProcedure
+  askConsultant: secureProcedure("aiRealEstate")
     .input(VoiceQuerySchema)
     .output(MultiFormatResponseSchema)
     .mutation(async ({ input }: { input: z.infer<typeof VoiceQuerySchema> }) => {
@@ -232,7 +232,7 @@ Vet each team member thoroughly before hiring.`;
    * Analyze property from image
    * Upload photo, AI identifies issues and provides guidance
    */
-  analyzePropertyImage: publicProcedure
+  analyzePropertyImage: secureProcedure("aiRealEstate")
     .input(ImageAnalysisSchema)
     .output(MultiFormatResponseSchema)
     .mutation(async ({ input }: { input: z.infer<typeof ImageAnalysisSchema> }) => {
@@ -301,7 +301,7 @@ Recommend full professional inspection before purchase.`,
    * Calculate property metrics
    * ARV, MAO, ROI, profit margin, repair costs
    */
-  calculateMetrics: publicProcedure
+  calculateMetrics: secureProcedure("aiRealEstate")
     .input(CalculatorInputSchema)
     .output(CalculatorResultSchema)
     .mutation(async ({ input }: { input: z.infer<typeof CalculatorInputSchema> }) => {
@@ -390,7 +390,7 @@ Recommend full professional inspection before purchase.`,
    * Analyze property deal
    * Complete analysis with ARV, MAO, comps, recommendations
    */
-  analyzePropertyDeal: publicProcedure
+  analyzePropertyDeal: secureProcedure("aiRealEstate")
     .input(PropertyAnalysisSchema)
     .output(PropertyAnalysisResultSchema)
     .mutation(async ({ input }: { input: z.infer<typeof PropertyAnalysisSchema> }) => {
@@ -443,7 +443,7 @@ Recommend full professional inspection before purchase.`,
    * Get study module content
    * Learning materials for real estate licensing prep
    */
-  getStudyModule: publicProcedure
+  getStudyModule: secureProcedure("aiRealEstate")
     .input(StudyModuleSchema)
     .output(z.object({
       moduleId: z.string(),
@@ -517,7 +517,7 @@ Each option has trade-offs in terms of cost, speed, and flexibility.`,
    * Get practice test
    * Real estate licensing exam prep questions
    */
-  getPracticeTest: publicProcedure
+  getPracticeTest: secureProcedure("aiRealEstate")
     .input(PracticeTestSchema)
     .output(z.object({
       testId: z.string(),
@@ -605,7 +605,7 @@ Each option has trade-offs in terms of cost, speed, and flexibility.`,
    * Generate hot leads from multiple sources
    * Hunt down off-market deals, wholesalers, auctions, foreclosures
    */
-  generateLeads: publicProcedure
+  generateLeads: secureProcedure("aiRealEstate")
     .input(LeadGenerationSchema)
     .output(z.object({
       searchType: z.string(),
@@ -674,7 +674,7 @@ Each option has trade-offs in terms of cost, speed, and flexibility.`,
    * Search properties across multiple sources
    * Zillow, Redfin, Realtor.com, LoopNet, Tax Assessor
    */
-  searchProperties: publicProcedure
+  searchProperties: secureProcedure("aiRealEstate")
     .input(PropertySearchSchema)
     .output(z.object({
       source: z.string(),
@@ -769,7 +769,7 @@ Each option has trade-offs in terms of cost, speed, and flexibility.`,
    * Get printable documents
    * Checklists, templates, guides for real estate investing
    */
-  getPrintableDocuments: publicProcedure
+  getPrintableDocuments: secureProcedure("aiRealEstate")
     .input(z.object({ documentType: z.string() }))
     .output(z.object({
       documentType: z.string(),
@@ -908,7 +908,7 @@ STEP 7: SELL PROPERTY
       };
     }),
 
-  synthesizeVoiceResponse: publicProcedure
+  synthesizeVoiceResponse: secureProcedure("aiRealEstate")
     .input(z.object({ text: z.string() }))
     .mutation(async ({ input }) => {
       const apiKey = process.env.ELEVENLABS_API_KEY || "";

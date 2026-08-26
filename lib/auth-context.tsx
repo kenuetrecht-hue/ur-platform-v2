@@ -34,13 +34,14 @@ export interface AuthState {
 }
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, captchaToken?: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (
     email: string,
     password: string,
     name: string,
     role: UserRole,
+    captchaToken?: string,
   ) => Promise<void>;
   clearError: () => void;
 }
@@ -243,7 +244,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string, captchaToken?: string) => {
     dispatch({ type: "SET_ERROR", payload: null });
 
     try {
@@ -256,6 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         supabase.auth.signInWithPassword({
           email: email.trim(),
           password: password.trim(),
+          options: captchaToken ? { captchaToken } : undefined,
         }),
         15_000,
         "Sign in",
@@ -312,6 +314,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       password: string,
       name: string,
       role: UserRole,
+      captchaToken?: string,
     ) => {
       dispatch({ type: "SET_LOADING", payload: true });
       dispatch({ type: "SET_ERROR", payload: null });
@@ -327,6 +330,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           password: password.trim(),
           options: {
             data: { name, role },
+            ...(captchaToken ? { captchaToken } : {}),
           },
         });
 

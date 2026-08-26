@@ -97,7 +97,7 @@ export function redactSecrets(text: string): string {
     .replace(/AQ\.[A-Za-z0-9_-]{10,}/g, "[REDACTED_GEMINI_KEY]")
     .replace(/AIza[0-9A-Za-z_-]{20,}/g, "[REDACTED_GOOGLE_KEY]")
     .replace(
-      /(CONTENTMATE_GEMINI_API_KEY|GEMINI_API_KEY)(=|:)\s*["']?[^"'\s]+["']?/gi,
+      /(CONTENTMATE_GEMINI_API_KEY|GEMINI_API_KEY|TURNSTILE_SECRET_KEY)(=|:)\s*["']?[^"'\s]+["']?/gi,
       "$1$2[REDACTED]",
     );
 }

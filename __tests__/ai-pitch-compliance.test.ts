@@ -138,7 +138,7 @@ describe('AI Subscription Pitch Engine', () => {
     const pitch = aiSubscriptionPitchEngine.generatePitch(context, ['beat creation', 'mixing', 'mastering']);
     
     expect(pitch.aiDisclosurePrePitch).toContain('AI');
-    expect(pitch.aiDisclosurePrePitch).toContain('UR LLC');
+    expect(pitch.aiDisclosurePrePitch).toContain('UR Platform LLC');
     expect(pitch.aiDisclosurePostPitch).toContain('AI');
   });
 
@@ -158,11 +158,11 @@ describe('AI Subscription Pitch Engine', () => {
     const pitch = aiSubscriptionPitchEngine.generatePitch(context, ['beat creation']);
     
     expect(pitch.complianceDisclaimer).toContain('entertainment');
-    expect(pitch.complianceDisclaimer).toContain('UR LLC');
+    expect(pitch.complianceDisclaimer).toContain('UR Platform LLC');
     expect(pitch.complianceDisclaimer).toContain('AI');
   });
 
-  it('should calculate UR LLC revenue share', () => {
+  it('should calculate UR Platform LLC revenue share', () => {
     const context = {
       userId: 'user1',
       creatorId: 'creator1',
@@ -177,7 +177,7 @@ describe('AI Subscription Pitch Engine', () => {
 
     const pitch = aiSubscriptionPitchEngine.generatePitch(context, ['beat creation']);
     
-    // UR LLC gets 30% of subscription
+    // UR Platform LLC gets 30% of subscription
     expect(pitch.urLLCRevenueShare).toBe(pitch.estimatedValue * 0.30);
   });
 
@@ -296,6 +296,6 @@ describe('AI Subscription Pitch Engine', () => {
     
     expect(summary).toContain('AI');
     expect(summary).toContain('entertainment');
-    expect(summary).toContain('UR LLC');
+    expect(summary).toContain('UR Platform LLC');
   });
 });

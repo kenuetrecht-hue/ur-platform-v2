@@ -31,13 +31,13 @@ describe("ai-subscription-pricing", () => {
     expect(getPlanPriceDollars("ai-wellness-001", "day")).toBe(7.99);
     expect(getPlanPriceDollars("ai-wellness-001", "week")).toBe(15.99);
     expect(getPlanPriceDollars("ai-wellness-001", "month")).toBe(24.99);
-    expect(getPlanPriceDollars("linguamate", "day")).toBe(8.99);
-    expect(getPlanPriceDollars("linguamate", "month")).toBe(27.99);
+    expect(getPlanPriceDollars("linguamate", "day")).toBe(7.99);
+    expect(getPlanPriceDollars("linguamate", "month")).toBe(24.99);
   });
 
   it("keeps tier labels for usage with tier-specific prices", () => {
     expect(getAiPriceTier("linguamate")).toBe("premium");
-    expect(getPlanPriceCents("linguamate", "day")).toBe(AI_SUBSCRIPTION_TIER_CENTS.premium.day);
+    expect(getPlanPriceCents("linguamate", "day")).toBe(AI_SUBSCRIPTION_TIER_CENTS.standard.day);
   });
 
   it("returns three plan quotes with savings on longer plans", () => {
@@ -64,8 +64,24 @@ describe("ai-talk-pricing", () => {
     expect(pack.featured).toBe(true);
   });
 
-  it("lists both talk packs", () => {
-    expect(listAiTalkPacks()).toHaveLength(2);
+  it("$120 pack: 500 minutes — web checkout", () => {
+    const pack = getAiTalkPack("talk_120");
+    expect(pack.priceCents).toBe(12_000);
+    expect(pack.totalMinutes).toBe(500);
+    expect(pack.requiredPaymentChannel).toBe("web_browser");
+    expect(pack.featured).toBe(true);
+  });
+
+  it("$200 pack: 1,000 minutes — web checkout for heavy two-way voice", () => {
+    const pack = getAiTalkPack("talk_200");
+    expect(pack.priceCents).toBe(20_000);
+    expect(pack.totalMinutes).toBe(1000);
+    expect(pack.requiredPaymentChannel).toBe("web_browser");
+    expect(pack.featured).toBe(true);
+  });
+
+  it("lists all four talk packs", () => {
+    expect(listAiTalkPacks()).toHaveLength(4);
   });
 });
 
@@ -101,6 +117,22 @@ describe("ai-talk purchases", () => {
     expect(getTalkMillisecondsRemaining("speech-user")).toBe(1_500_000 - 4500);
   });
 
+  it("grants 500 minutes (30M ms) on $120 pack purchase", () => {
+    const userId = "talk-user-bulk";
+    purchaseAiTalkPack({ userId, userEmail: email, packId: "talk_120", billingStateCode: TEST_STATE });
+    expect(hasAiTalkAccess(userId)).toBe(true);
+    expect(getAiTalkMinutesRemaining(userId)).toBe(500);
+    expect(getTalkMillisecondsRemaining(userId)).toBe(30_000_000);
+  });
+
+  it("grants 1,000 minutes (60M ms) on $200 pack purchase", () => {
+    const userId = "talk-user-heavy";
+    purchaseAiTalkPack({ userId, userEmail: email, packId: "talk_200", billingStateCode: TEST_STATE });
+    expect(hasAiTalkAccess(userId)).toBe(true);
+    expect(getAiTalkMinutesRemaining(userId)).toBe(1000);
+    expect(getTalkMillisecondsRemaining(userId)).toBe(60_000_000);
+  });
+
   it("legacy video talk purchase uses $5 pack", () => {
     purchaseAiVideoTalkPack({ userId: "legacy-user", userEmail: "legacy@test.com", billingStateCode: TEST_STATE });
     expect(getAiTalkMinutesRemaining("legacy-user")).toBe(25);
@@ -110,7 +142,7 @@ describe("ai-talk purchases", () => {
 describe("ai-subscription-service", () => {
   beforeEach(() => _clearAiSubscriptionsForTests());
 
-  it("grants per-AI access after purchase", () => {
+  it("grants every specialist after a platform-pass purchase", () => {
     const sub = purchaseAiSubscription({
       userId: "user-1",
       userEmail: "fan@example.com",
@@ -121,6 +153,6 @@ describe("ai-subscription-service", () => {
     expect(sub.plan).toBe("week");
     expect(sub.messagesIncluded).toBe(130);
     expect(hasActiveAiSubscription("user-1", "fan@example.com", "ai-wellness-001")).toBe(true);
-    expect(hasActiveAiSubscription("user-1", "fan@example.com", "ai-fitness-001")).toBe(false);
+    expect(hasActiveAiSubscription("user-1", "fan@example.com", "ai-fitness-001")).toBe(true);
   });
 });

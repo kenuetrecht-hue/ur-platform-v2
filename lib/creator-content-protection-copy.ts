@@ -7,10 +7,15 @@ export const CREATOR_CONTENT_RIGHTS_ATTESTATION_REPOST =
   "I confirm I have permission or a legal right to repost this content from a public source, with proper credit, and in compliance with copyright law and UR Platform rules.";
 
 export const CREATOR_CONTENT_PROTECTION_NOTICE =
-  "UR Platform blocks unauthorized cloning. You may repost public content when you credit the source and confirm your license (permission, Creative Commons, fair use, etc.). Impersonation and repeat infringement may result in account suspension.";
+  "UR Platform blocks unauthorized cloning and lookalike names. Original posts are fingerprinted so others cannot republish them as their own to farm views. After 18+ ID verification, your creator name is locked. You may repost public content only with credit and a license. Impersonation and repeat infringement can pause publishing or close the account.";
 
 export const CREATOR_IMPERSONATION_REPORT_HINT =
-  "See a copycat creator? Use Report on their profile or contact support — impersonation reports are reviewed by the platform owner.";
+  "See a copycat name, stolen post, or fake verified creator? Use Report on their profile — impersonation and content-theft reports go to the platform owner.";
+
+export const CREATOR_VERIFIED_BADGE_HINT = "ID verified";
+
+export const CREATOR_CANONICAL_SHARE_NOTICE =
+  "Original UR Platform post. Do not reupload this as your own content.";
 
 export const LICENSED_REPOST_ATTRIBUTION_HINT =
   "Name the original creator or source. Add a link to the public post when you have one.";

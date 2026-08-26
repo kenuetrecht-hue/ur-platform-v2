@@ -35,6 +35,43 @@ export interface ConversationEntry {
   engagementScore: number;
 }
 
+const SHOP_ASSET_PATTERN =
+  /\b((?:haas|fanuc|mazak|hurco|okuma|dmg(?:\s*mori)?|siemens|heidenhain|fadal|bridgeport|tormach|hardinge|doosan|brother|kitamura|makino|biesse|homag|weeke|scm|busellato|komo|thermwood|multicam|anderson|prototrak|acramatic|south\s*bend|clausing|leblond|nbc|ncb|toyota|honda|ford|chevrolet|chevy|gmc|dodge|jeep|nissan|hyundai|kia|mazda|subaru|volkswagen|bmw|mercedes|audi|lexus|tesla|volvo|carrier|trane|lennox|rheem|ruud|goodman|york|daikin|mitsubishi|honeywell|bryant|amana|abb|kuka|yaskawa|motoman|universal\s+robots|boston\s+dynamics|miller|lincoln|esab|hobart|hypertherm|mercury|mercruiser|evinrude|yamaha|volvo\s+penta|stihl|husqvarna|echo|briggs|kohler|generac|john\s+deere|square\s*d|eaton|lutron|navien|rinnai|bradford\s+white|ao\s+smith|prusa|bambu|formlabs|creality|elegoo|anycubic|simpson|hilti|usg|paslode|sheetrock|hobart|kitchenaid|vulcan|vitamix|rational|true)(?:\s+[A-Za-z0-9./-]{1,16}){0,3})\b/gi;
+
+export function extractShopAssets(message: string): string[] {
+  const found = new Set<string>();
+  const matches = message.match(SHOP_ASSET_PATTERN) ?? [];
+  for (const match of matches) {
+    const cleaned = match.replace(/\s+/g, " ").trim();
+    if (cleaned.length >= 3) found.add(cleaned);
+  }
+  return [...found].slice(0, 6);
+}
+
+const DIET_PATTERN =
+  /\b(vegan|vegetarian|pescatarian|gluten[- ]free|kosher|halal|keto|paleo|dairy[- ]free|nut[- ]free|shellfish[- ]free)\b/gi;
+
+export function extractLearnerFacts(message: string): string[] {
+  const facts = new Set<string>();
+  const diets = message.match(DIET_PATTERN) ?? [];
+  for (const diet of diets) {
+    facts.add(`diet:${diet.toLowerCase().replace(/\s+/g, "-")}`);
+  }
+
+  const allergy = message.match(
+    /\b(?:allerg(?:y|ic)(?:\s+to)?|can't eat|cannot eat|no)\s+([a-z][a-z\s-]{2,32})/i,
+  );
+  if (allergy?.[1] && /\ballerg/i.test(message)) {
+    const item = allergy[1].replace(/[.,;:].*$/, "").trim().slice(0, 40);
+    if (item.length >= 3) facts.add(`allergy:${item}`);
+  }
+
+  const skill = message.match(/\b(beginner|intermediate|advanced)\s+(?:cook|chef|baker|home cook)/i);
+  if (skill?.[1]) facts.add(`skill:${skill[1].toLowerCase()}`);
+
+  return [...facts].slice(0, 8);
+}
+
 export interface UserMemoryContext {
   userId: string;
   creatorId: string;
@@ -90,6 +127,84 @@ class AIUserMemoryService {
     return profile;
   }
 
+  /** Shop-floor machines the user named — persisted as machine: tags. */
+  getRememberedShopAssets(userId: string, creatorId: string): string[] {
+    const profile = this.getUserProfile(userId, creatorId);
+    if (!profile) return [];
+    return profile.preferences.contentPreferences
+      .filter((item) => item.startsWith("machine:"))
+      .map((item) => item.slice("machine:".length))
+      .filter(Boolean);
+  }
+
+  rememberShopAssetsFromMessage(userId: string, creatorId: string, message: string): void {
+    const profile = this.getUserProfile(userId, creatorId);
+    if (!profile) return;
+    const found = extractShopAssets(message);
+    if (found.length === 0) return;
+    const existing = new Set(profile.preferences.contentPreferences);
+    for (const asset of found) {
+      existing.add(`machine:${asset}`);
+    }
+    profile.preferences.contentPreferences = [...existing].slice(-20);
+  }
+
+  getRememberedLearnerFacts(userId: string, creatorId: string): string[] {
+    const profile = this.getUserProfile(userId, creatorId);
+    if (!profile) return [];
+    return profile.preferences.contentPreferences
+      .filter((item) => item.startsWith("fact:"))
+      .map((item) => item.slice("fact:".length))
+      .filter(Boolean);
+  }
+
+  rememberLearnerFactsFromMessage(userId: string, creatorId: string, message: string): void {
+    const profile = this.getUserProfile(userId, creatorId);
+    if (!profile) return;
+    const found = extractLearnerFacts(message);
+    if (found.length === 0) return;
+    const existing = new Set(profile.preferences.contentPreferences);
+    for (const fact of found) {
+      existing.add(`fact:${fact}`);
+    }
+    profile.preferences.contentPreferences = [...existing].slice(-24);
+  }
+
+  getLearningProgressTags(userId: string, creatorId: string): string[] {
+    const profile = this.getUserProfile(userId, creatorId);
+    if (!profile) return [];
+    return profile.preferences.contentPreferences
+      .filter((item) => item.startsWith("learn:"))
+      .map((item) => item.slice("learn:".length))
+      .filter(Boolean);
+  }
+
+  recordLearningProgress(
+    userId: string,
+    creatorId: string,
+    params: { level?: string; mode?: string; topic?: string },
+  ): void {
+    const profile = this.getUserProfile(userId, creatorId);
+    if (!profile) return;
+    const existing = new Set(profile.preferences.contentPreferences);
+    if (params.level) existing.add(`learn:level:${params.level.slice(0, 24)}`);
+    if (params.mode) existing.add(`learn:mode:${params.mode.slice(0, 24)}`);
+    if (params.topic) existing.add(`learn:last:${params.topic.slice(0, 80)}`);
+    profile.preferences.contentPreferences = [...existing].slice(-24);
+  }
+
+  /** Tags that must survive MySQL hydrate (machines, learner facts, Learn progress). */
+  getPersistedPreferenceTags(userId: string, creatorId: string): string[] {
+    const profile = this.getUserProfile(userId, creatorId);
+    if (!profile) return [];
+    return profile.preferences.contentPreferences.filter(
+      (item) =>
+        item.startsWith("machine:") ||
+        item.startsWith("fact:") ||
+        item.startsWith("learn:"),
+    );
+  }
+
   /**
    * Get user profile
    */
@@ -141,7 +256,14 @@ class AIUserMemoryService {
       technology: ['code', 'tech', 'software', 'development', 'programming'],
       art: ['art', 'design', 'creative', 'drawing', 'visual'],
       business: ['business', 'marketing', 'sales', 'entrepreneur', 'growth'],
+      funding: ['grant', 'loan', 'funding', 'sba', 'capital', 'investor', 'financing', 'startup capital'],
       education: ['learn', 'teach', 'study', 'course', 'education'],
+      machining: ['cnc', 'lathe', 'mill', 'g-code', 'gcode', 'nbc', 'vmc', 'end mill'],
+      jobsite: ['jobsite', 'job site', 'shop floor', 'alarm', 'fault', 'nameplate'],
+      automotive: ['car', 'truck', 'obd', 'misfire', 'check engine', 'vin'],
+      hvac: ['hvac', 'furnace', 'heat pump', 'air condition', 'duct'],
+      robotics: ['robot', 'ros', 'actuator', 'teach pendant'],
+      culinary: ['cook', 'recipe', 'kitchen', 'bake', 'chef', 'sauce', 'allergen', 'servsafe'],
     };
 
     const lowerMessage = message.toLowerCase();

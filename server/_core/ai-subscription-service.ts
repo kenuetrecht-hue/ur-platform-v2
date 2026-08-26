@@ -1,5 +1,5 @@
 /**
- * Per-AI specialist subscriptions — daily, weekly, and monthly plans.
+ * Platform text pass — day / week / month unlocks every UR specialist, one at a time.
  */
 
 import { randomUUID } from "crypto";
@@ -7,23 +7,29 @@ import { TRPCError } from "@trpc/server";
 import {
   type AiSubscriptionPlan,
   AI_SUBSCRIPTION_PLAN_DAYS,
+  PLATFORM_PASS_ID,
   applyCreatorDiscountCents,
-  getPlanPriceCents,
   getAiPriceTier,
+  getPlatformPassPriceCents,
 } from "../../lib/ai-subscription-pricing";
 import { getMessageAllowance } from "../../lib/ai-usage-allowances";
 import { calculateCustomerCheckout } from "../../lib/stripe-checkout-pricing";
 import { awardAiSubscriptionPurchasePoints } from "./loyalty-activity-service";
 import { markPaidAiPurchaseDuringStreak } from "./loyalty-streak-service";
 
-/** Platform-owned AI specialists — UR LLC keeps 100% of subscription revenue */
+/** Platform-owned AI specialists — UR Platform LLC keeps 100% of subscription revenue */
 export const AI_SUBSCRIPTION_PLATFORM_SHARE_BPS = 10000;
+
+export type AiSubscriptionScope = "platform" | "specialist";
 
 export type AiSubscriptionRecord = {
   id: string;
   userId: string;
   userEmail: string;
   creatorId: string;
+  /** Specialist page the pass was purchased from (attribution). */
+  homeCreatorId?: string;
+  scope: AiSubscriptionScope;
   plan: AiSubscriptionPlan;
   priceCents: number;
   priceTier: ReturnType<typeof getAiPriceTier>;
@@ -53,6 +59,14 @@ function subscriptionKey(userId: string, creatorId: string): string {
   return `${userId}:${creatorId}`;
 }
 
+function isPlatformPassRecord(sub: AiSubscriptionRecord): boolean {
+  return sub.scope === "platform" || sub.creatorId === PLATFORM_PASS_ID;
+}
+
+function isActiveNow(sub: AiSubscriptionRecord, now: number): boolean {
+  return sub.active && new Date(sub.expiresAt).getTime() >= now;
+}
+
 export function hasActiveAiSubscription(
   userId: string | number | undefined,
   email: string | null | undefined,
@@ -64,8 +78,9 @@ export function hasActiveAiSubscription(
   const normalized = email ? normalizeEmail(email) : null;
 
   for (const sub of subscriptionStore.values()) {
-    if (!sub.active || sub.creatorId !== creatorId) continue;
-    if (new Date(sub.expiresAt).getTime() < now) continue;
+    if (!isActiveNow(sub, now)) continue;
+    const coversCreator = isPlatformPassRecord(sub) || sub.creatorId === creatorId;
+    if (!coversCreator) continue;
     if (uid && sub.userId === uid) return true;
     if (normalized && normalizeEmail(sub.userEmail) === normalized) return true;
   }
@@ -77,25 +92,40 @@ export function getActiveAiSubscription(
   creatorId: string,
 ): AiSubscriptionRecord | null {
   const now = Date.now();
-  let best: AiSubscriptionRecord | null = null;
+  let bestPass: AiSubscriptionRecord | null = null;
+  let bestLegacy: AiSubscriptionRecord | null = null;
   for (const sub of subscriptionStore.values()) {
-    if (!sub.active || sub.creatorId !== creatorId || sub.userId !== userId) continue;
-    if (new Date(sub.expiresAt).getTime() < now) continue;
-    if (!best || sub.expiresAt > best.expiresAt) best = sub;
+    if (!isActiveNow(sub, now) || sub.userId !== userId) continue;
+    if (isPlatformPassRecord(sub)) {
+      if (!bestPass || sub.expiresAt > bestPass.expiresAt) bestPass = sub;
+      continue;
+    }
+    if (sub.creatorId === creatorId) {
+      if (!bestLegacy || sub.expiresAt > bestLegacy.expiresAt) bestLegacy = sub;
+    }
   }
-  return best;
+  return bestPass ?? bestLegacy;
 }
 
 export function listUserAiSubscriptions(userId: string): AiSubscriptionRecord[] {
   const now = Date.now();
   return Array.from(subscriptionStore.values())
-    .filter(
-      (s) =>
-        s.userId === userId &&
-        s.active &&
-        new Date(s.expiresAt).getTime() >= now,
-    )
+    .filter((s) => s.userId === userId && isActiveNow(s, now))
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+}
+
+function deactivateUserSubscriptions(userId: string, creatorId?: string): void {
+  for (const [id, existing] of subscriptionStore) {
+    if (existing.userId !== userId) continue;
+    if (creatorId && existing.creatorId !== creatorId && !isPlatformPassRecord(existing)) {
+      continue;
+    }
+    subscriptionStore.delete(id);
+  }
+}
+
+function writeSubscription(record: AiSubscriptionRecord): void {
+  subscriptionStore.set(subscriptionKey(record.userId, record.creatorId), record);
 }
 
 export function purchaseAiSubscription(params: {
@@ -112,13 +142,12 @@ export function purchaseAiSubscription(params: {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Valid email required." });
   }
 
-  let priceCents = getPlanPriceCents(params.creatorId, params.plan);
+  let priceCents = getPlatformPassPriceCents(params.plan);
   if (params.isContentCreator) {
     priceCents = applyCreatorDiscountCents(priceCents);
   }
 
-  const tier = getAiPriceTier(params.creatorId);
-  const messagesIncluded = getMessageAllowance(params.plan, tier);
+  const messagesIncluded = getMessageAllowance(params.plan, "standard");
   const checkout = calculateCustomerCheckout(priceCents, params.billingStateCode);
 
   const platformShareCents = Math.round(
@@ -130,21 +159,18 @@ export function purchaseAiSubscription(params: {
   const durationDays = AI_SUBSCRIPTION_PLAN_DAYS[params.plan];
   const expires = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
 
-  const key = subscriptionKey(params.userId, params.creatorId);
-  for (const [id, existing] of subscriptionStore) {
-    if (existing.userId === params.userId && existing.creatorId === params.creatorId) {
-      subscriptionStore.delete(id);
-    }
-  }
+  deactivateUserSubscriptions(params.userId);
 
   const record: AiSubscriptionRecord = {
     id: `aisub-${randomUUID().slice(0, 12)}`,
     userId: params.userId,
     userEmail: email,
-    creatorId: params.creatorId,
+    creatorId: PLATFORM_PASS_ID,
+    homeCreatorId: params.creatorId,
+    scope: "platform",
     plan: params.plan,
     priceCents,
-    priceTier: tier,
+    priceTier: "standard",
     startedAt: now.toISOString(),
     expiresAt: expires.toISOString(),
     active: true,
@@ -161,7 +187,7 @@ export function purchaseAiSubscription(params: {
     stateFeeCents: checkout.stateFeeCents,
   };
 
-  subscriptionStore.set(key, record);
+  writeSubscription(record);
   void awardAiSubscriptionPurchasePoints({
     userId: params.userId,
     creatorId: params.creatorId,
@@ -173,7 +199,7 @@ export function purchaseAiSubscription(params: {
   return record;
 }
 
-/** Loyalty reward — free 1-day AI subscription after 30-day streak + paid purchase. */
+/** Loyalty reward — free 1-day platform pass after 30-day streak + paid purchase. */
 export function grantLoyaltyFreeDaySubscription(params: {
   userId: string;
   userEmail: string;
@@ -184,26 +210,22 @@ export function grantLoyaltyFreeDaySubscription(params: {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Valid email required." });
   }
 
-  const tier = getAiPriceTier(params.creatorId);
-  const messagesIncluded = getMessageAllowance("day", tier);
+  const messagesIncluded = getMessageAllowance("day", "standard");
   const now = new Date();
   const expires = new Date(now.getTime() + AI_SUBSCRIPTION_PLAN_DAYS.day * 24 * 60 * 60 * 1000);
 
-  const key = subscriptionKey(params.userId, params.creatorId);
-  for (const [id, existing] of subscriptionStore) {
-    if (existing.userId === params.userId && existing.creatorId === params.creatorId) {
-      subscriptionStore.delete(id);
-    }
-  }
+  deactivateUserSubscriptions(params.userId);
 
   const record: AiSubscriptionRecord = {
     id: `aisub-loyalty-${randomUUID().slice(0, 12)}`,
     userId: params.userId,
     userEmail: email,
-    creatorId: params.creatorId,
+    creatorId: PLATFORM_PASS_ID,
+    homeCreatorId: params.creatorId,
+    scope: "platform",
     plan: "day",
     priceCents: 0,
-    priceTier: tier,
+    priceTier: "standard",
     startedAt: now.toISOString(),
     expiresAt: expires.toISOString(),
     active: true,
@@ -220,7 +242,7 @@ export function grantLoyaltyFreeDaySubscription(params: {
     stateFeeCents: 0,
   };
 
-  subscriptionStore.set(key, record);
+  writeSubscription(record);
   return record;
 }
 
@@ -232,15 +254,21 @@ export function incrementSubscriptionMessageUsage(
   const sub = getActiveAiSubscription(userId, creatorId);
   if (!sub) return;
   sub.messagesUsed += units;
-  subscriptionStore.set(subscriptionKey(userId, creatorId), sub);
+  writeSubscription(sub);
 }
 
 export function cancelAiSubscription(userId: string, creatorId: string): boolean {
+  const pass = subscriptionStore.get(subscriptionKey(userId, PLATFORM_PASS_ID));
+  if (pass) {
+    pass.active = false;
+    writeSubscription(pass);
+    return true;
+  }
   const key = subscriptionKey(userId, creatorId);
   const sub = subscriptionStore.get(key);
   if (!sub) return false;
   sub.active = false;
-  subscriptionStore.set(key, sub);
+  writeSubscription(sub);
   return true;
 }
 

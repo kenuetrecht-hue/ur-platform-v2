@@ -110,7 +110,7 @@ export function PurchaseSummaryCard({ summary }: Props) {
         {summary.aiDisclosure} Billed by {summary.billingEntity}.
       </Text>
       <Text style={[styles.termsNote, { color: colors.muted }]}>
-        AI & digital access: no refunds. Harassment = revoked privileges, no refund. Creator purchases: UR LLC not
+        AI & digital access: no refunds. Harassment = revoked privileges, no refund. Creator purchases: UR Platform LLC not
         responsible — see Profile → Terms of Use.
       </Text>
     </View>

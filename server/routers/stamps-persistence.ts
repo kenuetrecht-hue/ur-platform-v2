@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { publicProcedure, router } from "../_core/trpc";
+import { secureProcedure, securePublicProcedure, router } from "../_core/trpc";
 import * as db from "../db";
 import {
   getLaunchDate,
@@ -17,13 +17,12 @@ export const stampsPersistenceRouter = router({
   /**
    * Get user's stamp balance
    */
-  getStampBalance: publicProcedure
-    .input(z.object({ userId: z.string() }))
-    .query(async ({ input, ctx }) => {
-      // TODO: Query userStamps table
-      // SELECT * FROM userStamps WHERE userId = input.userId
+  getStampBalance: secureProcedure("stamps")
+    .input(z.object({ userId: z.string().max(64).optional() }).optional())
+    .query(async ({ ctx }) => {
+      const userId = String(ctx.user.id);
       return {
-        userId: input.userId,
+        userId,
         totalStamps: 0,
         availableStamps: 0,
         stampsUsed: 0,
@@ -34,15 +33,14 @@ export const stampsPersistenceRouter = router({
   /**
    * Purchase stamps (creates transaction record)
    */
-  purchaseStamps: publicProcedure
+  purchaseStamps: secureProcedure("stamps")
     .input(
       z.object({
-        userId: z.string(),
-        stampsAmount: z.number().min(1),
-        transactionId: z.string(),
+        stampsAmount: z.number().min(1).max(10_000),
+        transactionId: z.string().min(1).max(128),
       })
     )
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       // TODO: Insert into stampTransactions table
       // TODO: Update userStamps table
       return {
@@ -55,14 +53,13 @@ export const stampsPersistenceRouter = router({
   /**
    * Redeem stamps for AI service access
    */
-  redeemStampsForAIAccess: publicProcedure
+  redeemStampsForAIAccess: secureProcedure("stamps")
     .input(
       z.object({
-        userId: z.string(),
-        aiCreatorId: z.string(),
-        aiCreatorName: z.string(),
-        stampsToUse: z.number().min(1),
-        durationHours: z.number().default(24),
+        aiCreatorId: z.string().min(1).max(64),
+        aiCreatorName: z.string().min(1).max(120),
+        stampsToUse: z.number().min(1).max(10_000),
+        durationHours: z.number().min(1).max(720).default(24),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -85,14 +82,13 @@ export const stampsPersistenceRouter = router({
   /**
    * Redeem loyalty points for AI service access
    */
-  redeemLoyaltyPointsForAIAccess: publicProcedure
+  redeemLoyaltyPointsForAIAccess: secureProcedure("stamps")
     .input(
       z.object({
-        userId: z.string(),
-        aiCreatorId: z.string(),
-        aiCreatorName: z.string(),
-        loyaltyPointsToUse: z.number().min(2400),
-        durationHours: z.number().default(24),
+        aiCreatorId: z.string().min(1).max(64),
+        aiCreatorName: z.string().min(1).max(120),
+        loyaltyPointsToUse: z.number().min(2400).max(1_000_000),
+        durationHours: z.number().min(1).max(720).default(24),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -115,9 +111,7 @@ export const stampsPersistenceRouter = router({
   /**
    * Get user's active AI service access
    */
-  getActiveAIAccess: publicProcedure
-    .input(z.object({ userId: z.string() }))
-    .query(async ({ input, ctx }) => {
+  getActiveAIAccess: secureProcedure("stamps").query(async () => {
       // TODO: Query aiServiceAccess table WHERE userId = input.userId AND status = 'active'
       return {
         activeAccess: [
@@ -136,14 +130,13 @@ export const stampsPersistenceRouter = router({
   /**
    * Check if user has access to specific AI creator
    */
-  hasAccessToAI: publicProcedure
+  hasAccessToAI: secureProcedure("stamps")
     .input(
       z.object({
-        userId: z.string(),
-        aiCreatorId: z.string(),
+        aiCreatorId: z.string().min(1).max(64),
       })
     )
-    .query(async ({ input, ctx }) => {
+    .query(async () => {
       // TODO: Query aiServiceAccess table
       // SELECT * FROM aiServiceAccess WHERE userId = input.userId AND aiCreatorId = input.aiCreatorId AND status = 'active' AND accessEndDate > NOW()
       return {
@@ -155,7 +148,7 @@ export const stampsPersistenceRouter = router({
   /**
    * Get creator's promotion tier
    */
-  getCreatorPromotionTier: publicProcedure
+  getCreatorPromotionTier: securePublicProcedure("stamps")
     .input(z.object({ creatorId: z.string() }))
     .query(async ({ input, ctx }) => {
       // TODO: Query creatorPromotionTier table
@@ -172,7 +165,7 @@ export const stampsPersistenceRouter = router({
   /**
    * Register creator for promotion tier
    */
-  registerCreatorForPromotion: publicProcedure
+  registerCreatorForPromotion: secureProcedure("stamps")
     .input(
       z.object({
         creatorId: z.string(),
@@ -195,7 +188,7 @@ export const stampsPersistenceRouter = router({
   /**
    * Get real-time promotion statistics
    */
-  getPromotionStats: publicProcedure.query(async () => {
+  getPromotionStats: securePublicProcedure("stamps").query(async () => {
     let counts = { tier1: 0, tier2: 0, tier3: 0, totalJoined: 0 };
     try {
       counts = await db.getLaunchPromotionStats();
@@ -235,14 +228,13 @@ export const stampsPersistenceRouter = router({
   /**
    * Get stamp transaction history
    */
-  getStampTransactionHistory: publicProcedure
+  getStampTransactionHistory: secureProcedure("stamps")
     .input(
       z.object({
-        userId: z.string(),
-        limit: z.number().default(50),
-      })
+        limit: z.number().min(1).max(100).default(50),
+      }).optional()
     )
-    .query(async ({ input, ctx }) => {
+    .query(async () => {
       // TODO: Query stampTransactions table with limit
       return {
         transactions: [

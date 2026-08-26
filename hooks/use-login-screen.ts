@@ -4,19 +4,24 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/lib/auth-context";
 import { showUserMessage } from "@/lib/show-user-message";
 import { readWebTextInputValue } from "@/lib/read-web-input-value";
+import { trpc } from "@/lib/trpc";
 
 export function useLoginScreen() {
   const router = useRouter();
   const { login, error: authError, clearError, isAuthenticated } = useAuth();
+  const verifyTurnstile = trpc.auth.verifyTurnstile.useMutation();
+  const turnstileConfig = trpc.auth.turnstileConfig.useQuery(undefined, { staleTime: 60_000 });
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [statusLine, setStatusLine] = useState<string | null>(null);
 
   const displayError = formError ?? authError;
+  const onTurnstileToken = useCallback((token: string) => setTurnstileToken(token), []);
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
@@ -62,9 +67,16 @@ export function useLoginScreen() {
     setStatusLine("Signing in…");
 
     try {
-      await login(emailValue, passwordValue);
-      setStatusLine("Success — opening home…");
-      router.replace("/(tabs)");
+      if (turnstileConfig.data?.required && !turnstileToken.trim()) {
+        throw new Error("Complete the security check before signing in.");
+      }
+      await verifyTurnstile.mutateAsync({
+        token: turnstileToken,
+        action: "login",
+      });
+      await login(emailValue, passwordValue, turnstileToken || undefined);
+      setStatusLine("Success — opening ID check…");
+      router.replace("/age-verify");
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Sign in failed. Please try again.";
@@ -74,7 +86,7 @@ export function useLoginScreen() {
     } finally {
       setSubmitting(false);
     }
-  }, [email, password, login, router]);
+  }, [email, password, login, router, turnstileToken, turnstileConfig.data?.required, verifyTurnstile]);
 
   const onEmailChange = (value: string) => {
     setEmail(value);
@@ -102,5 +114,6 @@ export function useLoginScreen() {
     handleLogin,
     onEmailChange,
     onPasswordChange,
+    onTurnstileToken,
   };
 }

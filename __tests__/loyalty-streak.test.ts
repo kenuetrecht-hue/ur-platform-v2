@@ -21,6 +21,7 @@ import { getLoyaltyEvents, getLoyaltySignIns } from "../server/_core/loyalty-tra
 import {
   LOYALTY_DAILY_SIGN_IN_BASE,
   LOYALTY_POINTS_PER_TEXT_MESSAGE,
+  LOYALTY_POINTS_PER_TALK_MINUTE,
   LOYALTY_STREAK_BONUS_PER_DAY,
   LOYALTY_WELCOME_BONUS_POINTS,
   getDailySignInPointsForStreak,
@@ -163,6 +164,9 @@ describe("loyalty-program-config", () => {
   it("keeps redemption expensive vs day-1 earn rate", () => {
     expect(LOYALTY_POINTS_PER_TEXT_MESSAGE / getDailySignInPointsForStreak(1)).toBeGreaterThanOrEqual(
       4,
+    );
+    expect(LOYALTY_POINTS_PER_TALK_MINUTE / getDailySignInPointsForStreak(1)).toBeGreaterThanOrEqual(
+      2,
     );
   });
 

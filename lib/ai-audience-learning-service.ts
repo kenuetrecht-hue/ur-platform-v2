@@ -154,6 +154,7 @@ class AIAudienceLearningService {
       tech: ['technology', 'coding', 'development'],
       art: ['art', 'design', 'creative'],
       business: ['business', 'entrepreneurship', 'marketing'],
+      funding: ['grant', 'loan', 'funding', 'sba', 'capital', 'investor'],
     };
 
     for (const [key, interests] of Object.entries(interestMap)) {

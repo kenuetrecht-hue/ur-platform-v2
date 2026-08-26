@@ -209,16 +209,25 @@ export const platformOpsRouter = router({
         actionsTaken: z.array(z.string().max(500)).max(20).optional(),
       }),
     )
-    .mutation(async ({ input }) => createOpsIncident(input)),
+    .mutation(async ({ input, ctx }) =>
+      createOpsIncident({
+        ...input,
+        /** Staff may file a report; only the owner auto-isolates from this route. */
+        autoIsolateSection: ctx.isPlatformOwner,
+      }),
+    ),
 
-  approveIncident: adminPermissionProcedure("manage_incidents")
+  approveIncident: ownerProcedure
     .input(
       z.object({
         incidentId: z.string().min(8).max(64),
         ownerNote: z.string().max(1000).optional(),
+        confirmPhrase: z.string().min(1).max(40),
       }),
     )
-    .mutation(async ({ input }) => executeIncidentRemediation(input.incidentId, input.ownerNote)),
+    .mutation(async ({ input }) =>
+      executeIncidentRemediation(input.incidentId, input.ownerNote, input.confirmPhrase),
+    ),
 
   submitOwnerInstructions: ownerProcedure
     .input(
@@ -253,7 +262,7 @@ export const platformOpsRouter = router({
       return incident;
     }),
 
-  rejectIncident: adminPermissionProcedure("manage_incidents")
+  rejectIncident: ownerProcedure
     .input(
       z.object({
         incidentId: z.string().min(8).max(64),
@@ -262,7 +271,7 @@ export const platformOpsRouter = router({
     )
     .mutation(async ({ input }) => rejectOpsIncident(input.incidentId, input.ownerNote)),
 
-  resolveIncident: adminPermissionProcedure("manage_incidents")
+  resolveIncident: ownerProcedure
     .input(z.object({ incidentId: z.string().min(8).max(64) }))
     .mutation(async ({ input }) => resolveOpsIncident(input.incidentId)),
 
@@ -318,5 +327,10 @@ export const platformOpsRouter = router({
         severity: z.enum(["low", "medium", "high", "critical"]).optional(),
       }),
     )
-    .mutation(async ({ input }) => proposeSectionMaintenance(input)),
+    .mutation(async ({ input, ctx }) =>
+      proposeSectionMaintenance({
+        ...input,
+        autoIsolateSection: ctx.isPlatformOwner,
+      }),
+    ),
 });

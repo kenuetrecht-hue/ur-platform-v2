@@ -18,6 +18,8 @@ export function apiNamespaceToSection(namespace: string): PlatformSectionId | nu
       return "loyalty";
     case "auth":
       return "landing_demo";
+    case "jobsite":
+      return "jobsite";
     default:
       return null;
   }

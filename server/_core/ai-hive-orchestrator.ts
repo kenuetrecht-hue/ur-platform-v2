@@ -5,6 +5,10 @@
 
 import { aiUserMemoryService } from "../../lib/ai-user-memory-service";
 import {
+  webSearchSecurityEngine,
+  type SearchResult,
+} from "../web-search-security";
+import {
   assertAndConsumeWebSearch,
   tryConsumeCredit,
 } from "./usage-credits-service";
@@ -25,6 +29,8 @@ import {
   isComplexHiveProblem,
   scoreCreatorDomainMatch,
   shouldRunWebSearch,
+  buildWebSearchQuery,
+  buildJobsiteFieldPrompt,
 } from "./ai-hive-capabilities";
 import {
   generateGoogleChatReply,
@@ -34,7 +40,12 @@ import {
 async function formatMemoryContext(userId: string, creatorId: string): Promise<string> {
   await ensureUserMemoryHydrated(userId, creatorId);
   const memory = aiUserMemoryService.getUserMemoryContext(userId, creatorId);
-  if (memory.isNewSession && memory.conversationHistory.length === 0) {
+  const shopAssets = aiUserMemoryService.getRememberedShopAssets(userId, creatorId);
+  const learnerFacts = aiUserMemoryService.getRememberedLearnerFacts(userId, creatorId);
+  const learnProgress = aiUserMemoryService.getLearningProgressTags(userId, creatorId);
+  const hasDurableMemory =
+    shopAssets.length > 0 || learnerFacts.length > 0 || learnProgress.length > 0;
+  if (memory.isNewSession && memory.conversationHistory.length === 0 && !hasDurableMemory) {
     return "";
   }
 
@@ -50,13 +61,23 @@ async function formatMemoryContext(userId: string, creatorId: string): Promise<s
     .join("\n");
 
   return `
-## User memory context (long-term — use naturally)
+## User memory context (long-term — use naturally, including Learn progress)
 - Recent topics: ${topics}
 - Preferred style: ${memory.preferredResponseStyle}
 - User mood (inferred): ${memory.userMood}
 - Days since last session: ${memory.daysSinceLastSession}
+${shopAssets.length ? `- Remembered shop / jobsite / kitchen equipment: ${shopAssets.join("; ")}` : ""}
+${learnerFacts.length ? `- Remembered learner facts (allergies, diet, skill): ${learnerFacts.join("; ")}` : ""}
+${learnProgress.length ? `- Learn progress (continue here — do not restart from module 1): ${learnProgress.join("; ")}` : ""}
 ${historyLines ? `- Recent exchanges:\n${historyLines}` : ""}
 `.trim();
+}
+
+export async function getUserMemoryPromptBlock(
+  userId: string,
+  creatorId: string,
+): Promise<string> {
+  return formatMemoryContext(userId, creatorId);
 }
 
 async function formatWebSearchContext(
@@ -68,7 +89,7 @@ async function formatWebSearchContext(
   assertAndConsumeWebSearch({ userId, creatorId, isPlatformOwner });
 
   const search = await webSearchSecurityEngine.performSearch(
-    message.slice(0, 200),
+    buildWebSearchQuery(message, creatorId),
     creatorId,
     userId,
     "general",
@@ -169,7 +190,10 @@ export async function buildHiveEnhancedSystemPrompt(params: {
     if (hint) blocks.push(hint);
   }
 
-  if (shouldRunWebSearch(params.message, caps)) {
+  const fieldPrompt = buildJobsiteFieldPrompt(params.creatorId);
+  if (fieldPrompt) blocks.push(fieldPrompt);
+
+  if (shouldRunWebSearch(params.message, caps, params.creatorId)) {
     const search = await formatWebSearchContext(
       params.message,
       params.creatorId,
@@ -203,6 +227,16 @@ export function recordHiveInteraction(params: {
     params.creatorId,
     params.userMessage,
     params.aiReply,
+  );
+  aiUserMemoryService.rememberShopAssetsFromMessage(
+    params.userId,
+    params.creatorId,
+    params.userMessage,
+  );
+  aiUserMemoryService.rememberLearnerFactsFromMessage(
+    params.userId,
+    params.creatorId,
+    params.userMessage,
   );
   void persistUserMemoryInteraction(params);
 }

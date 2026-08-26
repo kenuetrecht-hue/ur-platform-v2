@@ -3,10 +3,9 @@
  * Client-safe; sourced from usage-caps-catalog + ur-recommended-pricing.
  */
 
-import type { AiPriceTier, AiSubscriptionPlan } from "./ai-subscription-pricing";
+import type { AiSubscriptionPlan } from "./ai-subscription-pricing";
 import {
   formatUsd,
-  getAiPriceTier,
   getPlanPriceCents,
   AI_SUBSCRIPTION_PLAN_DAYS,
 } from "./ai-subscription-pricing";
@@ -51,13 +50,10 @@ function periodLabel(period: "day" | "week" | "month"): string {
 export function buildTextSubscriptionPlainPlans(
   creatorId: string,
 ): PlainProductPricing {
-  const tier = getAiPriceTier(creatorId);
-  const tierLabel =
-    tier === "professional" ? "Professional" : tier === "premium" ? "Premium" : "Standard";
   const plans: PlainPricingPlan[] = (["day", "week", "month"] as AiSubscriptionPlan[]).map(
     (plan) => {
       const priceCents = getPlanPriceCents(creatorId, plan);
-      const included = MESSAGE_ALLOWANCE_BY_TIER[tier][plan];
+      const included = MESSAGE_ALLOWANCE_BY_TIER.standard[plan];
       const days = AI_SUBSCRIPTION_PLAN_DAYS[plan];
       const pl = periodLabel(plan);
       return {
@@ -73,12 +69,12 @@ export function buildTextSubscriptionPlainPlans(
     },
   );
 
-  const quote = getUsageAllowanceQuote("month", tier);
+  const quote = getUsageAllowanceQuote("month", "standard");
 
   return {
     id: "text-subscription",
     category: "Text chat",
-    feature: `${tierLabel} specialist text access`,
+    feature: "Platform text pass — every specialist, one at a time",
     unit: "messages",
     plans,
     notIncludedNote:
@@ -150,6 +146,9 @@ export function getSpecialistAddOnProductIds(creatorId: string): CreditProductId
       "ai-poet-001",
       "ai-songwriter-001",
       "ai-blueprint-reader-001",
+      "ai-funding-001",
+      "ai-cnc-master-001",
+      "ai-culinary-001",
     ].includes(creatorId)
   ) {
     ids.add("longform-author");
@@ -209,8 +208,7 @@ export const TEXT_SUB_PLAIN_SUMMARY = {
 };
 
 export function formatAllowanceHeadline(creatorId: string, plan: AiSubscriptionPlan): string {
-  const tier = getAiPriceTier(creatorId);
-  const included = MESSAGE_ALLOWANCE_BY_TIER[tier][plan];
+  const included = MESSAGE_ALLOWANCE_BY_TIER.standard[plan];
   const price = formatUsd(getPlanPriceCents(creatorId, plan));
   return `${price} = ${included} messages + ${TEXT_SUB_INCLUDED_WEB_SEARCHES_PER_DAY} searches/day`;
 }

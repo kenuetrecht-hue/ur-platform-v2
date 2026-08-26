@@ -9,6 +9,7 @@ import { LAUNCH_PROMOTION_SUBLINE } from "@/lib/launch-promotion-config";
 import { CREATOR_CONTENT_PROTECTION_NOTICE } from "@/lib/creator-content-protection-copy";
 import { TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
 import { saveLandingDemoAttributionId } from "@/lib/landing-demo-attribution-storage";
+import { TurnstileWidget } from "@/components/turnstile-widget";
 
 const ROLES: { id: UserRole; label: string; desc: string }[] = [
   { id: "creator", label: "Content creator", desc: "Host paid live classes · 85% instant payouts" },
@@ -37,6 +38,10 @@ export default function SignUpScreen() {
   const [role, setRole] = useState<UserRole>("creator");
   const [submitting, setSubmitting] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [honeypot, setHoneypot] = useState("");
+  const verifyTurnstile = trpc.auth.verifyTurnstile.useMutation();
+  const turnstileConfig = trpc.auth.turnstileConfig.useQuery(undefined, { staleTime: 60_000 });
 
   const refValidation = trpc.partnerDashboard.validateReferralCode.useQuery(
     { code: referralCode.trim() },
@@ -75,9 +80,21 @@ export default function SignUpScreen() {
       return;
     }
 
+    if (turnstileConfig.data?.required && !turnstileToken.trim()) {
+      Alert.alert("Security check", "Complete the Cloudflare security check before creating an account.");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await register(email.trim(), password.trim(), name.trim(), role);
+      await verifyTurnstile.mutateAsync({
+        token: turnstileToken,
+        action: "signup",
+        email: email.trim(),
+        displayName: name.trim(),
+        honeypot,
+      });
+      await register(email.trim(), password.trim(), name.trim(), role, turnstileToken || undefined);
       if (role === "creator" || role === "affiliate") {
         try {
           await completeEnrollment.mutateAsync({
@@ -91,7 +108,7 @@ export default function SignUpScreen() {
       Alert.alert(
         "Account created",
         "Welcome to UR Platform. If email confirmation is enabled, check your inbox first.",
-        [{ text: "OK", onPress: () => router.replace("/(tabs)") }],
+        [{ text: "OK", onPress: () => router.replace("/age-verify") }],
       );
     } catch (err) {
       Alert.alert(
@@ -126,7 +143,7 @@ export default function SignUpScreen() {
               UR Platform
             </Text>
             <Text style={{ fontSize: 16, color: colors.muted }}>
-              Create your account
+              Create your account — 18+ ID check is next
             </Text>
             {params.membership === "active" ? (
               <Text
@@ -199,6 +216,7 @@ export default function SignUpScreen() {
                 placeholder="Your name"
                 placeholderTextColor={colors.muted}
                 autoCapitalize="words"
+                maxLength={80}
                 editable={!loading}
                 style={{
                   backgroundColor: colors.surface,
@@ -211,6 +229,17 @@ export default function SignUpScreen() {
                 }}
               />
             </View>
+
+            <TextInput
+              value={honeypot}
+              onChangeText={setHoneypot}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              autoComplete="off"
+              textContentType="none"
+              maxLength={200}
+              style={{ position: "absolute", left: -9999, height: 1, width: 1, opacity: 0 }}
+            />
 
             <View>
               <Text
@@ -230,6 +259,7 @@ export default function SignUpScreen() {
                 placeholderTextColor={colors.muted}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                maxLength={254}
                 editable={!loading}
                 style={{
                   backgroundColor: colors.surface,
@@ -390,6 +420,8 @@ export default function SignUpScreen() {
               </Link>
             </Text>
           </Pressable>
+
+          <TurnstileWidget action="signup" onToken={setTurnstileToken} />
 
           <Pressable
             onPress={handleSignUp}

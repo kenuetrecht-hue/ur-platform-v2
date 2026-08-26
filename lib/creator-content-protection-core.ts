@@ -11,6 +11,7 @@ export const RESERVED_CREATOR_NAMES = [
   "linguamate",
   "techbuilder",
   "ur llc",
+  "ur platform llc",
   "urplatform llc",
   "admin",
   "support",
@@ -22,6 +23,8 @@ export type ContentProtectionBlockReason =
   | "near_duplicate_content"
   | "impersonation"
   | "reserved_name"
+  | "verified_name_locked"
+  | "lookalike_handle"
   | "publish_blocked"
   | "rights_attestation_required"
   | "repost_attribution_required";

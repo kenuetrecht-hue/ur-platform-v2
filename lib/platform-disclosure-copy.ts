@@ -5,7 +5,7 @@ export const PLATFORM_DISCLOSURE_TOP =
 /** Soft legal footer — shown once at the bottom of every screen. */
 export const PLATFORM_DISCLOSURE_BOTTOM =
   "You're chatting with AI, not humans · Entertainment & education only · No refunds on AI purchases · " +
-  "Zero harassment tolerated (privileges revoked, no refund) · Creator purchases are between you & the creator · UR LLC is not responsible for third-party disputes";
+  "Zero harassment tolerated (privileges revoked, no refund) · Creator purchases are between you & the creator · UR Platform LLC is not responsible for third-party disputes";
 
 /** One-line summary for inline use (feeds, cards). */
 export const PLATFORM_DISCLOSURE_SHORT =

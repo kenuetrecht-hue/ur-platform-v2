@@ -169,6 +169,15 @@ export function enrollAffiliate(params: {
   const existing = affiliates.get(params.userId);
   if (existing) return existing;
 
+  try {
+    registerCreatorIdentity({
+      userId: params.userId,
+      displayName: params.displayName,
+    });
+  } catch (error) {
+    mapContentProtectionError(error);
+  }
+
   const link = getOrCreateUserLink({
     userId: params.userId,
     userEmail: params.userEmail,

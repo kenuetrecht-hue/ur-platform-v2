@@ -5,6 +5,8 @@ import {
   TERMS_BILLING_ENTITY,
   TERMS_EFFECTIVE_DATE,
   TERMS_CHECKOUT_ACKNOWLEDGMENT,
+  TERMS_HOME_STATE,
+  TERMS_SUPPORT_EMAIL,
 } from "@/lib/platform-terms-of-use";
 
 type Props = {
@@ -22,7 +24,7 @@ export function PlatformTermsPanel({ compact = false, showCheckoutAck = false }:
         Terms of Use
       </Text>
       <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4, lineHeight: 16 }}>
-        Effective {TERMS_EFFECTIVE_DATE} · {TERMS_BILLING_ENTITY}
+        Effective {TERMS_EFFECTIVE_DATE} · {TERMS_BILLING_ENTITY} · {TERMS_HOME_STATE}
       </Text>
 
       {showCheckoutAck ? (
@@ -61,7 +63,7 @@ export function PlatformTermsPanel({ compact = false, showCheckoutAck = false }:
       ))}
 
       <Text style={{ color: colors.muted, fontSize: 10, lineHeight: 15, marginTop: 8 }}>
-        Questions: support@urplatform.llc · By using UR Platform you acknowledge these terms.
+        Questions: {TERMS_SUPPORT_EMAIL} · By using UR Platform you acknowledge these terms.
       </Text>
     </View>
   );

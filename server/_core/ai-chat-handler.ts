@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { assertNoAiTakeoverInMessage } from "./ai-control";
+import { assertMissionUseAllowed } from "./ai-mission-use";
 import {
   buildCreatorSystemPrompt,
   getCreatorAi,
@@ -7,6 +8,7 @@ import {
   isPlatformAiRole,
 } from "./ai-creator-registry";
 import { assertUserCanUseAi, enforceAiGuardrails } from "./ai-guardrails";
+import { assertUserIsAgeVerified } from "./age-kyc-service";
 import {
   assertMessageWithinAiRole,
   sanitizeAiReplyForRole,
@@ -175,6 +177,9 @@ export async function handleCreatorAiChat(params: {
   }
 
   try {
+    if (!params.ctx.landingDemo) {
+      await assertUserIsAgeVerified(params.ctx.userId);
+    }
     assertUserCanUseAi(userId, params.ctx.isPlatformOwner);
 
     const message = sanitizeUserText(
@@ -182,6 +187,7 @@ export async function handleCreatorAiChat(params: {
       params.ctx.landingDemo ? LANDING_DEMO_MESSAGE_MAX : 2000,
     );
     assertNoAiTakeoverInMessage(message, params.ctx.isPlatformOwner);
+    assertMissionUseAllowed(message, params.ctx.isPlatformOwner);
 
     if (isPlatformAiRole(params.creatorId)) {
       assertMessageWithinAiRole(message, params.creatorId, params.ctx.isPlatformOwner);
@@ -424,6 +430,7 @@ export async function handleCreatorAiChat(params: {
         useHive: useHive && !hiveCreditUsed,
         isLearnMode: false,
         extraMessageUnits,
+        requireConcurrentAis: useHive && !hiveCreditUsed,
       });
     }
 

@@ -1,8 +1,14 @@
 /**
  * Legal Document Generator
- * Generates attorney-ready legal framework PDF for UR LLC
+ * Generates attorney-ready legal framework PDF for UR Platform LLC
  * Includes Terms of Service, Privacy Policy, DMCA, FTC, and COPPA compliance
  */
+
+import {
+  TERMS_BILLING_ENTITY,
+  TERMS_HOME_STATE,
+  TERMS_LEGAL_EMAIL,
+} from "./platform-terms-of-use";
 
 export interface LegalDocumentConfig {
   companyName: string;
@@ -202,7 +208,7 @@ export function generateLegalHTML(config: LegalDocumentConfig): string {
     <p>U R operates strictly as an interactive computer service provider, hosting venue, and passive conduit for independent, non-employee third-party content creators. U R does not proactively monitor, review, verify, validate, or guarantee the accuracy, safety, originality, or legal compliance of materials, text, expressions, images, links, or recordings published by its creators or users.</p>
     <ul>
         <li><strong>Plagiarism and Ethical Disclaimers:</strong> U R expressly disclaims any and all liability arising from acts of plagiarism, ethical violations, uncredited appropriation of third-party concepts, or copying of data models committed by platform users. Creators assume sole, direct, civil, and professional liability for ensuring all shared workflows are original or properly licensed.</li>
-        <li><strong>Secondary Copyright Infringement Immunity:</strong> In absolute accordance with 17 U.S.C. Section 512 (Digital Millennium Copyright Act "DMCA" Safe Harbor), UR LLC claims total statutory immunity from direct or contributory copyright claims. U R enforces a strict, zero-tolerance Repeat Infringer Policy requiring immediate termination of any creator account found to have violated intellectual property guidelines on multiple distinct occasions.</li>
+        <li><strong>Secondary Copyright Infringement Immunity:</strong> In absolute accordance with 17 U.S.C. Section 512 (Digital Millennium Copyright Act "DMCA" Safe Harbor), UR Platform LLC claims total statutory immunity from direct or contributory copyright claims. U R enforces a strict, zero-tolerance Repeat Infringer Policy requiring immediate termination of any creator account found to have violated intellectual property guidelines on multiple distinct occasions.</li>
     </ul>
 
     <h2>3. DMCA COPYRIGHT NOTICE & TAKEDOWN PROTOCOLS</h2>
@@ -227,7 +233,7 @@ export function generateLegalHTML(config: LegalDocumentConfig): string {
     </ul>
 
     <h2>3. VERIFICATION OF AGE & JUVENILE PROTECTIONS</h2>
-    <p>In adherence to the Children's Online Privacy Protection Act (COPPA), the app strictly bars users under thirteen (13) years of age. All registrants must successfully navigate the mandatory integrated age-verification screen. If data logs indicate a minor has circumvented the barrier, ${config.companyName} reserves the right to immediately purge all associated account histories and transaction data from current data environments.</p>
+    <p>UR Platform is for adults eighteen (18) years of age or older. Every registrant must photograph a government ID (front and back) and a live selfie matching that ID before entering the application or website product. This gate exists because AI, social, and paid features can be addictive for minors. If records indicate a person under 18 has attempted to join, ${config.companyName} shall refuse entry and purge associated account and verification data. COPPA still applies: we do not knowingly collect personal information from children.</p>
 
     <div class="signature-section">
         <p><em>The provisions above have been compiled strictly to serve as a comprehensive operational outline reflecting current system design files. They await final execution by legal counsel.</em></p>
@@ -261,9 +267,9 @@ export function generateLegalHTML(config: LegalDocumentConfig): string {
 
 export function getLegalDocumentConfig(): LegalDocumentConfig {
   return {
-    companyName: "UR LLC",
-    stateOfIncorporation: "Indiana",
-    dmcaEmail: "legal@ur.app",
+    companyName: TERMS_BILLING_ENTITY,
+    stateOfIncorporation: TERMS_HOME_STATE,
+    dmcaEmail: TERMS_LEGAL_EMAIL,
     subscriptionPrice: 4.99,
     generatedDate: new Date(),
     managingDirector: "Kenneth",

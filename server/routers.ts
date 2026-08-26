@@ -2,7 +2,7 @@ import { z } from "zod";
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, secureProcedure, ownerProcedure, router } from "./_core/trpc";
+import { publicProcedure, secureProcedure, securePublicProcedure, ownerProcedure, router } from "./_core/trpc";
 import { assertOwnedResource } from "./_core/input-sanitize";
 import { mapServiceErrorToTrpc } from "./_core/service-errors";
 import * as db from "./db";
@@ -36,18 +36,67 @@ import { loyaltyRouter } from "./routers/loyalty-router";
 import { hiveTownHallRouter } from "./routers/hive-town-hall-router";
 import { usageCreditsRouter } from "./routers/usage-credits-router";
 import { landingRouter } from "./routers/landing-router";
+import { jobsiteRouter } from "./routers/jobsite-router";
+import { ageKycRouter } from "./routers/age-kyc-router";
 import { destroyAllSessionsForUser } from "./_core/forge-session-manager";
+import { getAgeKycPublicStatus } from "./_core/age-kyc-service";
+import { assertTurnstileToken, getTurnstileClientConfig } from "./_core/turnstile";
+import { TURNSTILE_TOKEN_MAX_LENGTH } from "../lib/turnstile";
+import { AUTH_HONEYPOT_FIELD_MAX } from "../lib/bot-abuse-policy";
+import { assertAuthChallengeAllowed } from "./_core/bot-abuse-guard";
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query((opts) => ({
-      user: opts.ctx.user,
-      isPlatformOwner: opts.ctx.isPlatformOwner,
-      hasFullPlatformAccess: opts.ctx.isPlatformOwner,
-      hasFullAiAccess: opts.ctx.isPlatformOwner,
-    })),
+    turnstileConfig: publicProcedure.query(() => getTurnstileClientConfig()),
+    verifyTurnstile: securePublicProcedure("auth")
+      .input(
+        z.object({
+          token: z.string().trim().max(TURNSTILE_TOKEN_MAX_LENGTH),
+          action: z.enum(["login", "signup", "landing_demo", "age_kyc"]),
+          email: z.string().trim().email().max(254).optional(),
+          displayName: z.string().trim().max(80).optional(),
+          honeypot: z.string().max(AUTH_HONEYPOT_FIELD_MAX).optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        const userAgent =
+          typeof ctx.req.headers["user-agent"] === "string" ? ctx.req.headers["user-agent"] : undefined;
+        assertAuthChallengeAllowed({
+          ip: ctx.ip,
+          userAgent,
+          action: input.action,
+          email: input.email,
+          displayName: input.displayName,
+          honeypot: input.honeypot,
+        });
+        await assertTurnstileToken({
+          token: input.token,
+          action: input.action,
+          ip: ctx.ip,
+        });
+        return { ok: true as const };
+      }),
+    me: publicProcedure.query(async (opts) => {
+      const kyc =
+        opts.ctx.user != null
+          ? await getAgeKycPublicStatus(opts.ctx.user.id)
+          : {
+              required: true as const,
+              minAge: 18,
+              status: "none" as const,
+              verified: false,
+              rejectionReason: null,
+            };
+      return {
+        user: opts.ctx.user,
+        isPlatformOwner: opts.ctx.isPlatformOwner,
+        hasFullPlatformAccess: opts.ctx.isPlatformOwner,
+        hasFullAiAccess: opts.ctx.isPlatformOwner,
+        ageKyc: kyc,
+      };
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -184,6 +233,8 @@ export const appRouter = router({
   workspace3d: workspace3dRouter,
   loyalty: loyaltyRouter,
   usageCredits: usageCreditsRouter,
+  jobsite: jobsiteRouter,
+  ageKyc: ageKycRouter,
 });
 
 export type AppRouter = typeof appRouter;

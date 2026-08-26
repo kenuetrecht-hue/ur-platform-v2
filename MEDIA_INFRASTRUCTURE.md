@@ -1,8 +1,8 @@
-# UR LLC - Enterprise Media Infrastructure Guide
+# UR Platform LLC - Enterprise Media Infrastructure Guide
 
 ## Overview
 
-This guide documents the production-ready, enterprise-grade media infrastructure for UR LLC. The system is designed to handle **millions of simultaneous users** with **zero buffering** through:
+This guide documents the production-ready, enterprise-grade media infrastructure for UR Platform LLC. The system is designed to handle **millions of simultaneous users** with **zero buffering** through:
 
 1. **AWS S3 Direct Streaming** - Prevents server memory crashes during heavy uploads
 2. **Cloudflare CDN Global Delivery** - Ensures crisp, instant playback worldwide

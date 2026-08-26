@@ -33,6 +33,7 @@ export type ApiNamespace =
   | "landing"
   | "workspace3d"
   | "usageCredits"
+  | "jobsite"
   | "default";
 
 type WindowBucket = {
@@ -80,6 +81,7 @@ const NAMESPACE_USER_LIMITS: Record<ApiNamespace, number> = {
   landing: 20,
   workspace3d: 40,
   usageCredits: 40,
+  jobsite: 80,
   default: 500,
 };
 
@@ -95,6 +97,15 @@ const circuitBreakers = new Map<ApiNamespace, CircuitState>();
 const blockedIps = new Set<string>();
 
 const GLOBAL_IP_LIMIT_PER_MINUTE = 200;
+
+/** Per-namespace IP limits (requests / minute). Auth and landing stay tight against bots. */
+const NAMESPACE_IP_LIMITS_PER_MINUTE: Partial<Record<ApiNamespace, number>> = {
+  auth: 20,
+  landing: 30,
+  social: 80,
+  commerce: 40,
+};
+const DEFAULT_IP_LIMIT_PER_MINUTE = 180;
 
 function parseAllowedOrigins(): Set<string> {
   const origins = new Set<string>([
@@ -255,7 +266,8 @@ export function checkUserNamespaceLimit(
 
 export function checkIpNamespaceLimit(namespace: ApiNamespace, ip: string): void {
   const key = bucketKey(["ip", namespace, ip]);
-  const allowed = checkWindowLimit(ipNamespaceBuckets, key, 300, MINUTE_MS);
+  const limit = NAMESPACE_IP_LIMITS_PER_MINUTE[namespace] ?? DEFAULT_IP_LIMIT_PER_MINUTE;
+  const allowed = checkWindowLimit(ipNamespaceBuckets, key, limit, MINUTE_MS);
 
   if (!allowed) {
     blockIp(ip, `namespace ${namespace} abuse`);
