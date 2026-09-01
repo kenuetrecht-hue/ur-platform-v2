@@ -12,6 +12,7 @@ import {
   recordNamespaceSuccess,
   sanitizeErrorMessage,
 } from "./api-security";
+import { noteUnauthorizedCheckoutProbe } from "./checkout-probe-guard";
 import { isPlatformOwner } from "./owner-auth";
 import {
   assertAdminPermission,
@@ -149,6 +150,25 @@ export function secureProcedure(namespace: ApiNamespace) {
 
 export function securePublicProcedure(namespace: ApiNamespace) {
   return publicProcedure.use(namespaceSecurity(namespace));
+}
+
+/** Checkout mutations: record unauthenticated probes, then require a signed-in user. */
+export function secureCheckoutProcedure(namespace: ApiNamespace) {
+  return publicProcedure.use(namespaceSecurity(namespace)).use(
+    middleware(async ({ ctx, next }) => {
+      if (!ctx.user) {
+        noteUnauthorizedCheckoutProbe(ctx.ip);
+        throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+      }
+      return next({
+        ctx: {
+          ...ctx,
+          user: ctx.user,
+          isPlatformOwner: isPlatformOwner(ctx.user),
+        },
+      });
+    }),
+  );
 }
 
 export { TRPCError, NOT_ADMIN_ERR_MSG, NOT_OWNER_ERR_MSG };

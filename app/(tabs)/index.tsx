@@ -1,4 +1,4 @@
-import { ScrollView, View, Text, Pressable } from "react-native";
+import { ScrollView, View, Text } from "react-native";
 import { useAuth } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
@@ -8,9 +8,12 @@ import { DailyLoyaltyBanner } from "@/components/daily-loyalty-banner";
 import { DemoSection } from "@/components/demo-section";
 import { useDailySignIn } from "@/hooks/use-daily-signin";
 import { consolidatedNavigation } from "@/lib/consolidated-navigation";
-import { useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { DailyHubPanel } from "@/components/daily-hub-panel";
 import { SocialFeedPreview } from "@/components/social-feed-preview";
+import { usePlatformOwner } from "@/lib/use-platform-owner";
+import { AppPressable } from "@/components/app-pressable";
+import { ADMIN_TAB_HREF } from "@/lib/admin-dashboard-routes";
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -18,14 +21,48 @@ export default function HomeScreen() {
   const router = useRouter();
   const dailySignIn = useDailySignIn();
   const homeTab = consolidatedNavigation.getTab("home");
+  const { canAccessAdminDashboard, isPlatformOwner } = usePlatformOwner();
 
   return (
     <ScreenContainer className="bg-background">
       <ScrollView
         contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <HomeLaunchPromoBanner />
+
+        {canAccessAdminDashboard ? (
+          <Link href={ADMIN_TAB_HREF} asChild>
+            <AppPressable
+              style={{
+                marginHorizontal: 16,
+                marginTop: 12,
+                backgroundColor: `${colors.primary}14`,
+                borderRadius: 14,
+                borderWidth: 1.5,
+                borderColor: colors.primary,
+                padding: 16,
+                gap: 6,
+              }}
+            >
+              <Text
+                pointerEvents="none"
+                style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}
+              >
+                🏛️ Administration Dashboard
+              </Text>
+              <Text
+                pointerEvents="none"
+                style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}
+              >
+                {isPlatformOwner
+                  ? "Business Steward, staff, social posting, and running the site. Also in the Admin tab below."
+                  : "Open your staff admin tools. Also in the Admin tab below."}
+              </Text>
+            </AppPressable>
+          </Link>
+        ) : null}
 
         <DailyLoyaltyBanner
           totalPoints={dailySignIn.totalPoints}
@@ -58,6 +95,14 @@ export default function HomeScreen() {
           >
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
               {[
+                ...(canAccessAdminDashboard
+                  ? [
+                      {
+                        label: "Administration Dashboard",
+                        onPress: () => router.push("/(tabs)/admin"),
+                      },
+                    ]
+                  : []),
                 {
                   label: "All AI Specialists",
                   onPress: () => router.push("/ais"),
@@ -211,20 +256,25 @@ export default function HomeScreen() {
                   onPress: () => router.push("/(tabs)/discover"),
                 },
               ].map((action) => (
-                <Pressable
+                <AppPressable
                   key={action.label}
                   onPress={action.onPress}
                   style={{
                     backgroundColor: colors.primary,
                     borderRadius: 20,
                     paddingHorizontal: 14,
-                    paddingVertical: 8,
+                    paddingVertical: 10,
+                    minHeight: 40,
+                    justifyContent: "center",
                   }}
                 >
-                  <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
+                  <Text
+                    pointerEvents="none"
+                    style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}
+                  >
                     {action.label}
                   </Text>
-                </Pressable>
+                </AppPressable>
               ))}
             </View>
           </DemoSection>
@@ -253,11 +303,14 @@ export default function HomeScreen() {
                 description={`Explore ${item.label.toLowerCase()} on UR Platform.`}
                 icon="📈"
               >
-                <Pressable onPress={() => router.push(target as never)}>
-                  <Text style={{ color: colors.primary, fontSize: 14, marginTop: 4, fontWeight: "600" }}>
+                <AppPressable onPress={() => router.push(target as never)}>
+                  <Text
+                    pointerEvents="none"
+                    style={{ color: colors.primary, fontSize: 14, marginTop: 4, fontWeight: "600" }}
+                  >
                     Open {item.label} →
                   </Text>
-                </Pressable>
+                </AppPressable>
               </DemoSection>
             );
           })}

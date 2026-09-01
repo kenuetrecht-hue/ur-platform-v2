@@ -82,6 +82,21 @@ describe("Owner Command Center", () => {
     expect(snapshot.pendingRepairs).toEqual([]);
   });
 
+  it("collapses repeated identical health scans into one line", () => {
+    recordOwnerCommandEvent({
+      kind: "health_scan",
+      sourceAiId: "platform-doctor-ai",
+      english: "Health scan finished. No new incidents. Optional note: phone/email owner alerts (Forge) are not set — you still see alerts here in Owner Ops.",
+    });
+    recordOwnerCommandEvent({
+      kind: "health_scan",
+      sourceAiId: "platform-doctor-ai",
+      english: "Health scan finished. No new incidents. Optional note: phone/email owner alerts (Forge) are not set — you still see alerts here in Owner Ops.",
+    });
+    const scans = listOwnerCommandEvents({ kind: "health_scan" });
+    expect(scans).toHaveLength(1);
+  });
+
   it("seeds a private boot line when the feed is empty", () => {
     const snapshot = getOwnerCommandCenterSnapshot();
     expect(snapshot.events[0]?.kind).toBe("protection");

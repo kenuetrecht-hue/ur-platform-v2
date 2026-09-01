@@ -105,7 +105,7 @@ const NAMESPACE_IP_LIMITS_PER_MINUTE: Partial<Record<ApiNamespace, number>> = {
   auth: 20,
   landing: 30,
   social: 80,
-  commerce: 40,
+  commerce: 20,
   video: 20,
 };
 const DEFAULT_IP_LIMIT_PER_MINUTE = 180;
@@ -143,10 +143,13 @@ const ALLOWED_ORIGINS = parseAllowedOrigins();
 
 export function getClientIp(req: Request): string {
   const forwarded = req.headers["x-forwarded-for"];
-  if (typeof forwarded === "string" && forwarded.length > 0) {
-    return forwarded.split(",")[0]?.trim() ?? "unknown";
-  }
-  return req.socket.remoteAddress ?? "unknown";
+  const raw =
+    typeof forwarded === "string" && forwarded.length > 0
+      ? (forwarded.split(",")[0]?.trim() ?? "unknown")
+      : (req.socket.remoteAddress ?? "unknown");
+  if (raw.startsWith("::ffff:")) return raw.slice("::ffff:".length);
+  if (raw === "::1") return "127.0.0.1";
+  return raw || "unknown";
 }
 
 export function getRequestId(req: Request): string {
@@ -184,6 +187,14 @@ export function blockIp(ip: string, reason?: string): void {
 
 export function isIpBlocked(ip: string): boolean {
   return blockedIps.has(ip);
+}
+
+export function unblockIp(ip: string): void {
+  blockedIps.delete(ip);
+}
+
+export function _resetBlockedIpsForTests(): void {
+  blockedIps.clear();
 }
 
 function getCircuit(namespace: ApiNamespace): CircuitState {
@@ -303,7 +314,7 @@ export function securityHeadersMiddleware(
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("X-XSS-Protection", "1; mode=block");
-  res.setHeader("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+  res.setHeader("Permissions-Policy", "geolocation=(), microphone=(self), camera=()");
   if (ENV.isProduction) {
     res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   }

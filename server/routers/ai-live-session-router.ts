@@ -3,6 +3,7 @@ import {
   adminPermissionProcedure,
   publicProcedure,
   protectedProcedure,
+  secureCheckoutProcedure,
   router,
 } from "../_core/trpc";
 import {
@@ -33,6 +34,7 @@ import {
   listLiveSessions,
   scheduleLiveSession,
 } from "../_core/ai-live-session-service";
+import { assertSectionEnabledForRequest } from "../_core/platform-section-guard";
 import {
   getVideoGenerationStatus,
   listCreatorVideos,
@@ -155,7 +157,7 @@ export const aiLiveSessionRouter = router({
       }
     }),
 
-  createCheckout: protectedProcedure
+  createCheckout: secureCheckoutProcedure("commerce")
     .input(
       z.object({
         sessionId: z.string().uuid(),
@@ -164,6 +166,7 @@ export const aiLiveSessionRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      assertSectionEnabledForRequest("commerce", ctx.isPlatformOwner);
       return createSessionCheckout({
         sessionId: input.sessionId,
         userId: String(ctx.user.id),
@@ -201,9 +204,10 @@ export const aiLiveSessionRouter = router({
       });
     }),
 
-  confirmPayment: protectedProcedure
+  confirmPayment: secureCheckoutProcedure("commerce")
     .input(z.object({ paymentIntentId: z.string().min(4).max(128) }))
     .mutation(async ({ ctx, input }) => {
+      assertSectionEnabledForRequest("commerce", ctx.isPlatformOwner);
       return confirmSessionPayment({
         paymentIntentId: input.paymentIntentId,
         userId: String(ctx.user.id),
@@ -322,7 +326,7 @@ export const aiLiveSessionRouter = router({
       }),
     ),
 
-  purchaseSpeakAccess: protectedProcedure
+  purchaseSpeakAccess: secureCheckoutProcedure("commerce")
     .input(
       z.object({
         sessionId: z.string().uuid(),
@@ -330,16 +334,17 @@ export const aiLiveSessionRouter = router({
         clientPlatform: z.enum(["web", "native"]),
       }),
     )
-    .mutation(({ ctx, input }) =>
-      purchaseLiveSessionSpeakAccess({
+    .mutation(({ ctx, input }) => {
+      assertSectionEnabledForRequest("commerce", ctx.isPlatformOwner);
+      return purchaseLiveSessionSpeakAccess({
         sessionId: input.sessionId,
         userId: String(ctx.user.id),
         userEmail: ctx.user.email ?? "",
         isPlatformOwner: ctx.isPlatformOwner,
         billingStateCode: input.stateCode,
         clientPlatform: input.clientPlatform,
-      }),
-    ),
+      });
+    }),
 
   listPrograms: adminPermissionProcedure("manage_ai_sessions").query(() => {
     return listAiSessionPrograms().map((p) => ({
@@ -489,33 +494,35 @@ export const aiLiveSessionRouter = router({
       defaultHint: defaultClassReplayPriceCents(0),
     })),
 
-  createReplayCheckout: protectedProcedure
+  createReplayCheckout: secureCheckoutProcedure("commerce")
     .input(
       z.object({
         replayId: z.string().uuid(),
         stateCode: optionalBillingStateSchema,
       }),
     )
-    .mutation(async ({ ctx, input }) =>
-      createReplayCheckout({
+    .mutation(async ({ ctx, input }) => {
+      assertSectionEnabledForRequest("commerce", ctx.isPlatformOwner);
+      return createReplayCheckout({
         replayId: input.replayId,
         userId: String(ctx.user.id),
         userEmail: ctx.user.email ?? "",
         userName: ctx.user.name ?? "UR User",
         isPlatformOwner: ctx.isPlatformOwner,
         billingStateCode: input.stateCode,
-      }),
-    ),
+      });
+    }),
 
-  confirmReplayPayment: protectedProcedure
+  confirmReplayPayment: secureCheckoutProcedure("commerce")
     .input(z.object({ paymentIntentId: z.string().min(8).max(128) }))
-    .mutation(async ({ ctx, input }) =>
-      confirmReplayPayment({
+    .mutation(async ({ ctx, input }) => {
+      assertSectionEnabledForRequest("commerce", ctx.isPlatformOwner);
+      return confirmReplayPayment({
         paymentIntentId: input.paymentIntentId,
         userId: String(ctx.user.id),
         userEmail: ctx.user.email ?? "",
-      }),
-    ),
+      });
+    }),
 
   watchReplay: protectedProcedure
     .input(z.object({ replayId: z.string().uuid() }))

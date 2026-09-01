@@ -36,7 +36,7 @@ export const ENV = {
   googleCloudProject: process.env.GOOGLE_CLOUD_PROJECT ?? "",
   googleCloudLocation: process.env.GOOGLE_CLOUD_LOCATION ?? "us-central1",
   googleGeminiModel:
-    process.env.GOOGLE_GEMINI_MODEL ?? "gemini-2.0-flash-lite",
+    process.env.GOOGLE_GEMINI_MODEL ?? "gemini-3.6-flash",
   googleImagenModel:
     process.env.GOOGLE_IMAGEN_MODEL ?? "imagen-3.0-generate-002",
   /** Max minutes a forge cloud workspace may live before automatic wipe */

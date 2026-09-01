@@ -23,6 +23,8 @@ export class InternalServiceError extends Error {
 }
 
 export function mapServiceErrorToTrpc(error: unknown): never {
+  if (error instanceof TRPCError) throw error;
+
   if (error instanceof InternalServiceError) {
     switch (error.code) {
       case "NOT_CONFIGURED":

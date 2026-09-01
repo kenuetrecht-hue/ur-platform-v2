@@ -120,11 +120,11 @@ export default function AIsScreen() {
 
   useEffect(() => {
     if (typeof params.ai === "string" && isOwnerOpsAiId(params.ai)) {
-      router.replace("/owner-ops");
+      router.replace({ pathname: "/(tabs)/admin", params: { ai: params.ai } });
       return;
     }
     if (typeof params.group === "string" && params.group === "ownerOps") {
-      router.replace("/owner-ops");
+      router.replace("/(tabs)/admin");
       return;
     }
     if (typeof params.group === "string" && params.group) {

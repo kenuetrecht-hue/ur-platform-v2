@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { secureProcedure, publicProcedure, ownerProcedure, router } from "../_core/trpc";
+import { secureProcedure, secureCheckoutProcedure, publicProcedure, ownerProcedure, router } from "../_core/trpc";
+import { assertSectionEnabledForRequest } from "../_core/platform-section-guard";
 import {
   STORE_MANAGER_AI_ID,
   addStoreProduct,
@@ -202,15 +203,16 @@ export const commerceRouter = router({
       return { ok: true as const };
     }),
 
-  simulatePurchase: secureProcedure("commerce")
+  simulatePurchase: secureCheckoutProcedure("commerce")
     .input(z.object({ productId: z.string().uuid() }))
-    .mutation(({ ctx, input }) =>
-      simulateProductPurchase({
+    .mutation(({ ctx, input }) => {
+      assertSectionEnabledForRequest("commerce", ctx.isPlatformOwner);
+      return simulateProductPurchase({
         productId: input.productId,
         buyerUserId: String(ctx.user.id),
         buyerEmail: ctx.user.email ?? "",
-      }),
-    ),
+      });
+    }),
 
   rotateCatalog: ownerProcedure
     .input(z.object({ storeId: z.string().min(1) }))

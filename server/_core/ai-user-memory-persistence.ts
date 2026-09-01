@@ -9,6 +9,9 @@ import { getDb } from "../db";
 import { aiUserMemoryService } from "../../lib/ai-user-memory-service";
 
 const MAX_HYDRATED_ENTRIES = 30;
+/** Keep the newest N rows per user+creator. MySQL requires LIMIT with OFFSET. */
+const MAX_STORED_ENTRIES = 100;
+const PRUNE_BATCH = 500;
 
 const hydratedKeys = new Set<string>();
 
@@ -166,7 +169,8 @@ export async function persistUserMemoryInteraction(params: {
         ),
       )
       .orderBy(desc(aiUserMemoryEntries.createdAt))
-      .offset(100);
+      .limit(PRUNE_BATCH)
+      .offset(MAX_STORED_ENTRIES);
 
     for (const row of oldRows) {
       await db.delete(aiUserMemoryEntries).where(eq(aiUserMemoryEntries.id, row.id));

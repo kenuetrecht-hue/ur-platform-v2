@@ -68,7 +68,7 @@ export function OwnerEmergencyAlarm() {
     <>
       {needsAttention ? (
         <Pressable
-          onPress={() => router.push("/owner-ops")}
+          onPress={() => router.push("/(tabs)/admin")}
           style={[styles.banner, { paddingTop: Math.max(insets.top, 8) }]}
         >
           <Text style={styles.bannerText}>
@@ -87,7 +87,7 @@ export function OwnerEmergencyAlarm() {
             <Pressable
               onPress={() => {
                 setSnoozedId(state?.incidentId ?? null);
-                router.push("/owner-ops");
+                router.push("/(tabs)/admin");
               }}
               style={styles.primary}
             >

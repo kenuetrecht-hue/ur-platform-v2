@@ -16,6 +16,10 @@ import { getDb } from "./db";
 import type { OwnerCommandEvent } from "../lib/owner-command-center-types";
 import type { OpsSandboxRepair } from "../lib/ops-sandbox-repair-types";
 
+function skipDbWrites(): boolean {
+  return process.env.VITEST === "true" || process.env.NODE_ENV === "test";
+}
+
 export type PersistableIncident = {
   id: string;
   sourceAi: string;
@@ -75,6 +79,7 @@ function toIso(value: Date | string | null | undefined): string | undefined {
 }
 
 export async function persistOwnerCommandEvent(event: OwnerCommandEvent): Promise<void> {
+  if (skipDbWrites()) return;
   const db = await getDb();
   if (!db) return;
   try {
@@ -141,6 +146,7 @@ export async function loadOwnerCommandEventsFromDb(limit = 2000): Promise<OwnerC
 }
 
 export async function persistOpsIncident(incident: PersistableIncident): Promise<void> {
+  if (skipDbWrites()) return;
   const db = await getDb();
   if (!db) return;
   try {
@@ -225,6 +231,7 @@ export async function loadOpsIncidentsFromDb(): Promise<PersistableIncident[]> {
 }
 
 export async function persistOpsNotification(note: PersistableNotification): Promise<void> {
+  if (skipDbWrites()) return;
   const db = await getDb();
   if (!db) return;
   try {
@@ -268,6 +275,7 @@ export async function loadOpsNotificationsFromDb(): Promise<PersistableNotificat
 }
 
 export async function persistSectionFlag(flag: PersistableSectionFlag): Promise<void> {
+  if (skipDbWrites()) return;
   const db = await getDb();
   if (!db) return;
   try {
@@ -321,6 +329,7 @@ export async function loadSectionFlagsFromDb(): Promise<PersistableSectionFlag[]
 }
 
 export async function persistSandboxRepair(repair: OpsSandboxRepair): Promise<void> {
+  if (skipDbWrites()) return;
   const db = await getDb();
   if (!db) return;
   try {
@@ -384,6 +393,7 @@ export async function persistOwnerPushDevice(input: {
   ownerUserId: string;
   platform: string;
 }): Promise<void> {
+  if (skipDbWrites()) return;
   const db = await getDb();
   if (!db) return;
   try {
@@ -420,6 +430,7 @@ export async function loadOwnerPushTokensFromDb(): Promise<string[]> {
 }
 
 export async function markOpsNotificationsReadInDb(): Promise<void> {
+  if (skipDbWrites()) return;
   const db = await getDb();
   if (!db) return;
   try {

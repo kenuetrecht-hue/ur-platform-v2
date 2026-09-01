@@ -1,4 +1,5 @@
 import { useAuth } from "@/lib/auth-context";
+import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -29,6 +30,7 @@ function isPublicRoute(segments: string[]): boolean {
  */
 export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
+  const { canAccessAdminDashboard } = usePlatformOwner();
   const segments = useSegments();
   const router = useRouter();
   const [clientReady, setClientReady] = useState(false);
@@ -76,12 +78,12 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     }
 
     if (isAuthenticated && kycVerified && inAgeVerify) {
-      router.replace("/(tabs)");
+      router.replace(canAccessAdminDashboard ? "/(tabs)/admin" : "/(tabs)");
       return;
     }
 
     if (isAuthenticated && kycVerified && inPublicMarketing) {
-      router.replace("/(tabs)");
+      router.replace(canAccessAdminDashboard ? "/(tabs)/admin" : "/(tabs)");
     }
   }, [
     clientReady,
@@ -91,6 +93,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     router,
     kycQuery.data?.verified,
     kycQuery.isLoading,
+    canAccessAdminDashboard,
   ]);
 
   if (clientReady && isLoading && !isPublicRoute(segments)) {

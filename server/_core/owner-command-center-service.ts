@@ -146,6 +146,12 @@ export async function hydrateOwnerCommandCenter(): Promise<void> {
   await hydratePromise;
 }
 
+export function latestOwnerCommandEventByKind(
+  kind: OwnerCommandEventKind,
+): OwnerCommandEvent | undefined {
+  return events.find((e) => e.kind === kind);
+}
+
 export function listOwnerCommandEvents(params?: {
   since?: string;
   limit?: number;
@@ -153,10 +159,24 @@ export function listOwnerCommandEvents(params?: {
 }): OwnerCommandEvent[] {
   const limit = Math.min(Math.max(params?.limit ?? 80, 1), 200);
   const sinceMs = params?.since ? Date.parse(params.since) : Number.NaN;
-  return events
+  const filtered = events
     .filter((e) => (params?.kind ? e.kind === params.kind : true))
-    .filter((e) => !Number.isFinite(sinceMs) || Date.parse(e.createdAt) > sinceMs)
-    .slice(0, limit);
+    .filter((e) => !Number.isFinite(sinceMs) || Date.parse(e.createdAt) > sinceMs);
+
+  const collapsed: OwnerCommandEvent[] = [];
+  for (const event of filtered) {
+    const previous = collapsed[collapsed.length - 1];
+    if (
+      previous &&
+      event.kind === "health_scan" &&
+      previous.kind === "health_scan" &&
+      previous.english === event.english
+    ) {
+      continue;
+    }
+    collapsed.push(event);
+  }
+  return collapsed.slice(0, limit);
 }
 
 function ensureCommandCenterBooted(): void {

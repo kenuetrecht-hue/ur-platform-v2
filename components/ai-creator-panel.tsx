@@ -97,7 +97,7 @@ export function AiCreatorPanel({
           They are not available in the public AI Specialists tab.
         </Text>
         <Pressable
-          onPress={() => router.push("/owner-ops")}
+          onPress={() => router.push("/(tabs)/admin")}
           style={{ backgroundColor: colors.primary, borderRadius: 10, padding: 14, alignItems: "center" }}
         >
           <Text style={{ color: "#fff", fontWeight: "700" }}>Open Administration Dashboard</Text>

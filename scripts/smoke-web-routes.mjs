@@ -21,6 +21,7 @@ const WEB_ROUTES = [
   "/jobsite",
   "/affiliate-dashboard",
   "/creator-dashboard",
+  "/owner-ops",
 ];
 
 const checks = [];

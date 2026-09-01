@@ -58,8 +58,19 @@ const MAX_PROMPT_LENGTH = 2000;
 /** Models to try in order when using the Gemini API key (Vertex uses ENV.googleGeminiModel only). */
 function geminiApiModelCandidates(): string[] {
   const primary = ENV.googleGeminiModel;
-  const fallbacks = ["gemini-2.0-flash-lite", "gemini-2.0-flash"];
+  const fallbacks = ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash"];
   return [...new Set([primary, ...fallbacks])];
+}
+
+function generationConfigForModel(
+  modelName: string,
+  maxOutputTokens: number,
+  temperature: number,
+): { maxOutputTokens: number; temperature?: number } {
+  if (/^gemini-3/i.test(modelName)) {
+    return { maxOutputTokens };
+  }
+  return { maxOutputTokens, temperature };
 }
 
 function geminiErrorMessage(error: unknown): string {
@@ -374,10 +385,7 @@ async function generateChatViaGeminiApiKey(
     const model = genAI.getGenerativeModel({
       model: modelName,
       systemInstruction: safe.systemPrompt,
-      generationConfig: {
-        maxOutputTokens,
-        temperature,
-      },
+      generationConfig: generationConfigForModel(modelName, maxOutputTokens, temperature),
     });
 
     const userParts = buildUserContentParts(userMessage, safe.attachments);
@@ -419,6 +427,7 @@ async function generateChatViaGeminiApiKey(
         }
 
         if (isGeminiModelNotFoundError(error)) {
+          logGeminiError(error);
           break;
         }
 
@@ -441,10 +450,11 @@ async function generateChatViaVertex(safe: GoogleChatParams): Promise<GoogleChat
       role: "system",
       parts: [{ text: safe.systemPrompt }],
     },
-    generationConfig: {
+    generationConfig: generationConfigForModel(
+      ENV.googleGeminiModel,
       maxOutputTokens,
       temperature,
-    },
+    ),
   });
 
   const userMessage = buildUserMessage(safe.message, safe.responseLanguage);

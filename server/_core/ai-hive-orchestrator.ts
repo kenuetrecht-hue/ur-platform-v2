@@ -22,6 +22,8 @@ import {
   listCreatorsForClient,
 } from "./ai-creator-registry";
 import { isOwnerOnlyPlatformAi } from "./platform-ops-ai";
+import { detectStewardWorkTargets } from "./steward-commission-service";
+import { BUSINESS_STEWARD_AI_ID } from "../../lib/steward-ad-budget";
 import { assertAndConsumeStewardAdBudget } from "./steward-ad-budget-service";
 import {
   findDominantSpecialistForMessage,
@@ -247,6 +249,21 @@ export function recordHiveInteraction(params: {
   void persistUserMemoryInteraction(params);
 }
 
+function pickHivePeerIds(creatorId: string, message: string): string[] {
+  const peers = getHivePeers(creatorId);
+  if (creatorId === BUSINESS_STEWARD_AI_ID) {
+    const commissioned = detectStewardWorkTargets(message).map((t) => t.specialistId);
+    if (commissioned.length > 0) return [...new Set(commissioned)].slice(0, 3);
+    const ranked = peers
+      .map((id) => ({ id, score: scoreCreatorDomainMatch(id, message) }))
+      .filter((row) => row.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((row) => row.id);
+    return (ranked.length > 0 ? ranked : peers).slice(0, 3);
+  }
+  return peers.slice(0, 3);
+}
+
 /** Multi-AI hive consultation — primary specialist synthesizes peer insights. */
 export async function runHiveConsultation(params: {
   creatorId: string;
@@ -266,7 +283,7 @@ export async function runHiveConsultation(params: {
   }
 
   const caps = getHiveCapabilities(params.creatorId);
-  const peerIds = caps.hiveCollaboration ? getHivePeers(params.creatorId).slice(0, 3) : [];
+  const peerIds = caps.hiveCollaboration ? pickHivePeerIds(params.creatorId, params.message) : [];
   const consultedPeers: Array<{ id: string; name: string; insight: string }> = [];
 
   for (const peerId of peerIds) {

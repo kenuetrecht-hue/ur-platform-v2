@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -11,25 +11,41 @@ import {
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { CreatorAIInterface } from "@/components/creator-ai-interface";
+import { VoicePromptField } from "@/components/voice-prompt-field";
 import { AiLearnSurface } from "@/components/ai-creator-panel";
+import { AppPressable } from "@/components/app-pressable";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import type { AdminStaffRole } from "@/lib/admin-access-types";
 import { AiSessionProgrammingPanel } from "@/components/ai-session-programming-panel";
 import { PlatformSectionMaintenancePanel } from "@/components/platform-section-maintenance-panel";
 import { PlatformContentProtectionPanel } from "@/components/platform-content-protection-panel";
+import { OwnerSocialPublisherPanel } from "@/components/owner-social-publisher-panel";
 import { TransactionHistoryList } from "@/components/transaction-history-list";
-import { OWNER_PLATFORM_OPS_CATALOG } from "@/lib/owner-platform-ops-catalog";
+import { BUSINESS_STEWARD_AI_ID, OWNER_PLATFORM_OPS_CATALOG } from "@/lib/owner-platform-ops-catalog";
 import {
   OWNER_REMEDIATION_CONFIRM_PHRASE,
   isOwnerRemediationConfirmed,
 } from "@/lib/platform-ops-remediation-types";
 
-export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatformOwner?: boolean }) {
+export function PlatformOpsConsole({
+  isPlatformOwner: isOwnerProp,
+  initialAiId,
+  focusStewardNonce = 0,
+}: {
+  isPlatformOwner?: boolean;
+  initialAiId?: string;
+  /** Incremented when the owner taps Business Steward on this page so chat is selected in place. */
+  focusStewardNonce?: number;
+}) {
   const colors = useColors();
   const { isPlatformOwner: isOwnerHook, hasAdminPermission } = usePlatformOwner();
   const isPlatformOwner = isOwnerProp ?? isOwnerHook;
   const utils = trpc.useUtils();
-  const [selectedOpsAi, setSelectedOpsAi] = useState<string>("platform-security-ai");
+  const [selectedOpsAi, setSelectedOpsAi] = useState<string>(
+    initialAiId && OWNER_PLATFORM_OPS_CATALOG.some((c) => c.id === initialAiId)
+      ? initialAiId
+      : BUSINESS_STEWARD_AI_ID,
+  );
   const [stewardSurface, setStewardSurface] = useState<"chat" | "learn">("chat");
   const [rejectNote, setRejectNote] = useState("");
   const [ownerInstructions, setOwnerInstructions] = useState("");
@@ -42,6 +58,21 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
   const [staffRole, setStaffRole] = useState<AdminStaffRole>("viewer");
   const [approveConfirm, setApproveConfirm] = useState("");
   const [approveIncidentId, setApproveIncidentId] = useState<string | null>(null);
+  const [assignBrief, setAssignBrief] = useState("");
+  const [assignHint, setAssignHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialAiId && OWNER_PLATFORM_OPS_CATALOG.some((c) => c.id === initialAiId)) {
+      setSelectedOpsAi(initialAiId);
+      if (initialAiId === BUSINESS_STEWARD_AI_ID) setStewardSurface("chat");
+    }
+  }, [initialAiId]);
+
+  useEffect(() => {
+    if (focusStewardNonce <= 0) return;
+    setSelectedOpsAi(BUSINESS_STEWARD_AI_ID);
+    setStewardSurface("chat");
+  }, [focusStewardNonce]);
 
   const roleOptions = trpc.platformOps.listAdminRoleOptions.useQuery(undefined, {
     enabled: isPlatformOwner,
@@ -141,6 +172,21 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
     enabled: isPlatformOwner,
     refetchInterval: 15_000,
   });
+  const stewardJobs = trpc.platformOps.listStewardCommissions.useQuery(undefined, {
+    enabled: isPlatformOwner,
+    refetchInterval: 12_000,
+  });
+  const sendAssign = trpc.aiCreators.sendMessage.useMutation({
+    onSuccess: () => {
+      setAssignBrief("");
+      setAssignHint("Sent. Steward will assign that work and save the draft below.");
+      void utils.platformOps.listStewardCommissions.invalidate();
+      void utils.aiCreators.getThread.invalidate({ creatorId: BUSINESS_STEWARD_AI_ID });
+    },
+    onError: (error) => {
+      setAssignHint(error.message || "Could not send that assignment. Try again.");
+    },
+  });
 
   const revokeGrant = trpc.platformOps.revokeFreeAccess.useMutation({
     onSuccess: () => void utils.platformOps.listAccessGrants.invalidate(),
@@ -161,18 +207,19 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
   const opsWelcome = `Owner channel active. I'm ${selectedMeta?.name ?? "Ops AI"}. I can diagnose, isolate a broken section, and draft a fix. Nothing is finalized until you type ${OWNER_REMEDIATION_CONFIRM_PHRASE} in Owner Ops.`;
 
   return (
-    <ScrollView contentContainerStyle={{ paddingBottom: 32, gap: 16 }}>
+    <View style={{ paddingBottom: 32, gap: 16 }}>
       <View style={[styles.banner, { backgroundColor: `${colors.primary}18`, borderColor: colors.primary }]}>
         <Text style={[styles.bannerTitle, { color: colors.foreground }]}>
           🏛️ Administration & ops
         </Text>
         <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
-          Doctor, Administration, Security, and Business Steward AIs. The first three monitor UR.
-          Business Steward is your private marketing, Learn academy, and tax-date assistant — members never see it.
+          Business Steward is first — sales, ads, and running the site. Doctor, Administration, and
+          Security sit beside him. Members never see Steward.
         </Text>
       </View>
 
       {isPlatformOwner ? <PlatformContentProtectionPanel /> : null}
+      {isPlatformOwner ? <OwnerSocialPublisherPanel /> : null}
 
       {isPlatformOwner ? (
         <View style={{ gap: 10, paddingHorizontal: 16 }}>
@@ -194,19 +241,20 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
           />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {(roleOptions.data ?? []).map((r) => (
-              <Pressable
-                key={r.id}
-                onPress={() => setStaffRole(r.id)}
-                style={[
-                  styles.opsChip,
-                  {
-                    backgroundColor: staffRole === r.id ? colors.primary : colors.surface,
-                    borderColor: staffRole === r.id ? colors.primary : colors.border,
-                    minWidth: 140,
-                  },
-                ]}
-              >
+            <AppPressable
+              key={r.id}
+              onPress={() => setStaffRole(r.id)}
+              style={[
+                styles.opsChip,
+                {
+                  backgroundColor: staffRole === r.id ? colors.primary : colors.surface,
+                  borderColor: staffRole === r.id ? colors.primary : colors.border,
+                  minWidth: 140,
+                },
+              ]}
+            >
                 <Text
+                  pointerEvents="none"
                   style={{
                     color: staffRole === r.id ? "#fff" : colors.foreground,
                     fontWeight: "700",
@@ -216,7 +264,7 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
                 >
                   {r.label}
                 </Text>
-              </Pressable>
+              </AppPressable>
             ))}
           </ScrollView>
           <TextInput
@@ -577,7 +625,7 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Ops AI chat</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {opsAis.map((ai) => (
-            <Pressable
+            <AppPressable
               key={ai.id}
               onPress={() => {
                 setSelectedOpsAi(ai.id);
@@ -591,11 +639,20 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
                 },
               ]}
             >
-              <Text style={{ fontSize: 20 }}>{ai.avatar}</Text>
-              <Text style={{ color: selectedOpsAi === ai.id ? "#fff" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
+              <Text pointerEvents="none" style={{ fontSize: 20 }}>
+                {ai.avatar}
+              </Text>
+              <Text
+                pointerEvents="none"
+                style={{
+                  color: selectedOpsAi === ai.id ? "#fff" : colors.foreground,
+                  fontWeight: "700",
+                  fontSize: 12,
+                }}
+              >
                 {ai.name}
               </Text>
-            </Pressable>
+            </AppPressable>
           ))}
         </ScrollView>
         {isSteward && stewardAdBudget.data ? (
@@ -620,6 +677,62 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
           </View>
         ) : null}
         {isSteward ? (
+          <View
+            style={[
+              styles.banner,
+              { backgroundColor: colors.surface, borderColor: colors.border, gap: 12 },
+            ]}
+          >
+            <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 13 }}>
+              Assign work to other AIs
+            </Text>
+            <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+              Type below, or tap the microphone and speak any language — we print it here in English.
+              Example: “Have Songwriter write a UR anthem,” “Have Author Muse write an educational
+              ebook,” or “Have Content Helper write a video script.” Steward assigns that AI and saves
+              the draft here. Video files wait until the platform is earning; scripts are ready now.
+            </Text>
+            <VoicePromptField
+              value={assignBrief}
+              onChangeText={setAssignBrief}
+              disabled={sendAssign.isPending}
+              sending={sendAssign.isPending}
+              sendLabel="Send assignment"
+              placeholder="Type or speak: Have Songwriter write a UR anthem…"
+              onSend={() => {
+                const brief = assignBrief.trim();
+                if (!brief || sendAssign.isPending) return;
+                sendAssign.mutate({
+                  creatorId: BUSINESS_STEWARD_AI_ID,
+                  message: brief,
+                });
+              }}
+            />
+            {assignHint ? (
+              <Text
+                style={{
+                  color: sendAssign.isError ? "#dc2626" : colors.muted,
+                  fontSize: 13,
+                  fontWeight: sendAssign.isError ? "700" : "400",
+                }}
+              >
+                {assignHint}
+              </Text>
+            ) : null}
+            {(stewardJobs.data ?? []).slice(0, 6).map((job) => (
+              <View key={job.id} style={{ gap: 4, paddingTop: 8 }}>
+                <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
+                  {job.specialistName} · {job.kindLabel}
+                </Text>
+                <Text style={{ color: colors.muted, fontSize: 12 }}>{job.title}</Text>
+                <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 17 }} numberOfLines={8}>
+                  {job.body}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+        {isSteward ? (
           <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16 }}>
             {(
               [
@@ -629,7 +742,7 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
             ).map((tab) => {
               const active = stewardSurface === tab.id;
               return (
-                <Pressable
+                <AppPressable
                   key={tab.id}
                   onPress={() => setStewardSurface(tab.id)}
                   style={[
@@ -641,17 +754,20 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
                     },
                   ]}
                 >
-                  <Text style={{ color: active ? "#fff" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
+                  <Text
+                    pointerEvents="none"
+                    style={{ color: active ? "#fff" : colors.foreground, fontWeight: "700", fontSize: 12 }}
+                  >
                     {tab.label}
                   </Text>
-                </Pressable>
+                </AppPressable>
               );
             })}
           </View>
         ) : null}
         <View
           style={{
-            height: isSteward && stewardSurface === "learn" ? 560 : 420,
+            height: isSteward ? 560 : 420,
             borderRadius: 14,
             overflow: "hidden",
             borderWidth: 1,
@@ -678,7 +794,7 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
         </View>
       </View>
       ) : null}
-    </ScrollView>
+    </View>
   );
 }
 

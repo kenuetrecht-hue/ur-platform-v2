@@ -16,6 +16,15 @@ const SERVER_ONLY_SECRET_NAMES = [
   "MUX_WEBHOOK_SECRET",
   "MUX_SIGNING_KEY_ID",
   "MUX_SIGNING_PRIVATE_KEY",
+  "AYRSHARE_API_KEY",
+  "AYRSHARE_PROFILE_KEY",
+  "BUFFER_ACCESS_TOKEN",
+  "BUFFER_FACEBOOK_PROFILE_ID",
+  "BUFFER_INSTAGRAM_PROFILE_ID",
+  "BUFFER_TWITTER_PROFILE_ID",
+  "BUFFER_LINKEDIN_PROFILE_ID",
+  "BUFFER_TIKTOK_PROFILE_ID",
+  "BUFFER_YOUTUBE_PROFILE_ID",
 ] as const;
 
 /** Env var prefixes that must never carry API keys or credentials. */
@@ -76,6 +85,31 @@ export function isMuxSigningConfigured(): boolean {
   return Boolean(getMuxSigningKeyId() && getMuxSigningPrivateKey());
 }
 
+export function getAyrshareApiKey(): string {
+  return readServerSecret("AYRSHARE_API_KEY");
+}
+
+/** Business-plan profile key — unused until that plan is ready. */
+export function getAyrshareProfileKey(): string {
+  return readServerSecret("AYRSHARE_PROFILE_KEY");
+}
+
+export function getBufferAccessToken(): string {
+  return readServerSecret("BUFFER_ACCESS_TOKEN");
+}
+
+export function getBufferProfileId(
+  name:
+    | "BUFFER_FACEBOOK_PROFILE_ID"
+    | "BUFFER_INSTAGRAM_PROFILE_ID"
+    | "BUFFER_TWITTER_PROFILE_ID"
+    | "BUFFER_LINKEDIN_PROFILE_ID"
+    | "BUFFER_TIKTOK_PROFILE_ID"
+    | "BUFFER_YOUTUBE_PROFILE_ID",
+): string {
+  return readServerSecret(name);
+}
+
 /**
  * Fail fast at startup if secrets are misconfigured for client exposure.
  * Call once when the API server boots.
@@ -130,7 +164,7 @@ export function redactSecrets(text: string): string {
     .replace(/AQ\.[A-Za-z0-9_-]{10,}/g, "[REDACTED_GEMINI_KEY]")
     .replace(/AIza[0-9A-Za-z_-]{20,}/g, "[REDACTED_GOOGLE_KEY]")
     .replace(
-      /(CONTENTMATE_GEMINI_API_KEY|GEMINI_API_KEY|TURNSTILE_SECRET_KEY|MUX_TOKEN_SECRET|MUX_WEBHOOK_SECRET|MUX_SIGNING_PRIVATE_KEY)(=|:)\s*["']?[^"'\s]+["']?/gi,
+      /(CONTENTMATE_GEMINI_API_KEY|GEMINI_API_KEY|TURNSTILE_SECRET_KEY|MUX_TOKEN_SECRET|MUX_WEBHOOK_SECRET|MUX_SIGNING_PRIVATE_KEY|AYRSHARE_API_KEY|AYRSHARE_PROFILE_KEY|BUFFER_ACCESS_TOKEN)(=|:)\s*["']?[^"'\s]+["']?/gi,
       "$1$2[REDACTED]",
     );
 }

@@ -18,8 +18,9 @@ if (!key) {
 
 const models = [
   process.env.GOOGLE_GEMINI_MODEL,
-  "gemini-2.0-flash-lite",
-  "gemini-2.0-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-2.5-flash",
 ].filter(Boolean);
 
 const { GoogleGenerativeAI } = await import("@google/generative-ai");

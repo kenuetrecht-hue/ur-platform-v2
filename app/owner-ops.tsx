@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Stack, useRouter } from "expo-router";
+import { Link, Stack, useLocalSearchParams, useRouter, type Href } from "expo-router";
+import { BUSINESS_STEWARD_AI_ID, isOwnerOpsAiId } from "@/lib/owner-platform-ops-catalog";
+import { ADMIN_QUICK_HREFS } from "@/lib/admin-dashboard-routes";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
 import { OwnerCommandCenterPanel } from "@/components/owner-command-center-panel";
@@ -7,12 +9,12 @@ import { PlatformOpsConsole } from "@/components/platform-ops-console";
 import { CommerceOpsPanel } from "@/components/commerce-ops-panel";
 import { LandingDemoConversionStatsPanel } from "@/components/landing-demo-conversion-stats-panel";
 import { AdminDashboard } from "@/components/admin-dashboard";
+import { AppPressable } from "@/components/app-pressable";
 import { useAuth } from "@/lib/auth-context";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { trpc } from "@/lib/trpc";
-import { View, Text, ActivityIndicator, Pressable, ScrollView } from "react-native";
+import { View, Text, ActivityIndicator, ScrollView } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import { EXPECTED_PUBLIC_COUNT } from "@/lib/ai-creator-catalog-sync";
 
 export default function OwnerOpsScreen() {
   const colors = useColors();
@@ -26,21 +28,45 @@ export default function OwnerOpsScreen() {
     hasAdminPermission,
   } = usePlatformOwner();
   const [showAdmin, setShowAdmin] = useState(false);
+  const [stewardFocusNonce, setStewardFocusNonce] = useState(0);
+  const params = useLocalSearchParams<{ ai?: string }>();
+  const requestedOpsAi =
+    typeof params.ai === "string" && isOwnerOpsAiId(params.ai) ? params.ai : BUSINESS_STEWARD_AI_ID;
   const access = trpc.platformOps.checkAccess.useQuery(undefined, { retry: 1 });
 
-  const ownerQuickActions = [
+  const focusBusinessSteward = () => {
+    setShowAdmin(false);
+    setStewardFocusNonce((n) => n + 1);
+    router.setParams({ ai: BUSINESS_STEWARD_AI_ID });
+  };
+
+  type QuickAction =
+    | { label: string; kind: "press"; onPress: () => void }
+    | { label: string; kind: "href"; href: Href };
+
+  const ownerQuickActions: QuickAction[] = [
     ...(isPlatformOwner
-      ? [
-          { label: "All AIs", onPress: () => router.push("/ais") },
-          { label: "3D Lab", onPress: () => router.push("/3d-workspace") },
-        ]
+      ? ([
+          { label: "Business Steward", kind: "press", onPress: focusBusinessSteward },
+          { label: "All AIs", kind: "href", href: ADMIN_QUICK_HREFS.allAis },
+          { label: "3D Lab", kind: "href", href: ADMIN_QUICK_HREFS.lab3d },
+        ] satisfies QuickAction[])
       : []),
-    { label: "Create", onPress: () => router.push("/(tabs)/create") },
-    { label: "Discover", onPress: () => router.push("/(tabs)/discover") },
+    { label: "Create", kind: "href", href: ADMIN_QUICK_HREFS.create },
+    { label: "Discover", kind: "href", href: ADMIN_QUICK_HREFS.discover },
     ...(hasAdminPermission("campaign_admin")
-      ? [{ label: "Campaign Admin", onPress: () => setShowAdmin(true) }]
+      ? ([{ label: "Campaign Admin", kind: "press", onPress: () => setShowAdmin(true) }] satisfies QuickAction[])
       : []),
   ];
+
+  const chipStyle = {
+    backgroundColor: colors.primary,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    minHeight: 40,
+    justifyContent: "center" as const,
+  };
 
   const denied = !access.isLoading && !canAccessAdminDashboard;
 
@@ -62,7 +88,11 @@ export default function OwnerOpsScreen() {
             <ActivityIndicator color={colors.primary} />
           </View>
         ) : canAccessAdminDashboard ? (
-          <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+          <ScrollView
+            contentContainerStyle={{ paddingBottom: 32 }}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+          >
             <View style={{ paddingHorizontal: 16, paddingBottom: 12, gap: 10 }}>
               <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>
                 {isPlatformOwner
@@ -85,35 +115,75 @@ export default function OwnerOpsScreen() {
                   </Text>
                   {isPlatformOwner ? (
                     <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
-                      {EXPECTED_PUBLIC_COUNT} public AI specialists · Doctor, Administration & Security
-                      ops AIs live here only · grant staff access below
+                      Talk to Business Steward here — sales, ads, and running the site. Doctor,
+                      Administration, and Security are on the same page. Members never see Steward.
                     </Text>
                   ) : null}
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                    {ownerQuickActions.map((action) => (
-                      <Pressable
-                        key={action.label}
-                        onPress={action.onPress}
-                        style={{
-                          backgroundColor: colors.primary,
-                          borderRadius: 20,
-                          paddingHorizontal: 14,
-                          paddingVertical: 8,
-                        }}
-                      >
-                        <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
+                    {ownerQuickActions.map((action) => {
+                      const label = (
+                        <Text
+                          pointerEvents="none"
+                          style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}
+                        >
                           {action.label}
                         </Text>
-                      </Pressable>
-                    ))}
+                      );
+                      if (action.kind === "href") {
+                        return (
+                          <Link key={action.label} href={action.href} asChild>
+                            <AppPressable style={chipStyle}>{label}</AppPressable>
+                          </Link>
+                        );
+                      }
+                      return (
+                        <AppPressable key={action.label} onPress={action.onPress} style={chipStyle}>
+                          {label}
+                        </AppPressable>
+                      );
+                    })}
                   </View>
                 </View>
               ) : null}
             </View>
+            {isPlatformOwner ? (
+              <AppPressable
+                onPress={focusBusinessSteward}
+                style={{
+                  marginHorizontal: 16,
+                  marginBottom: 12,
+                  backgroundColor: `${colors.primary}14`,
+                  borderRadius: 14,
+                  borderWidth: 1.5,
+                  borderColor: colors.primary,
+                  padding: 16,
+                  gap: 8,
+                }}
+              >
+                <Text
+                  pointerEvents="none"
+                  style={{ color: colors.foreground, fontWeight: "800", fontSize: 17 }}
+                >
+                  📋 Business Steward
+                </Text>
+                <Text
+                  pointerEvents="none"
+                  style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}
+                >
+                  Tap to open his chat on this page — sales, advertising, and running the website
+                  and app. Use Assign work to other AIs below — type or tap the microphone and
+                  speak any language. Switch to Learn the business for the academy.
+                </Text>
+              </AppPressable>
+            ) : null}
+            <PlatformOpsConsole
+              isPlatformOwner={isPlatformOwner}
+              initialAiId={requestedOpsAi}
+              focusStewardNonce={stewardFocusNonce}
+            />
             {isPlatformOwner ? <OwnerCommandCenterPanel /> : null}
             {isPlatformOwner ? <CommerceOpsPanel /> : null}
             {isPlatformOwner ? <LandingDemoConversionStatsPanel /> : null}
-            <PlatformOpsConsole isPlatformOwner={isPlatformOwner} />
           </ScrollView>
         ) : denied ? (
           <View style={{ padding: 24, gap: 14 }}>
@@ -143,17 +213,20 @@ export default function OwnerOpsScreen() {
               </View>
             ) : null}
             {!isAuthenticated ? (
-              <Pressable
-                onPress={() => router.push("/login")}
-                style={{
-                  backgroundColor: colors.primary,
-                  borderRadius: 12,
-                  padding: 14,
-                  alignItems: "center",
-                }}
-              >
-                <Text style={{ color: "#fff", fontWeight: "700" }}>Sign in</Text>
-              </Pressable>
+              <Link href="/login" asChild>
+                <AppPressable
+                  style={{
+                    backgroundColor: colors.primary,
+                    borderRadius: 12,
+                    padding: 14,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text pointerEvents="none" style={{ color: "#fff", fontWeight: "700" }}>
+                    Sign in
+                  </Text>
+                </AppPressable>
+              </Link>
             ) : isPlatformOwner ? null : (
               <>
                 <View style={{ gap: 6 }}>
@@ -171,8 +244,8 @@ export default function OwnerOpsScreen() {
                     PLATFORM_OWNER_EMAIL={user?.email ?? "your-email@example.com"}
                   </Text>
                 </View>
-                <Pressable
-                  onPress={() => access.refetch()}
+                <AppPressable
+                  onPress={() => void access.refetch()}
                   style={{
                     backgroundColor: colors.primary,
                     borderRadius: 12,
@@ -180,8 +253,10 @@ export default function OwnerOpsScreen() {
                     alignItems: "center",
                   }}
                 >
-                  <Text style={{ color: "#fff", fontWeight: "700" }}>Check again</Text>
-                </Pressable>
+                  <Text pointerEvents="none" style={{ color: "#fff", fontWeight: "700" }}>
+                    Check again
+                  </Text>
+                </AppPressable>
               </>
             )}
           </View>

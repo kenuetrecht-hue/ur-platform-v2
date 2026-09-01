@@ -34,6 +34,7 @@ import {
   loadAiChatHistoryForModel,
 } from "../_core/ai-chat-persistence-service";
 import { mapServiceErrorToTrpc } from "../_core/service-errors";
+import { transcribeVoicePrompt } from "../_core/speech-to-prompt-service";
 import { notifyAiChatThreadUpdated } from "../_core/ai-chat-realtime-ws";
 import { assertUserCanUseAi } from "../_core/ai-guardrails";
 import { assertNoAiTakeoverInMessage } from "../_core/ai-control";
@@ -263,6 +264,11 @@ export const aiCreatorChatRouter = router({
 
       const attachments = sanitizeChatAttachments(input.attachments);
 
+      const adminAccess = getAdminAccessForUser({
+        userId: ctx.user.id,
+        email: ctx.user.email,
+        isPlatformOwner: ctx.isPlatformOwner,
+      });
       const result = await handleCreatorAiChat({
         creatorId: input.creatorId,
         message: input.message,
@@ -306,6 +312,26 @@ export const aiCreatorChatRouter = router({
         threadId: syncMeta?.threadId,
         threadUpdatedAt: syncMeta?.updatedAt,
       };
+    }),
+
+  transcribeVoicePrompt: secureProcedure("aiCreators")
+    .input(
+      z.object({
+        audioBase64: z.string().min(80).max(1_000_000),
+        mimeType: z.string().trim().min(3).max(80),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      assertUserCanUseAi(String(ctx.user.id), ctx.isPlatformOwner);
+      try {
+        return await transcribeVoicePrompt({
+          audioBase64: input.audioBase64,
+          mimeType: input.mimeType,
+          isPlatformOwner: ctx.isPlatformOwner,
+        });
+      } catch (error) {
+        throw mapServiceErrorToTrpc(error);
+      }
     }),
 
   /** Generate an image via Imagen (creative specialists + ContentMate). Requires Vertex AI. */

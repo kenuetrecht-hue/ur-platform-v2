@@ -48,6 +48,13 @@ import {
   assertStewardAdBudgetAffordable,
 } from "./steward-ad-budget-service";
 import type { StewardAdAction } from "../../lib/steward-ad-budget";
+import { BUSINESS_STEWARD_AI_ID } from "../../lib/steward-ad-budget";
+import {
+  formatStewardCommissionForPrompt,
+  isStewardCommissionRequest,
+  runStewardCommission,
+  type StewardCommissionJob,
+} from "./steward-commission-service";
 import { VISION_UPLOAD_MESSAGE_UNITS } from "../../lib/usage-caps-catalog";
 import {
   createOpsIncident,
@@ -99,6 +106,13 @@ export async function handleCreatorAiChat(params: {
   pitchConsentRequest?: boolean;
   pitchAccepted?: boolean;
   pitchDeclined?: boolean;
+  commissionedWorks?: Array<{
+    id: string;
+    specialistName: string;
+    kind: string;
+    title: string;
+    status: string;
+  }>;
 }> {
   if (!isGoogleCloudAiConfigured()) {
     throw new TRPCError({
@@ -229,7 +243,23 @@ export async function handleCreatorAiChat(params: {
       base64: a.base64,
     }));
 
+    const shouldCommission =
+      params.creatorId === BUSINESS_STEWARD_AI_ID &&
+      params.ctx.isPlatformOwner &&
+      !params.ctx.landingDemo &&
+      isStewardCommissionRequest(message);
+
+    let commissionedJobs: StewardCommissionJob[] = [];
+    if (shouldCommission) {
+      commissionedJobs = await runStewardCommission({
+        brief: message,
+        ownerUserId: userId,
+        isPlatformOwner: true,
+      });
+    }
+
     const useHive =
+      !shouldCommission &&
       !params.ctx.landingDemo &&
       !isAffiliateOnlyAi(params.creatorId) &&
       (params.useHiveConsult === true || isComplexHiveProblem(message));
@@ -333,6 +363,14 @@ export async function handleCreatorAiChat(params: {
           }));
           return r.systemPrompt;
         });
+      }
+
+      if (commissionedJobs.length > 0) {
+        systemPrompt += `\n\n${formatStewardCommissionForPrompt(commissionedJobs)}`;
+        hiveConsulted = commissionedJobs.map((job) => ({
+          id: job.specialistId,
+          name: job.specialistName,
+        }));
       }
 
       const result = await generateGoogleChatReply({
@@ -498,6 +536,16 @@ export async function handleCreatorAiChat(params: {
       pitchConsentRequest,
       pitchAccepted,
       pitchDeclined,
+      commissionedWorks:
+        commissionedJobs.length > 0
+          ? commissionedJobs.map((job) => ({
+              id: job.id,
+              specialistName: job.specialistName,
+              kind: job.kind,
+              title: job.title,
+              status: job.status,
+            }))
+          : undefined,
     };
   } catch (error) {
     if (error instanceof TRPCError) throw error;

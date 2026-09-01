@@ -9,6 +9,8 @@ import {
   Platform,
 } from "react-native";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/lib/auth-context";
+import { Link } from "expo-router";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
 import { LANDING_SPECIALIST_COUNT_LABEL } from "@/lib/landing-checkout-pricing";
 import { buildHandoffUrl } from "@/lib/app-handoff-url";
@@ -18,6 +20,7 @@ import { PricingComingSoonPanel } from "@/components/pricing-coming-soon-panel";
 import { PUBLIC_PRICING_ENABLED } from "@/lib/pricing-visibility";
 
 export function LandingCheckoutCta() {
+  const { isAuthenticated } = useAuth();
   const [email, setEmail] = useState("");
   const [handoffUrl, setHandoffUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +34,10 @@ export function LandingCheckoutCta() {
   });
 
   const handlePurchase = () => {
+    if (!isAuthenticated) {
+      setError("Sign in first. Checkout is closed to unsigned visitors.");
+      return;
+    }
     const trimmed = email.trim();
     if (!trimmed || !trimmed.includes("@")) {
       setError("Enter your email to activate membership after payment.");
@@ -54,32 +61,42 @@ export function LandingCheckoutCta() {
 
             <PaymentChannelNotice compact />
 
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Email for instant app login"
-              placeholderTextColor={T.muted}
-              keyboardType="email-address"
-              autoCapitalize="none"
-          autoCorrect={false}
-          maxLength={120}
-          style={styles.input}
-          editable={!purchase.isPending && !handoffUrl}
-        />
+            {!isAuthenticated ? (
+              <Link href="/login" asChild>
+                <Pressable style={styles.stripeBtn}>
+                  <Text style={styles.stripeBtnText}>Sign in to check out</Text>
+                </Pressable>
+              </Link>
+            ) : (
+              <>
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Email for instant app login"
+                  placeholderTextColor={T.muted}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  maxLength={120}
+                  style={styles.input}
+                  editable={!purchase.isPending && !handoffUrl}
+                />
 
-        <Pressable
-          onPress={handlePurchase}
-          disabled={purchase.isPending || Boolean(handoffUrl)}
-          style={[styles.stripeBtn, (purchase.isPending || handoffUrl) && styles.btnDisabled]}
-        >
-          {purchase.isPending ? (
-            <ActivityIndicator color="#001018" />
-          ) : (
-            <Text style={styles.stripeBtnText}>
-              Unlock All {LANDING_SPECIALIST_COUNT_LABEL} Specialists
-            </Text>
-          )}
-        </Pressable>
+                <Pressable
+                  onPress={handlePurchase}
+                  disabled={purchase.isPending || Boolean(handoffUrl)}
+                  style={[styles.stripeBtn, (purchase.isPending || handoffUrl) && styles.btnDisabled]}
+                >
+                  {purchase.isPending ? (
+                    <ActivityIndicator color="#001018" />
+                  ) : (
+                    <Text style={styles.stripeBtnText}>
+                      Unlock All {LANDING_SPECIALIST_COUNT_LABEL} Specialists
+                    </Text>
+                  )}
+                </Pressable>
+              </>
+            )}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 

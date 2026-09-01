@@ -1,7 +1,17 @@
 import type { AiCreatorCatalogEntry } from "./ai-creator-catalog";
 
 /** Owner-only ops AIs — not shown to regular users. */
+export const BUSINESS_STEWARD_AI_ID = "platform-business-steward-ai";
+
 export const OWNER_PLATFORM_OPS_CATALOG: AiCreatorCatalogEntry[] = [
+  {
+    id: BUSINESS_STEWARD_AI_ID,
+    name: "Business Steward AI",
+    avatar: "📋",
+    category: "Owner Operations",
+    mission:
+      "Your private operator for the website and app — sales, ads, marketing, launch checklists, and tax-date reminders. Members cannot see this AI.",
+  },
   {
     id: "platform-doctor-ai",
     name: "Doctor AI",
@@ -22,14 +32,6 @@ export const OWNER_PLATFORM_OPS_CATALOG: AiCreatorCatalogEntry[] = [
     avatar: "🛡️",
     category: "Owner Operations",
     mission: "Malware protection, security monitoring, and incident response.",
-  },
-  {
-    id: "platform-business-steward-ai",
-    name: "Business Steward AI",
-    avatar: "📋",
-    category: "Owner Operations",
-    mission:
-      "Your private operator: marketing, Learn academy, cash/go-live checklists, and Indiana/federal tax-date reminders — members cannot see this AI.",
   },
 ];
 

@@ -32,7 +32,7 @@ import {
   executeApprovedRemediation,
   sanitizeDeployProposal,
 } from "./platform-ops-remediation-service";
-import { recordOwnerCommandEvent } from "./owner-command-center-service";
+import { recordOwnerCommandEvent, latestOwnerCommandEventByKind } from "./owner-command-center-service";
 import {
   markSandboxRepairApplied,
   runOpsSandboxRepair,
@@ -45,6 +45,7 @@ import {
   persistOpsNotification,
   markOpsNotificationsReadInDb,
 } from "../db-platform-ops";
+import { CHECKOUT_PROBE_INCIDENT_TITLE } from "../../lib/checkout-probe-policy";
 
 export type OpsIncidentSeverity = "low" | "medium" | "high" | "critical";
 export type OpsIncidentCategory =
@@ -134,6 +135,27 @@ const ownerNotifications: Array<{
 let hydrated = false;
 let hydratePromise: Promise<void> | null = null;
 
+function collapseDuplicateCheckoutProbeIncidents(): void {
+  const matches = [...incidents.values()]
+    .filter((item) => item.title === CHECKOUT_PROBE_INCIDENT_TITLE && item.affectedSectionId === "commerce")
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  if (matches.length < 2) return;
+
+  const keep =
+    matches.find((item) => item.status !== "resolved" && item.status !== "rejected") ?? matches[0];
+  if (!keep) return;
+
+  for (const extra of matches) {
+    if (extra.id === keep.id) continue;
+    if (extra.status === "resolved" || extra.status === "rejected") continue;
+    extra.status = "resolved";
+    extra.ownerNote = "Merged duplicate checkout-probe alert — same local issue, not three separate attacks.";
+    extra.updatedAt = new Date().toISOString();
+    extra.actionsTaken.push("Collapsed duplicate Commerce probes incident");
+    rememberIncident(extra);
+  }
+}
+
 function rememberIncident(incident: OpsIncident): OpsIncident {
   incidents.set(incident.id, incident);
   void persistOpsIncident(incident);
@@ -156,6 +178,7 @@ export async function hydratePlatformOpsState(): Promise<void> {
       if (ownerNotifications.length === 0) {
         ownerNotifications.push(...notes);
       }
+      collapseDuplicateCheckoutProbeIncidents();
       hydrated = true;
     })();
   }
@@ -163,9 +186,17 @@ export async function hydratePlatformOpsState(): Promise<void> {
 }
 
 export function listOpsIncidents(): OpsIncident[] {
-  return [...incidents.values()].sort(
+  const sorted = [...incidents.values()].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
+  const seenCheckoutProbe = new Set<string>();
+  return sorted.filter((item) => {
+    if (item.title !== CHECKOUT_PROBE_INCIDENT_TITLE) return true;
+    const key = item.affectedSectionId ?? "commerce";
+    if (seenCheckoutProbe.has(key)) return false;
+    seenCheckoutProbe.add(key);
+    return true;
+  });
 }
 
 export function getOpsIncident(id: string): OpsIncident | undefined {
@@ -240,6 +271,15 @@ export async function createOpsIncident(input: {
   );
   if (openDuplicate) {
     return openDuplicate;
+  }
+
+  if (input.title === CHECKOUT_PROBE_INCIDENT_TITLE) {
+    const recentSame = [...incidents.values()].find(
+      (i) => i.title === input.title && i.affectedSectionId === input.affectedSectionId,
+    );
+    if (recentSame) {
+      return recentSame;
+    }
   }
 
   const now = new Date().toISOString();
@@ -674,6 +714,9 @@ export function runPlatformHealthChecks(): HealthCheckFinding[] {
     "chat",
     "auth",
     "webSearch",
+    "commerce",
+    "landing",
+    "aiSubscription",
   ];
   for (const ns of namespaces) {
     const circuit = getNamespaceCircuitStatus(ns);
@@ -741,16 +784,26 @@ export async function runPlatformHealthScan(): Promise<{
     incidentsCreated.push(incident);
   }
 
-  recordOwnerCommandEvent({
-    kind: "health_scan",
-    severity: findings.some((f) => f.severity === "high" || f.severity === "critical") ? "high" : "info",
-    sourceAiId: "platform-doctor-ai",
-    english:
-      findings.length === 0
+  const actionable = findings.filter((finding) => finding.severity !== "low");
+  const english =
+    actionable.length === 0
+      ? findings.length === 0
         ? "Health scan finished. Doctor AI found no new issues. Website and app checks look clear."
-        : `Health scan finished. Doctor AI found ${findings.length} issue(s) and opened ${incidentsCreated.length} incident(s) for your review.`,
-    relatedAiIds: ["platform-security-ai", "platform-administration-ai"],
-  });
+        : "Health scan finished. No new incidents. Optional note: phone/email owner alerts (Forge) are not set — you still see alerts here in Owner Ops."
+      : `Health scan finished. Doctor AI found ${actionable.length} issue(s) and opened ${incidentsCreated.length} incident(s) for your review.`;
+
+  const lastScan = latestOwnerCommandEventByKind("health_scan");
+  if (lastScan?.english !== english) {
+    recordOwnerCommandEvent({
+      kind: "health_scan",
+      severity: actionable.some((f) => f.severity === "high" || f.severity === "critical")
+        ? "high"
+        : "info",
+      sourceAiId: "platform-doctor-ai",
+      english,
+      relatedAiIds: ["platform-security-ai", "platform-administration-ai"],
+    });
+  }
 
   return { findings, incidentsCreated };
 }

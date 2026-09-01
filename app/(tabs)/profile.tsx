@@ -48,6 +48,7 @@ export default function ProfileScreen() {
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <TabScreenHeader
           icon="👤"
@@ -161,9 +162,35 @@ export default function ProfileScreen() {
             </Text>
           </Pressable>
 
+          {isPlatformOwner ? (
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: "/(tabs)/admin",
+                  params: { ai: "platform-business-steward-ai" },
+                })
+              }
+              style={{
+                backgroundColor: `${colors.primary}14`,
+                borderRadius: 12,
+                padding: 16,
+                borderWidth: 1.5,
+                borderColor: colors.primary,
+              }}
+            >
+              <Text style={{ fontSize: 16, fontWeight: "800", color: colors.primary }}>
+                📋 Business Steward
+              </Text>
+              <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4, lineHeight: 18 }}>
+                Your private helper — sales, ads, marketing, and running the website and app.
+                Members cannot see him.
+              </Text>
+            </Pressable>
+          ) : null}
+
           {canAccessAdminDashboard ? (
             <Pressable
-              onPress={() => router.push("/owner-ops")}
+              onPress={() => router.push("/(tabs)/admin")}
               style={{
                 backgroundColor: `${colors.primary}12`,
                 borderRadius: 12,
@@ -177,7 +204,7 @@ export default function ProfileScreen() {
               </Text>
               <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4, lineHeight: 18 }}>
                 {isPlatformOwner
-                  ? "Platform owner only — ops AIs, staff, compliance, and full AI programming."
+                  ? "Ops AIs, Business Steward, staff, compliance, and AI programming."
                   : `Staff access · ${adminRoleLabel ?? "Authorized role"}`}
               </Text>
             </Pressable>

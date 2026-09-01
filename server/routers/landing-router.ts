@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { securePublicProcedure, secureProcedure, ownerProcedure, router, TRPCError } from "../_core/trpc";
+import { securePublicProcedure, secureProcedure, secureCheckoutProcedure, ownerProcedure, router, TRPCError } from "../_core/trpc";
 import {
   getLandingPublicStats,
   getLandingTownHallPreview,
@@ -231,20 +231,15 @@ export const landingRouter = router({
     pricingReady: LANDING_ALL_SPECIALISTS_MONTHLY_CENTS != null,
   })),
 
-  purchasePlatformPass: securePublicProcedure("landing")
+  purchasePlatformPass: secureCheckoutProcedure("landing")
     .input(
       z.object({
         email: z.string().trim().email().max(120),
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      assertSectionEnabledForRequest("commerce", ctx.isPlatformOwner);
       assertSimulatedPurchaseAllowed();
-      if (!ctx.user) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: AGE_KYC_REQUIRED_MESSAGE,
-        });
-      }
       await assertUserIsAgeVerified(ctx.user.id);
       const email = sanitizeUserText(input.email, 120);
       if (!email.includes("@")) {
@@ -254,7 +249,7 @@ export const landingRouter = router({
       return purchaseLandingPlatformPass({
         email,
         ip: ctx.ip,
-        userId: ctx.user?.id != null ? String(ctx.user.id) : undefined,
+        userId: String(ctx.user.id),
       });
     }),
 

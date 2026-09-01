@@ -7,6 +7,7 @@ import {
   Platform,
   StyleSheet,
   KeyboardAvoidingView,
+  ActivityIndicator,
 } from "react-native";
 import { Link, Redirect } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
@@ -14,6 +15,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { WebLoginSubmit } from "@/components/web-login-submit";
 import { useLoginScreen } from "@/hooks/use-login-screen";
+import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 
 /** Same login on website and native app — web uses a DOM submit button so clicks register. */
@@ -34,9 +36,17 @@ export default function LoginScreen() {
     onTurnstileToken,
     serviceHint,
   } = useLoginScreen();
+  const { canAccessAdminDashboard, isLoading: ownerLoading } = usePlatformOwner();
 
   if (isAuthenticated) {
-    return <Redirect href="/(tabs)" />;
+    if (ownerLoading) {
+      return (
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" />
+        </View>
+      );
+    }
+    return <Redirect href={canAccessAdminDashboard ? "/(tabs)/admin" : "/(tabs)"} />;
   }
 
   const inputStyle = {

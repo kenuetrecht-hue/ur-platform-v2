@@ -7,7 +7,7 @@
     "predev": "node scripts/free-dev-ports.mjs && node scripts/ensure-mysql-running.js && node scripts/print_qr_terminal.mjs",
     "predev:web": "node scripts/free-dev-ports.mjs && node scripts/ensure-mysql-running.js && node scripts/print-web-url.mjs",
     "dev": "concurrently --names api,metro --prefix-colors blue,magenta \"pnpm dev:server\" \"pnpm dev:metro\"",
-    "dev:server": "cross-env NODE_ENV=development tsx watch server/_core/index.ts",
+    "dev:server": "cross-env NODE_ENV=development tsx watch --clear-screen=false --include ./server --include ./lib --include ./shared server/_core/index.ts",
     "dev:metro": "cross-env EXPO_USE_METRO_WORKSPACE_ROOT=1 expo start --lan --port 8082",
     "dev:web": "concurrently --names api,web --prefix-colors blue,green \"pnpm dev:server\" \"pnpm dev:web:metro\"",
     "dev:web:metro": "cross-env EXPO_USE_METRO_WORKSPACE_ROOT=1 expo start --web --port 8082",

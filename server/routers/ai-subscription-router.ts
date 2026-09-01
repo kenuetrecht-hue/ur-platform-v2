@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { secureProcedure, securePublicProcedure, router, TRPCError } from "../_core/trpc";
+import { secureProcedure, securePublicProcedure, secureCheckoutProcedure, router, TRPCError } from "../_core/trpc";
+import { assertSectionEnabledForRequest } from "../_core/platform-section-guard";
 import { isCreatorAiId, getCreatorAi } from "../_core/ai-creator-registry";
 import { getAccessStatus } from "../_core/access-entitlements";
 import {
@@ -120,7 +121,7 @@ export const aiSubscriptionRouter = router({
     listUserAiSubscriptions(String(ctx.user.id)),
   ),
 
-  purchase: secureProcedure("aiSubscription")
+  purchase: secureCheckoutProcedure("aiSubscription")
     .input(
       z.object({
         creatorId: creatorIdSchema,
@@ -130,6 +131,7 @@ export const aiSubscriptionRouter = router({
       }),
     )
     .mutation(({ input, ctx }) => {
+      assertSectionEnabledForRequest("commerce", ctx.isPlatformOwner);
       assertSimulatedPurchaseAllowed();
       const userId = String(ctx.user.id);
       const email = ctx.user.email;
@@ -198,7 +200,7 @@ export const aiSubscriptionRouter = router({
       };
     }),
 
-  purchaseConcurrentSlot: secureProcedure("aiSubscription")
+  purchaseConcurrentSlot: secureCheckoutProcedure("aiSubscription")
     .input(
       z.object({
         creatorId: creatorIdSchema,
@@ -208,6 +210,7 @@ export const aiSubscriptionRouter = router({
       }),
     )
     .mutation(({ input, ctx }) => {
+      assertSectionEnabledForRequest("commerce", ctx.isPlatformOwner);
       assertSimulatedPurchaseAllowed();
       const email = ctx.user.email;
       if (!email) {

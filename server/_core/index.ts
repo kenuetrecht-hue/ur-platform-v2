@@ -16,6 +16,7 @@ import {
 import { ENV, isOwnerEmailConfigured, assertProductionOwnerSecurity } from "./env";
 import { assertServerSecretsSafe, redactSecrets } from "./secrets";
 import { getMuxEnginePublicStatus } from "./mux-video-engine";
+import { logSocialPublisherStartup } from "./social-publisher-service";
 import { registerMuxWebhook } from "./mux-webhook";
 import { getAiHealthStatus, logGeminiStartupCheck } from "./google-ai";
 import { startForgeSessionJanitor } from "./forge-session-manager";
@@ -30,23 +31,58 @@ import { hydrateContentProtectionFromDatabase } from "./creator-content-protecti
 import { hydrateRecentAiUserMemory } from "./ai-user-memory-persistence";
 import { startPlatformOpsMonitor } from "./platform-ops-monitor";
 
-function isPortAvailable(port: number): Promise<boolean> {
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function canBindPort(port: number): Promise<boolean> {
   return new Promise((resolve) => {
-    const server = net.createServer();
-    server.listen(port, () => {
-      server.close(() => resolve(true));
+    const tester = net.createServer();
+    tester.once("error", () => resolve(false));
+    tester.once("listening", () => {
+      tester.close(() => resolve(true));
     });
-    server.on("error", () => resolve(false));
+    tester.listen(port);
   });
 }
 
-async function findAvailablePort(startPort: number = 3000): Promise<number> {
-  for (let port = startPort; port < startPort + 20; port++) {
-    if (await isPortAvailable(port)) {
-      return port;
-    }
+async function waitForPort(port: number, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await canBindPort(port)) return true;
+    await delay(200);
   }
-  throw new Error(`No available port found starting from ${startPort}`);
+  return false;
+}
+
+/** Windows + tsx watch: wait until the old process releases :3000, then bind once. */
+async function listenOnPort(
+  httpServer: ReturnType<typeof createServer>,
+  port: number,
+): Promise<void> {
+  if (!ENV.isProduction) {
+    const ready = await waitForPort(port, 8_000);
+    if (!ready) {
+      const error = new Error(`Port ${port} in use`) as NodeJS.ErrnoException;
+      error.code = "EADDRINUSE";
+      throw error;
+    }
+    await delay(50);
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const onError = (error: NodeJS.ErrnoException) => {
+      httpServer.off("listening", onListening);
+      reject(error);
+    };
+    const onListening = () => {
+      httpServer.off("error", onError);
+      resolve();
+    };
+    httpServer.once("error", onError);
+    httpServer.once("listening", onListening);
+    httpServer.listen(port);
+  });
 }
 
 async function startServer() {
@@ -172,73 +208,68 @@ async function startServer() {
 
   registerStaticWeb(app);
 
-  const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
-
-  if (port !== preferredPort) {
-    if (process.env.NODE_ENV === "development") {
+  const preferredPort = parseInt(process.env.PORT || "3000", 10);
+  try {
+    await listenOnPort(server, preferredPort);
+  } catch (error) {
+    const busy = error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "EADDRINUSE";
+    if (!ENV.isProduction && busy) {
       console.error(
-        `[api] FATAL: Port ${preferredPort} is already in use. ` +
-          `The app expects EXPO_PUBLIC_API_BASE_URL on :${preferredPort}. ` +
-          `Run: node scripts/free-dev-ports.mjs  then  pnpm dev`,
+        `[api] FATAL: Port ${preferredPort} is still in use after waiting. ` +
+          `Stop the other API, then run: node scripts/free-dev-ports.mjs && pnpm dev:web`,
       );
       process.exit(1);
     }
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+    throw error;
   }
 
-  server.listen(port, () => {
-    console.log(`[api] server listening on port ${port}`);
-    startForgeSessionJanitor();
-    void hydrateContentProtectionFromDatabase();
-    void hydrateRecentAiUserMemory();
-    startPlatformOpsMonitor();
+  const port = preferredPort;
+  console.log(`[api] server listening on port ${port}`);
+  startForgeSessionJanitor();
+  void hydrateContentProtectionFromDatabase();
+  void hydrateRecentAiUserMemory();
+  startPlatformOpsMonitor();
+  console.log(
+    `[env] Platform owner: ${isOwnerEmailConfigured() ? "configured" : "MISSING — set PLATFORM_OWNER_EMAIL in .env"}`,
+  );
+  const supa = resolveSupabasePublicConfig();
+  console.log(
+    `[auth] Supabase: ${isSupabaseConfiguredOnServer() ? "configured" : "MISSING"} (${supa.url})`,
+  );
+  if (isDevAgeKycBypassEnabled()) {
     console.log(
-      `[env] Platform owner: ${isOwnerEmailConfigured() ? "configured" : "MISSING — set PLATFORM_OWNER_EMAIL in .env"}`,
+      "[auth] Age KYC: development bypass — ID upload skipped. Set DEV_SKIP_AGE_KYC=false to test the real 18+ check.",
     );
-    const supa = resolveSupabasePublicConfig();
-    console.log(
-      `[auth] Supabase: ${isSupabaseConfiguredOnServer() ? "configured" : "MISSING"} (${supa.url})`,
-    );
-    if (isDevAgeKycBypassEnabled()) {
-      console.log(
-        "[auth] Age KYC: development bypass — ID upload skipped. Set DEV_SKIP_AGE_KYC=false to test the real 18+ check.",
-      );
-    }
-    void (async function checkSupabaseHost() {
-      try {
-        const host = new URL(supa.url).hostname;
-        await dns.lookup(host);
-      } catch {
-        console.warn(
-          `[auth] Supabase host does not resolve (${supa.url}). ` +
-            "Create a project at https://supabase.com/dashboard and update EXPO_PUBLIC_SUPABASE_URL in .env.",
-        );
-      }
-    })();
-    void db.getDb().then((conn) => {
-      const dbUrl = process.env.DATABASE_URL ?? "";
-      if (!dbUrl) {
-        console.warn("[Database] DATABASE_URL not set — loyalty/user data will not persist");
-      } else if (!conn) {
-        console.warn(
-          "[Database] Not connected — run pnpm db:mysql-dev then pnpm db:setup",
-        );
-      } else {
-        console.log("[Database] MySQL connected — user/loyalty persistence enabled");
-      }
-    });
-    if (port !== preferredPort) {
+  }
+  void (async function checkSupabaseHost() {
+    try {
+      const host = new URL(supa.url).hostname;
+      await dns.lookup(host);
+    } catch {
       console.warn(
-        `[api] WARNING: App expects port ${preferredPort} (EXPO_PUBLIC_API_BASE_URL). Free port ${preferredPort} or update .env to :${port}`,
+        `[auth] Supabase host does not resolve (${supa.url}). ` +
+          "Create a project at https://supabase.com/dashboard and update EXPO_PUBLIC_SUPABASE_URL in .env.",
       );
     }
-    void logGeminiStartupCheck();
-    const mux = getMuxEnginePublicStatus();
-    console.log(
-      `[video] Primary engine: Mux — ${mux.configured ? "configured" : "not configured (add MUX_TOKEN_ID + MUX_TOKEN_SECRET)"}`,
-    );
+  })();
+  void db.getDb().then((conn) => {
+    const dbUrl = process.env.DATABASE_URL ?? "";
+    if (!dbUrl) {
+      console.warn("[Database] DATABASE_URL not set — loyalty/user data will not persist");
+    } else if (!conn) {
+      console.warn(
+        "[Database] Not connected — run pnpm db:mysql-dev then pnpm db:setup",
+      );
+    } else {
+      console.log("[Database] MySQL connected — user/loyalty persistence enabled");
+    }
   });
+  void logGeminiStartupCheck();
+  const mux = getMuxEnginePublicStatus();
+  console.log(
+    `[video] Primary engine: Mux — ${mux.configured ? "configured" : "not configured (add MUX_TOKEN_ID + MUX_TOKEN_SECRET)"}`,
+  );
+  logSocialPublisherStartup();
 }
 
 startServer().catch(console.error);

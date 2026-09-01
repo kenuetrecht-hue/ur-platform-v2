@@ -10,7 +10,8 @@ type TabIconName =
   | "person.fill"
   | "pencil.circle.fill"
   | "compass.fill"
-  | "bubble.right.fill";
+  | "bubble.right.fill"
+  | "shield.fill";
 
 interface TabBarIconProps {
   name: TabIconName;

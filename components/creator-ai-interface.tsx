@@ -36,6 +36,7 @@ import { isTalkTimeLowBalance } from "@/lib/ai-talk-time-policy";
 import type { ChatMessageAttachmentPreview, ChatSearchCitation } from "@/lib/chat-attachment-types";
 import { AiChatSearchCitations } from "@/components/ai-chat-search-citations";
 import { AiChatMessageMedia } from "@/components/ai-chat-message-media";
+import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 
 interface ChatMessage {
   role: "user" | "ai";
@@ -128,6 +129,7 @@ export function CreatorAIInterface({
     { role: "ai", text: defaultWelcome, id: `${creatorId}-welcome` },
   ]);
   const [inputText, setInputText] = useState("");
+  const [speechHint, setSpeechHint] = useState<string | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<PickedChatAttachment[]>([]);
   const [imageGenPrompt, setImageGenPrompt] = useState("");
   const [showImageGen, setShowImageGen] = useState(false);
@@ -381,7 +383,11 @@ export function CreatorAIInterface({
         ]);
 
         let replyText = result.reply;
-        if (result.hiveConsulted?.length) {
+        if (result.commissionedWorks?.length) {
+          replyText += `\n\n📋 Steward assigned work:\n${result.commissionedWorks
+            .map((w) => `• ${w.specialistName} — ${w.title} (${w.status})`)
+            .join("\n")}`;
+        } else if (result.hiveConsulted?.length) {
           replyText += `\n\n🐝 Hive consulted: ${result.hiveConsulted.map((p) => p.name).join(", ")}`;
         }
 
@@ -1010,6 +1016,13 @@ export function CreatorAIInterface({
                 <Text style={{ fontSize: 18 }}>📎</Text>
               </Pressable>
             ) : null}
+            <VoicePromptMicButton
+              disabled={loading}
+              onTranscript={(text, hint) => {
+                if (text) setInputText(text.slice(0, 2000));
+                setSpeechHint(hint || null);
+              }}
+            />
             {supportsImageGen ? (
               <Pressable
                 onPress={() => setShowImageGen((v) => !v)}
@@ -1036,7 +1049,7 @@ export function CreatorAIInterface({
                   borderColor: colors.border,
                 },
               ]}
-              placeholder="Type a message…"
+              placeholder="Type, or tap 🎤 and speak any language…"
               placeholderTextColor={colors.muted}
               value={inputText}
               onChangeText={setInputText}
@@ -1074,6 +1087,13 @@ export function CreatorAIInterface({
               )}
             </Pressable>
           </View>
+          {speechHint ? (
+            <Text style={{ color: colors.muted, fontSize: 11, paddingTop: 6 }}>{speechHint}</Text>
+          ) : (
+            <Text style={{ color: colors.muted, fontSize: 11, paddingTop: 6 }}>
+              Microphone hears any language and prints English when needed.
+            </Text>
+          )}
         </View>
       </View>
       </View>

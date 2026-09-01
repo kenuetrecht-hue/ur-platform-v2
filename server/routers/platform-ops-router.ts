@@ -30,6 +30,16 @@ import {
   getStewardAdBudgetStatus,
 } from "../_core/steward-ad-budget-service";
 import {
+  getStewardCommission,
+  listStewardCommissions,
+  publicStewardCommission,
+} from "../_core/steward-commission-service";
+import {
+  getSocialPublisherStatus,
+  publishOwnerSocialPost,
+} from "../_core/social-publisher-service";
+import { SOCIAL_NETWORKS } from "../../lib/social-publisher-types";
+import {
   getOwnerCommandCenterSnapshot,
   hydrateOwnerCommandCenter,
   listOwnerCommandEvents,
@@ -179,6 +189,35 @@ export const platformOpsRouter = router({
   isOwner: ownerProcedure.query(() => ({ isOwner: true as const })),
 
   getStewardAdBudget: ownerProcedure.query(() => getStewardAdBudgetStatus()),
+
+  listStewardCommissions: ownerProcedure.query(() =>
+    listStewardCommissions().map(publicStewardCommission),
+  ),
+
+  getSocialPublisherStatus: ownerProcedure.query(() => getSocialPublisherStatus()),
+
+  publishOwnerSocialPost: ownerProcedure
+    .input(
+      z.object({
+        body: z.string().min(1).max(2200).trim(),
+        platforms: z.array(z.enum(SOCIAL_NETWORKS)).min(1).max(6),
+        scheduledAt: z.string().datetime().optional(),
+        sourceJobId: z.string().min(8).max(80).optional(),
+      }),
+    )
+    .mutation(({ input }) => {
+      if (input.sourceJobId && !getStewardCommission(input.sourceJobId)) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "That Steward draft is gone. Assign the work again, then post.",
+        });
+      }
+      return publishOwnerSocialPost({
+        body: input.body,
+        platforms: input.platforms,
+        scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : undefined,
+      });
+    }),
 
   getCommandCenter: ownerProcedure.query(async () => {
     await Promise.all([

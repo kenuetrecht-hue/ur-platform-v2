@@ -2,6 +2,7 @@ import { Redirect, Tabs } from "expo-router";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth-context";
+import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { useColors } from "@/hooks/use-colors";
 import { HapticTab } from "@/components/haptic-tab";
 import { TabBarIcon } from "@/components/tab-bar-icon";
@@ -12,6 +13,7 @@ const TAB_BAR_CONTENT_HEIGHT = LAYOUT_OVERLAP.TAB_BAR_CONTENT_HEIGHT;
 
 export default function TabsLayout() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { canAccessAdminDashboard } = usePlatformOwner();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const bottomInset = Math.max(insets.bottom, LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET);
@@ -64,6 +66,16 @@ export default function TabsLayout() {
           title: "Home",
           tabBarIcon: ({ focused }) => (
             <TabBarIcon name="house.fill" focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="admin"
+        options={{
+          title: "Admin",
+          href: canAccessAdminDashboard ? "/(tabs)/admin" : null,
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon name="shield.fill" focused={focused} />
           ),
         }}
       />

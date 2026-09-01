@@ -71,9 +71,10 @@ describe("Business Steward operator academy", () => {
     expect(caps.imageGeneration).toBe(true);
     expect(getHivePeers(STEWARD)).toEqual(
       expect.arrayContaining([
+        "ai-songwriter-001",
+        "ai-author-001",
         "ai-marketing-001",
         "ai-sales-001",
-        "ai-operations-001",
         "contentmate",
         "ai-logo-brand-001",
       ]),
