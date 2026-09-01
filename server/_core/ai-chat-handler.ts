@@ -14,7 +14,7 @@ import {
   sanitizeAiReplyForRole,
 } from "./ai-roles";
 import { sanitizeChatAttachments, type SanitizedChatAttachment } from "./chat-attachment-service";
-import { getHiveCapabilities } from "./ai-hive-capabilities";
+import { getHiveCapabilities, shouldRunWebSearch } from "./ai-hive-capabilities";
 import type { ChatSearchCitation } from "../../lib/chat-attachment-types";
 import {
   buildHiveEnhancedSystemPrompt,
@@ -23,6 +23,7 @@ import {
   runHiveConsultation,
 } from "./ai-hive-orchestrator";
 import { recordUserActivity } from "./daily-engagement-service";
+import { recordAiChatForOwnerCommandCenter } from "./owner-command-center-service";
 import { buildCoderLearningContext, hydrateCoderLearning } from "./coder-learning-bridge";
 import { buildGameLearningContext, hydrateGameLearning } from "./game-dev-learning-bridge";
 import {
@@ -42,6 +43,11 @@ import { isOwnerOnlyPlatformAi, canChatOwnerOpsAi } from "./platform-ops-ai";
 import { assertAiEntitled } from "./access-entitlements";
 import { assertAndConsumeAiUsage } from "./ai-usage-meter";
 import { tryConsumeCredit } from "./usage-credits-service";
+import {
+  assertAndConsumeStewardAdBudget,
+  assertStewardAdBudgetAffordable,
+} from "./steward-ad-budget-service";
+import type { StewardAdAction } from "../../lib/steward-ad-budget";
 import { VISION_UPLOAD_MESSAGE_UNITS } from "../../lib/usage-caps-catalog";
 import {
   createOpsIncident,
@@ -128,7 +134,17 @@ export async function handleCreatorAiChat(params: {
     ) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Doctor AI, Administration AI, and Security AI are restricted to the Administration Dashboard.",
+        message: "Owner operations AIs are restricted to the Administration Dashboard.",
+      });
+    }
+
+    if (
+      params.creatorId === "platform-business-steward-ai" &&
+      !params.ctx.isPlatformOwner
+    ) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Business Steward AI is private to the platform owner.",
       });
     }
 
@@ -218,6 +234,25 @@ export async function handleCreatorAiChat(params: {
       !isAffiliateOnlyAi(params.creatorId) &&
       (params.useHiveConsult === true || isComplexHiveProblem(message));
 
+    if (!params.ctx.landingDemo) {
+      const stewardActions: StewardAdAction[] = ["chat"];
+      for (let i = 0; i < attachments.length; i++) {
+        stewardActions.push("vision");
+      }
+      if (useHive) stewardActions.push("hive");
+      if (shouldRunWebSearch(message, caps, params.creatorId)) {
+        stewardActions.push("search");
+      }
+      assertStewardAdBudgetAffordable({
+        creatorId: params.creatorId,
+        actions: stewardActions,
+      });
+      assertAndConsumeStewardAdBudget({
+        creatorId: params.creatorId,
+        actions: stewardActions.filter((a) => a !== "search"),
+      });
+    }
+
     if (
       !params.ctx.landingDemo &&
       !params.ctx.isPlatformOwner &&
@@ -229,6 +264,7 @@ export async function handleCreatorAiChat(params: {
     let rawReply: string;
     let model: string;
     let hiveConsulted: Array<{ id: string; name: string }> | undefined;
+    let hivePeerInsights: Array<{ id: string; name: string; insight?: string }> | undefined;
     let searchResults: ChatSearchCitation[] | undefined;
 
     if (useHive) {
@@ -241,7 +277,12 @@ export async function handleCreatorAiChat(params: {
       });
       rawReply = hiveResult.reply;
       model = hiveResult.model;
-      hiveConsulted = hiveResult.consultedPeers.map((p) => ({
+      hivePeerInsights = hiveResult.consultedPeers.map((p) => ({
+        id: p.id,
+        name: p.name,
+        insight: p.insight,
+      }));
+      hiveConsulted = hivePeerInsights.map((p) => ({
         id: p.id,
         name: p.name,
       }));
@@ -363,6 +404,17 @@ export async function handleCreatorAiChat(params: {
           reply += `\n\n🔔 **Incident filed** (${incident.id.slice(0, 8)}…) — review in Owner Ops and approve the fix plan when ready.`;
         }
       }
+    }
+
+    if (!params.ctx.landingDemo) {
+      void recordAiChatForOwnerCommandCenter({
+        creatorId: params.creatorId,
+        userId,
+        userMessage: message,
+        aiReply: reply,
+        hivePeers: hivePeerInsights,
+        incidentId: opsIncidentId,
+      }).catch(() => undefined);
     }
 
     let pitchConsentRequest: boolean | undefined;

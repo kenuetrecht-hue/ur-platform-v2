@@ -38,7 +38,21 @@ import {
   listCreatorVideos,
   requestCreatorVideo,
 } from "../_core/ai-creator-video-service";
-import { buildLiveClassPurchaseSummary } from "../../lib/pricing-disclosures";
+import { buildClassReplayPurchaseSummary, buildLiveClassPurchaseSummary } from "../../lib/pricing-disclosures";
+import {
+  confirmReplayPayment,
+  createReplayCheckout,
+  getClassReplay,
+  getReplayBySessionId,
+  getReplayWatchAccess,
+  getReplayWatchPlayback,
+  listPublishedReplays,
+  publicReplay,
+  publishClassReplay,
+  suggestedReplayPriceCents,
+  unpublishClassReplay,
+} from "../_core/class-replay-service";
+import { defaultClassReplayPriceCents } from "../../lib/class-replay-policy";
 import { optionalBillingStateSchema, billingStateSchema } from "../../lib/billing-state-schema";
 import {
   getLiveSessionRoomState,
@@ -399,6 +413,132 @@ export const aiLiveSessionRouter = router({
   listCreatorVideos: adminPermissionProcedure("manage_ai_sessions")
     .input(z.object({ creatorAiId: z.string().optional() }).optional())
     .query(({ input }) => listCreatorVideos(input?.creatorAiId)),
+
+  listReplays: publicProcedure
+    .input(z.object({ creatorAiId: z.string().min(2).max(64).optional() }).optional())
+    .query(({ input }) => listPublishedReplays({ creatorAiId: input?.creatorAiId }).map(publicReplay)),
+
+  getReplay: publicProcedure
+    .input(z.object({ replayId: z.string().uuid() }))
+    .query(({ input }) => {
+      const replay = getClassReplay(input.replayId);
+      if (!replay || !replay.published) return null;
+      return publicReplay(replay);
+    }),
+
+  replayPurchaseSummary: publicProcedure
+    .input(
+      z.object({
+        replayId: z.string().uuid(),
+        stateCode: optionalBillingStateSchema,
+      }),
+    )
+    .query(({ input }) => {
+      const replay = getClassReplay(input.replayId);
+      if (!replay || !replay.published) return null;
+      return buildClassReplayPurchaseSummary({
+        title: replay.title,
+        creatorName: replay.creatorName,
+        durationMinutes: replay.durationMinutes,
+        priceCents: replay.priceCents,
+        stateCode: input.stateCode ?? null,
+      });
+    }),
+
+  publishReplay: protectedProcedure
+    .input(
+      z.object({
+        sessionId: z.string().uuid(),
+        priceCents: z.number().int().min(0).max(50_000),
+        videoUrl: z.string().trim().max(500).optional(),
+        muxUploadId: z.string().uuid().optional(),
+      }),
+    )
+    .mutation(({ ctx, input }) =>
+      publishClassReplay({
+        sessionId: input.sessionId,
+        userId: String(ctx.user.id),
+        isPlatformOwner: ctx.isPlatformOwner,
+        priceCents: input.priceCents,
+        videoUrl: input.videoUrl,
+        muxUploadId: input.muxUploadId,
+      }),
+    ),
+
+  unpublishReplay: protectedProcedure
+    .input(z.object({ sessionId: z.string().uuid() }))
+    .mutation(({ ctx, input }) =>
+      unpublishClassReplay({
+        sessionId: input.sessionId,
+        userId: String(ctx.user.id),
+        isPlatformOwner: ctx.isPlatformOwner,
+      }),
+    ),
+
+  replayForSession: protectedProcedure
+    .input(z.object({ sessionId: z.string().uuid() }))
+    .query(({ input }) => {
+      const replay = getReplayBySessionId(input.sessionId);
+      return replay ? publicReplay(replay) : null;
+    }),
+
+  suggestedReplayPrice: protectedProcedure
+    .input(z.object({ sessionId: z.string().uuid() }))
+    .query(({ input }) => ({
+      priceCents: suggestedReplayPriceCents(input.sessionId),
+      defaultHint: defaultClassReplayPriceCents(0),
+    })),
+
+  createReplayCheckout: protectedProcedure
+    .input(
+      z.object({
+        replayId: z.string().uuid(),
+        stateCode: optionalBillingStateSchema,
+      }),
+    )
+    .mutation(async ({ ctx, input }) =>
+      createReplayCheckout({
+        replayId: input.replayId,
+        userId: String(ctx.user.id),
+        userEmail: ctx.user.email ?? "",
+        userName: ctx.user.name ?? "UR User",
+        isPlatformOwner: ctx.isPlatformOwner,
+        billingStateCode: input.stateCode,
+      }),
+    ),
+
+  confirmReplayPayment: protectedProcedure
+    .input(z.object({ paymentIntentId: z.string().min(8).max(128) }))
+    .mutation(async ({ ctx, input }) =>
+      confirmReplayPayment({
+        paymentIntentId: input.paymentIntentId,
+        userId: String(ctx.user.id),
+        userEmail: ctx.user.email ?? "",
+      }),
+    ),
+
+  watchReplay: protectedProcedure
+    .input(z.object({ replayId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const access = getReplayWatchAccess({
+        replayId: input.replayId,
+        userId: String(ctx.user.id),
+        isPlatformOwner: ctx.isPlatformOwner,
+      });
+      if (!access.allowed) {
+        return { ...access, playback: null };
+      }
+      try {
+        const playback = await getReplayWatchPlayback({
+          replayId: input.replayId,
+          userId: String(ctx.user.id),
+          isPlatformOwner: ctx.isPlatformOwner,
+        });
+        return { ...access, playback };
+      } catch {
+        return { ...access, playback: null };
+      }
+    }),
 
   requestCreatorVideo: adminPermissionProcedure("manage_ai_sessions")
     .input(

@@ -10,6 +10,7 @@ import {
   type PlatformSectionId,
 } from "../../lib/platform-section-flags";
 import type { OwnerPlatformAiId } from "./platform-ops-ai";
+import { persistSectionFlag, loadSectionFlagsFromDb } from "../db-platform-ops";
 
 export type SectionDisabledBy = OwnerPlatformAiId | "owner" | "system";
 
@@ -28,6 +29,49 @@ export type PlatformSectionState = {
 };
 
 const sectionStore = new Map<PlatformSectionId, PlatformSectionState>();
+let hydrated = false;
+let hydratePromise: Promise<void> | null = null;
+
+function rememberSection(state: PlatformSectionState): PlatformSectionState {
+  sectionStore.set(state.id, state);
+  void persistSectionFlag({
+    id: state.id,
+    enabled: state.enabled,
+    maintenanceMessage: state.maintenanceMessage,
+    disabledAt: state.disabledAt,
+    disabledBy: state.disabledBy,
+    incidentId: state.incidentId,
+    reason: state.reason,
+    updatedAt: state.updatedAt,
+  });
+  return state;
+}
+
+export async function hydratePlatformSectionFlags(): Promise<void> {
+  if (hydrated) return;
+  if (!hydratePromise) {
+    hydratePromise = (async () => {
+      const rows = await loadSectionFlagsFromDb();
+      for (const row of rows) {
+        if (!(PLATFORM_SECTION_IDS as readonly string[]).includes(row.id)) continue;
+        const id = row.id as PlatformSectionId;
+        const base = defaultState(id);
+        sectionStore.set(id, {
+          ...base,
+          enabled: row.enabled,
+          maintenanceMessage: row.maintenanceMessage,
+          disabledAt: row.disabledAt,
+          disabledBy: row.disabledBy as SectionDisabledBy | null,
+          incidentId: row.incidentId,
+          reason: row.reason,
+          updatedAt: row.updatedAt,
+        });
+      }
+      hydrated = true;
+    })();
+  }
+  await hydratePromise;
+}
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -105,8 +149,7 @@ export function disablePlatformSection(input: {
     500,
   );
   state.updatedAt = nowIso();
-  sectionStore.set(input.sectionId, state);
-  return state;
+  return rememberSection(state);
 }
 
 export function enablePlatformSection(input: {
@@ -121,8 +164,7 @@ export function enablePlatformSection(input: {
   state.reason = input.ownerNote?.slice(0, 500) ?? null;
   state.maintenanceMessage = DEFAULT_SECTION_MAINTENANCE_MESSAGE;
   state.updatedAt = nowIso();
-  sectionStore.set(input.sectionId, state);
-  return state;
+  return rememberSection(state);
 }
 
 export function getPublicSectionFlags(): Array<{
@@ -144,4 +186,6 @@ export function countDisabledSections(): number {
 /** Test helper */
 export function _resetPlatformSectionsForTests(): void {
   sectionStore.clear();
+  hydrated = false;
+  hydratePromise = null;
 }

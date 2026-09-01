@@ -263,6 +263,9 @@ export function getSessionEnrollmentSummary(session: AiLiveSession): {
 }
 
 function evaluateEnrollment(session: AiLiveSession): void {
+  if (session.status === "ended") {
+    return;
+  }
   if (session.status === "cancelled" && session.enrollmentStatus !== "cancelled_insufficient") {
     return;
   }
@@ -1015,6 +1018,19 @@ export function getSessionJoinAccess(params: {
                 ? "Bonus overtime — host chose to continue past the committed duration."
                 : "You may enter the live room.",
   };
+}
+
+/** Test helper — treat a scheduled class as finished so replay can be published. */
+export function _forceSessionEndedForTests(sessionId: string): void {
+  const session = sessions.get(sessionId);
+  if (!session) return;
+  session.enrollmentStatus = "confirmed";
+  session.minAttendeesToStart = 1;
+  session.allowOvertime = false;
+  session.overtimeMinutes = 0;
+  session.status = "ended";
+  session.startsAt = new Date(Date.now() - (session.committedDurationMinutes + 30) * 60_000).toISOString();
+  sessions.set(sessionId, session);
 }
 
 export function getOwnerSessionStats() {

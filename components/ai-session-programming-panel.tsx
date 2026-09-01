@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
+import { MuxVideoUploader } from "@/components/mux-video-uploader";
 import {
   SESSION_CAPACITY_PRESETS,
   CREATOR_MIN_PRICE_CENTS_PER_MINUTE,
@@ -37,6 +38,12 @@ export function AiSessionProgrammingPanel() {
   const videoStatus = trpc.aiLiveSessions.videoGenStatus.useQuery();
   const creatorVideos = trpc.aiLiveSessions.listCreatorVideos.useQuery(undefined);
 
+  const publishReplay = trpc.aiLiveSessions.publishReplay.useMutation({
+    onSuccess: () => {
+      void utils.aiLiveSessions.listAllSessions.invalidate();
+      void utils.aiLiveSessions.listReplays.invalidate();
+    },
+  });
   const setProgram = trpc.aiLiveSessions.setProgram.useMutation({
     onSuccess: () => void utils.aiLiveSessions.listPrograms.invalidate(),
   });
@@ -216,6 +223,25 @@ export function AiSessionProgrammingPanel() {
                   style={styles.dangerBtn}
                 >
                   <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>Cancel</Text>
+                </Pressable>
+              </View>
+            ) : null}
+            {s.status === "ended" ? (
+              <View style={{ marginTop: 8, gap: 8 }}>
+                <MuxVideoUploader sessionId={s.id} />
+                <Pressable
+                  onPress={() =>
+                    publishReplay.mutate({
+                      sessionId: s.id,
+                      priceCents: Math.max(99, Math.round(s.priceCents / 2)),
+                    })
+                  }
+                  disabled={publishReplay.isPending}
+                  style={[styles.overtimeBtn, { backgroundColor: "#059669" }]}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>
+                    Publish pay-per-view replay
+                  </Text>
                 </Pressable>
               </View>
             ) : null}

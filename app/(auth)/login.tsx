@@ -32,10 +32,11 @@ export default function LoginScreen() {
     onEmailChange,
     onPasswordChange,
     onTurnstileToken,
+    serviceHint,
   } = useLoginScreen();
 
   if (isAuthenticated) {
-    return <Redirect href="/age-verify" />;
+    return <Redirect href="/(tabs)" />;
   }
 
   const inputStyle = {
@@ -70,6 +71,19 @@ export default function LoginScreen() {
             <Text style={{ fontSize: 16, color: colors.muted, marginBottom: 24 }}>
               Sign in to your account
             </Text>
+
+            {serviceHint ? (
+              <View
+                style={[
+                  styles.errorBox,
+                  { backgroundColor: colors.surface, borderColor: colors.error ?? "#ef4444" },
+                ]}
+              >
+                <Text style={[styles.errorText, { color: colors.error ?? "#ef4444" }]}>
+                  {serviceHint}
+                </Text>
+              </View>
+            ) : null}
 
             {displayError ? (
               <View

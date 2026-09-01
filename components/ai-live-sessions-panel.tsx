@@ -31,6 +31,7 @@ export function AiLiveSessionsPanel({ creatorId, creatorName }: AiLiveSessionsPa
   const [checkoutSessionId, setCheckoutSessionId] = useState<string | null>(null);
 
   const sessions = trpc.aiLiveSessions.listUpcoming.useQuery({ creatorAiId: creatorId });
+  const replays = trpc.aiLiveSessions.listReplays.useQuery({ creatorAiId: creatorId });
   const checkout = trpc.aiLiveSessions.createCheckout.useMutation();
   const expressInterest = trpc.aiLiveSessions.expressInterest.useMutation({
     onSuccess: () => void utils.aiLiveSessions.listUpcoming.invalidate(),
@@ -96,7 +97,7 @@ export function AiLiveSessionsPanel({ creatorId, creatorName }: AiLiveSessionsPa
     );
   }
 
-  if (!sessions.data?.length) {
+  if (!sessions.data?.length && !replays.data?.length) {
     return (
       <View style={[styles.empty, { borderColor: colors.border, backgroundColor: colors.surface }]}>
         <Text style={{ fontSize: 32 }}>🎥</Text>
@@ -189,6 +190,26 @@ export function AiLiveSessionsPanel({ creatorId, creatorName }: AiLiveSessionsPa
           backOutPending={backOut.isPending}
         />
       ))}
+      {(replays.data ?? []).length > 0 ? (
+        <View style={{ gap: 8, paddingHorizontal: 4 }}>
+          <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 15 }}>
+            Missed the live class? Pay-per-view replays
+          </Text>
+          {replays.data!.map((replay) => (
+            <Pressable
+              key={replay.id}
+              onPress={() => router.push(`/class-replay/${replay.id}`)}
+              style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}
+            >
+              <Text style={{ color: colors.foreground, fontWeight: "700" }}>{replay.title}</Text>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>
+                {replay.durationMinutes} min · ${replay.priceUsd} to watch
+                {replay.videoEngine === "mux" ? " · Mux" : ""}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
     </ScrollView>
   );
 }

@@ -25,6 +25,7 @@ import {
 } from "./google-ai";
 import { sanitizeChatHistory, sanitizeUserText } from "./input-sanitize";
 import { isOwnerOnlyPlatformAi } from "./platform-ops-ai";
+import { assertAndConsumeStewardAdBudget } from "./steward-ad-budget-service";
 import { assertAiEntitled } from "./access-entitlements";
 import { assertAndConsumeAiUsage } from "./ai-usage-meter";
 import { assertAndConsumeCredit } from "./usage-credits-service";
@@ -73,6 +74,11 @@ import {
   getCulinaryTeachingModules,
   isCulinaryTeachingCreator,
 } from "./culinary-teaching-curriculum";
+import {
+  buildOwnerBusinessTeachingPromptAddition,
+  getOwnerBusinessTeachingModules,
+  isOwnerBusinessTeachingCreator,
+} from "./owner-business-teaching-curriculum";
 
 export type LearningLevel = "beginner" | "intermediate" | "advanced";
 
@@ -268,6 +274,9 @@ export function getCurriculumForCreator(def: CreatorAiDefinition): LearningModul
   if (isCulinaryTeachingCreator(def.id)) {
     return getCulinaryTeachingModules();
   }
+  if (isOwnerBusinessTeachingCreator(def.id)) {
+    return getOwnerBusinessTeachingModules();
+  }
 
   const fromCategory = CATEGORY_MODULES[def.category] ?? DEFAULT_MODULES;
   const fromScope = def.inScope.slice(0, 4).map((title) => ({
@@ -328,12 +337,26 @@ ${isLegalMasterTeachingCreator(def.id) ? `\n\n${buildLegalMasterTeachingPromptAd
 ${isFundingTeachingCreator(def.id) ? `\n\n${buildFundingTeachingPromptAddition(level, mode, topic)}` : ""}
 ${isCncTeachingCreator(def.id) ? `\n\n${buildCncTeachingPromptAddition(level, mode, topic)}` : ""}
 ${isCulinaryTeachingCreator(def.id) ? `\n\n${buildCulinaryTeachingPromptAddition(level, mode, topic)}` : ""}
+${isOwnerBusinessTeachingCreator(def.id) ? `\n\n${buildOwnerBusinessTeachingPromptAddition(level, mode, topic)}` : ""}
 
 Rules:
 - Educational and recreational purposes only — not licensed professional advice.
 - Adapt vocabulary to ${level} level.
 - Encourage questions; celebrate progress.
 - Suggest the next module when the learner completes a topic.`;
+}
+
+export function assertCanAccessOwnerAiLearning(
+  creatorId: string,
+  isPlatformOwner: boolean,
+): void {
+  if (!isOwnerOnlyPlatformAi(creatorId)) return;
+  if (!isPlatformOwner) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Owner operations learning is private to the platform owner.",
+    });
+  }
 }
 
 export async function handleCreatorLearningSession(params: {
@@ -358,12 +381,12 @@ export async function handleCreatorLearningSession(params: {
     throw new TRPCError({ code: "NOT_FOUND", message: "That AI assistant is not available." });
   }
 
-  if (isOwnerOnlyPlatformAi(params.creatorId) && !params.isPlatformOwner) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Owner operations AIs do not offer public learning mode.",
-    });
-  }
+  assertCanAccessOwnerAiLearning(params.creatorId, params.isPlatformOwner);
+
+  assertAndConsumeStewardAdBudget({
+    creatorId: params.creatorId,
+    actions: ["learn"],
+  });
 
   assertAiEntitled({
     userId: params.userId,
@@ -449,6 +472,15 @@ export function getCertificationOverview(def: CreatorAiDefinition): {
   disclaimer: string;
 } {
   const certModules = getCurriculumForCreator(def).filter((m) => m.certificationPrep);
+  if (isOwnerBusinessTeachingCreator(def.id)) {
+    return {
+      title: "UR Platform operator self-check",
+      topics: certModules.length > 0 ? certModules.map((m) => m.title) : def.inScope,
+      estimatedStudyHours: 12,
+      disclaimer:
+        "Educational operator study only — not a CPA, attorney, or app-store guarantee. Confirm tax dates, ads policy, and store rules on official sites.",
+    };
+  }
   return {
     title: `${def.name} — Certification & licensing orientation`,
     topics: certModules.length > 0 ? certModules.map((m) => m.title) : def.inScope,

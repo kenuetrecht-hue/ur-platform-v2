@@ -43,6 +43,39 @@ export function isSupabaseConfiguredOnServer(): boolean {
   return getSupabaseClient() !== null;
 }
 
+let supabaseReachableCache: { at: number; reachable: boolean } | null = null;
+const SUPABASE_REACHABLE_TTL_MS = 30_000;
+
+/** Cached probe — login UI uses this so "Failed to fetch" is explained before submit. */
+export async function isSupabaseAuthReachable(): Promise<boolean> {
+  const now = Date.now();
+  if (supabaseReachableCache && now - supabaseReachableCache.at < SUPABASE_REACHABLE_TTL_MS) {
+    return supabaseReachableCache.reachable;
+  }
+
+  const { url } = resolveSupabasePublicConfig();
+  if (!url) {
+    supabaseReachableCache = { at: now, reachable: false };
+    return false;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2500);
+    const res = await fetch(`${url.replace(/\/$/, "")}/auth/v1/health`, {
+      method: "GET",
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    const reachable = res.ok || res.status === 401 || res.status === 403;
+    supabaseReachableCache = { at: now, reachable };
+    return reachable;
+  } catch {
+    supabaseReachableCache = { at: now, reachable: false };
+    return false;
+  }
+}
+
 export function toSupabaseOpenId(supabaseUserId: string): string {
   return `${SUPABASE_OPEN_ID_PREFIX}${supabaseUserId}`;
 }

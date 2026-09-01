@@ -18,6 +18,7 @@ import * as db from "../db";
 import { generateGoogleChatReply } from "./google-ai";
 import { ENV } from "./env";
 import { markCreatorIdentityVerified } from "./creator-content-protection-service";
+import { isDevAgeKycBypassEnabled } from "../../lib/dev-age-kyc-mode";
 
 type PhotoInput = {
   mimeType: string;
@@ -30,6 +31,8 @@ export type AgeKycPublicStatus = {
   status: AgeKycStatus;
   verified: boolean;
   rejectionReason: string | null;
+  /** True only in local development when ID upload is skipped for testing. */
+  devBypass?: boolean;
 };
 
 type MemoryKyc = {
@@ -177,6 +180,16 @@ async function persist(userId: number, row: MemoryKyc, hashes: { front: string; 
 }
 
 export async function getAgeKycPublicStatus(userId: number): Promise<AgeKycPublicStatus> {
+  if (isDevAgeKycBypassEnabled()) {
+    return {
+      required: true,
+      minAge: AGE_KYC_MIN_AGE,
+      status: "verified",
+      verified: true,
+      rejectionReason: null,
+      devBypass: true,
+    };
+  }
   try {
     const row = await db.getKycVerification(userId);
     if (row?.kycStatus === "verified" && row.ageVerified) {

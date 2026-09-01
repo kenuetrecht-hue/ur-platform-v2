@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import type { Session, User as SupabaseUser, SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseClientAsync } from "./supabase";
+import { explainAuthFailure } from "./auth-network-error";
 import {
   clearAuthStorage,
   getAccessToken,
@@ -42,7 +43,7 @@ interface AuthContextType extends AuthState {
     name: string,
     role: UserRole,
     captchaToken?: string,
-  ) => Promise<void>;
+  ) => Promise<{ needsEmailConfirmation: boolean }>;
   clearError: () => void;
 }
 
@@ -264,7 +265,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       );
 
       if (error) {
-        throw new Error(error.message);
+        throw new Error(explainAuthFailure(error));
       }
 
       if (!data.user) {
@@ -287,12 +288,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         payload: { user: authUser, accessToken: data.session.access_token },
       });
     } catch (error) {
-      const msg =
-        error instanceof Error
-          ? error.message
-          : "Login failed. Please try again.";
+      const msg = explainAuthFailure(error);
       dispatch({ type: "SET_ERROR", payload: msg });
-      throw error;
+      throw new Error(msg);
     }
   }, []);
 
@@ -335,7 +333,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         });
 
         if (error) {
-          throw new Error(error.message);
+          throw new Error(explainAuthFailure(error));
         }
 
         if (!data.user) {
@@ -358,17 +356,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               accessToken: data.session.access_token,
             },
           });
-        } else {
-          await setStoredUserJson(JSON.stringify(authUser));
-          dispatch({ type: "SET_LOADING", payload: false });
+          return { needsEmailConfirmation: false };
         }
+
+        await setStoredUserJson(JSON.stringify(authUser));
+        dispatch({ type: "SET_LOADING", payload: false });
+        return { needsEmailConfirmation: true };
       } catch (error) {
-        const msg =
-          error instanceof Error
-            ? error.message
-            : "Registration failed. Please try again.";
+        const msg = explainAuthFailure(error);
         dispatch({ type: "SET_ERROR", payload: msg });
-        throw error;
+        throw new Error(msg);
       } finally {
         dispatch({ type: "SET_LOADING", payload: false });
       }

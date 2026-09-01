@@ -57,6 +57,7 @@ import {
   LIVE_CLASS_FILL_WINDOW_RULE_SUMMARY,
   LIVE_CLASS_PATIENCE_GRACE_RULE_SUMMARY,
 } from "./live-class-scheduling-policy";
+import { CLASS_REPLAY_PURCHASE_RULES } from "./class-replay-policy";
 import {
   AI_PURCHASE_NO_REFUND_POLICY,
   CREATOR_TRANSACTION_DISCLAIMER,
@@ -74,7 +75,7 @@ export type PurchaseSummaryLine = {
 export type PurchasePricing = ReturnType<typeof calculateCustomerCheckout>;
 
 export type PurchaseSummary = {
-  productType: "ai_subscription" | "ai_talk" | "workspace_3d" | "workspace_3d_addon" | "live_class" | "usage_credit";
+  productType: "ai_subscription" | "ai_talk" | "workspace_3d" | "workspace_3d_addon" | "live_class" | "class_replay" | "usage_credit";
   title: string;
   /** Itemized price — subtotal + tax + Stripe fee = total */
   pricing: PurchasePricing;
@@ -540,10 +541,49 @@ export function buildLiveClassPurchaseSummary(params: {
     ],
     notIncluded: [
       "Text chat subscription (buy separately if needed)",
-      "Recording or replay unless the host announces it",
+      "Pay-per-view replay (sold separately after the class if the host publishes it)",
       "Refunds after the 1 hour 30 minute lock-in (except automatic cancellation when a group minimum is not met 1 hour before start)",
     ],
     importantNotes,
+    aiDisclosure: AI_DISCLOSURE,
+    billingEntity: BILLING_ENTITY,
+  };
+}
+
+export function buildClassReplayPurchaseSummary(params: {
+  title: string;
+  creatorName: string;
+  durationMinutes: number;
+  priceCents: number;
+  stateCode?: UsStateCode | null;
+}): PurchaseSummary {
+  const { pricing, youPay, priceBreakdown } = buildPricingBlock(
+    params.priceCents,
+    params.stateCode,
+    "one-time replay",
+  );
+  return {
+    productType: "class_replay",
+    title: `${params.creatorName} — ${params.title}`,
+    pricing,
+    youPay,
+    priceBreakdown,
+    youReceive: [
+      {
+        label: "Pay-per-view replay",
+        value: `Watch the ${params.durationMinutes}-minute class you missed, on your schedule.`,
+        emphasis: true,
+      },
+      {
+        label: "Live ticket holders",
+        value: "If you already bought a live seat for this class, replay is included.",
+      },
+    ],
+    notIncluded: [
+      "A live seat in a future class",
+      "Download or copy rights to resell the recording",
+    ],
+    importantNotes: [...CLASS_REPLAY_PURCHASE_RULES, ...stateTaxNotes(params.stateCode ?? null, pricing)],
     aiDisclosure: AI_DISCLOSURE,
     billingEntity: BILLING_ENTITY,
   };

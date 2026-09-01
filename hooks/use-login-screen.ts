@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/lib/auth-context";
 import { showUserMessage } from "@/lib/show-user-message";
 import { readWebTextInputValue } from "@/lib/read-web-input-value";
+import { explainAuthFailure } from "@/lib/auth-network-error";
 import { trpc } from "@/lib/trpc";
 
 export function useLoginScreen() {
@@ -11,6 +12,7 @@ export function useLoginScreen() {
   const { login, error: authError, clearError, isAuthenticated } = useAuth();
   const verifyTurnstile = trpc.auth.verifyTurnstile.useMutation();
   const turnstileConfig = trpc.auth.turnstileConfig.useQuery(undefined, { staleTime: 60_000 });
+  const connectivity = trpc.auth.connectivity.useQuery(undefined, { staleTime: 15_000 });
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const [email, setEmail] = useState("");
@@ -75,11 +77,10 @@ export function useLoginScreen() {
         action: "login",
       });
       await login(emailValue, passwordValue, turnstileToken || undefined);
-      setStatusLine("Success — opening ID check…");
-      router.replace("/age-verify");
+      setStatusLine("Success — opening the app…");
+      router.replace("/(tabs)");
     } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : "Sign in failed. Please try again.";
+      const msg = explainAuthFailure(err);
       setFormError(msg);
       setStatusLine(null);
       showUserMessage("Login Failed", msg);
@@ -115,5 +116,7 @@ export function useLoginScreen() {
     onEmailChange,
     onPasswordChange,
     onTurnstileToken,
+    serviceHint:
+      connectivity.data?.supabaseReachable === false ? connectivity.data.hint : null,
   };
 }

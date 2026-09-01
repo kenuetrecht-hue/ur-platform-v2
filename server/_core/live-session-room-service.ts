@@ -465,6 +465,18 @@ export function purchaseLiveSessionSpeakAccess(params: {
   };
 }
 
+/** Saved class Q&A for pay-per-view replay (no user IDs). */
+export function listSessionReplayChapters(sessionId: string): Array<{ label: string; text: string }> {
+  return [...questions.values()]
+    .filter((q) => q.sessionId === sessionId)
+    .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
+    .map((q) => ({
+      label: q.userLabel || "Attendee",
+      text: sanitizeUserText(q.questionText, 800),
+    }))
+    .filter((c) => c.text.length > 0);
+}
+
 /** Test helper — clears in-memory room state. */
 export function _resetLiveSessionRoomStoreForTests(): void {
   questions.clear();

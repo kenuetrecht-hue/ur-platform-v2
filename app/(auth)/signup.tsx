@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, Pressable, Alert, ScrollView } from "react-native";
-import { useRouter, Link, useLocalSearchParams } from "expo-router";
+import React, { useState, useEffect, useCallback } from "react";
+import { View, Text, TextInput, Pressable, ScrollView, Platform } from "react-native";
+import { useRouter, Link, useLocalSearchParams, Redirect } from "expo-router";
 import { useAuth, type UserRole } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
@@ -10,6 +10,10 @@ import { CREATOR_CONTENT_PROTECTION_NOTICE } from "@/lib/creator-content-protect
 import { TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
 import { saveLandingDemoAttributionId } from "@/lib/landing-demo-attribution-storage";
 import { TurnstileWidget } from "@/components/turnstile-widget";
+import { PrimaryActionButton } from "@/components/primary-action-button";
+import { WebLoginSubmit } from "@/components/web-login-submit";
+import { showUserMessage } from "@/lib/show-user-message";
+import { explainAuthFailure } from "@/lib/auth-network-error";
 
 const ROLES: { id: UserRole; label: string; desc: string }[] = [
   { id: "creator", label: "Content creator", desc: "Host paid live classes · 85% instant payouts" },
@@ -29,7 +33,7 @@ export default function SignUpScreen() {
     demoAttribution?: string;
     demoCreator?: string;
   }>();
-  const { register } = useAuth();
+  const { register, isAuthenticated } = useAuth();
   const colors = useColors();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -40,6 +44,9 @@ export default function SignUpScreen() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [honeypot, setHoneypot] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+  const [statusLine, setStatusLine] = useState<string | null>(null);
+  const onTurnstileToken = useCallback((token: string) => setTurnstileToken(token), []);
   const verifyTurnstile = trpc.auth.verifyTurnstile.useMutation();
   const turnstileConfig = trpc.auth.turnstileConfig.useQuery(undefined, { staleTime: 60_000 });
 
@@ -65,27 +72,38 @@ export default function SignUpScreen() {
   }, [params.ref, params.role, params.email, params.demoAttribution]);
 
   const handleSignUp = async () => {
+    setFormError(null);
+
     if (!name.trim() || !email.trim() || !password.trim()) {
-      Alert.alert("Error", "Please enter your name, email, and password");
+      const msg = "Please enter your name, email, and password.";
+      setFormError(msg);
+      showUserMessage("Error", msg);
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters");
+      const msg = "Password must be at least 6 characters.";
+      setFormError(msg);
+      showUserMessage("Error", msg);
       return;
     }
 
     if (!acceptedTerms) {
-      Alert.alert("Terms required", "Please agree to the Terms of Use to create an account.");
+      const msg = "Please agree to the Terms of Use to create an account.";
+      setFormError(msg);
+      showUserMessage("Terms required", msg);
       return;
     }
 
     if (turnstileConfig.data?.required && !turnstileToken.trim()) {
-      Alert.alert("Security check", "Complete the Cloudflare security check before creating an account.");
+      const msg = "Complete the Cloudflare security check before creating an account.";
+      setFormError(msg);
+      showUserMessage("Security check", msg);
       return;
     }
 
     setSubmitting(true);
+    setStatusLine("Creating account…");
     try {
       await verifyTurnstile.mutateAsync({
         token: turnstileToken,
@@ -94,7 +112,13 @@ export default function SignUpScreen() {
         displayName: name.trim(),
         honeypot,
       });
-      await register(email.trim(), password.trim(), name.trim(), role, turnstileToken || undefined);
+      const result = await register(
+        email.trim(),
+        password.trim(),
+        name.trim(),
+        role,
+        turnstileToken || undefined,
+      );
       if (role === "creator" || role === "affiliate") {
         try {
           await completeEnrollment.mutateAsync({
@@ -105,22 +129,32 @@ export default function SignUpScreen() {
           /* enrollment can be completed from dashboard */
         }
       }
-      Alert.alert(
-        "Account created",
-        "Welcome to UR Platform. If email confirmation is enabled, check your inbox first.",
-        [{ text: "OK", onPress: () => router.replace("/age-verify") }],
-      );
+      if (result.needsEmailConfirmation) {
+        const msg =
+          "Account created. Confirm your email in the inbox, then sign in. In the Supabase dashboard you can turn off Confirm email for local testing.";
+        setFormError(msg);
+        setStatusLine(null);
+        showUserMessage("Confirm your email", msg);
+        router.replace("/login");
+        return;
+      }
+      setStatusLine("Success — opening the app…");
+      router.replace("/(tabs)");
     } catch (err) {
-      Alert.alert(
-        "Sign up failed",
-        err instanceof Error ? err.message : "Unknown error",
-      );
+      const msg = explainAuthFailure(err);
+      setFormError(msg);
+      setStatusLine(null);
+      showUserMessage("Sign up failed", msg);
     } finally {
       setSubmitting(false);
     }
   };
 
   const loading = submitting;
+
+  if (isAuthenticated) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   return (
     <ScreenContainer className="bg-background">
@@ -143,7 +177,7 @@ export default function SignUpScreen() {
               UR Platform
             </Text>
             <Text style={{ fontSize: 16, color: colors.muted }}>
-              Create your account — 18+ ID check is next
+              Create your account
             </Text>
             {params.membership === "active" ? (
               <Text
@@ -421,23 +455,40 @@ export default function SignUpScreen() {
             </Text>
           </Pressable>
 
-          <TurnstileWidget action="signup" onToken={setTurnstileToken} />
+          <TurnstileWidget action="signup" onToken={onTurnstileToken} />
 
-          <Pressable
-            onPress={handleSignUp}
-            disabled={loading || !acceptedTerms}
-            style={{
-              backgroundColor: colors.primary,
-              borderRadius: 12,
-              padding: 16,
-              alignItems: "center",
-              opacity: loading || !acceptedTerms ? 0.6 : 1,
-            }}
-          >
-            <Text style={{ fontSize: 16, fontWeight: "600", color: "#fff" }}>
-              {loading ? "Creating account…" : "Create account"}
+          {formError ? (
+            <Text style={{ color: "#ef4444", fontSize: 14, textAlign: "center", lineHeight: 20 }}>
+              {formError}
             </Text>
-          </Pressable>
+          ) : null}
+          {statusLine ? (
+            <Text style={{ color: colors.primary, fontSize: 14, textAlign: "center", fontWeight: "600" }}>
+              {statusLine}
+            </Text>
+          ) : null}
+
+          {Platform.OS === "web" ? (
+            <WebLoginSubmit
+              label="Create account"
+              loadingLabel="Creating account…"
+              loading={loading}
+              backgroundColor={colors.primary}
+              onPress={handleSignUp}
+              mountId="web-signup-submit-mount"
+              buttonId="web-signup-submit-button"
+              testID="signup-submit"
+            />
+          ) : (
+            <PrimaryActionButton
+              label="Create account"
+              loadingLabel="Creating account…"
+              loading={loading}
+              onPress={handleSignUp}
+              backgroundColor={colors.primary}
+              testID="signup-submit"
+            />
+          )}
 
           <View style={{ alignItems: "center" }}>
             <Text style={{ color: colors.muted, fontSize: 14 }}>

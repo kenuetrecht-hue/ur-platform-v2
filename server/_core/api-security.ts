@@ -34,6 +34,7 @@ export type ApiNamespace =
   | "workspace3d"
   | "usageCredits"
   | "jobsite"
+  | "video"
   | "default";
 
 type WindowBucket = {
@@ -82,6 +83,7 @@ const NAMESPACE_USER_LIMITS: Record<ApiNamespace, number> = {
   workspace3d: 40,
   usageCredits: 40,
   jobsite: 80,
+  video: 40,
   default: 500,
 };
 
@@ -104,6 +106,7 @@ const NAMESPACE_IP_LIMITS_PER_MINUTE: Partial<Record<ApiNamespace, number>> = {
   landing: 30,
   social: 80,
   commerce: 40,
+  video: 20,
 };
 const DEFAULT_IP_LIMIT_PER_MINUTE = 180;
 
@@ -130,6 +133,10 @@ function parseAllowedOrigins(): Set<string> {
   }
 
   return origins;
+}
+
+export function isAllowedBrowserOrigin(origin: string): boolean {
+  return ALLOWED_ORIGINS.has(origin.replace(/\/+$/, ""));
 }
 
 const ALLOWED_ORIGINS = parseAllowedOrigins();

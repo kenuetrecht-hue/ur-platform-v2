@@ -3,6 +3,8 @@
  * Each AI stays dominant in its domain; the hive coordinates referrals and collaboration.
  */
 
+import { isOwnerOnlyPlatformAi } from "./platform-ops-ai";
+
 export type HiveCapabilityFlags = {
   longTermMemory: boolean;
   webSearch: boolean;
@@ -45,6 +47,7 @@ export const HIVE_CAPABILITY_OVERRIDES: Partial<
   "ai-poet-001": { imageGeneration: true },
   "ai-songwriter-001": { imageGeneration: true },
   "ai-content-helper-001": { imageGeneration: true },
+  "platform-business-steward-ai": { photoAnalysis: true, imageGeneration: true },
 };
 
 export function getHiveCapabilities(creatorId: string): HiveCapabilityFlags {
@@ -111,6 +114,13 @@ export const DOMAIN_KEYWORDS: Record<string, string[]> = {
   "platform-doctor-ai": ["uptime", "metro", "api error", "bug", "latency", "crash", "deployment", "server", "database", "performance"],
   "platform-security-ai": ["security", "phishing", "password", "hack", "malware", "encrypt"],
   "platform-administration-ai": ["admin", "account", "platform", "policy", "subscription"],
+  "platform-business-steward-ai": [
+    "tax", "estimated tax", "1040", "es-40", "inbiz", "llc", "bookkeeping",
+    "marketing", "ads", "campaign", "due date", "indiana", "stripe go-live",
+    "urplatform", "creator payout", "runway", "conversion", "funnel", "signup",
+    "app store", "play console", "aso", "cac", "unit economics", "gemini cost",
+    "kyc", "landing page", "retention", "go-live", "operating cash",
+  ],
   "ai-marketing-001": ["marketing", "brand", "campaign", "seo", "ads", "social media", "audience"],
   "store-manager": ["store", "shop", "product", "dropship", "merch", "catalog", "sku", "inventory", "affiliate product", "storefront"],
   "ai-sales-001": ["sales", "pipeline", "crm", "objection", "closing", "prospect", "deal", "quota"],
@@ -237,7 +247,20 @@ export const HIVE_PEER_GRAPH: Record<string, string[]> = {
   "ai-game-dev-001": ["ai-coder-001", "ai-3d-specialist", "ai-author-001", "platform-security-ai"],
   "platform-doctor-ai": ["ai-wellness-001", "ai-fitness-001", "platform-security-ai"],
   "platform-security-ai": ["platform-administration-ai", "ai-coder-001", "platform-doctor-ai"],
-  "platform-administration-ai": ["platform-security-ai", "ai-customer-service-001"],
+  "platform-administration-ai": ["platform-security-ai", "ai-customer-service-001", "platform-business-steward-ai"],
+  "platform-business-steward-ai": [
+    "ai-marketing-001",
+    "ai-business-001",
+    "ai-accountant-001",
+    "ai-sales-001",
+    "ai-funding-001",
+    "ai-operations-001",
+    "ai-logo-brand-001",
+    "contentmate",
+    "ai-product-001",
+    "ai-customer-service-001",
+    "platform-administration-ai",
+  ],
   contentmate: ["linguamate", "ai-marketing-001", "ai-content-helper-001", "store-manager", "ai-culinary-001"],
   "store-manager": ["ai-3d-specialist", "ai-marketing-001", "contentmate", "ai-product-001"],
   linguamate: ["contentmate", "ai-translator-001"],
@@ -369,6 +392,14 @@ export function shouldRunWebSearch(
 ): boolean {
   if (!capabilities.webSearch) return false;
   if (WEB_SEARCH_TRIGGERS.test(message)) return true;
+  if (
+    creatorId === "platform-business-steward-ai" &&
+    /\b(ads?|advertis|facebook|instagram|tiktok|google ads|meta ads|cpc|cpm|seo|stripe|app store|play console|inbiz|estimated tax|es-40|1040-es|intime|irs|kyc|aso|turnstile|apple developer|play console|unit economics|cac|ltv|landing)\b/i.test(
+      message,
+    )
+  ) {
+    return true;
+  }
   if (creatorId && JOBSITE_LOOKUP_CREATOR_IDS.has(creatorId)) {
     return (
       JOBSITE_WEB_SEARCH_TRIGGERS.test(message) ||
@@ -383,6 +414,9 @@ export function buildWebSearchQuery(message: string, creatorId: string): string 
   const clipped = message.slice(0, 160).trim();
   if (JOBSITE_LOOKUP_CREATOR_IDS.has(creatorId)) {
     return `${clipped} OEM service manual parts diagram fault code`;
+  }
+  if (creatorId === "platform-business-steward-ai") {
+    return `${clipped} IRS.gov Indiana DOR INTIME INBiz Stripe docs Apple App Store ads policy official`;
   }
   return message.slice(0, 200);
 }
@@ -422,6 +456,7 @@ export function findDominantSpecialistForMessage(
   let best: { creatorId: string; score: number } | null = null;
   for (const creatorId of Object.keys(DOMAIN_KEYWORDS)) {
     if (creatorId === excludeId) continue;
+    if (isOwnerOnlyPlatformAi(creatorId)) continue;
     const score = scoreCreatorDomainMatch(creatorId, message);
     if (score > 0 && (!best || score > best.score)) {
       best = { creatorId, score };

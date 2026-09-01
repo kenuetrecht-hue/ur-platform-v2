@@ -37,9 +37,11 @@ import { hiveTownHallRouter } from "./routers/hive-town-hall-router";
 import { usageCreditsRouter } from "./routers/usage-credits-router";
 import { landingRouter } from "./routers/landing-router";
 import { jobsiteRouter } from "./routers/jobsite-router";
+import { muxVideoRouter } from "./routers/mux-video-router";
 import { ageKycRouter } from "./routers/age-kyc-router";
 import { destroyAllSessionsForUser } from "./_core/forge-session-manager";
 import { getAgeKycPublicStatus } from "./_core/age-kyc-service";
+import { isSupabaseAuthReachable } from "./supabase-auth";
 import { assertTurnstileToken, getTurnstileClientConfig } from "./_core/turnstile";
 import { TURNSTILE_TOKEN_MAX_LENGTH } from "../lib/turnstile";
 import { AUTH_HONEYPOT_FIELD_MAX } from "../lib/bot-abuse-policy";
@@ -50,6 +52,15 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     turnstileConfig: publicProcedure.query(() => getTurnstileClientConfig()),
+    connectivity: publicProcedure.query(async () => {
+      const supabaseReachable = await isSupabaseAuthReachable();
+      return {
+        supabaseReachable,
+        hint: supabaseReachable
+          ? null
+          : "Cannot reach the sign-in service. Create a Supabase project at supabase.com/dashboard and put the Project URL and anon key in .env, then restart pnpm dev:web.",
+      };
+    }),
     verifyTurnstile: securePublicProcedure("auth")
       .input(
         z.object({
@@ -234,6 +245,7 @@ export const appRouter = router({
   loyalty: loyaltyRouter,
   usageCredits: usageCreditsRouter,
   jobsite: jobsiteRouter,
+  muxVideo: muxVideoRouter,
   ageKyc: ageKycRouter,
 });
 

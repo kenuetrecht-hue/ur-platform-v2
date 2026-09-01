@@ -15,14 +15,17 @@ import {
 } from "./api-security";
 import { ENV, isOwnerEmailConfigured, assertProductionOwnerSecurity } from "./env";
 import { assertServerSecretsSafe, redactSecrets } from "./secrets";
+import { getMuxEnginePublicStatus } from "./mux-video-engine";
+import { registerMuxWebhook } from "./mux-webhook";
 import { getAiHealthStatus, logGeminiStartupCheck } from "./google-ai";
 import { startForgeSessionJanitor } from "./forge-session-manager";
 import { getSharePreview } from "./forge-share-service";
-import { isSupabaseConfiguredOnServer } from "../supabase-auth";
+import { isSupabaseConfiguredOnServer, isSupabaseAuthReachable } from "../supabase-auth";
 import { resolveSupabasePublicConfig } from "../../shared/supabase-config";
 import * as db from "../db";
 import { registerStaticWeb } from "./static-web";
 import { getCommerceMode, isSimulatedCommerceMode, DEV_SIMULATED_COMMERCE_NOTICE } from "../../lib/dev-commerce-mode";
+import { isDevAgeKycBypassEnabled } from "../../lib/dev-age-kyc-mode";
 import { hydrateContentProtectionFromDatabase } from "./creator-content-protection-service";
 import { hydrateRecentAiUserMemory } from "./ai-user-memory-persistence";
 import { startPlatformOpsMonitor } from "./platform-ops-monitor";
@@ -69,6 +72,8 @@ async function startServer() {
   app.use(securityHeadersMiddleware);
   app.use(strictCorsMiddleware);
 
+  registerMuxWebhook(app);
+
   // JSON body limit — large uploads should use dedicated storage routes
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ limit: "1mb", extended: true }));
@@ -97,9 +102,17 @@ async function startServer() {
 
   app.get("/api/health", async (_req, res) => {
     const ai = await getAiHealthStatus();
+    const supabaseReachable = await isSupabaseAuthReachable();
     res.json({
       ok: true,
       timestamp: Date.now(),
+      auth: {
+        supabaseConfigured: isSupabaseConfiguredOnServer(),
+        supabaseReachable,
+        hint: supabaseReachable
+          ? undefined
+          : "Supabase URL does not resolve. Create a project at supabase.com/dashboard and update EXPO_PUBLIC_SUPABASE_URL.",
+      },
       commerce: {
         mode: getCommerceMode(),
         simulated: isSimulatedCommerceMode(),
@@ -111,6 +124,7 @@ async function startServer() {
         model: ai.model,
         hint: ai.hint,
       },
+      video: getMuxEnginePublicStatus(),
     });
   });
 
@@ -186,6 +200,11 @@ async function startServer() {
     console.log(
       `[auth] Supabase: ${isSupabaseConfiguredOnServer() ? "configured" : "MISSING"} (${supa.url})`,
     );
+    if (isDevAgeKycBypassEnabled()) {
+      console.log(
+        "[auth] Age KYC: development bypass — ID upload skipped. Set DEV_SKIP_AGE_KYC=false to test the real 18+ check.",
+      );
+    }
     void (async function checkSupabaseHost() {
       try {
         const host = new URL(supa.url).hostname;
@@ -215,6 +234,10 @@ async function startServer() {
       );
     }
     void logGeminiStartupCheck();
+    const mux = getMuxEnginePublicStatus();
+    console.log(
+      `[video] Primary engine: Mux — ${mux.configured ? "configured" : "not configured (add MUX_TOKEN_ID + MUX_TOKEN_SECRET)"}`,
+    );
   });
 }
 

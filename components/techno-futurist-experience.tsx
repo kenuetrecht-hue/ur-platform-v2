@@ -54,7 +54,7 @@ export function TechnoFuturistExperience() {
   const signupHref = buildCreatorSignupHref();
 
   if (!isLoading && isAuthenticated) {
-    return <Redirect href="/age-verify" />;
+    return <Redirect href="/(tabs)" />;
   }
 
   return (

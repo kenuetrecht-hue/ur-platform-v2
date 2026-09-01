@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Stack, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
+import { OwnerCommandCenterPanel } from "@/components/owner-command-center-panel";
 import { PlatformOpsConsole } from "@/components/platform-ops-console";
 import { CommerceOpsPanel } from "@/components/commerce-ops-panel";
 import { LandingDemoConversionStatsPanel } from "@/components/landing-demo-conversion-stats-panel";
@@ -109,6 +110,7 @@ export default function OwnerOpsScreen() {
                 </View>
               ) : null}
             </View>
+            {isPlatformOwner ? <OwnerCommandCenterPanel /> : null}
             {isPlatformOwner ? <CommerceOpsPanel /> : null}
             {isPlatformOwner ? <LandingDemoConversionStatsPanel /> : null}
             <PlatformOpsConsole isPlatformOwner={isPlatformOwner} />

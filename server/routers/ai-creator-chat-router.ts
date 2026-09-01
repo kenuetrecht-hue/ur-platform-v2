@@ -6,10 +6,11 @@ import {
 } from "../_core/ai-creator-registry";
 import { getCreatorHiveProfile } from "../_core/ai-hive-orchestrator";
 import { getHiveCapabilities } from "../_core/ai-hive-capabilities";
+import { assertAndConsumeStewardAdBudget } from "../_core/steward-ad-budget-service";
 import { generateImage } from "../_core/imageGeneration";
 import { ENV } from "../_core/env";
 import { sanitizeChatAttachments } from "../_core/chat-attachment-service";
-import { isOwnerOnlyPlatformAi, canChatOwnerOpsAi } from "../_core/platform-ops-ai";
+import { isOwnerOnlyPlatformAi, canChatOwnerOpsAi, canChatBusinessSteward } from "../_core/platform-ops-ai";
 import { getAdminAccessForUser } from "../_core/admin-access-service";
 import { assertAiEntitled } from "../_core/access-entitlements";
 import { secureProcedure, securePublicProcedure, router, TRPCError } from "../_core/trpc";
@@ -65,6 +66,46 @@ const chatAttachmentSchema = z.object({
   fileName: z.string().trim().max(120).optional(),
 });
 
+function assertCanAccessOwnerOpsClientAi(params: {
+  creatorId: string;
+  isPlatformOwner: boolean;
+  userId?: string;
+  userEmail?: string | null;
+  hideIfDenied?: boolean;
+}): void {
+  if (isAffiliateOnlyAi(params.creatorId)) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "AI assistant not found." });
+  }
+  if (!isOwnerOnlyPlatformAi(params.creatorId)) return;
+
+  const deniedCode = params.hideIfDenied ? "NOT_FOUND" : "FORBIDDEN";
+  const deniedMessage = params.hideIfDenied
+    ? "AI assistant not found."
+    : params.creatorId === "platform-business-steward-ai"
+      ? "Business Steward AI is private to the platform owner."
+      : "Owner operations AIs are restricted to the Administration Dashboard.";
+
+  if (params.creatorId === "platform-business-steward-ai") {
+    if (!canChatBusinessSteward({ isPlatformOwner: params.isPlatformOwner })) {
+      throw new TRPCError({ code: deniedCode, message: deniedMessage });
+    }
+    return;
+  }
+
+  const adminAccess = getAdminAccessForUser({
+    userId: params.userId,
+    email: params.userEmail,
+    isPlatformOwner: params.isPlatformOwner,
+  });
+  const allowedOpsChat = canChatOwnerOpsAi({
+    isPlatformOwner: params.isPlatformOwner,
+    canChatOwnerOps: adminAccess.permissions.includes("chat_ops_ai"),
+  });
+  if (!allowedOpsChat) {
+    throw new TRPCError({ code: deniedCode, message: deniedMessage });
+  }
+}
+
 export const aiCreatorChatRouter = router({
   /** Public — browsing AI specialists does not require login. Owner ops AIs are never listed. */
   list: securePublicProcedure("aiCreators").query(({ ctx }) => {
@@ -93,10 +134,14 @@ export const aiCreatorChatRouter = router({
 
   getHiveProfile: securePublicProcedure("aiCreators")
     .input(z.object({ creatorId: creatorIdSchema }))
-    .query(({ input }) => {
-      if (isOwnerOnlyPlatformAi(input.creatorId) || isAffiliateOnlyAi(input.creatorId)) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "AI assistant not found." });
-      }
+    .query(({ input, ctx }) => {
+      assertCanAccessOwnerOpsClientAi({
+        creatorId: input.creatorId,
+        isPlatformOwner: ctx.isPlatformOwner,
+        userId: ctx.user?.id,
+        userEmail: ctx.user?.email,
+        hideIfDenied: true,
+      });
       const hive = getCreatorHiveProfile(input.creatorId);
       if (!hive) {
         throw new TRPCError({ code: "NOT_FOUND", message: "AI assistant not found." });
@@ -108,9 +153,12 @@ export const aiCreatorChatRouter = router({
   getThread: secureProcedure("aiCreators")
     .input(z.object({ creatorId: creatorIdSchema }))
     .query(async ({ input, ctx }) => {
-      if (isOwnerOnlyPlatformAi(input.creatorId) || isAffiliateOnlyAi(input.creatorId)) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "AI assistant not found." });
-      }
+      assertCanAccessOwnerOpsClientAi({
+        creatorId: input.creatorId,
+        isPlatformOwner: ctx.isPlatformOwner,
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+      });
       try {
         const existing = await listAiChatMessages({
           userId: ctx.user.id,
@@ -141,9 +189,12 @@ export const aiCreatorChatRouter = router({
       }),
     )
     .query(async ({ input, ctx }) => {
-      if (isOwnerOnlyPlatformAi(input.creatorId) || isAffiliateOnlyAi(input.creatorId)) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "AI assistant not found." });
-      }
+      assertCanAccessOwnerOpsClientAi({
+        creatorId: input.creatorId,
+        isPlatformOwner: ctx.isPlatformOwner,
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+      });
       try {
         const sinceDate = input.since ? new Date(input.since) : undefined;
         const thread = await listAiChatMessages({
@@ -184,21 +235,12 @@ export const aiCreatorChatRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.user.id;
-      const adminAccess = getAdminAccessForUser({
+      assertCanAccessOwnerOpsClientAi({
+        creatorId: input.creatorId,
+        isPlatformOwner: ctx.isPlatformOwner,
         userId: ctx.user.id,
-        email: ctx.user.email,
-        isPlatformOwner: ctx.isPlatformOwner,
+        userEmail: ctx.user.email,
       });
-      const allowedOpsChat = canChatOwnerOpsAi({
-        isPlatformOwner: ctx.isPlatformOwner,
-        canChatOwnerOps: adminAccess.permissions.includes("chat_ops_ai"),
-      });
-      if (isOwnerOnlyPlatformAi(input.creatorId) && !allowedOpsChat) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Doctor AI, Administration AI, and Security AI are restricted to the Administration Dashboard.",
-        });
-      }
       if (!isOwnerOnlyPlatformAi(input.creatorId)) {
         assertSectionEnabledForRequest("ai_chat", ctx.isPlatformOwner);
       }
@@ -284,11 +326,21 @@ export const aiCreatorChatRouter = router({
         });
       }
 
-      if (isOwnerOnlyPlatformAi(input.creatorId) || isAffiliateOnlyAi(input.creatorId)) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "AI assistant not found." });
-      }
+      assertAndConsumeStewardAdBudget({
+        creatorId: input.creatorId,
+        actions: ["image"],
+      });
 
-      assertSectionEnabledForRequest("ai_chat", ctx.isPlatformOwner);
+      assertCanAccessOwnerOpsClientAi({
+        creatorId: input.creatorId,
+        isPlatformOwner: ctx.isPlatformOwner,
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+      });
+
+      if (!isOwnerOnlyPlatformAi(input.creatorId)) {
+        assertSectionEnabledForRequest("ai_chat", ctx.isPlatformOwner);
+      }
       assertAiEntitled({
         userId: ctx.user.id,
         email: ctx.user.email,

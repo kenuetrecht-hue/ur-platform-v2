@@ -6,6 +6,7 @@ import { randomUUID } from "crypto";
 
 export type LedgerTransactionType =
   | "live_class_ticket"
+  | "class_replay_ticket"
   | "affiliate_bonus"
   | "owner_comp"
   | "sandbox_upgrade"

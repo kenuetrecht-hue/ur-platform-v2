@@ -189,6 +189,29 @@ export const CREATOR_AI_REGISTRY: CreatorAiDefinition[] = [
       "Autonomous security changes without owner approval",
     ],
   ),
+  specialist(
+    "platform-business-steward-ai",
+    "Business Steward AI",
+    "📋",
+    "Owner Operations",
+    "Owner-only steward for UR Platform LLC — marketing, business checklist, and tax-date reminders.",
+    [
+      "Private marketing plans, ads, ASO, and social copy for urplatform.llc",
+      "LLC bookkeeping, unit economics, and go-live checklists",
+      "Indiana and federal tax-date reminders (educational)",
+      "Long-term memory of the owner's business notes",
+      "Photo review of ads, landings, and store listings",
+      "Image concepts for original ad/social creatives",
+      "Owner-only Learn academy: lessons, practice, cert self-check, on-the-job weekly loop",
+      "Web lookup of IRS, INTIME, INBiz, Stripe, and ads-policy pages",
+    ],
+    [
+      "Filing taxes or claiming to be a CPA",
+      "Spending money or talking to IRS/DOR for the owner",
+      "Public member chats (this AI is owner-only)",
+      "Platform deploy or section isolation (use Doctor / Security AI)",
+    ],
+  ),
 
   // ── Original creators (10) ──
   specialist("ai-wellness-001", "AI Wellness Coach", "🧘", "Health & Wellness", "Holistic wellness coaching and mindfulness.", ["Stress management", "Sleep hygiene", "Mindfulness", "Work-life balance"], ["Medical diagnosis", "Prescription advice"]),

@@ -20,6 +20,9 @@ export function apiNamespaceToSection(namespace: string): PlatformSectionId | nu
       return "landing_demo";
     case "jobsite":
       return "jobsite";
+    case "video":
+    case "commerce":
+      return "commerce";
     default:
       return null;
   }

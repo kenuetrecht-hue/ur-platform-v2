@@ -23,6 +23,14 @@ export const OWNER_PLATFORM_OPS_CATALOG: AiCreatorCatalogEntry[] = [
     category: "Owner Operations",
     mission: "Malware protection, security monitoring, and incident response.",
   },
+  {
+    id: "platform-business-steward-ai",
+    name: "Business Steward AI",
+    avatar: "📋",
+    category: "Owner Operations",
+    mission:
+      "Your private operator: marketing, Learn academy, cash/go-live checklists, and Indiana/federal tax-date reminders — members cannot see this AI.",
+  },
 ];
 
 export const OWNER_OPS_AI_IDS = OWNER_PLATFORM_OPS_CATALOG.map((c) => c.id);

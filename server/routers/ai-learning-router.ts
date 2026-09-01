@@ -2,9 +2,10 @@ import { z } from "zod";
 import { secureProcedure, securePublicProcedure, router, TRPCError } from "../_core/trpc";
 import { getCreatorAi, isCreatorAiId } from "../_core/ai-creator-registry";
 import {
-  getCertificationOverview,
   getCurriculumForCreator,
+  getCertificationOverview,
   handleCreatorLearningSession,
+  assertCanAccessOwnerAiLearning,
   type LearningLevel,
   type LearningMode,
 } from "../_core/ai-learning-mode";
@@ -34,6 +35,12 @@ import {
   getLegalMasterTeachingTagline,
   isLegalMasterTeachingCreator,
 } from "../_core/legal-masters-teaching-curriculum";
+import {
+  getOwnerBusinessPracticeExercises,
+  getOwnerBusinessSelfPacedPath,
+  getOwnerBusinessTeachingTagline,
+  isOwnerBusinessTeachingCreator,
+} from "../_core/owner-business-teaching-curriculum";
 import {
   createPracticeQuestionSet,
   getLearningProgress,
@@ -68,7 +75,8 @@ export const aiLearningRouter = router({
   /** Browse curriculum without login */
   getCurriculum: securePublicProcedure("aiLearning")
     .input(z.object({ creatorId: creatorIdSchema }))
-    .query(({ input }) => {
+    .query(({ ctx, input }) => {
+      assertCanAccessOwnerAiLearning(input.creatorId, ctx.isPlatformOwner);
       const def = getCreatorAi(input.creatorId);
       if (!def) {
         throw new TRPCError({ code: "NOT_FOUND", message: "AI assistant not found." });
@@ -135,12 +143,24 @@ export const aiLearningRouter = router({
               tagline: getLegalMasterTeachingTagline(def.id),
             }
           : {}),
+        ...(isOwnerBusinessTeachingCreator(def.id)
+          ? {
+              ownerOperatorAcademy: true,
+              selfPacedPaths: {
+                beginner: getOwnerBusinessSelfPacedPath("beginner"),
+                intermediate: getOwnerBusinessSelfPacedPath("intermediate"),
+                advanced: getOwnerBusinessSelfPacedPath("advanced"),
+              },
+              tagline: getOwnerBusinessTeachingTagline(),
+            }
+          : {}),
       };
     }),
 
   getProfile: securePublicProcedure("aiLearning")
     .input(z.object({ creatorId: creatorIdSchema }))
     .query(({ ctx, input }) => {
+      assertCanAccessOwnerAiLearning(input.creatorId, ctx.isPlatformOwner);
       const def = getCreatorAi(input.creatorId);
       if (!def) {
         throw new TRPCError({ code: "NOT_FOUND", message: "AI assistant not found." });
@@ -167,6 +187,7 @@ export const aiLearningRouter = router({
       }),
     )
     .mutation(({ ctx, input }) => {
+      assertCanAccessOwnerAiLearning(input.creatorId, ctx.isPlatformOwner);
       return updateLearningProgress(resolveLearningUserId(ctx), input.creatorId, {
         level: input.level,
       });
@@ -216,6 +237,7 @@ export const aiLearningRouter = router({
       }),
     )
     .mutation(({ ctx, input }) => {
+      assertCanAccessOwnerAiLearning(input.creatorId, ctx.isPlatformOwner);
       return recordLessonComplete(
         resolveLearningUserId(ctx),
         input.creatorId,
@@ -231,7 +253,8 @@ export const aiLearningRouter = router({
         count: z.number().int().min(1).max(10).default(5),
       }),
     )
-    .query(({ input }) => {
+    .query(({ ctx, input }) => {
+      assertCanAccessOwnerAiLearning(input.creatorId, ctx.isPlatformOwner);
       const def = getCreatorAi(input.creatorId);
       if (!def) {
         throw new TRPCError({ code: "NOT_FOUND", message: "AI assistant not found." });
@@ -300,6 +323,20 @@ export const aiLearningRouter = router({
         };
       }
 
+      if (isOwnerBusinessTeachingCreator(input.creatorId)) {
+        const exercises = getOwnerBusinessPracticeExercises({ count: input.count });
+        return {
+          questions: exercises.map((ex) => ({
+            id: ex.id,
+            topic: ex.title,
+            question: ex.prompt,
+            level: ex.level,
+          })),
+          disclaimer:
+            "Educational operator practice only — not CPA, legal, or investment advice. Confirm filings and ads policy on official sites.",
+        };
+      }
+
       return {
         questions: createPracticeQuestionSet(def.name, topics, input.count),
         disclaimer: "Educational practice only — verify answers with qualified professionals.",
@@ -308,7 +345,8 @@ export const aiLearningRouter = router({
 
   getCertificationPrep: securePublicProcedure("aiLearning")
     .input(z.object({ creatorId: creatorIdSchema }))
-    .query(({ input }) => {
+    .query(({ ctx, input }) => {
+      assertCanAccessOwnerAiLearning(input.creatorId, ctx.isPlatformOwner);
       const def = getCreatorAi(input.creatorId);
       if (!def) {
         throw new TRPCError({ code: "NOT_FOUND", message: "AI assistant not found." });

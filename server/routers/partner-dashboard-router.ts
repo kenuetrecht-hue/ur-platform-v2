@@ -23,6 +23,7 @@ import {
   getLiveSession,
   getSessionEnrollmentSummary,
 } from "../_core/ai-live-session-service";
+import { getReplayBySessionId } from "../_core/class-replay-service";
 import {
   listAiSessionPrograms,
   CREATOR_MIN_PRICE_CENTS_PER_MINUTE,
@@ -220,12 +221,18 @@ export const partnerDashboardRouter = router({
       .filter((s) => s.hostUserId === String(ctx.user.id))
       .map((s) => {
         const enrollment = getSessionEnrollmentSummary(s);
+        const replay = getReplayBySessionId(s.id);
         return {
           ...s,
           registeredCount: enrollment.registeredCount,
           spotsNeeded: enrollment.spotsNeeded,
           confirmedToRun: enrollment.confirmedToRun,
           enrollmentLabel: enrollment.enrollmentLabel,
+          replayPublished: Boolean(replay?.published),
+          replayId: replay?.id,
+          replayPriceCents: replay?.priceCents,
+          replayVideoEngine: replay?.muxPlaybackId || replay?.muxUploadId ? "mux" : replay?.videoUrl ? "external_https" : "archive",
+          replayMuxStatus: replay?.muxStatus ?? null,
         };
       });
   }),

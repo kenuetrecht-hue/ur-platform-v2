@@ -17,6 +17,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { AuthRouteGuard } from "@/components/auth-route-guard";
 import { LandingDemoConversionTracker } from "@/components/landing-demo-conversion-tracker";
 import { PlatformDisclosureFrame } from "@/components/platform-disclosure-frame";
+import { OwnerEmergencyAlarm } from "@/components/owner-emergency-alarm";
 
 import "react-native-safe-area-context/src/SafeAreaContext";
 
@@ -50,6 +51,7 @@ export default function RootLayout() {
                 <LandingDemoConversionTracker />
                 <AuthRouteGuard>
                   <PlatformDisclosureFrame>
+                    <OwnerEmergencyAlarm />
                     <Stack screenOptions={{ headerShown: false }} />
                   </PlatformDisclosureFrame>
                 </AuthRouteGuard>

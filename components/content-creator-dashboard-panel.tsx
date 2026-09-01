@@ -30,6 +30,7 @@ import { CreatorPayoutSetupPanel } from "@/components/creator-payout-setup-panel
 import { CreatorSocialShareBar, CreatorPromoCard } from "@/components/creator-social-share";
 import { CreatorContentMatePanel } from "@/components/creator-contentmate-panel";
 import { CreatorContentProtectionPanel } from "@/components/creator-content-protection-panel";
+import { MuxVideoUploader } from "@/components/mux-video-uploader";
 
 type Tab = "overview" | "classes" | "promote" | "store" | "ai";
 
@@ -88,6 +89,10 @@ export function ContentCreatorDashboardPanel() {
   const [minAttendees, setMinAttendees] = useState("5");
   const [pricingTier, setPricingTier] = useState<LiveClassPricingTier>("standard");
   const [pricePerMin, setPricePerMin] = useState("0.20");
+  const [replaySessionId, setReplaySessionId] = useState<string | null>(null);
+  const [replayPrice, setReplayPrice] = useState("4.99");
+  const [replayVideoUrl, setReplayVideoUrl] = useState("");
+  const [replayMuxUploadId, setReplayMuxUploadId] = useState<string | undefined>();
 
   const dash = trpc.partnerDashboard.creatorDashboard.useQuery();
   const ais = trpc.partnerDashboard.listAvailableAis.useQuery(undefined, {
@@ -107,6 +112,12 @@ export function ContentCreatorDashboardPanel() {
       void utils.partnerDashboard.listMyClasses.invalidate();
       void utils.partnerDashboard.creatorDashboard.invalidate();
       setTab("classes");
+    },
+  });
+  const publishReplay = trpc.aiLiveSessions.publishReplay.useMutation({
+    onSuccess: () => {
+      setReplaySessionId(null);
+      void utils.partnerDashboard.listMyClasses.invalidate();
     },
   });
   const cancelClass = trpc.partnerDashboard.cancelMyClass.useMutation({
@@ -755,6 +766,31 @@ export function ContentCreatorDashboardPanel() {
                         <Text style={[styles.smallBtnText, { color: colors.foreground }]}>Cancel</Text>
                       </Pressable>
                     )}
+                    {c.status === "ended" ? (
+                      <Pressable
+                        onPress={() => {
+                          setReplaySessionId(c.id);
+                          setReplayPrice(
+                            c.replayPriceCents
+                              ? (c.replayPriceCents / 100).toFixed(2)
+                              : Math.max(0.99, (c.priceCents / 200)).toFixed(2),
+                          );
+                        }}
+                        style={[styles.smallBtn, { backgroundColor: "#059669" }]}
+                      >
+                        <Text style={styles.smallBtnText}>
+                          {c.replayPublished ? "Edit pay-per-view" : "Sell replay (PPV)"}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                    {c.replayPublished && c.replayId ? (
+                      <Pressable
+                        onPress={() => router.push(`/class-replay/${c.replayId}`)}
+                        style={[styles.smallBtn, { backgroundColor: colors.primary }]}
+                      >
+                        <Text style={styles.smallBtnText}>Open replay</Text>
+                      </Pressable>
+                    ) : null}
                     <ClassShareButton sessionId={c.id} title={c.title} />
                     <Pressable
                       onPress={() => {
@@ -765,6 +801,46 @@ export function ContentCreatorDashboardPanel() {
                       <Text style={[styles.smallBtnText, { color: colors.primary }]}>Ask ContentMate</Text>
                     </Pressable>
                   </View>
+                  {replaySessionId === c.id ? (
+                    <View style={{ marginTop: 10, gap: 8 }}>
+                      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700" }}>
+                        Pay-per-view replay for people who missed this class
+                      </Text>
+                      <TextInput
+                        value={replayPrice}
+                        onChangeText={setReplayPrice}
+                        placeholder="4.99"
+                        placeholderTextColor={colors.muted}
+                        keyboardType="decimal-pad"
+                        style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+                      />
+                      <MuxVideoUploader sessionId={c.id} onUploadId={setReplayMuxUploadId} />
+                      <TextInput
+                        value={replayVideoUrl}
+                        onChangeText={setReplayVideoUrl}
+                        placeholder="Fallback https link if Mux is offline"
+                        placeholderTextColor={colors.muted}
+                        autoCapitalize="none"
+                        style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+                      />
+                      <Pressable
+                        onPress={() =>
+                          publishReplay.mutate({
+                            sessionId: c.id,
+                            priceCents: Math.round(Number(replayPrice) * 100),
+                            videoUrl: replayVideoUrl.trim() || undefined,
+                            muxUploadId: replayMuxUploadId,
+                          })
+                        }
+                        disabled={publishReplay.isPending}
+                        style={[styles.smallBtn, { backgroundColor: "#059669" }]}
+                      >
+                        <Text style={styles.smallBtnText}>
+                          {publishReplay.isPending ? "Publishing…" : "Publish pay-per-view"}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
                 </View>
               ))
             )}

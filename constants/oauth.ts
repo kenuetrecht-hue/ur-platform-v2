@@ -63,6 +63,15 @@ export function getApiBaseUrl(): string {
       return `${protocol}//${hostname}:3000`;
     }
 
+    // Phone / other laptop on Wi-Fi: keep the same hostname, API listens on :3000.
+    if (
+      hostname.startsWith("192.168.") ||
+      hostname.startsWith("10.") ||
+      hostname.startsWith("172.")
+    ) {
+      return `${protocol}//${hostname}:3000`;
+    }
+
     // Production: web static bundle served from same host as API — relative URLs work.
     if (port === "3000" || port === "") {
       return "";

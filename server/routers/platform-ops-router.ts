@@ -27,15 +27,26 @@ import {
 } from "../_core/admin-access-service";
 import { OWNER_ONLY_PLATFORM_AI_IDS } from "../_core/platform-ops-ai";
 import {
+  getStewardAdBudgetStatus,
+} from "../_core/steward-ad-budget-service";
+import {
+  getOwnerCommandCenterSnapshot,
+  hydrateOwnerCommandCenter,
+  listOwnerCommandEvents,
+} from "../_core/owner-command-center-service";
+import {
   createOpsIncident,
   executeIncidentRemediation,
   getOpsDashboardSummary,
   getOpsIncident,
+  hydratePlatformOpsState,
   listOpsIncidents,
   listOwnerNotifications,
   markNotificationsRead,
+  recordOwnerReopenedSection,
   rejectOpsIncident,
   resolveOpsIncident,
+  rerunIncidentSandbox,
   runPlatformHealthChecks,
   runPlatformHealthScan,
   proposeSectionMaintenance,
@@ -45,8 +56,19 @@ import {
 } from "../_core/platform-ops-service";
 import {
   getPublicSectionFlags,
+  hydratePlatformSectionFlags,
   listPlatformSectionStates,
 } from "../_core/platform-section-flags-service";
+import { hydrateSandboxRepairs, listPendingSandboxRepairs } from "../_core/ops-sandbox-repair-service";
+import { registerOwnerPushToken, listOwnerPushTokens } from "../_core/owner-push-service";
+import { getOwnerEmergencyState } from "../_core/owner-emergency-service";
+import {
+  buildOwnerComplianceArchive,
+  getOwnerAuditBackupDirHint,
+  maybeRotateOwnerComplianceBackup,
+  readLastComplianceBackup,
+  writeOwnerComplianceSnapshot,
+} from "../_core/owner-compliance-archive-service";
 import { PLATFORM_SECTION_IDS } from "../../lib/platform-section-flags";
 
 export const platformOpsRouter = router({
@@ -156,15 +178,122 @@ export const platformOpsRouter = router({
 
   isOwner: ownerProcedure.query(() => ({ isOwner: true as const })),
 
-  dashboard: adminPermissionProcedure("view_ops_dashboard").query(() =>
-    getOpsDashboardSummary(),
-  ),
+  getStewardAdBudget: ownerProcedure.query(() => getStewardAdBudgetStatus()),
 
-  listIncidents: adminPermissionProcedure("view_incidents").query(() => listOpsIncidents()),
+  getCommandCenter: ownerProcedure.query(async () => {
+    await Promise.all([
+      hydrateOwnerCommandCenter(),
+      hydratePlatformOpsState(),
+      hydratePlatformSectionFlags(),
+      hydrateSandboxRepairs(),
+    ]);
+    const openIds = new Set(
+      listOpsIncidents()
+        .filter((i) => i.status !== "resolved" && i.status !== "rejected" && i.status !== "deploy_executed")
+        .map((i) => i.id),
+    );
+    void maybeRotateOwnerComplianceBackup().catch(() => undefined);
+    return getOwnerCommandCenterSnapshot(listPendingSandboxRepairs(openIds));
+  }),
+
+  getOwnerEmergency: ownerProcedure.query(async () => {
+    await hydratePlatformOpsState();
+    const tokens = await listOwnerPushTokens();
+    return getOwnerEmergencyState(tokens.length > 0);
+  }),
+
+  registerOwnerPushDevice: ownerProcedure
+    .input(
+      z.object({
+        token: z.string().trim().min(20).max(255),
+        platform: z.enum(["ios", "android", "web"]),
+      }),
+    )
+    .mutation(({ ctx, input }) => {
+      registerOwnerPushToken({
+        token: input.token,
+        ownerUserId: String(ctx.user.id),
+        platform: input.platform,
+      });
+      return { registered: true as const };
+    }),
+
+  exportComplianceArchive: ownerProcedure.query(async () => {
+    await Promise.all([
+      hydrateOwnerCommandCenter(),
+      hydratePlatformOpsState(),
+      hydratePlatformSectionFlags(),
+      hydrateSandboxRepairs(),
+    ]);
+    const archive = await buildOwnerComplianceArchive("owner_download");
+    if (archive.incidents.length === 0) {
+      archive.incidents = listOpsIncidents();
+      archive.counts.incidents = archive.incidents.length;
+    }
+    return archive;
+  }),
+
+  saveComplianceArchiveToDisk: ownerProcedure.mutation(async () => {
+    await Promise.all([
+      hydrateOwnerCommandCenter(),
+      hydratePlatformOpsState(),
+      hydratePlatformSectionFlags(),
+      hydrateSandboxRepairs(),
+    ]);
+    return writeOwnerComplianceSnapshot("owner_manual_save");
+  }),
+
+  getComplianceArchiveStatus: ownerProcedure.query(async () => {
+    const last = await readLastComplianceBackup();
+    return {
+      backupDir: getOwnerAuditBackupDirHint(),
+      last,
+      configuredExternalDrive: Boolean(process.env.OWNER_AUDIT_BACKUP_DIR?.trim()),
+    };
+  }),
+
+  listCommandCenterEvents: ownerProcedure
+    .input(
+      z
+        .object({
+          since: z.string().datetime().optional(),
+          limit: z.number().int().min(1).max(200).optional(),
+          kind: z
+            .enum([
+              "ops_chat",
+              "hive_consult",
+              "town_hall",
+              "specialist_chat",
+              "incident",
+              "remediation",
+              "health_scan",
+              "section",
+              "protection",
+              "sandbox_repair",
+            ])
+            .optional(),
+        })
+        .optional(),
+    )
+    .query(async ({ input }) => {
+      await hydrateOwnerCommandCenter();
+      return listOwnerCommandEvents(input);
+    }),
+
+  dashboard: adminPermissionProcedure("view_ops_dashboard").query(async () => {
+    await Promise.all([hydratePlatformOpsState(), hydratePlatformSectionFlags()]);
+    return getOpsDashboardSummary();
+  }),
+
+  listIncidents: adminPermissionProcedure("view_incidents").query(async () => {
+    await hydratePlatformOpsState();
+    return listOpsIncidents();
+  }),
 
   getIncident: adminPermissionProcedure("view_incidents")
     .input(z.object({ incidentId: z.string().min(8).max(64) }))
-    .query(({ input }) => {
+    .query(async ({ input }) => {
+      await hydratePlatformOpsState();
       const incident = getOpsIncident(input.incidentId);
       if (!incident) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Incident not found." });
@@ -172,9 +301,10 @@ export const platformOpsRouter = router({
       return incident;
     }),
 
-  listNotifications: adminPermissionProcedure("view_notifications").query(() =>
-    listOwnerNotifications(),
-  ),
+  listNotifications: adminPermissionProcedure("view_notifications").query(async () => {
+    await hydratePlatformOpsState();
+    return listOwnerNotifications();
+  }),
 
   markNotificationsRead: adminPermissionProcedure("mark_notifications_read").mutation(() => {
     markNotificationsRead();
@@ -247,20 +377,11 @@ export const platformOpsRouter = router({
         ownerNote: z.string().max(1000).optional(),
       }),
     )
-    .mutation(async ({ input }) => {
-      const incident = getOpsIncident(input.incidentId);
-      if (!incident?.affectedSectionId) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "No section linked to this incident." });
-      }
-      ownerEnableSection({
-        sectionId: incident.affectedSectionId,
-        ownerNote: input.ownerNote ?? "Owner reopened section manually",
-      });
-      incident.actionsTaken.push(`Owner reopened section: ${incident.affectedSectionId}`);
-      incident.updatedAt = new Date().toISOString();
-      incidents.set(incident.id, incident);
-      return incident;
-    }),
+    .mutation(async ({ input }) => recordOwnerReopenedSection(input.incidentId, input.ownerNote)),
+
+  runSandboxRepair: ownerProcedure
+    .input(z.object({ incidentId: z.string().min(8).max(64) }))
+    .mutation(async ({ input }) => rerunIncidentSandbox(input.incidentId)),
 
   rejectIncident: ownerProcedure
     .input(
@@ -276,13 +397,15 @@ export const platformOpsRouter = router({
     .mutation(async ({ input }) => resolveOpsIncident(input.incidentId)),
 
   /** Public — client maintenance banners (enabled flags only). */
-  getPublicSectionFlags: securePublicProcedure("platformOps").query(() => ({
-    sections: getPublicSectionFlags(),
-  })),
+  getPublicSectionFlags: securePublicProcedure("platformOps").query(async () => {
+    await hydratePlatformSectionFlags();
+    return { sections: getPublicSectionFlags() };
+  }),
 
-  listSections: adminPermissionProcedure("view_ops_dashboard").query(() =>
-    listPlatformSectionStates(),
-  ),
+  listSections: adminPermissionProcedure("view_ops_dashboard").query(async () => {
+    await hydratePlatformSectionFlags();
+    return listPlatformSectionStates();
+  }),
 
   disableSection: ownerProcedure
     .input(

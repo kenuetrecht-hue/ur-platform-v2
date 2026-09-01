@@ -66,6 +66,7 @@ const config: ExpoConfig = {
     package: env.androidPackage,
     permissions: [
       "POST_NOTIFICATIONS",
+      "VIBRATE",
       "RECORD_AUDIO",
       "MODIFY_AUDIO_SETTINGS",
     ],
@@ -91,6 +92,13 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-router",
+    [
+      "expo-notifications",
+      {
+        sounds: [],
+        mode: "production",
+      },
+    ],
     [
       "expo-audio",
       {

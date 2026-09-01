@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { listCreatorsForClient } from "../server/_core/ai-creator-registry";
 import { OWNER_OPS_AI_IDS } from "../lib/owner-platform-ops-catalog";
-import { isOwnerOnlyPlatformAi, canChatOwnerOpsAi } from "../server/_core/platform-ops-ai";
+import {
+  isOwnerOnlyPlatformAi,
+  canChatOwnerOpsAi,
+  canChatBusinessSteward,
+} from "../server/_core/platform-ops-ai";
 
 describe("Owner ops AI access isolation", () => {
   it("never includes owner ops in public client list", () => {
@@ -26,9 +30,15 @@ describe("Owner ops AI access isolation", () => {
     expect(canChatOwnerOpsAi({ isPlatformOwner: false })).toBe(false);
   });
 
-  it("marks all three ops AIs as owner-only", () => {
+  it("marks all owner ops AIs as owner-only", () => {
     for (const id of OWNER_OPS_AI_IDS) {
       expect(isOwnerOnlyPlatformAi(id)).toBe(true);
     }
+  });
+
+  it("keeps Business Steward chat owner-only even when staff can chat other ops AIs", () => {
+    expect(canChatBusinessSteward({ isPlatformOwner: true })).toBe(true);
+    expect(canChatBusinessSteward({ isPlatformOwner: false })).toBe(false);
+    expect(canChatOwnerOpsAi({ isPlatformOwner: false, canChatOwnerOps: true })).toBe(true);
   });
 });

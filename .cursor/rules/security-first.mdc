@@ -1,0 +1,69 @@
+---
+description: Security-first standards for all UR Platform code
+alwaysApply: true
+---
+
+# Security First
+
+Security is the top priority. Every line of server and client code must follow these rules.
+
+## AI control (administrator only — you)
+
+- Only the platform owner (`ownerProcedure`) may train, configure, approve learning, or change AI behavior via API.
+- Regular users may **use** AIs (chat, translate, learn languages) but cannot **control** them.
+- Chat/API must call `assertNoAiTakeoverInMessage()` — blocks "I am admin", "change your instructions", etc.
+- System prompts are server-side only; never accept `systemPrompt` from client input.
+- All AI system prompts include `AI_ADMINISTRATOR_CONTROL_PROMPT`.
+
+## Platform owner (you only)
+
+- Admin and `ownerProcedure` routes require `isPlatformOwner` — set `PLATFORM_OWNER_SUPABASE_ID` or `PLATFORM_OWNER_EMAIL` in `.env`.
+- Never trust `user_metadata.role` from Supabase for elevation; only owner env vars grant admin.
+- Owner bypasses AI guardrails and rate limits; all other users are filtered.
+
+## AI role integrity (stay on mission)
+
+- Each AI has a defined job in `server/_core/ai-roles.ts` — users cannot disable it or force off-role work.
+- Call `assertMessageWithinAiRole()` on every AI chat mutation; pass `role` to `enforceAiGuardrails()`.
+- System prompts include `buildRoleMissionPrompt()` with in-scope / out-of-scope lists.
+- ContentMate = creator content. LinguaMate = languages. Redirect users to the correct assistant.
+
+## AI guardrails
+
+- All AI routes must call `assertUserCanUseAi()` and `enforceAiGuardrails()` before returning replies.
+- System prompts must include `AI_BOUNDARY_PROMPT` from `multilingual-prompts.ts`.
+- Suspended/banned users cannot use AI features.
+
+## API routes (tRPC)
+
+- **Never** use bare `protectedProcedure` for user-facing mutations/queries — use `secureProcedure("namespace")` from `server/_core/trpc.ts`.
+- **Never** use `publicProcedure` for data access, AI, search, or mutations — require auth unless explicitly a health check.
+- **Always** validate input with Zod (`.min()`, `.max()`, `.trim()`, enums).
+- **Always** sanitize user text via `sanitizeUserText()` / `sanitizeLanguageLabel()` before LLM or DB use.
+- **Always** throw `TRPCError` in routers — never `throw new Error()` (leaks internals).
+- **Always** verify resource ownership (`assertOwnedResource`) before reveal/update/delete — prevent IDOR.
+- **Always** use `ctx.user.id` from server context — never trust client-supplied `userId`.
+
+## Namespaces (isolated rate limits + circuit breakers)
+
+`chat`, `aiLanguage`, `aiCreators`, `webSearch`, `loyalty`, `ai`, `stamps`, `voiceProperty`, `ai3dSpecialist`, `aiRealEstate`, `auth`, `system`
+
+## Secrets & config
+
+- **Never** use `EXPO_PUBLIC_` for API keys, GCP credentials, or service role keys.
+- **Never** paste API keys into chat, code, commits, or client files — use `.env` only (gitignored).
+- Gemini key: `CONTENTMATE_GEMINI_API_KEY` in `.env` — read via `server/_core/secrets.ts` only, not `ENV`.
+- **Never** log tokens, passwords, or full error bodies from upstream APIs.
+- Internal modules throw `InternalServiceError`; routers map via `mapServiceErrorToTrpc()`.
+
+## Express / HTTP
+
+- Security headers and strict CORS are in `server/_core/index.ts` — do not bypass.
+- Body limit stays at 1MB for JSON unless a dedicated upload route exists.
+- Storage proxy requires authentication.
+
+## Client (React Native)
+
+- Enforce `maxLength` on all TextInputs matching server Zod limits.
+- Do not store service keys in AsyncStorage or client code.
+- Display generic error messages; server returns sanitized errors in production.

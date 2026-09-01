@@ -3,6 +3,9 @@ import { TRPCError } from "@trpc/server";
 import { ENV } from "./env";
 import { isGoogleCloudAiConfigured } from "./google-ai";
 import { notifyOwner } from "./notification";
+import { shouldWakeOwner } from "../../lib/owner-emergency";
+import { sendOwnerEmergencyPush } from "./owner-push-service";
+import { writeOwnerComplianceSnapshot } from "./owner-compliance-archive-service";
 import {
   isOwnerOnlyPlatformAi,
   type OwnerPlatformAiId,
@@ -29,6 +32,19 @@ import {
   executeApprovedRemediation,
   sanitizeDeployProposal,
 } from "./platform-ops-remediation-service";
+import { recordOwnerCommandEvent } from "./owner-command-center-service";
+import {
+  markSandboxRepairApplied,
+  runOpsSandboxRepair,
+} from "./ops-sandbox-repair-service";
+import type { OpsSandboxRepair } from "../../lib/ops-sandbox-repair-types";
+import {
+  loadOpsIncidentsFromDb,
+  loadOpsNotificationsFromDb,
+  persistOpsIncident,
+  persistOpsNotification,
+  markOpsNotificationsReadInDb,
+} from "../db-platform-ops";
 
 export type OpsIncidentSeverity = "low" | "medium" | "high" | "critical";
 export type OpsIncidentCategory =
@@ -102,6 +118,8 @@ export type OpsIncident = {
   /** When set, ops AIs isolate this section while owner reviews the fix plan. */
   affectedSectionId?: PlatformSectionId;
   sectionAction?: OpsSectionAction;
+  /** Isolated sandbox diagnosis — not applied until I APPROVE. */
+  sandboxRepair?: OpsSandboxRepair;
 };
 
 const incidents = new Map<string, OpsIncident>();
@@ -113,6 +131,36 @@ const ownerNotifications: Array<{
   createdAt: string;
   read: boolean;
 }> = [];
+let hydrated = false;
+let hydratePromise: Promise<void> | null = null;
+
+function rememberIncident(incident: OpsIncident): OpsIncident {
+  incidents.set(incident.id, incident);
+  void persistOpsIncident(incident);
+  return incident;
+}
+
+export async function hydratePlatformOpsState(): Promise<void> {
+  if (hydrated) return;
+  if (!hydratePromise) {
+    hydratePromise = (async () => {
+      const [rows, notes] = await Promise.all([
+        loadOpsIncidentsFromDb(),
+        loadOpsNotificationsFromDb(),
+      ]);
+      for (const row of rows) {
+        if (!incidents.has(row.id)) {
+          incidents.set(row.id, row as unknown as OpsIncident);
+        }
+      }
+      if (ownerNotifications.length === 0) {
+        ownerNotifications.push(...notes);
+      }
+      hydrated = true;
+    })();
+  }
+  await hydratePromise;
+}
 
 export function listOpsIncidents(): OpsIncident[] {
   return [...incidents.values()].sort(
@@ -130,7 +178,12 @@ export function listOwnerNotifications() {
   );
 }
 
-async function dispatchOwnerAlert(title: string, content: string, incidentId: string) {
+async function dispatchOwnerAlert(
+  title: string,
+  content: string,
+  incidentId: string,
+  options?: { wakeOwner?: boolean; severity?: string },
+) {
   const notification = {
     id: randomUUID(),
     incidentId,
@@ -140,6 +193,7 @@ async function dispatchOwnerAlert(title: string, content: string, incidentId: st
     read: false,
   };
   ownerNotifications.unshift(notification);
+  void persistOpsNotification(notification);
 
   console.log("\n[PlatformOps] 🔔 OWNER ALERT");
   console.log(`[PlatformOps] ${title}`);
@@ -150,6 +204,16 @@ async function dispatchOwnerAlert(title: string, content: string, incidentId: st
     await notifyOwner({ title, content });
   } catch {
     /* in-app queue is the fallback */
+  }
+
+  if (options?.wakeOwner) {
+    void sendOwnerEmergencyPush({
+      title: `UR EMERGENCY: ${title}`.slice(0, 80),
+      body: content,
+      incidentId,
+      severity: options.severity,
+    });
+    void writeOwnerComplianceSnapshot("owner_emergency").catch(() => undefined);
   }
 }
 
@@ -229,7 +293,7 @@ export async function createOpsIncident(input: {
     );
   }
 
-  incidents.set(incident.id, incident);
+  rememberIncident(incident);
 
   const content = [
     `Severity: ${incident.severity.toUpperCase()}`,
@@ -253,7 +317,41 @@ export async function createOpsIncident(input: {
     `⏳ Awaiting YOUR typed ${OWNER_REMEDIATION_CONFIRM_PHRASE} in Owner Ops. Doctor / Administration / Security AIs cannot finalize.`,
   ].join("\n");
 
-  await dispatchOwnerAlert(`[UR Ops] ${incident.title}`, content, incident.id);
+  await dispatchOwnerAlert(`[UR Ops] ${incident.title}`, content, incident.id, {
+    wakeOwner: shouldWakeOwner({
+      severity: incident.severity,
+      autoIsolated: incident.autoIsolated,
+      category: incident.category,
+    }),
+    severity: incident.severity,
+  });
+
+  recordOwnerCommandEvent({
+    kind: "incident",
+    severity: incident.severity === "critical" || incident.severity === "high" ? "critical" : "watch",
+    sourceAiId: incident.sourceAi,
+    english: `${incident.sourceAi} filed an incident: ${incident.title}. Problem: ${incident.problem}. Proposed fix: ${incident.proposedFix}.${incident.autoIsolated ? ` Section ${incident.affectedSectionId} was isolated immediately.` : ""} Status: ${incident.status.replace(/_/g, " ")}. Nothing is finalized until you type I APPROVE.`,
+    incidentId: incident.id,
+    sectionId: incident.affectedSectionId,
+    originalExcerpt: incident.problem,
+  });
+
+  const sandbox = runOpsSandboxRepair({
+    incident,
+    healthFindings: runPlatformHealthChecks(),
+  });
+  incident.sandboxRepair = sandbox;
+  incident.actionsTaken.push(`Sandbox ${sandbox.status}: live site unchanged`);
+  rememberIncident(incident);
+  recordOwnerCommandEvent({
+    kind: "sandbox_repair",
+    severity: sandbox.status === "passed" ? "watch" : "high",
+    sourceAiId: incident.sourceAi,
+    english: sandbox.diagnosis,
+    incidentId: incident.id,
+    sectionId: incident.affectedSectionId,
+  });
+
   return incident;
 }
 
@@ -311,7 +409,19 @@ export async function executeIncidentRemediation(
   incident.actionsTaken.push(
     ...results.map((r) => `${r.success ? "✓" : "✗"} ${r.actionId}: ${r.message}`),
   );
-  incidents.set(incidentId, incident);
+  markSandboxRepairApplied(incidentId);
+  rememberIncident(incident);
+
+  recordOwnerCommandEvent({
+    kind: "remediation",
+    severity: "watch",
+    sourceAiId: incident.sourceAi,
+    english: `You approved a fix for "${incident.title}". Status: ${incident.status.replace(/_/g, " ")}. Results: ${results
+      .map((r) => `${r.success ? "ok" : "failed"} ${r.actionId}`)
+      .join(", ")}.`,
+    incidentId,
+    sectionId: incident.affectedSectionId,
+  });
 
   await dispatchOwnerAlert(
     `[UR Ops] ✅ Fix approved: ${incident.title}`,
@@ -346,7 +456,7 @@ export async function submitOwnerInstructions(
   incident.ownerInstructions = trimmed;
   incident.updatedAt = new Date().toISOString();
   incident.actionsTaken.push(`Owner instructions: ${trimmed.slice(0, 120)}${trimmed.length > 120 ? "…" : ""}`);
-  incidents.set(incidentId, incident);
+  rememberIncident(incident);
 
   await dispatchOwnerAlert(
     `[UR Ops] 📋 Your instructions recorded`,
@@ -369,7 +479,16 @@ export async function rejectOpsIncident(
   incident.updatedAt = now;
   incident.ownerNote = ownerNote;
   incident.actionsTaken.push(`Owner rejected plan: ${ownerNote}`);
-  incidents.set(incidentId, incident);
+  rememberIncident(incident);
+
+  recordOwnerCommandEvent({
+    kind: "remediation",
+    severity: "watch",
+    sourceAiId: incident.sourceAi,
+    english: `You rejected the plan for "${incident.title}". Reason: ${ownerNote}. The AIs did not apply the fix.`,
+    incidentId,
+    sectionId: incident.affectedSectionId,
+  });
 
   await dispatchOwnerAlert(
     `[UR Ops] ❌ Rejected: ${incident.title}`,
@@ -386,7 +505,17 @@ export async function resolveOpsIncident(incidentId: string): Promise<OpsInciden
   }
   incident.status = "resolved";
   incident.updatedAt = new Date().toISOString();
-  incidents.set(incidentId, incident);
+  rememberIncident(incident);
+
+  recordOwnerCommandEvent({
+    kind: "remediation",
+    severity: "info",
+    sourceAiId: incident.sourceAi,
+    english: `You marked "${incident.title}" resolved. The protection action is closed in the audit log.`,
+    incidentId,
+    sectionId: incident.affectedSectionId,
+  });
+
   return incident;
 }
 
@@ -424,17 +553,72 @@ export function ownerDisableSection(input: {
   maintenanceMessage?: string;
   incidentId?: string;
 }): ReturnType<typeof disablePlatformSection> {
-  return disablePlatformSection({
+  const state = disablePlatformSection({
     ...input,
     disabledBy: "owner",
   });
+  recordOwnerCommandEvent({
+    kind: "section",
+    severity: "high",
+    sourceAiId: "platform-security-ai",
+    english: `You isolated the "${state.label}" section. Reason: ${input.reason}. Members see a maintenance message until you reopen it.`,
+    sectionId: input.sectionId,
+    incidentId: input.incidentId,
+  });
+  return state;
 }
 
 export function ownerEnableSection(input: {
   sectionId: PlatformSectionId;
   ownerNote?: string;
 }): ReturnType<typeof enablePlatformSection> {
-  return enablePlatformSection(input);
+  const state = enablePlatformSection(input);
+  recordOwnerCommandEvent({
+    kind: "section",
+    severity: "info",
+    sourceAiId: "platform-security-ai",
+    english: `You reopened the "${state.label}" section.${input.ownerNote ? ` Note: ${input.ownerNote}` : ""} That website/app area is live again.`,
+    sectionId: input.sectionId,
+  });
+  return state;
+}
+
+export function rerunIncidentSandbox(incidentId: string): OpsIncident {
+  const incident = incidents.get(incidentId);
+  if (!incident) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Incident not found." });
+  }
+  const sandbox = runOpsSandboxRepair({
+    incident,
+    healthFindings: runPlatformHealthChecks(),
+  });
+  incident.sandboxRepair = sandbox;
+  incident.updatedAt = new Date().toISOString();
+  incident.actionsTaken.push(`Sandbox re-run: ${sandbox.status}`);
+  rememberIncident(incident);
+  recordOwnerCommandEvent({
+    kind: "sandbox_repair",
+    severity: sandbox.status === "passed" ? "watch" : "high",
+    sourceAiId: incident.sourceAi,
+    english: sandbox.diagnosis,
+    incidentId: incident.id,
+    sectionId: incident.affectedSectionId,
+  });
+  return incident;
+}
+
+export function recordOwnerReopenedSection(incidentId: string, ownerNote?: string): OpsIncident {
+  const incident = incidents.get(incidentId);
+  if (!incident?.affectedSectionId) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "No section linked to this incident." });
+  }
+  ownerEnableSection({
+    sectionId: incident.affectedSectionId,
+    ownerNote: ownerNote ?? "Owner reopened section manually",
+  });
+  incident.actionsTaken.push(`Owner reopened section: ${incident.affectedSectionId}`);
+  incident.updatedAt = new Date().toISOString();
+  return rememberIncident(incident);
 }
 
 export type HealthCheckFinding = {
@@ -557,6 +741,17 @@ export async function runPlatformHealthScan(): Promise<{
     incidentsCreated.push(incident);
   }
 
+  recordOwnerCommandEvent({
+    kind: "health_scan",
+    severity: findings.some((f) => f.severity === "high" || f.severity === "critical") ? "high" : "info",
+    sourceAiId: "platform-doctor-ai",
+    english:
+      findings.length === 0
+        ? "Health scan finished. Doctor AI found no new issues. Website and app checks look clear."
+        : `Health scan finished. Doctor AI found ${findings.length} issue(s) and opened ${incidentsCreated.length} incident(s) for your review.`,
+    relatedAiIds: ["platform-security-ai", "platform-administration-ai"],
+  });
+
   return { findings, incidentsCreated };
 }
 
@@ -575,6 +770,7 @@ export function inferIncidentFromOpsChat(
   sectionAction?: OpsSectionAction;
 } | null {
   if (!isOwnerOnlyPlatformAi(creatorId)) return null;
+  if (creatorId === "platform-business-steward-ai") return null;
 
   const text = `${userMessage}\n${aiReply}`.toLowerCase();
   const trouble =
@@ -645,10 +841,13 @@ export function markNotificationsRead() {
   for (const n of ownerNotifications) {
     n.read = true;
   }
+  void markOpsNotificationsReadInDb();
 }
 
 /** Test helper — clears in-memory ops state. */
 export function _resetOpsStateForTests(): void {
   incidents.clear();
   ownerNotifications.length = 0;
+  hydrated = false;
+  hydratePromise = null;
 }

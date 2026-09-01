@@ -7,10 +7,13 @@ type WebLoginSubmitProps = {
   loading: boolean;
   backgroundColor: string;
   onPress: () => void | Promise<void>;
+  mountId?: string;
+  buttonId?: string;
+  testID?: string;
 };
 
 /**
- * Native DOM button for web login — bypasses RN Web Pressable/hydration issues.
+ * Native DOM button for web login/signup — bypasses RN Web Pressable/hydration issues.
  * Mount point uses nativeID → id on the underlying div.
  */
 export function WebLoginSubmit({
@@ -19,6 +22,9 @@ export function WebLoginSubmit({
   loading,
   backgroundColor,
   onPress,
+  mountId = "web-login-submit-mount",
+  buttonId = "web-login-submit-button",
+  testID = "login-submit",
 }: WebLoginSubmitProps) {
   const onPressRef = useRef(onPress);
   onPressRef.current = onPress;
@@ -26,13 +32,13 @@ export function WebLoginSubmit({
   useEffect(() => {
     if (Platform.OS !== "web" || typeof document === "undefined") return;
 
-    const mount = document.getElementById("web-login-submit-mount");
+    const mount = document.getElementById(mountId);
     if (!mount) return;
 
     const button = document.createElement("button");
     button.type = "button";
-    button.id = "web-login-submit-button";
-    button.setAttribute("data-testid", "login-submit");
+    button.id = buttonId;
+    button.setAttribute("data-testid", testID);
     button.style.width = "100%";
     button.style.marginTop = "24px";
     button.style.border = "none";
@@ -43,12 +49,6 @@ export function WebLoginSubmit({
     button.style.color = "#ffffff";
     button.style.fontFamily = "inherit";
     button.style.backgroundColor = backgroundColor;
-
-    const syncDisabled = (disabled: boolean) => {
-      button.disabled = disabled;
-      button.style.opacity = disabled ? "0.6" : "1";
-      button.style.cursor = disabled ? "default" : "pointer";
-    };
 
     const handleClick = (event: Event) => {
       event.preventDefault();
@@ -66,22 +66,22 @@ export function WebLoginSubmit({
         mount.removeChild(button);
       }
     };
-  }, [backgroundColor]);
+  }, [backgroundColor, mountId, buttonId, testID]);
 
   useEffect(() => {
     if (Platform.OS !== "web" || typeof document === "undefined") return;
-    const button = document.getElementById("web-login-submit-button");
+    const button = document.getElementById(buttonId);
     if (!(button instanceof HTMLButtonElement)) return;
     button.textContent = loading ? loadingLabel : label;
     button.disabled = loading;
     button.style.opacity = loading ? "0.6" : "1";
     button.style.cursor = loading ? "default" : "pointer";
     button.style.backgroundColor = backgroundColor;
-  }, [label, loadingLabel, loading, backgroundColor]);
+  }, [label, loadingLabel, loading, backgroundColor, buttonId]);
 
   if (Platform.OS !== "web") {
     return null;
   }
 
-  return <View nativeID="web-login-submit-mount" collapsable={false} />;
+  return <View nativeID={mountId} collapsable={false} />;
 }

@@ -93,7 +93,7 @@ export function AiCreatorPanel({
           Administration-only AI
         </Text>
         <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 20, textAlign: "center" }}>
-          Doctor AI, Administration AI, and Security AI are private to the Administration Dashboard.
+          Doctor AI, Administration AI, Security AI, and Business Steward AI are private to the Administration Dashboard.
           They are not available in the public AI Specialists tab.
         </Text>
         <Pressable
@@ -274,18 +274,21 @@ function SurfaceToggle({
   );
 }
 
-function AiLearnSurface({
+export function AiLearnSurface({
   creatorId,
   creatorName,
   creatorAvatar,
+  overlapOptions,
 }: {
   creatorId: string;
   creatorName: string;
   creatorAvatar: string;
+  overlapOptions?: { reserveTabBar?: boolean; headerChromeHeight?: number };
 }) {
   const colors = useColors();
   const overlap = useOverlapInsets({
-    headerChromeHeight: LAYOUT_OVERLAP.AIS_TAB_CHROME_HEIGHT,
+    headerChromeHeight: overlapOptions?.headerChromeHeight ?? LAYOUT_OVERLAP.AIS_TAB_CHROME_HEIGHT,
+    reserveTabBar: overlapOptions?.reserveTabBar ?? true,
   });
   const utils = trpc.useUtils();
   const scrollRef = useRef<ScrollView>(null);
@@ -369,6 +372,7 @@ function AiLearnSurface({
   };
 
   const pct = profile.data?.percentComplete ?? 0;
+  const selfPacedSteps = curriculum.data?.selfPacedPaths?.[level] ?? [];
 
   return (
     <KeyboardAvoidingView
@@ -387,6 +391,30 @@ function AiLearnSurface({
         <Text style={{ color: colors.foreground, fontSize: 12, paddingHorizontal: 12, paddingTop: 6, lineHeight: 18 }}>
           {curriculum.data.tagline}
         </Text>
+      ) : null}
+
+      {selfPacedSteps.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.moduleRow}>
+          {selfPacedSteps.map((step) => (
+            <Pressable
+              key={`${step.order}-${step.title}`}
+              onPress={() => {
+                setActiveTopic(step.moduleTitle);
+                void sendLearnMessage(
+                  `Start self-paced step: "${step.title}" (${step.moduleTitle}). Guide me step by step.`,
+                );
+              }}
+              style={[styles.moduleCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            >
+              <Text style={{ color: colors.primary, fontSize: 10, fontWeight: "700" }}>
+                Step {step.order} · {step.estimatedMinutes}m
+              </Text>
+              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }} numberOfLines={2}>
+                {step.title}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
       ) : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.levelScroll} contentContainerStyle={styles.chipRow}>

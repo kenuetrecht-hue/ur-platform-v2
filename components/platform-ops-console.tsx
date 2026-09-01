@@ -11,12 +11,14 @@ import {
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { CreatorAIInterface } from "@/components/creator-ai-interface";
+import { AiLearnSurface } from "@/components/ai-creator-panel";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import type { AdminStaffRole } from "@/lib/admin-access-types";
 import { AiSessionProgrammingPanel } from "@/components/ai-session-programming-panel";
 import { PlatformSectionMaintenancePanel } from "@/components/platform-section-maintenance-panel";
 import { PlatformContentProtectionPanel } from "@/components/platform-content-protection-panel";
 import { TransactionHistoryList } from "@/components/transaction-history-list";
+import { OWNER_PLATFORM_OPS_CATALOG } from "@/lib/owner-platform-ops-catalog";
 import {
   OWNER_REMEDIATION_CONFIRM_PHRASE,
   isOwnerRemediationConfirmed,
@@ -28,6 +30,7 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
   const isPlatformOwner = isOwnerProp ?? isOwnerHook;
   const utils = trpc.useUtils();
   const [selectedOpsAi, setSelectedOpsAi] = useState<string>("platform-security-ai");
+  const [stewardSurface, setStewardSurface] = useState<"chat" | "learn">("chat");
   const [rejectNote, setRejectNote] = useState("");
   const [ownerInstructions, setOwnerInstructions] = useState("");
   const [instructionIncidentId, setInstructionIncidentId] = useState<string | null>(null);
@@ -134,18 +137,28 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
   const ledger = trpc.partnerDashboard.listAllTransactionsAdmin.useQuery(undefined, {
     enabled: hasAdminPermission("manage_ai_sessions"),
   });
+  const stewardAdBudget = trpc.platformOps.getStewardAdBudget.useQuery(undefined, {
+    enabled: isPlatformOwner,
+    refetchInterval: 15_000,
+  });
 
   const revokeGrant = trpc.platformOps.revokeFreeAccess.useMutation({
     onSuccess: () => void utils.platformOps.listAccessGrants.invalidate(),
   });
 
-  const opsAis = [
-    { id: "platform-doctor-ai", name: "Doctor AI", avatar: "🩺" },
-    { id: "platform-administration-ai", name: "Administration AI", avatar: "🏛️" },
-    { id: "platform-security-ai", name: "Security AI", avatar: "🛡️" },
-  ];
+  const opsAis = OWNER_PLATFORM_OPS_CATALOG.filter(
+    (c) => c.id !== "platform-business-steward-ai" || isPlatformOwner,
+  ).map((c) => ({
+    id: c.id,
+    name: c.name,
+    avatar: c.avatar,
+  }));
 
-  const selectedMeta = opsAis.find((a) => a.id === selectedOpsAi)!;
+  const selectedMeta = opsAis.find((a) => a.id === selectedOpsAi) ?? opsAis[0];
+  const isSteward = selectedMeta?.id === "platform-business-steward-ai";
+  const stewardWelcome =
+    "Owner channel active. I'm Business Steward AI — your private operator for urplatform.llc. Launch ad budget is $2/day and $60/month (text + stills). I do not file taxes or deploy code.";
+  const opsWelcome = `Owner channel active. I'm ${selectedMeta?.name ?? "Ops AI"}. I can diagnose, isolate a broken section, and draft a fix. Nothing is finalized until you type ${OWNER_REMEDIATION_CONFIRM_PHRASE} in Owner Ops.`;
 
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: 32, gap: 16 }}>
@@ -154,9 +167,8 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
           🏛️ Administration & ops
         </Text>
         <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
-          Doctor, Administration, and Security AIs monitor UR 24/7. When something breaks, they
-          isolate that section immediately, alert you with the problem + fix plan, and wait for your
-          OK before any deploy or reopen.
+          Doctor, Administration, Security, and Business Steward AIs. The first three monitor UR.
+          Business Steward is your private marketing, Learn academy, and tax-date assistant — members never see it.
         </Text>
       </View>
 
@@ -392,6 +404,11 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
                       {inc.ownerInstructions}
                     </Text>
                   ) : null}
+                  {inc.sandboxRepair ? (
+                    <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
+                      Sandbox: {inc.sandboxRepair.status} — {inc.sandboxRepair.diagnosis}
+                    </Text>
+                  ) : null}
                   {inc.remediationResults?.length ? (
                     <Text style={{ color: colors.muted, fontSize: 12 }}>
                       Remediation:{" "}
@@ -562,7 +579,10 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
           {opsAis.map((ai) => (
             <Pressable
               key={ai.id}
-              onPress={() => setSelectedOpsAi(ai.id)}
+              onPress={() => {
+                setSelectedOpsAi(ai.id);
+                setStewardSurface("chat");
+              }}
               style={[
                 styles.opsChip,
                 {
@@ -578,14 +598,83 @@ export function PlatformOpsConsole({ isPlatformOwner: isOwnerProp }: { isPlatfor
             </Pressable>
           ))}
         </ScrollView>
-        <View style={{ height: 420, borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: colors.border }}>
-          <CreatorAIInterface
-            key={selectedOpsAi}
-            creatorId={selectedOpsAi}
-            creatorName={selectedMeta.name}
-            creatorAvatar={selectedMeta.avatar}
-            welcomeMessage={`Owner channel active. I'm ${selectedMeta.name}. I can diagnose, isolate a broken section, and draft a fix. Nothing is finalized until you type ${OWNER_REMEDIATION_CONFIRM_PHRASE} in Owner Ops.`}
-          />
+        {isSteward && stewardAdBudget.data ? (
+          <View
+            style={[
+              styles.banner,
+              {
+                backgroundColor: stewardAdBudget.data.exhausted ? "#fef2f2" : `${colors.primary}12`,
+                borderColor: stewardAdBudget.data.exhausted ? "#dc2626" : colors.primary,
+              },
+            ]}
+          >
+            <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 13 }}>
+              Launch advertising budget
+            </Text>
+            <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+              {stewardAdBudget.data.dayUsedUsd} of {stewardAdBudget.data.dayLimitUsd} today ·{" "}
+              {stewardAdBudget.data.monthUsedUsd} of {stewardAdBudget.data.monthLimitUsd} this month
+              (Indiana time). Text scripts first; still images count against this cap. Video clips wait
+              until the site is earning.
+            </Text>
+          </View>
+        ) : null}
+        {isSteward ? (
+          <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16 }}>
+            {(
+              [
+                { id: "chat" as const, label: "💬 Chat" },
+                { id: "learn" as const, label: "📚 Learn the business" },
+              ] as const
+            ).map((tab) => {
+              const active = stewardSurface === tab.id;
+              return (
+                <Pressable
+                  key={tab.id}
+                  onPress={() => setStewardSurface(tab.id)}
+                  style={[
+                    styles.opsChip,
+                    {
+                      minWidth: 140,
+                      backgroundColor: active ? colors.primary : colors.surface,
+                      borderColor: active ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: active ? "#fff" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
+                    {tab.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+        <View
+          style={{
+            height: isSteward && stewardSurface === "learn" ? 560 : 420,
+            borderRadius: 14,
+            overflow: "hidden",
+            borderWidth: 1,
+            borderColor: colors.border,
+            marginHorizontal: 16,
+          }}
+        >
+          {isSteward && stewardSurface === "learn" ? (
+            <AiLearnSurface
+              creatorId={selectedMeta.id}
+              creatorName={selectedMeta.name}
+              creatorAvatar={selectedMeta.avatar}
+              overlapOptions={{ reserveTabBar: false, headerChromeHeight: 48 }}
+            />
+          ) : (
+            <CreatorAIInterface
+              key={selectedOpsAi}
+              creatorId={selectedMeta.id}
+              creatorName={selectedMeta.name}
+              creatorAvatar={selectedMeta.avatar}
+              welcomeMessage={isSteward ? stewardWelcome : opsWelcome}
+            />
+          )}
         </View>
       </View>
       ) : null}

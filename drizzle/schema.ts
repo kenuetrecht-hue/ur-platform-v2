@@ -663,3 +663,92 @@ export const contentProtectionReports = mysqlTable("contentProtectionReports", {
 });
 
 export type ContentProtectionReport = typeof contentProtectionReports.$inferSelect;
+
+/**
+ * Owner Command Center + platform ops — durable audit (survives server restart).
+ */
+export const ownerCommandCenterEvents = mysqlTable("ownerCommandCenterEvents", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  kind: varchar("kind", { length: 32 }).notNull(),
+  severity: varchar("severity", { length: 16 }).notNull(),
+  sourceAiId: varchar("sourceAiId", { length: 64 }).notNull(),
+  sourceAiName: varchar("sourceAiName", { length: 120 }).notNull(),
+  english: text("english").notNull(),
+  terminalLine: varchar("terminalLine", { length: 255 }).notNull(),
+  relatedAiIdsJson: text("relatedAiIdsJson"),
+  relatedAiNamesJson: text("relatedAiNamesJson"),
+  incidentId: varchar("incidentId", { length: 64 }),
+  sectionId: varchar("sectionId", { length: 64 }),
+  userIdSuffix: varchar("userIdSuffix", { length: 16 }),
+  translated: boolean("translated").default(false).notNull(),
+  originalExcerpt: text("originalExcerpt"),
+});
+
+export type OwnerCommandCenterEventRow = typeof ownerCommandCenterEvents.$inferSelect;
+
+export const platformOpsIncidents = mysqlTable("platformOpsIncidents", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  sourceAi: varchar("sourceAi", { length: 64 }).notNull(),
+  severity: varchar("severity", { length: 16 }).notNull(),
+  category: varchar("category", { length: 32 }).notNull(),
+  title: varchar("title", { length: 240 }).notNull(),
+  problem: text("problem").notNull(),
+  proposedFix: text("proposedFix").notNull(),
+  status: varchar("status", { length: 32 }).notNull(),
+  actionsTakenJson: text("actionsTakenJson"),
+  deployProposalJson: text("deployProposalJson"),
+  remediationResultsJson: text("remediationResultsJson"),
+  sandboxRepairJson: text("sandboxRepairJson"),
+  affectedSectionId: varchar("affectedSectionId", { length: 64 }),
+  sectionAction: varchar("sectionAction", { length: 16 }),
+  autoIsolated: boolean("autoIsolated").default(false).notNull(),
+  ownerApprovedAt: timestamp("ownerApprovedAt"),
+  ownerNote: text("ownerNote"),
+  ownerInstructions: text("ownerInstructions"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PlatformOpsIncidentRow = typeof platformOpsIncidents.$inferSelect;
+
+export const platformOpsNotifications = mysqlTable("platformOpsNotifications", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  incidentId: varchar("incidentId", { length: 64 }).notNull(),
+  title: varchar("title", { length: 240 }).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  read: boolean("read").default(false).notNull(),
+});
+
+export const platformSectionFlags = mysqlTable("platformSectionFlags", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  enabled: boolean("enabled").default(true).notNull(),
+  maintenanceMessage: varchar("maintenanceMessage", { length: 500 }).notNull(),
+  disabledAt: timestamp("disabledAt"),
+  disabledBy: varchar("disabledBy", { length: 64 }),
+  incidentId: varchar("incidentId", { length: 64 }),
+  reason: text("reason"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const ownerPushDevices = mysqlTable("ownerPushDevices", {
+  token: varchar("token", { length: 255 }).primaryKey(),
+  ownerUserId: varchar("ownerUserId", { length: 128 }).notNull(),
+  platform: varchar("platform", { length: 16 }).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const platformOpsSandboxRepairs = mysqlTable("platformOpsSandboxRepairs", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  incidentId: varchar("incidentId", { length: 64 }).notNull(),
+  title: varchar("title", { length: 240 }).notNull(),
+  status: varchar("status", { length: 16 }).notNull(),
+  diagnosis: text("diagnosis").notNull(),
+  planStepsJson: text("planStepsJson"),
+  liveActionsJson: text("liveActionsJson"),
+  checksJson: text("checksJson"),
+  wouldTouchLiveJson: text("wouldTouchLiveJson"),
+  appliedLive: boolean("appliedLive").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});

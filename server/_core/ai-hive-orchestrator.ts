@@ -21,6 +21,8 @@ import {
   getCreatorAi,
   listCreatorsForClient,
 } from "./ai-creator-registry";
+import { isOwnerOnlyPlatformAi } from "./platform-ops-ai";
+import { assertAndConsumeStewardAdBudget } from "./steward-ad-budget-service";
 import {
   findDominantSpecialistForMessage,
   getHiveCapabilities,
@@ -87,6 +89,7 @@ async function formatWebSearchContext(
   isPlatformOwner = false,
 ): Promise<{ context: string; results: SearchResult[] }> {
   assertAndConsumeWebSearch({ userId, creatorId, isPlatformOwner });
+  assertAndConsumeStewardAdBudget({ creatorId, actions: ["search"] });
 
   const search = await webSearchSecurityEngine.performSearch(
     buildWebSearchQuery(message, creatorId),
@@ -120,7 +123,9 @@ function formatHivePeerContext(creatorId: string): string {
   const peers = getHivePeers(creatorId);
   if (peers.length === 0) return "";
 
-  const catalog = listCreatorsForClient();
+  const catalog = listCreatorsForClient({
+    includeOwnerOps: isOwnerOnlyPlatformAi(creatorId),
+  });
   const peerLines = peers
     .map((id) => catalog.find((c) => c.id === id))
     .filter(Boolean)
@@ -144,6 +149,7 @@ Speak as the in-domain authority; defer to hive peers for their domains.
 }
 
 function formatOffDomainHint(creatorId: string, message: string): string {
+  if (isOwnerOnlyPlatformAi(creatorId)) return "";
   const better = findDominantSpecialistForMessage(message, creatorId);
   if (!better || better.score < 2) return "";
 
@@ -317,6 +323,7 @@ export function getCreatorHiveProfile(creatorId: string) {
 
   const caps = getHiveCapabilities(creatorId);
   const peers = getHivePeers(creatorId)
+    .filter((id) => isOwnerOnlyPlatformAi(creatorId) || !isOwnerOnlyPlatformAi(id))
     .map((id) => getCreatorAi(id))
     .filter(Boolean)
     .map((p) => ({ id: p!.id, name: p!.name, avatar: p!.avatar }));

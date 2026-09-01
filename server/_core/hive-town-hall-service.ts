@@ -18,6 +18,7 @@ import { sanitizeUserText } from "./input-sanitize";
 import { mapServiceErrorToTrpc } from "./service-errors";
 import { isOwnerOnlyPlatformAi } from "./platform-ops-ai";
 import { isAffiliateOnlyAi } from "./affiliate-associate-ai";
+import { recordOwnerCommandEvent, toEnglishForOwner } from "./owner-command-center-service";
 
 export type TownHallPanelMode = "all_categories" | "category" | "recommended" | "custom";
 
@@ -342,6 +343,24 @@ export async function sendTownHallMessage(params: {
     if (status === "scheduled") {
       sessions.set(params.sessionId, { ...session, status: "live" });
     }
+
+    const digest = `Town Hall "${session.title}". Question: ${userMessage}. Panel: ${replyResults
+      .map((r) => `${r.name}: ${r.reply}`)
+      .join(" | ")}. Synthesis: ${synthesis}`;
+    void toEnglishForOwner(digest)
+      .then((converted) =>
+        recordOwnerCommandEvent({
+          kind: "town_hall",
+          severity: "watch",
+          sourceAiId: leadId,
+          english: converted.english,
+          relatedAiIds: replyResults.map((r) => r.creatorId),
+          userId: params.hostUserId,
+          translated: converted.translated,
+          originalExcerpt: userMessage,
+        }),
+      )
+      .catch(() => undefined);
 
     return turn;
   } catch (error) {

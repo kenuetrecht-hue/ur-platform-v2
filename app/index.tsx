@@ -14,7 +14,7 @@ export default function Index() {
 
   if (!clientReady || isLoading) {
     if (isAuthenticated) {
-      return <Redirect href="/age-verify" />;
+      return <Redirect href="/(tabs)" />;
     }
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -24,7 +24,7 @@ export default function Index() {
   }
 
   if (isAuthenticated) {
-    return <Redirect href="/age-verify" />;
+    return <Redirect href="/(tabs)" />;
   }
 
   return <Redirect href="/welcome" />;

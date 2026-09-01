@@ -11,6 +11,11 @@ const SERVER_ONLY_SECRET_NAMES = [
   "BUILT_IN_FORGE_API_KEY",
   "JWT_SECRET",
   "DATABASE_URL",
+  "MUX_TOKEN_ID",
+  "MUX_TOKEN_SECRET",
+  "MUX_WEBHOOK_SECRET",
+  "MUX_SIGNING_KEY_ID",
+  "MUX_SIGNING_PRIVATE_KEY",
 ] as const;
 
 /** Env var prefixes that must never carry API keys or credentials. */
@@ -41,6 +46,34 @@ export function getContentmateGeminiApiKey(): string {
 
 export function isContentmateGeminiConfigured(): boolean {
   return Boolean(getContentmateGeminiApiKey());
+}
+
+export function getMuxTokenId(): string {
+  return readServerSecret("MUX_TOKEN_ID");
+}
+
+export function getMuxTokenSecret(): string {
+  return readServerSecret("MUX_TOKEN_SECRET");
+}
+
+export function getMuxWebhookSecret(): string {
+  return readServerSecret("MUX_WEBHOOK_SECRET");
+}
+
+export function getMuxSigningKeyId(): string {
+  return readServerSecret("MUX_SIGNING_KEY_ID");
+}
+
+export function getMuxSigningPrivateKey(): string {
+  return readServerSecret("MUX_SIGNING_PRIVATE_KEY");
+}
+
+export function isMuxVideoConfigured(): boolean {
+  return Boolean(getMuxTokenId() && getMuxTokenSecret());
+}
+
+export function isMuxSigningConfigured(): boolean {
+  return Boolean(getMuxSigningKeyId() && getMuxSigningPrivateKey());
 }
 
 /**
@@ -97,7 +130,7 @@ export function redactSecrets(text: string): string {
     .replace(/AQ\.[A-Za-z0-9_-]{10,}/g, "[REDACTED_GEMINI_KEY]")
     .replace(/AIza[0-9A-Za-z_-]{20,}/g, "[REDACTED_GOOGLE_KEY]")
     .replace(
-      /(CONTENTMATE_GEMINI_API_KEY|GEMINI_API_KEY|TURNSTILE_SECRET_KEY)(=|:)\s*["']?[^"'\s]+["']?/gi,
+      /(CONTENTMATE_GEMINI_API_KEY|GEMINI_API_KEY|TURNSTILE_SECRET_KEY|MUX_TOKEN_SECRET|MUX_WEBHOOK_SECRET|MUX_SIGNING_PRIVATE_KEY)(=|:)\s*["']?[^"'\s]+["']?/gi,
       "$1$2[REDACTED]",
     );
 }

@@ -10,6 +10,8 @@ import {
   _resetOpsStateForTests,
 } from "../server/_core/platform-ops-service";
 import { _resetPlatformSectionsForTests, getPlatformSectionState } from "../server/_core/platform-section-flags-service";
+import { _resetSandboxRepairsForTests, getSandboxRepair } from "../server/_core/ops-sandbox-repair-service";
+import { _resetOwnerCommandCenterForTests } from "../server/_core/owner-command-center-service";
 
 describe("owner remediation confirmation", () => {
   it("accepts only the exact owner phrase", () => {
@@ -25,6 +27,8 @@ describe("platform ops auto-isolate", () => {
   beforeEach(() => {
     _resetOpsStateForTests();
     _resetPlatformSectionsForTests();
+    _resetSandboxRepairsForTests();
+    _resetOwnerCommandCenterForTests();
   });
 
   it("auto-isolates section and notifies on high severity bug", async () => {
@@ -43,6 +47,8 @@ describe("platform ops auto-isolate", () => {
     expect(incident.status).toBe("section_isolated");
     expect(getPlatformSectionState("ai_chat").enabled).toBe(false);
     expect(incident.deployProposal?.recommendedActions.length).toBeGreaterThan(0);
+    expect(incident.sandboxRepair?.appliedLive).toBe(false);
+    expect(getSandboxRepair(incident.id)?.wouldTouchLive.length).toBeGreaterThan(0);
   });
 
   it("does not auto-isolate when sectionAction is reopen", async () => {
