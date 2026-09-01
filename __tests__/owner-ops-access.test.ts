@@ -5,6 +5,7 @@ import {
   isOwnerOnlyPlatformAi,
   canChatOwnerOpsAi,
   canChatBusinessSteward,
+  canChatWorldDirector,
 } from "../server/_core/platform-ops-ai";
 
 describe("Owner ops AI access isolation", () => {
@@ -36,9 +37,11 @@ describe("Owner ops AI access isolation", () => {
     }
   });
 
-  it("keeps Business Steward chat owner-only even when staff can chat other ops AIs", () => {
+  it("keeps Business Steward and World Director chat owner-only even when staff can chat other ops AIs", () => {
     expect(canChatBusinessSteward({ isPlatformOwner: true })).toBe(true);
     expect(canChatBusinessSteward({ isPlatformOwner: false })).toBe(false);
+    expect(canChatWorldDirector({ isPlatformOwner: true })).toBe(true);
+    expect(canChatWorldDirector({ isPlatformOwner: false })).toBe(false);
     expect(canChatOwnerOpsAi({ isPlatformOwner: false, canChatOwnerOps: true })).toBe(true);
   });
 });

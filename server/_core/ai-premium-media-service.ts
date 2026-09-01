@@ -187,14 +187,16 @@ export function purchaseAiTalkPack(params: {
   userEmail: string;
   packId: AiTalkPackId;
   billingStateCode: string;
+  priceCents?: number;
 }): PremiumMediaEntitlement & { talkLotId: string; expiresAt: string; millisecondsIncluded: number } {
   const pack = getAiTalkPack(params.packId);
-  const checkout = calculateCustomerCheckout(pack.priceCents, params.billingStateCode);
+  const priceCents = params.priceCents ?? pack.priceCents;
+  const checkout = calculateCustomerCheckout(priceCents, params.billingStateCode);
 
   const lot = createTalkTimeLot({
     userId: params.userId,
     packId: params.packId,
-    priceCents: pack.priceCents,
+    priceCents,
   });
 
   const entitlement: PremiumMediaEntitlement = {
@@ -205,7 +207,7 @@ export function purchaseAiTalkPack(params: {
     expiresAt: lot.expiresAt,
     minutesIncluded: pack.totalMinutes,
     minutesUsed: 0,
-    priceCents: pack.priceCents,
+    priceCents,
     stripeFeeCents: checkout.stripeFeeCents,
     totalChargedCents: checkout.totalCents,
     billingStateCode: params.billingStateCode,
@@ -229,7 +231,7 @@ export function purchaseAiTalkPack(params: {
       packId: pack.id,
       millisecondsIncluded: lot.millisecondsIncluded,
       expiresAt: lot.expiresAt,
-      subtotalCents: pack.priceCents,
+      subtotalCents: priceCents,
       stripeFeeCents: checkout.stripeFeeCents,
       salesTaxCents: checkout.salesTaxCents,
       stateFeeCents: checkout.stateFeeCents,

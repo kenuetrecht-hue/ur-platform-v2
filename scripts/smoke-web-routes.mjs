@@ -17,6 +17,7 @@ const WEB_ROUTES = [
   "/ais",
   "/shop",
   "/3d-workspace",
+  "/world",
   "/playroom",
   "/jobsite",
   "/affiliate-dashboard",

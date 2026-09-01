@@ -39,8 +39,8 @@ export function CreatorStorePanel() {
     return (
       <View style={{ padding: 16, gap: 12 }}>
         <Text style={{ color: colors.muted, lineHeight: 20 }}>
-          Enroll as a content creator to open your merch storefront. Design products in the 3D workspace,
-          then list them here for fans to buy (85% to you).
+          Enroll as a content creator to open your own merch storefront — separate from the UR shop.
+          Design products in the 3D workspace, then list them here for fans to buy (85% to you).
         </Text>
         <Pressable
           onPress={() => router.push("/creator-dashboard")}
@@ -59,6 +59,9 @@ export function CreatorStorePanel() {
       <View style={[styles.card, { borderColor: colors.primary, backgroundColor: `${colors.primary}10` }]}>
         <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>{store.name}</Text>
         <Text style={{ color: colors.muted, fontSize: 12 }}>Your shop: /shop/{store.slug}</Text>
+        <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4, lineHeight: 16 }}>
+          This is your merch store. UR originals and Amazon/Walmart picks live on the platform shop.
+        </Text>
         {analytics ? (
           <Text style={{ color: colors.muted, fontSize: 11, marginTop: 6 }}>
             {analytics.activeProducts} products · {analytics.totalOrders} orders · $
@@ -86,6 +89,7 @@ export function CreatorStorePanel() {
       <TextInput
         value={title}
         onChangeText={setTitle}
+        maxLength={120}
         placeholder="Product title"
         placeholderTextColor={colors.muted}
         style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
@@ -93,6 +97,7 @@ export function CreatorStorePanel() {
       <TextInput
         value={description}
         onChangeText={setDescription}
+        maxLength={2000}
         placeholder="Description"
         placeholderTextColor={colors.muted}
         multiline
@@ -109,6 +114,7 @@ export function CreatorStorePanel() {
       <TextInput
         value={imageUrl}
         onChangeText={setImageUrl}
+        maxLength={2000}
         placeholder="Image URL (from 3D workspace export)"
         placeholderTextColor={colors.muted}
         autoCapitalize="none"

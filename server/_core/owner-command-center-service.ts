@@ -22,6 +22,7 @@ import type {
   OwnerCommandRoadmapNode,
   OwnerCommandSeverity,
 } from "../../lib/owner-command-center-types";
+import { looksNonEnglish as detectNonEnglish } from "./spoken-language";
 
 const MAX_EVENTS = 2_000;
 
@@ -29,11 +30,8 @@ const events: OwnerCommandEvent[] = [];
 let hydrated = false;
 let hydratePromise: Promise<void> | null = null;
 
-const NON_LATIN =
-  /[\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u3400-\u9FFF\uAC00-\uD7AF\u0590-\u05FF]/;
-
 export function looksNonEnglish(text: string): boolean {
-  return NON_LATIN.test(text);
+  return detectNonEnglish(text);
 }
 
 function clip(text: string, max = 480): string {
@@ -115,7 +113,7 @@ export function recordOwnerCommandEvent(input: {
     sectionId: input.sectionId,
     userIdSuffix: input.userId ? String(input.userId).slice(-6) : undefined,
     translated: input.translated === true,
-    originalExcerpt: input.originalExcerpt ? clip(input.originalExcerpt, 280) : undefined,
+    originalExcerpt: input.originalExcerpt ? clip(input.originalExcerpt, 4000) : undefined,
   };
   events.unshift(event);
   if (events.length > MAX_EVENTS) {

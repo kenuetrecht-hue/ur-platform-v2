@@ -80,6 +80,12 @@ import {
   writeOwnerComplianceSnapshot,
 } from "../_core/owner-compliance-archive-service";
 import { PLATFORM_SECTION_IDS } from "../../lib/platform-section-flags";
+import {
+  listOwnerPriceCatalog,
+  resetOwnerPriceSku,
+  setOwnerPriceSku,
+} from "../_core/owner-price-catalog-service";
+import { OWNER_PRICE_MAX_CENTS, OWNER_PRICE_MIN_CENTS } from "../../lib/owner-price-catalog";
 
 export const platformOpsRouter = router({
   /** Requires login — owner flag is server-verified only. */
@@ -495,4 +501,19 @@ export const platformOpsRouter = router({
         autoIsolateSection: ctx.isPlatformOwner,
       }),
     ),
+
+  listOwnerPriceCatalog: ownerProcedure.query(() => listOwnerPriceCatalog()),
+
+  setOwnerPrice: ownerProcedure
+    .input(
+      z.object({
+        skuId: z.string().trim().min(3).max(96),
+        priceCents: z.number().int().min(OWNER_PRICE_MIN_CENTS).max(OWNER_PRICE_MAX_CENTS),
+      }),
+    )
+    .mutation(({ input }) => setOwnerPriceSku(input)),
+
+  resetOwnerPrice: ownerProcedure
+    .input(z.object({ skuId: z.string().trim().min(3).max(96) }))
+    .mutation(({ input }) => resetOwnerPriceSku(input.skuId)),
 });

@@ -9,7 +9,6 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/auth-context";
 
 import type { AiTalkPackId } from "@/lib/ai-talk-pricing";
-import { listTalkPacksForPlatform } from "@/lib/ai-talk-pricing";
 
 import { buildTalkPurchaseSummary, type PurchaseSummary } from "@/lib/pricing-disclosures";
 
@@ -22,6 +21,7 @@ import { useBillingState } from "@/hooks/use-billing-state";
 import { PaymentChannelNotice } from "@/components/payment-channel-notice";
 
 import { getClientPlatform } from "@/lib/web-checkout";
+import { NoRefundPurchaseAck } from "@/components/no-refund-purchase-ack";
 
 import {
   AI_TALK_EXPIRY_PURCHASE_DISCLOSURE,
@@ -65,6 +65,12 @@ type PackOption = {
 
   featured?: boolean;
 
+  requiredPaymentChannel?: "in_app" | "web_browser";
+
+  priceCents?: number;
+
+  purchaseSummary?: PurchaseSummary;
+
 };
 
 
@@ -92,6 +98,7 @@ export function AiTalkTimePanel({
   );
 
   const [lastReceipt, setLastReceipt] = useState<PurchaseSummary | null>(null);
+  const [acceptedNoRefund, setAcceptedNoRefund] = useState(false);
 
   const utils = trpc.useUtils();
 
@@ -135,9 +142,12 @@ export function AiTalkTimePanel({
 
   const packs = (plans.data?.packs ?? []) as PackOption[];
 
-  const visiblePacks = packs.filter((pack) =>
-    listTalkPacksForPlatform(clientPlatform).some((allowed) => allowed.id === pack.id),
-  );
+  const visiblePacks = packs.filter((pack) => {
+    const channel =
+      pack.requiredPaymentChannel ??
+      (pack.id === "talk_5" ? "in_app" : "web_browser");
+    return clientPlatform === "web" ? channel === "web_browser" : channel === "in_app";
+  });
 
 
 
@@ -145,9 +155,17 @@ export function AiTalkTimePanel({
 
     if (!hasState) return null;
 
-    return buildTalkPurchaseSummary(selectedPack, stateCode);
+    const fromApi = visiblePacks.find((pack) => pack.id === selectedPack)?.purchaseSummary;
 
-  }, [hasState, selectedPack, stateCode]);
+    if (fromApi) return fromApi;
+
+    return buildTalkPurchaseSummary(
+      selectedPack,
+      stateCode,
+      visiblePacks.find((pack) => pack.id === selectedPack)?.priceCents,
+    );
+
+  }, [hasState, selectedPack, stateCode, visiblePacks]);
 
 
 
@@ -216,7 +234,7 @@ export function AiTalkTimePanel({
 
       <Text style={{ color: colors.muted, fontSize: 12, marginTop: 8, lineHeight: 17 }}>
 
-        Voice & video with {creatorName ?? "AI specialists"}. 25¢/min reference · $1 = 5 min · $5 = 25 min (app) · $120 = 500 min (web) · $200 = 1,000 min (web).
+        Voice & video with {creatorName ?? "AI specialists"}. 25¢/min reference · $1 = 5 min · $5 = 20 min (app) · $120 = 500 min (web) · $200 = 1,000 min (web).
         Loyalty points cost more: 250 LP = 1 min · 500 LP = 2 min. Paying cash is the better deal.
         Every second of AI speech is tracked.
 
@@ -254,7 +272,9 @@ export function AiTalkTimePanel({
 
             const active = selectedPack === pack.id;
 
-            const packSummary = buildTalkPurchaseSummary(pack.id as AiTalkPackId, stateCode);
+            const packSummary =
+              pack.purchaseSummary ??
+              buildTalkPurchaseSummary(pack.id as AiTalkPackId, stateCode, pack.priceCents);
 
             return (
 
@@ -326,17 +346,20 @@ export function AiTalkTimePanel({
 
       {selectedSummary ? <PurchaseSummaryCard summary={selectedSummary} /> : null}
 
-
+      <NoRefundPurchaseAck
+        checked={acceptedNoRefund}
+        onToggle={() => setAcceptedNoRefund((v) => !v)}
+      />
 
       <Pressable
 
-        disabled={purchase.isPending || !isAuthenticated || !selectedSummary || !hasState}
+        disabled={purchase.isPending || !isAuthenticated || !selectedSummary || !hasState || !acceptedNoRefund}
 
         onPress={() => {
 
-          if (!isAuthenticated || !stateCode) return;
+          if (!isAuthenticated || !stateCode || !acceptedNoRefund) return;
 
-          purchase.mutate({ packId: selectedPack, stateCode, clientPlatform });
+          purchase.mutate({ packId: selectedPack, stateCode, clientPlatform, acceptedNoRefund: true });
 
         }}
 
@@ -348,7 +371,7 @@ export function AiTalkTimePanel({
 
             backgroundColor: colors.primary,
 
-            opacity: purchase.isPending || !isAuthenticated || !hasState ? 0.7 : 1,
+            opacity: purchase.isPending || !isAuthenticated || !hasState || !acceptedNoRefund ? 0.7 : 1,
 
           },
 
@@ -367,6 +390,10 @@ export function AiTalkTimePanel({
             {!hasState
 
               ? "Select your state to continue"
+
+              : !acceptedNoRefund
+
+                ? "Check the no-refund box to continue"
 
               : isAuthenticated
 

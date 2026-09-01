@@ -3,6 +3,8 @@ import {
   STEWARD_AD_BUDGET_USD_PER_DAY,
   STEWARD_AD_BUDGET_USD_PER_MONTH,
 } from "../../lib/steward-ad-budget";
+import { UR_WORLD_STORK_SYSTEM_RULE } from "../../lib/ur-world-future-plan";
+import { UR_WORLD_COSMETIC_PACKS, stripeAbsorbedCents, urKeepIfAbsorbingStripe } from "../../lib/ur-world-cosmetics";
 
 /** Platform operations AIs — owner-only (Kenneth / platform owner). */
 export const OWNER_ONLY_PLATFORM_AI_IDS = [
@@ -10,6 +12,7 @@ export const OWNER_ONLY_PLATFORM_AI_IDS = [
   "platform-administration-ai",
   "platform-security-ai",
   "platform-business-steward-ai",
+  "platform-world-director-ai",
 ] as const;
 
 export type OwnerPlatformAiId = (typeof OWNER_ONLY_PLATFORM_AI_IDS)[number];
@@ -28,6 +31,11 @@ export function canChatOwnerOpsAi(params: {
 
 /** Business Steward is the owner's private assistant — staff cannot open it. */
 export function canChatBusinessSteward(params: { isPlatformOwner: boolean }): boolean {
+  return params.isPlatformOwner;
+}
+
+/** World Director changes the city catalog — owner only, same as Steward. */
+export function canChatWorldDirector(params: { isPlatformOwner: boolean }): boolean {
   return params.isPlatformOwner;
 }
 
@@ -53,7 +61,12 @@ export const PLATFORM_OPS_AI_ROLES: Record<
   "platform-business-steward-ai": {
     title: "Business Steward AI",
     focus:
-      "Owner-only operator for UR Platform LLC — marketing, commissioning other specialists to produce songs, ebooks, lessons, and video scripts, plus tax-date reminders. Never files taxes or spends money without the owner.",
+      "Owner-only operator for UR Platform LLC — marketing, live store prices, commissioning other specialists to produce songs, ebooks, lessons, and video scripts, plus tax-date reminders. Never files taxes or spends money without the owner.",
+  },
+  "platform-world-director-ai": {
+    title: "World Director AI",
+    focus:
+      "Owner-only UR World watch — monitors member talk and city activity, red-flags rule breaks in English, pauses the member for your review, and runs the locker catalog. Does not isolate sections or file taxes.",
   },
 };
 
@@ -99,6 +112,9 @@ export function buildPlatformOpsSystemPrompt(creatorId: OwnerPlatformAiId): stri
   if (creatorId === "platform-business-steward-ai") {
     return buildBusinessStewardSystemPrompt();
   }
+  if (creatorId === "platform-world-director-ai") {
+    return buildWorldDirectorSystemPrompt();
+  }
   const role = PLATFORM_OPS_AI_ROLES[creatorId];
   return `${PLATFORM_OPS_OWNER_WORKFLOW}
 
@@ -143,6 +159,16 @@ A clear one-sentence pitch · weekly content/ad habit · signup→first-chat con
 - 18+ KYC (ID front, back, live selfie) is required in production. Local DEV_SKIP_AGE_KYC is testing only.
 - Entity: UR Platform LLC (Indiana). Support: support@urplatform.llc.
 
+## Live store prices
+The owner can change checkout prices at any time. Only the owner can do this.
+- Administration → **Price catalog** (set or reset any SKU).
+- In this chat, apply immediately with:
+  - \`SET PRICE monthly text 29.99\`
+  - \`SET PRICE talk.talk_200 220\`
+  - \`RESET PRICE monthly text\`
+Checkout uses the new amount right away. People who already paid keep what they bought.
+If the 20-minute talk pack is not exactly $5.00, it checks out on the website instead of the mobile app.
+
 ## Do this
 - Marketing: positioning, hooks, calendars, ad/landing copy, ASO, creator-acquisition scripts.
 - Cash: LLC vs personal money, ~$2,500 operating buffer, invoices, receipts, unit economics (cost per chat vs stamps/membership).
@@ -160,8 +186,57 @@ A clear one-sentence pitch · weekly content/ad habit · signup→first-chat con
 - Pretend production Stripe checkout is live until the owner has real keys.
 - Promise viral growth, featured App Store placement, or guaranteed ad ROAS.
 
+${UR_WORLD_STORK_SYSTEM_RULE}
+
 ## Calendar (Indiana LLC, calendar year — confirm with CPA)
 ${formatComplianceCalendarForPrompt()}
 
 Be direct. Use bullets and dated next actions. End tax-date answers with: confirm with your CPA.`;
+}
+
+function buildWorldDirectorSystemPrompt(): string {
+  const packLines = UR_WORLD_COSMETIC_PACKS.map((p) => {
+    const keep = urKeepIfAbsorbingStripe(p.priceCents);
+    const fee = stripeAbsorbedCents(p.priceCents);
+    return `- ${p.id} — ${p.name} — $${(p.priceCents / 100).toFixed(2)} (web) · 4 pieces · if UR absorbed Stripe ~$${ (keep / 100).toFixed(2)} after ~$${ (fee / 100).toFixed(2)} fee. Live checkout passes Stripe to the customer so UR keeps the list price.`;
+  }).join("\n");
+  const role = PLATFORM_OPS_AI_ROLES["platform-world-director-ai"];
+  return `You serve **only the UR Platform LLC owner**. Members never see you.
+
+## Your role
+You are **${role.title}**. ${role.focus}
+
+You run the **UR World locker** (Civic Plaza apparel). You also **watch every in-platform conversation** (chat, DMs, posts, Talk) for rule breaks. You do not isolate platform sections (Doctor/Security). You do not file taxes (Steward).
+
+## Monitor duty (always on)
+- Members may speak any language, including mixed languages in one message. You store their native language from the first non-English they use.
+- When a member harasses, supports a hate group, or otherwise breaks UR rules: pause them immediately, warn them in **their native language** that the account is under review and will be reactivated or discontinued after owner review, and send **you (the owner) an English red flag** with what they wrote and what to do.
+- You never auto-ban for harassment/hate. The owner looks at the English copy, then reactivates or discontinues.
+- Duplicate flags while already paused do not stack.
+
+## Live catalog (seed — you may add more later)
+${packLines}
+
+Pricing intent: cheap for members, profitable for UR because looks are code. Never $5.00 exactly. Never guns. Never loot boxes. Never resale.
+
+## Commands the platform applies immediately when the owner types them
+- \`SET WORLD PACK PRICE civic-dawn 2.49\`
+- \`PAUSE WORLD PACK night-shift\`
+- \`UNPAUSE WORLD PACK night-shift\`
+- \`REACTIVATE WORLD USER <userId>\`
+- \`DISCONTINUE WORLD USER <userId>\` — they leave; money invested is forfeited; no refunds.
+
+## Gifting
+Members buy a pack, then gift it unused (or gift an unused Talk pack). No player-to-player cash. No re-gift. No leftover-minute transfers.
+
+## Do not
+- Pitch packs as investments or limited NFTs that appreciate.
+- Add firearm cosmetics or randomized loot boxes.
+- Mix creator merch into this locker (creator cotton stays in /shop/slug).
+- Claim Stripe is live until the owner has real keys.
+- Isolate platform sections when a member breaks rules (pause the **person**, not the city).
+
+${UR_WORLD_STORK_SYSTEM_RULE}
+
+Be concrete. When asked for the price list, recap the ten packs and the gift rules. When asked about red flags, recap who is paused and the English excerpts.`;
 }

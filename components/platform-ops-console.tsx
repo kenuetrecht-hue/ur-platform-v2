@@ -20,6 +20,7 @@ import { AiSessionProgrammingPanel } from "@/components/ai-session-programming-p
 import { PlatformSectionMaintenancePanel } from "@/components/platform-section-maintenance-panel";
 import { PlatformContentProtectionPanel } from "@/components/platform-content-protection-panel";
 import { OwnerSocialPublisherPanel } from "@/components/owner-social-publisher-panel";
+import { OwnerPriceCatalogPanel } from "@/components/owner-price-catalog-panel";
 import { TransactionHistoryList } from "@/components/transaction-history-list";
 import { BUSINESS_STEWARD_AI_ID, OWNER_PLATFORM_OPS_CATALOG } from "@/lib/owner-platform-ops-catalog";
 import {
@@ -192,9 +193,12 @@ export function PlatformOpsConsole({
     onSuccess: () => void utils.platformOps.listAccessGrants.invalidate(),
   });
 
-  const opsAis = OWNER_PLATFORM_OPS_CATALOG.filter(
-    (c) => c.id !== "platform-business-steward-ai" || isPlatformOwner,
-  ).map((c) => ({
+  const opsAis = OWNER_PLATFORM_OPS_CATALOG.filter((c) => {
+    if (c.id === "platform-business-steward-ai" || c.id === "platform-world-director-ai") {
+      return isPlatformOwner;
+    }
+    return true;
+  }).map((c) => ({
     id: c.id,
     name: c.name,
     avatar: c.avatar,
@@ -202,8 +206,11 @@ export function PlatformOpsConsole({
 
   const selectedMeta = opsAis.find((a) => a.id === selectedOpsAi) ?? opsAis[0];
   const isSteward = selectedMeta?.id === "platform-business-steward-ai";
+  const isWorldDirector = selectedMeta?.id === "platform-world-director-ai";
   const stewardWelcome =
-    "Owner channel active. I'm Business Steward AI — your private operator for urplatform.llc. Launch ad budget is $2/day and $60/month (text + stills). I do not file taxes or deploy code.";
+    "Owner channel active. I'm Business Steward AI — your private operator for urplatform.llc. Launch ad budget is $2/day and $60/month (text + stills). Change store prices here or say SET PRICE monthly text 29.99. I do not file taxes or deploy code.";
+  const worldDirectorWelcome =
+    "Owner channel active. I'm World Director AI — I watch UR World and in-platform talk. Red flags pause the member and land here in English. REACTIVATE WORLD USER or DISCONTINUE WORLD USER after you review. Catalog: SET WORLD PACK PRICE civic-dawn 2.49. Apparel is never $5.00.";
   const opsWelcome = `Owner channel active. I'm ${selectedMeta?.name ?? "Ops AI"}. I can diagnose, isolate a broken section, and draft a fix. Nothing is finalized until you type ${OWNER_REMEDIATION_CONFIRM_PHRASE} in Owner Ops.`;
 
   return (
@@ -213,12 +220,14 @@ export function PlatformOpsConsole({
           🏛️ Administration & ops
         </Text>
         <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
-          Business Steward is first — sales, ads, and running the site. Doctor, Administration, and
-          Security sit beside him. Members never see Steward.
+          Business Steward is first — sales, ads, and running the site. World
+          Director sits with you for the city locker. Doctor, Administration, and
+          Security sit beside them. Members never see Steward or World Director.
         </Text>
       </View>
 
       {isPlatformOwner ? <PlatformContentProtectionPanel /> : null}
+      {isPlatformOwner ? <OwnerPriceCatalogPanel /> : null}
       {isPlatformOwner ? <OwnerSocialPublisherPanel /> : null}
 
       {isPlatformOwner ? (
@@ -788,7 +797,9 @@ export function PlatformOpsConsole({
               creatorId={selectedMeta.id}
               creatorName={selectedMeta.name}
               creatorAvatar={selectedMeta.avatar}
-              welcomeMessage={isSteward ? stewardWelcome : opsWelcome}
+              welcomeMessage={
+                isSteward ? stewardWelcome : isWorldDirector ? worldDirectorWelcome : opsWelcome
+              }
             />
           )}
         </View>

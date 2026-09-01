@@ -15,6 +15,7 @@ export const PLATFORM_SECTION_IDS = [
   "landing_demo",
   "voice_talk",
   "jobsite",
+  "ur_world",
 ] as const;
 
 export type PlatformSectionId = (typeof PLATFORM_SECTION_IDS)[number];
@@ -93,6 +94,12 @@ export const PLATFORM_SECTION_CATALOG: PlatformSectionMeta[] = [
     description: "Clock, inventory, equipment map, daily logs",
     routes: ["/jobsite"],
   },
+  {
+    id: "ur_world",
+    label: "UR World",
+    description: "Walkable Civic Plaza, avatars, specialist desks, Talk Time in the city",
+    routes: ["/world"],
+  },
 ];
 
 export function isPlatformSectionId(value: string): value is PlatformSectionId {
@@ -106,6 +113,7 @@ export function getPlatformSectionMeta(id: PlatformSectionId): PlatformSectionMe
 /** Match ops-AI chat text to a section id for maintenance proposals. */
 export function inferSectionFromOpsText(text: string): PlatformSectionId | null {
   const lower = text.toLowerCase();
+  if (/ur world|\/world\b|city wallet|plot license|talk city/.test(lower)) return "ur_world";
   if (/3d workspace|3d-workspace|babylon|component builder/.test(lower)) return "3d_workspace";
   if (/playroom/.test(lower)) return "playroom";
   if (/blueprint/.test(lower)) return "blueprint_reader";

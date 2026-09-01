@@ -136,13 +136,15 @@ export function purchaseAiSubscription(params: {
   billingStateCode: string;
   isContentCreator?: boolean;
   source?: AiSubscriptionRecord["source"];
+  /** Live catalog amount — defaults to published platform-pass cents. */
+  priceCents?: number;
 }): AiSubscriptionRecord {
   const email = normalizeEmail(params.userEmail);
   if (!email.includes("@")) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Valid email required." });
   }
 
-  let priceCents = getPlatformPassPriceCents(params.plan);
+  let priceCents = params.priceCents ?? getPlatformPassPriceCents(params.plan);
   if (params.isContentCreator) {
     priceCents = applyCreatorDiscountCents(priceCents);
   }

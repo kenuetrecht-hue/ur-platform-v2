@@ -7,6 +7,7 @@ import {
   type PlatformAiRole,
 } from "./ai-roles";
 import { applyAffiliateDisclosures } from "./affiliate-disclosure-service";
+import { applyUrWorldAdGuard } from "../../lib/ur-world-disclosures";
 import { TERMS_SUPPORT_EMAIL } from "../../lib/platform-terms-of-use";
 
 const contentSafety = new ContentSafetySystem();
@@ -140,7 +141,7 @@ export function enforceAiGuardrails(params: {
   }
 
   const withAffiliateDisclosure = applyAffiliateDisclosures(outputGuard.content, "text");
-  return withAffiliateDisclosure.text;
+  return applyUrWorldAdGuard(withAffiliateDisclosure.text);
 }
 
 export function assertUserCanUseAi(userId: string, isOwner: boolean): void {

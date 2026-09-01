@@ -56,10 +56,11 @@ describe("ai-talk-pricing", () => {
     expect(AI_TALK_MINUTES_PER_DOLLAR).toBe(5);
   });
 
-  it("$5 pack: 25 minutes — in-app channel", () => {
+  it("$5 pack: 20 minutes at 25¢/min — in-app channel", () => {
     const pack = getAiTalkPack("talk_5");
     expect(pack.priceCents).toBe(500);
-    expect(pack.totalMinutes).toBe(25);
+    expect(pack.totalMinutes).toBe(20);
+    expect(pack.bonusMinutes).toBe(0);
     expect(pack.requiredPaymentChannel).toBe("in_app");
     expect(pack.featured).toBe(true);
   });
@@ -92,12 +93,12 @@ describe("ai-talk purchases", () => {
 
   beforeEach(() => _clearTalkTimeForTests());
 
-  it("grants 25 minutes (1.5M ms) on $5 pack purchase", () => {
+  it("grants 20 minutes (1.2M ms) on $5 pack purchase", () => {
     const userId = "talk-user-standard";
     purchaseAiTalkPack({ userId, userEmail: email, packId: "talk_5", billingStateCode: TEST_STATE });
     expect(hasAiTalkAccess(userId)).toBe(true);
-    expect(getAiTalkMinutesRemaining(userId)).toBe(25);
-    expect(getTalkMillisecondsRemaining(userId)).toBe(1_500_000);
+    expect(getAiTalkMinutesRemaining(userId)).toBe(20);
+    expect(getTalkMillisecondsRemaining(userId)).toBe(1_200_000);
   });
 
   it("stacks minutes on repeat $1 purchase as separate lots", () => {
@@ -114,7 +115,7 @@ describe("ai-talk purchases", () => {
       creatorId: "contentmate",
       durationSeconds: 4.5,
     });
-    expect(getTalkMillisecondsRemaining("speech-user")).toBe(1_500_000 - 4500);
+    expect(getTalkMillisecondsRemaining("speech-user")).toBe(1_200_000 - 4500);
   });
 
   it("grants 500 minutes (30M ms) on $120 pack purchase", () => {
@@ -135,7 +136,7 @@ describe("ai-talk purchases", () => {
 
   it("legacy video talk purchase uses $5 pack", () => {
     purchaseAiVideoTalkPack({ userId: "legacy-user", userEmail: "legacy@test.com", billingStateCode: TEST_STATE });
-    expect(getAiTalkMinutesRemaining("legacy-user")).toBe(25);
+    expect(getAiTalkMinutesRemaining("legacy-user")).toBe(20);
   });
 });
 

@@ -23,6 +23,7 @@ describe("admin dashboard routes", () => {
   it("keeps owner shortcuts on in-app routes", () => {
     expect(ADMIN_QUICK_HREFS.allAis).toBe("/(tabs)/ais");
     expect(ADMIN_QUICK_HREFS.lab3d).toBe("/3d-workspace");
+    expect(ADMIN_QUICK_HREFS.world).toBe("/world");
     expect(ADMIN_QUICK_HREFS.create).toBe("/(tabs)/create");
     expect(ADMIN_QUICK_HREFS.discover).toBe("/(tabs)/discover");
   });

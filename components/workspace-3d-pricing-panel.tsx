@@ -25,9 +25,11 @@ type PlanOption = {
   planId: Workspace3dPlanId;
   label: string;
   priceDisplay: string;
+  priceCents?: number;
   concurrentAiSlots: number;
   tagline: string;
   highlights: string[];
+  purchaseSummary?: PurchaseSummary;
 };
 
 export function Workspace3dPricingPanel() {
@@ -69,16 +71,23 @@ export function Workspace3dPricingPanel() {
 
   const selectedSummary = useMemo(() => {
     if (!hasState) return null;
+    const fromApi = planList.find((p) => p.planId === selectedPlan)?.purchaseSummary;
+    if (fromApi) return fromApi;
     return buildWorkspace3dPurchaseSummary({
       planId: selectedPlan,
       stateCode,
+      priceCents: planList.find((p) => p.planId === selectedPlan)?.priceCents,
     });
-  }, [hasState, selectedPlan, stateCode]);
+  }, [hasState, selectedPlan, stateCode, planList]);
 
   const extraSlotSummary = useMemo(() => {
     if (!hasState) return null;
-    return buildWorkspace3dExtraSlotPurchaseSummary(stateCode);
-  }, [hasState, stateCode]);
+    if (plans.data?.extraAiSlot.purchaseSummary) return plans.data.extraAiSlot.purchaseSummary;
+    return buildWorkspace3dExtraSlotPurchaseSummary(
+      stateCode,
+      plans.data?.extraAiSlot.priceCents,
+    );
+  }, [hasState, stateCode, plans.data?.extraAiSlot]);
 
   if (access.isLoading && isAuthenticated) {
     return (

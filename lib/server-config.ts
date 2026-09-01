@@ -1,8 +1,9 @@
 /**
- * Server Configuration Module
- * Reads all configuration from environment variables
- * Makes it easy to swap providers (Stripe, AI, Affiliate) without code changes
+ * Shared configuration helpers. Affiliate tracking tags are NOT stored here —
+ * they are read only via server/_core/secrets.ts so they never ship in the client bundle.
  */
+
+import { isUnsetOrPlaceholderEnv } from "./affiliate-link-policy";
 
 export const serverConfig = {
   // ============================================
@@ -33,26 +34,17 @@ export const serverConfig = {
   // ============================================
   // AFFILIATE CONFIGURATION
   // ============================================
+  // Affiliate tracking tags live in server/_core/secrets.ts — never EXPO_PUBLIC_, never returned here.
   affiliate: {
     walmart: {
-      trackingId: process.env.WALMART_TRACKING_ID || '',
-      isConfigured: () => !!process.env.WALMART_TRACKING_ID,
+      trackingId: "",
+      isConfigured: () => !isUnsetOrPlaceholderEnv(process.env.WALMART_TRACKING_ID),
     },
     amazon: {
-      associateTag: process.env.AMAZON_ASSOCIATE_TAG || '',
-      isConfigured: () => !!process.env.AMAZON_ASSOCIATE_TAG,
+      associateTag: "",
+      isConfigured: () => !isUnsetOrPlaceholderEnv(process.env.AMAZON_ASSOCIATE_TAG),
     },
-    // Add more affiliate partners as needed
-    getTrackingUrl: (partner: string, productUrl: string) => {
-      switch (partner.toLowerCase()) {
-        case 'walmart':
-          return `${productUrl}?affid=${process.env.WALMART_TRACKING_ID}`;
-        case 'amazon':
-          return `${productUrl}?tag=${process.env.AMAZON_ASSOCIATE_TAG}`;
-        default:
-          return productUrl;
-      }
-    },
+    getTrackingUrl: (_partner: string, productUrl: string) => productUrl,
   },
 
   // ============================================

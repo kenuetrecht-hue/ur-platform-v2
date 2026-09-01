@@ -63,10 +63,40 @@ describe("Commerce storefront", () => {
     expect(order.platformShareCents).toBe(150);
   });
 
-  it("rotates underperforming platform catalog items", () => {
+  it("lists owner originals on the platform shop with 100% UR share", () => {
     const store = ensurePlatformStore();
+    const product = addStoreProduct({
+      storeId: store.id,
+      title: "Owner Song",
+      description: "Original audio",
+      priceCents: 999,
+      sourceType: "owner_digital",
+      digitalKind: "song",
+    });
+    const order = simulateProductPurchase({
+      productId: product.id,
+      buyerUserId: "buyer-owner-merch",
+      buyerEmail: "buyer@test.com",
+    });
+    expect(order.creatorShareCents).toBe(0);
+    expect(order.platformShareCents).toBe(999);
+  });
+
+  it("does not archive owner originals during catalog rotation", () => {
+    const store = ensurePlatformStore();
+    const product = addStoreProduct({
+      storeId: store.id,
+      title: "Owner Ebook",
+      description: "Keep this listed",
+      priceCents: 1299,
+      sourceType: "owner_digital",
+      digitalKind: "ebook",
+    });
+    product.views = 50;
+    product.orders = 0;
     const result = rotateCatalog(store.id);
-    expect(result.summary).toContain("Archived");
+    expect(result.archived).not.toContain("Owner Ebook");
+    expect(product.status).toBe("active");
   });
 
   it("registers Store Manager AI with full specialist capabilities", () => {

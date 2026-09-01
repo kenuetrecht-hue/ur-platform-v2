@@ -25,6 +25,8 @@ import { PaymentChannelNotice } from "@/components/payment-channel-notice";
 import { UsageUpgradePanel } from "@/components/usage-upgrade-panel";
 import { PurchaseUsageTracker } from "@/components/purchase-usage-tracker";
 import { UsageTrackerDashboard } from "@/components/usage-tracker-dashboard";
+import { AiHubTabRow } from "@/components/ai-hub-tab-row";
+import { NoRefundPurchaseAck } from "@/components/no-refund-purchase-ack";
 
 import {
   buildAiSubscriptionWebPath,
@@ -58,9 +60,13 @@ type PlanOption = {
 
   priceDisplay: string;
 
+  priceCents?: number;
+
   savingsVsDaily?: string;
 
   messagesIncluded?: number;
+
+  purchaseSummary?: PurchaseSummary;
 
 };
 
@@ -83,6 +89,7 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
   const [selectedPlan, setSelectedPlan] = useState<AiSubscriptionPlan>("week");
 
   const [lastReceipt, setLastReceipt] = useState<PurchaseSummary | null>(null);
+  const [acceptedNoRefund, setAcceptedNoRefund] = useState(false);
 
 
 
@@ -136,6 +143,10 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
     if (!hasState || !tier || !tierLabel) return null;
 
+    const fromApi = (plans.data?.plans ?? []).find((p) => p.plan === selectedPlan)?.purchaseSummary;
+
+    if (fromApi) return fromApi;
+
     return buildSubscriptionPurchaseSummary({
 
       creatorId,
@@ -150,9 +161,11 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
       stateCode,
 
+      priceCents: (plans.data?.plans ?? []).find((p) => p.plan === selectedPlan)?.priceCents,
+
     });
 
-  }, [hasState, tier, tierLabel, creatorId, creatorName, selectedPlan, stateCode]);
+  }, [hasState, tier, tierLabel, creatorId, creatorName, selectedPlan, stateCode, plans.data?.plans]);
 
 
 
@@ -245,14 +258,15 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
         {hasState && isWebCheckout && access.data?.subscription ? (
           <Pressable
-            disabled={purchaseSlot.isPending || !stateCode}
+            disabled={purchaseSlot.isPending || !stateCode || !acceptedNoRefund}
             onPress={() => {
-              if (!stateCode) return;
+              if (!stateCode || !acceptedNoRefund) return;
               purchaseSlot.mutate({
                 creatorId,
                 plan: access.data.subscription?.plan ?? "month",
                 stateCode,
                 clientPlatform: "web",
+                acceptedNoRefund: true,
               });
             }}
             style={{ marginTop: 10, paddingVertical: 8 }}
@@ -320,7 +334,9 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
       <Text style={{ color: colors.muted, fontSize: 13, marginTop: 6, lineHeight: 19 }}>
 
-        $7.99/day · $15.99/week · $24.99/month — every specialist, one at a time. Extra slot to talk to more than one AI at once. Web browser checkout required.
+        {planList.length > 0
+          ? `${planList.map((p) => `${p.priceDisplay}/${p.plan === "day" ? "day" : p.plan === "week" ? "week" : "month"}`).join(" · ")} — every specialist, one at a time. Extra slot to talk to more than one AI at once. Web browser checkout required.`
+          : "Day, week, or month — every specialist, one at a time. Extra slot to talk to more than one AI at once. Web browser checkout required."}
 
       </Text>
 
@@ -358,7 +374,9 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
             const active = selectedPlan === p.plan;
 
-            const planSummary = buildSubscriptionPurchaseSummary({
+            const planSummary =
+              p.purchaseSummary ??
+              buildSubscriptionPurchaseSummary({
 
               creatorId,
 
@@ -371,6 +389,8 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
               tierLabel: tierLabel!,
 
               stateCode,
+
+              priceCents: p.priceCents,
 
             });
 
@@ -448,7 +468,10 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
       {selectedSummary ? <PurchaseSummaryCard summary={selectedSummary} /> : null}
 
-
+      <NoRefundPurchaseAck
+        checked={acceptedNoRefund}
+        onToggle={() => setAcceptedNoRefund((v) => !v)}
+      />
 
       <Text style={{ color: colors.muted, fontSize: 10, lineHeight: 15, marginTop: 8 }}>
 
@@ -460,11 +483,11 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
       <Pressable
 
-        disabled={purchase.isPending || !selectedPlan || !isAuthenticated || !selectedSummary || !hasState}
+        disabled={purchase.isPending || !selectedPlan || !isAuthenticated || !selectedSummary || !hasState || !acceptedNoRefund}
 
         onPress={() => {
 
-          if (!isAuthenticated || !selectedPlan || !stateCode) return;
+          if (!isAuthenticated || !selectedPlan || !stateCode || !acceptedNoRefund) return;
 
           if (!isWebCheckout) {
 
@@ -474,7 +497,7 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
           }
 
-          purchase.mutate({ creatorId, plan: selectedPlan, stateCode, clientPlatform: "web" });
+          purchase.mutate({ creatorId, plan: selectedPlan, stateCode, clientPlatform: "web", acceptedNoRefund: true });
 
         }}
 
@@ -486,7 +509,7 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
             backgroundColor: colors.primary,
 
-            opacity: purchase.isPending || !isAuthenticated || !hasState ? 0.7 : 1,
+            opacity: purchase.isPending || !isAuthenticated || !hasState || !acceptedNoRefund ? 0.7 : 1,
 
           },
 
@@ -505,6 +528,10 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
             {!hasState
 
               ? "Select your state to continue"
+
+              : !acceptedNoRefund
+
+                ? "Check the no-refund box to continue"
 
               : isAuthenticated
 

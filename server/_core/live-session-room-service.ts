@@ -283,7 +283,7 @@ export function submitLiveSessionQuestion(params: {
   if (params.channel === "voice" && !userHasSpeakAccess(params.userId, params.isPlatformOwner)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Purchase talk time ($1 / 5 min, $5 / 25 min, $120 / 500 min, or $200 / 1,000 min) to ask voice questions and speak with the AI.",
+      message: "Purchase talk time ($1 / 5 min, $5 / 20 min, $120 / 500 min, or $200 / 1,000 min) to ask voice questions and speak with the AI.",
     });
   }
 

@@ -5,6 +5,7 @@ import { ADMIN_QUICK_HREFS } from "@/lib/admin-dashboard-routes";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
 import { OwnerCommandCenterPanel } from "@/components/owner-command-center-panel";
+import { PlatformConductReviewPanel } from "@/components/platform-conduct-review-panel";
 import { PlatformOpsConsole } from "@/components/platform-ops-console";
 import { CommerceOpsPanel } from "@/components/commerce-ops-panel";
 import { LandingDemoConversionStatsPanel } from "@/components/landing-demo-conversion-stats-panel";
@@ -50,6 +51,7 @@ export default function OwnerOpsScreen() {
           { label: "Business Steward", kind: "press", onPress: focusBusinessSteward },
           { label: "All AIs", kind: "href", href: ADMIN_QUICK_HREFS.allAis },
           { label: "3D Lab", kind: "href", href: ADMIN_QUICK_HREFS.lab3d },
+          { label: "UR World", kind: "href", href: ADMIN_QUICK_HREFS.world },
         ] satisfies QuickAction[])
       : []),
     { label: "Create", kind: "href", href: ADMIN_QUICK_HREFS.create },
@@ -182,6 +184,7 @@ export default function OwnerOpsScreen() {
               focusStewardNonce={stewardFocusNonce}
             />
             {isPlatformOwner ? <OwnerCommandCenterPanel /> : null}
+            {isPlatformOwner ? <PlatformConductReviewPanel /> : null}
             {isPlatformOwner ? <CommerceOpsPanel /> : null}
             {isPlatformOwner ? <LandingDemoConversionStatsPanel /> : null}
           </ScrollView>

@@ -232,6 +232,10 @@ export default function HomeScreen() {
                   onPress: () => router.push("/3d-workspace"),
                 },
                 {
+                  label: "UR World",
+                  onPress: () => router.push("/world"),
+                },
+                {
                   label: "Creator Dashboard",
                   onPress: () => router.push("/creator-dashboard"),
                 },

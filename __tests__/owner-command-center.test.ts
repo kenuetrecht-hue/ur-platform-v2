@@ -23,6 +23,7 @@ describe("Owner Command Center", () => {
   it("detects non-Latin scripts that need English", () => {
     expect(looksNonEnglish("平台健康检查完成")).toBe(true);
     expect(looksNonEnglish("فحص الأمان")).toBe(true);
+    expect(looksNonEnglish("Hola amigo, gracias")).toBe(true);
     expect(looksNonEnglish("Health check finished")).toBe(false);
   });
 
@@ -71,9 +72,15 @@ describe("Owner Command Center", () => {
     const snapshot = getOwnerCommandCenterSnapshot();
     expect(snapshot.ownerOnly).toBe(true);
     expect(snapshot.englishOnly).toBe(true);
-    expect(snapshot.roadmap).toHaveLength(4);
+    expect(snapshot.roadmap).toHaveLength(5);
     expect(snapshot.roadmap.map((n) => n.name)).toEqual(
-      expect.arrayContaining(["Doctor AI", "Administration AI", "Security AI", "Business Steward AI"]),
+      expect.arrayContaining([
+        "Doctor AI",
+        "Administration AI",
+        "Security AI",
+        "Business Steward AI",
+        "World Director AI",
+      ]),
     );
     expect(snapshot.terminalLines[0]).toMatch(/INCIDENT|Security AI/);
     expect(snapshot.protection.length).toBeGreaterThan(0);

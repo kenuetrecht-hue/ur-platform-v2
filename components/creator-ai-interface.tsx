@@ -501,7 +501,7 @@ export function CreatorAIInterface({
       }
     } else if (!isAssociateAi && !hasTalkTime) {
       setVoiceStatus(
-        "Purchase talk time first — $5 in the app (25 min), $1 on web (5 min), $120 on web (500 min), or $200 on web (1,000 min). Open AI Talk Time below.",
+        "Purchase talk time first — $5 in the app (20 min), $1 on web (5 min), $120 on web (500 min), or $200 on web (1,000 min). Open AI Talk Time below.",
       );
       return;
     }
@@ -574,7 +574,7 @@ export function CreatorAIInterface({
     try {
       if (!hasTalkTime) {
         setVoiceStatus(
-          "Purchase talk time first — $5 in the mobile app (25 min), $1 on web (5 min), $120 on web (500 min), or $200 on web (1,000 min).",
+          "Purchase talk time first — $5 in the mobile app (20 min), $1 on web (5 min), $120 on web (500 min), or $200 on web (1,000 min).",
         );
         return;
       }

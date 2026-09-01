@@ -5,6 +5,12 @@ import {
 } from "../_core/google-ai";
 import { assertUserCanUseAi, enforceAiGuardrails } from "../_core/ai-guardrails";
 import { assertUserIsAgeVerified } from "../_core/age-kyc-service";
+import { assertConductAccepted } from "../_core/conduct-ledger-service";
+import {
+  assertNotUnderWorldReview,
+  getNativeLanguage,
+  recordAndMonitorCommunication,
+} from "../_core/world-monitor-service";
 import { assertNoAiTakeoverInMessage } from "../_core/ai-control";
 import { assertMessageWithinAiRole } from "../_core/ai-roles";
 import { sanitizeChatHistory, sanitizeUserText } from "../_core/input-sanitize";
@@ -37,17 +43,44 @@ export const chatRouter = router({
 
       try {
         await assertUserIsAgeVerified(ctx.user.id);
+        assertConductAccepted({
+          userId: String(ctx.user.id),
+          isPlatformOwner: ctx.isPlatformOwner,
+        });
+        assertNotUnderWorldReview({
+          userId: String(ctx.user.id),
+          isPlatformOwner: ctx.isPlatformOwner,
+        });
         assertUserCanUseAi(String(ctx.user.id), ctx.isPlatformOwner);
 
         const message = sanitizeUserText(input.message, 2000);
         assertNoAiTakeoverInMessage(message, ctx.isPlatformOwner);
         assertMessageWithinAiRole(message, "contentmate", ctx.isPlatformOwner);
+        const { flag } = await recordAndMonitorCommunication({
+          channel: "ai_chat",
+          userId: String(ctx.user.id),
+          userEmail: ctx.user.email ?? undefined,
+          peerId: "contentmate",
+          original: message,
+          isPlatformOwner: ctx.isPlatformOwner,
+        });
+        if (flag) {
+          return {
+            reply: flag.memberWarning,
+            model: "world-director-monitor",
+            userId: ctx.user.id,
+          };
+        }
         const history = sanitizeChatHistory(input.history ?? [], 20, 4000);
+        const nativeReplyLanguage = ctx.isPlatformOwner
+          ? undefined
+          : getNativeLanguage(String(ctx.user.id));
 
         const { reply: rawReply, model } = await generateGoogleChatReply({
           systemPrompt: CONTENTMATE_SYSTEM_PROMPT,
           history,
           message,
+          responseLanguage: nativeReplyLanguage,
         });
 
         const reply = enforceAiGuardrails({

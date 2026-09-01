@@ -40,18 +40,18 @@ import {
 } from "../_core/ai-metering-session-service";
 import {
   listAiTalkPacks,
-  getAiTalkPack,
   formatTalkPrice,
   AI_TALK_PACK_IDS,
   type AiTalkPackId,
 } from "../../lib/ai-talk-pricing";
 import { buildTalkPurchaseSummary, formatPurchaseReceiptMessage } from "../../lib/pricing-disclosures";
 import { optionalBillingStateSchema, billingStateSchema } from "../../lib/billing-state-schema";
+import type { UsStateCode } from "../../lib/us-state-taxes";
 import { assertPaymentChannelAllowed, assertSimulatedPurchaseAllowed, paymentChannelNote } from "../_core/payment-channel-guard";
-import {
-  AI_TALK_PRICING_SUMMARY,
-  PAYMENT_CHANNEL_POLICY_SUMMARY,
-} from "../../lib/payment-channel-policy";
+import { PAYMENT_CHANNEL_POLICY_SUMMARY } from "../../lib/payment-channel-policy";
+import { liveTalkPack } from "../_core/owner-price-catalog-service";
+import { acceptedNoRefundSchema, assertAndRecordNoRefundAck } from "../_core/conduct-ledger-service";
+import { requireWorldAccess } from "./conduct-router";
 
 const packIdSchema = z.enum(AI_TALK_PACK_IDS);
 const clientPlatformSchema = z.enum(["web", "native"]);
@@ -59,14 +59,23 @@ const clientPlatformSchema = z.enum(["web", "native"]);
 export const aiTalkRouter = router({
   getPlans: securePublicProcedure("aiTalk")
     .input(z.object({ stateCode: optionalBillingStateSchema }).optional())
-    .query(({ input }) => ({
-      packs: listAiTalkPacks().map((pack) => ({
-        ...pack,
-        priceDisplay: formatTalkPrice(pack.priceCents),
-        effectiveRateDisplay: formatTalkPrice(Math.round(pack.priceCents / pack.totalMinutes)),
-        purchaseSummary: buildTalkPurchaseSummary(pack.id, input?.stateCode ?? null),
-      })),
-      pricingNote: AI_TALK_PRICING_SUMMARY,
+    .query(async ({ input }) => ({
+      packs: await Promise.all(
+        listAiTalkPacks().map(async (pack) => {
+          const live = await liveTalkPack(pack.id);
+          return {
+            ...live,
+            priceDisplay: formatTalkPrice(live.priceCents),
+            effectiveRateDisplay: formatTalkPrice(Math.round(live.priceCents / live.totalMinutes)),
+            purchaseSummary: buildTalkPurchaseSummary(
+              pack.id,
+              (input?.stateCode ?? null) as UsStateCode | null,
+              live.priceCents,
+            ),
+          };
+        }),
+      ),
+      pricingNote: "Amounts on each card are the current checkout prices.",
       paymentNote: PAYMENT_CHANNEL_POLICY_SUMMARY,
       expiryDisclosure: AI_TALK_EXPIRY_PURCHASE_DISCLOSURE,
       meteringDisclosure: AI_TALK_METERING_DISCLOSURE,
@@ -77,7 +86,7 @@ export const aiTalkRouter = router({
       fiveDollarDisclosure: AI_TALK_FIVE_DOLLAR_PACK_DISCLOSURE,
       bulk500Disclosure: AI_TALK_BULK_500_PACK_DISCLOSURE,
       bulk1000Disclosure: AI_TALK_BULK_1000_PACK_DISCLOSURE,
-      bonusRule: "Every $1 = 5 talk minutes · $5 = 25 minutes (app only) · $120 = 500 minutes (web) · $200 = 1,000 minutes (web) · Use within 30 days",
+      bonusRule: "Every $1 = 5 talk minutes · $5 = 20 minutes (app only) · $120 = 500 minutes (web) · $200 = 1,000 minutes (web) · Use within 30 days",
     })),
 
   getStatus: secureProcedure("aiTalk").query(({ ctx }) => {
@@ -115,9 +124,10 @@ export const aiTalkRouter = router({
         packId: packIdSchema.default("talk_5"),
         stateCode: billingStateSchema,
         clientPlatform: clientPlatformSchema,
+        acceptedNoRefund: acceptedNoRefundSchema,
       }),
     )
-    .mutation(({ input, ctx }) => {
+    .mutation(async ({ input, ctx }) => {
       if (ctx.isPlatformOwner) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -125,12 +135,22 @@ export const aiTalkRouter = router({
         });
       }
 
+      requireWorldAccess(ctx);
       assertSimulatedPurchaseAllowed();
 
-      const pack = getAiTalkPack(input.packId as AiTalkPackId);
+      const pack = await liveTalkPack(input.packId as AiTalkPackId);
       assertPaymentChannelAllowed({
         subtotalCents: pack.priceCents,
         clientPlatform: input.clientPlatform,
+      });
+
+      assertAndRecordNoRefundAck({
+        userId: String(ctx.user.id),
+        userEmail: ctx.user.email ?? undefined,
+        sku: `talk.${input.packId}`,
+        amountCents: pack.priceCents,
+        acceptedNoRefund: true,
+        ipAddress: ctx.ip,
       });
 
       const entitlement = purchaseAiTalkPack({
@@ -138,9 +158,14 @@ export const aiTalkRouter = router({
         userEmail: ctx.user.email ?? "",
         packId: input.packId as AiTalkPackId,
         billingStateCode: input.stateCode,
+        priceCents: pack.priceCents,
       });
 
-      const receipt = buildTalkPurchaseSummary(input.packId as AiTalkPackId, input.stateCode);
+      const receipt = buildTalkPurchaseSummary(
+        input.packId as AiTalkPackId,
+        input.stateCode as UsStateCode,
+        pack.priceCents,
+      );
       const talkTime = getTalkTimeStatus(String(ctx.user.id));
 
       return {

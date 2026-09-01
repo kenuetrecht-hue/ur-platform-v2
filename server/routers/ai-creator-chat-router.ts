@@ -10,7 +10,7 @@ import { assertAndConsumeStewardAdBudget } from "../_core/steward-ad-budget-serv
 import { generateImage } from "../_core/imageGeneration";
 import { ENV } from "../_core/env";
 import { sanitizeChatAttachments } from "../_core/chat-attachment-service";
-import { isOwnerOnlyPlatformAi, canChatOwnerOpsAi, canChatBusinessSteward } from "../_core/platform-ops-ai";
+import { isOwnerOnlyPlatformAi, canChatOwnerOpsAi, canChatBusinessSteward, canChatWorldDirector } from "../_core/platform-ops-ai";
 import { getAdminAccessForUser } from "../_core/admin-access-service";
 import { assertAiEntitled } from "../_core/access-entitlements";
 import { secureProcedure, securePublicProcedure, router, TRPCError } from "../_core/trpc";
@@ -84,10 +84,19 @@ function assertCanAccessOwnerOpsClientAi(params: {
     ? "AI assistant not found."
     : params.creatorId === "platform-business-steward-ai"
       ? "Business Steward AI is private to the platform owner."
-      : "Owner operations AIs are restricted to the Administration Dashboard.";
+      : params.creatorId === "platform-world-director-ai"
+        ? "World Director AI is private to the platform owner."
+        : "Owner operations AIs are restricted to the Administration Dashboard.";
 
   if (params.creatorId === "platform-business-steward-ai") {
     if (!canChatBusinessSteward({ isPlatformOwner: params.isPlatformOwner })) {
+      throw new TRPCError({ code: deniedCode, message: deniedMessage });
+    }
+    return;
+  }
+
+  if (params.creatorId === "platform-world-director-ai") {
+    if (!canChatWorldDirector({ isPlatformOwner: params.isPlatformOwner })) {
       throw new TRPCError({ code: deniedCode, message: deniedMessage });
     }
     return;

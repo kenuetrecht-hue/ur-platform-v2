@@ -159,6 +159,7 @@ export class ContentSafetySystem {
     hate_speech: [
       /racist|sexist|homophobic|transphobic/gi,
       /slur|derogatory|discriminat/gi,
+      /hate group|white supremac|nazi|kkk\b/gi,
     ],
     harassment: [
       /bully|harass|threaten|intimidate|stalk/gi,
@@ -300,19 +301,25 @@ export class ContentSafetySystem {
   }
 
   /**
-   * Record blocked attempt — harassment/hate speech may result in immediate ban.
+   * Record blocked attempt. Harassment/hate is paused for owner review (World Director),
+   * not auto-banned — the owner reactivates or discontinues after looking at the English copy.
    */
   private recordBlockedAttempt(userId: string, harmCategories: HarmCategory[] = []): void {
     const profile = this.getUserSafetyProfile(userId);
     profile.blockedAttempts++;
     profile.lastBlocked = new Date();
 
-    const severeAbuse = harmCategories.some((c) =>
-      c === "harassment" || c === "hate_speech" || c === "exploitation",
-    );
-    if (severeAbuse) {
+    const exploitation = harmCategories.includes("exploitation");
+    if (exploitation) {
       profile.status = "banned";
       profile.trustScore = 0;
+      return;
+    }
+
+    const reviewHold = harmCategories.some((c) => c === "harassment" || c === "hate_speech");
+    if (reviewHold) {
+      profile.status = "warned";
+      profile.trustScore = Math.max(0, profile.trustScore - 40);
       return;
     }
 

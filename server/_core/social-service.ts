@@ -30,6 +30,7 @@ export type DirectMessage = {
   senderUserId: string;
   recipientUserId: string;
   body: string;
+  deliveredBody?: string;
   subject?: string;
   senderEmail?: string;
   recipientEmail?: string;
@@ -321,6 +322,7 @@ export function sendDirectMessage(params: {
   senderEmail?: string;
   recipientEmail?: string;
   requireFriend?: boolean;
+  deliveredBody?: string;
 }): DirectMessage {
   const body = params.body.trim().slice(0, 2000);
   if (!body) {
@@ -347,6 +349,7 @@ export function sendDirectMessage(params: {
     senderUserId: params.senderUserId,
     recipientUserId: params.recipientUserId,
     body,
+    deliveredBody: params.deliveredBody?.trim() || undefined,
     subject,
     senderEmail: params.senderEmail,
     recipientEmail: params.recipientEmail,
@@ -389,11 +392,19 @@ export function sendPlatformMail(params: {
   });
 }
 
+function presentMessageForViewer(userId: string, msg: DirectMessage): DirectMessage {
+  if (msg.recipientUserId === userId && msg.deliveredBody) {
+    return { ...msg, body: msg.deliveredBody };
+  }
+  return msg;
+}
+
 export function listInboxMail(userId: string, limit = 50): DirectMessage[] {
   return messages
     .filter((m) => m.recipientUserId === userId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, limit);
+    .slice(0, limit)
+    .map((m) => presentMessageForViewer(userId, m));
 }
 
 export function listSentMail(userId: string, limit = 50): DirectMessage[] {
@@ -425,7 +436,8 @@ export function listDirectMessages(params: {
   return messages
     .filter((m) => m.threadId === tid)
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-    .slice(-(params.limit ?? 100));
+    .slice(-(params.limit ?? 100))
+    .map((m) => presentMessageForViewer(params.userId, m));
 }
 
 export function listMessageThreads(userId: string): Array<{
@@ -449,7 +461,11 @@ export function listMessageThreads(userId: string): Array<{
       const unreadCount = msgs.filter(
         (m) => m.recipientUserId === userId && !m.readAt,
       ).length;
-      return { withUserId, lastMessage: sorted[0]!, unreadCount };
+      return {
+        withUserId,
+        lastMessage: presentMessageForViewer(userId, sorted[0]!),
+        unreadCount,
+      };
     })
     .sort(
       (a, b) =>

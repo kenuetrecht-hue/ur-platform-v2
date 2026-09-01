@@ -10,9 +10,6 @@ import {
 } from "../_core/workspace-3d-subscription-service";
 import {
   getWorkspace3dPlans,
-  getWorkspace3dPlanPriceCents,
-  WORKSPACE_3D_EXTRA_AI_SLOT_CENTS,
-  WORKSPACE_3D_PRICING_SUMMARY,
   type Workspace3dPlanId,
 } from "../../lib/workspace-3d-pricing";
 import {
@@ -21,8 +18,11 @@ import {
   formatPurchaseReceiptMessage,
 } from "../../lib/pricing-disclosures";
 import { optionalBillingStateSchema, billingStateSchema } from "../../lib/billing-state-schema";
+import type { UsStateCode } from "../../lib/us-state-taxes";
 import { assertPaymentChannelAllowed, assertSimulatedPurchaseAllowed, paymentChannelNote } from "../_core/payment-channel-guard";
 import { assertSectionEnabledForRequest } from "../_core/platform-section-guard";
+import { liveWorkspaceExtraSlotCents, liveWorkspacePlanCents } from "../_core/owner-price-catalog-service";
+import { formatUsd } from "../../lib/ai-subscription-pricing";
 
 const clientPlatformSchema = z.enum(["web", "native"]);
 const planSchema = z.enum(["day_pass", "solo", "pro", "studio"]);
@@ -30,26 +30,41 @@ const planSchema = z.enum(["day_pass", "solo", "pro", "studio"]);
 export const workspace3dRouter = router({
   getPlans: securePublicProcedure("workspace3d")
     .input(z.object({ stateCode: optionalBillingStateSchema }))
-    .query(({ input }) => ({
-      plans: getWorkspace3dPlans().map((p) => ({
-        ...p,
-        requiredPaymentChannel: "web_browser" as const,
-        purchaseSummary: buildWorkspace3dPurchaseSummary({
-          planId: p.planId,
-          stateCode: input.stateCode ?? null,
+    .query(async ({ input }) => {
+      const extraAiSlotCents = await liveWorkspaceExtraSlotCents();
+      const plans = await Promise.all(
+        getWorkspace3dPlans().map(async (p) => {
+          const priceCents = await liveWorkspacePlanCents(p.planId);
+          return {
+            ...p,
+            priceCents,
+            priceDisplay: formatUsd(priceCents),
+            requiredPaymentChannel: "web_browser" as const,
+            purchaseSummary: buildWorkspace3dPurchaseSummary({
+              planId: p.planId,
+              stateCode: (input.stateCode ?? null) as UsStateCode | null,
+              priceCents,
+            }),
+          };
         }),
-      })),
-      extraAiSlot: {
-        priceCents: WORKSPACE_3D_EXTRA_AI_SLOT_CENTS,
-        priceDisplay: `$${(WORKSPACE_3D_EXTRA_AI_SLOT_CENTS / 100).toFixed(2)}`,
-        requiredPaymentChannel: "web_browser" as const,
-        purchaseSummary: buildWorkspace3dExtraSlotPurchaseSummary(input.stateCode ?? null),
-      },
-      pricingNote: WORKSPACE_3D_PRICING_SUMMARY,
-      paymentNote: "Workspace plans must be purchased through your web browser — not in the mobile app.",
-      usageNote:
-        "Workspace access covers the 3D lab and concurrent AI slots. Text chat still requires each specialist's plan; voice uses Talk Time.",
-    })),
+      );
+      return {
+        plans,
+        extraAiSlot: {
+          priceCents: extraAiSlotCents,
+          priceDisplay: formatUsd(extraAiSlotCents),
+          requiredPaymentChannel: "web_browser" as const,
+          purchaseSummary: buildWorkspace3dExtraSlotPurchaseSummary(
+            (input.stateCode ?? null) as UsStateCode | null,
+            extraAiSlotCents,
+          ),
+        },
+        pricingNote: "Amounts on each card are the current checkout prices.",
+        paymentNote: "Workspace plans must be purchased through your web browser — not in the mobile app.",
+        usageNote:
+          "Workspace access covers the 3D lab and concurrent AI slots. Text chat still requires each specialist's plan; voice uses Talk Time.",
+      };
+    }),
 
   getAccess: secureProcedure("workspace3d").query(({ ctx }) => {
     const userId = String(ctx.user.id);
@@ -95,7 +110,7 @@ export const workspace3dRouter = router({
         clientPlatform: clientPlatformSchema,
       }),
     )
-    .mutation(({ input, ctx }) => {
+    .mutation(async ({ input, ctx }) => {
       assertSimulatedPurchaseAllowed();
       assertSectionEnabledForRequest("3d_workspace", ctx.isPlatformOwner);
       const userId = String(ctx.user.id);
@@ -104,7 +119,7 @@ export const workspace3dRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Account email required." });
       }
 
-      const priceCents = getWorkspace3dPlanPriceCents(input.plan as Workspace3dPlanId);
+      const priceCents = await liveWorkspacePlanCents(input.plan as Workspace3dPlanId);
       assertPaymentChannelAllowed({
         subtotalCents: priceCents,
         clientPlatform: input.clientPlatform,
@@ -135,11 +150,13 @@ export const workspace3dRouter = router({
         plan: input.plan as Workspace3dPlanId,
         billingStateCode: input.stateCode,
         source: "simulated",
+        priceCents,
       });
 
       const receipt = buildWorkspace3dPurchaseSummary({
         planId: input.plan as Workspace3dPlanId,
-        stateCode: input.stateCode,
+        stateCode: input.stateCode as UsStateCode,
+        priceCents,
       });
 
       return {
@@ -159,7 +176,7 @@ export const workspace3dRouter = router({
         clientPlatform: clientPlatformSchema,
       }),
     )
-    .mutation(({ input, ctx }) => {
+    .mutation(async ({ input, ctx }) => {
       assertSimulatedPurchaseAllowed();
       const userId = String(ctx.user.id);
       const email = ctx.user.email;
@@ -167,8 +184,9 @@ export const workspace3dRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Account email required." });
       }
 
+      const extraSlotCents = await liveWorkspaceExtraSlotCents();
       assertPaymentChannelAllowed({
-        subtotalCents: WORKSPACE_3D_EXTRA_AI_SLOT_CENTS,
+        subtotalCents: extraSlotCents,
         clientPlatform: input.clientPlatform,
       });
 
@@ -184,9 +202,13 @@ export const workspace3dRouter = router({
         userEmail: email,
         billingStateCode: input.stateCode,
         source: "simulated",
+        priceCents: extraSlotCents,
       });
 
-      const receipt = buildWorkspace3dExtraSlotPurchaseSummary(input.stateCode);
+      const receipt = buildWorkspace3dExtraSlotPurchaseSummary(
+        input.stateCode as UsStateCode,
+        extraSlotCents,
+      );
 
       return {
         ok: true as const,
@@ -194,7 +216,7 @@ export const workspace3dRouter = router({
         receipt,
         message: formatPurchaseReceiptMessage(receipt),
         expiresAt: record.expiresAt,
-        paymentChannel: paymentChannelNote(WORKSPACE_3D_EXTRA_AI_SLOT_CENTS),
+        paymentChannel: paymentChannelNote(extraSlotCents),
       };
     }),
 

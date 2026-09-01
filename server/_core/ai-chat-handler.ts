@@ -9,6 +9,12 @@ import {
 } from "./ai-creator-registry";
 import { assertUserCanUseAi, enforceAiGuardrails } from "./ai-guardrails";
 import { assertUserIsAgeVerified } from "./age-kyc-service";
+import { assertConductAccepted } from "./conduct-ledger-service";
+import {
+  assertNotUnderWorldReview,
+  getNativeLanguage,
+  recordAndMonitorCommunication,
+} from "./world-monitor-service";
 import {
   assertMessageWithinAiRole,
   sanitizeAiReplyForRole,
@@ -55,7 +61,12 @@ import {
   runStewardCommission,
   type StewardCommissionJob,
 } from "./steward-commission-service";
-import { VISION_UPLOAD_MESSAGE_UNITS } from "../../lib/usage-caps-catalog";
+import {
+  formatOwnerPriceCommandReply,
+  looksLikeOwnerPriceCommand,
+  tryApplyOwnerPriceCommand,
+} from "./owner-price-catalog-service";
+import { tryApplyWorldDirectorCommand } from "./ur-world-locker-service";
 import {
   createOpsIncident,
   inferIncidentFromOpsChat,
@@ -114,7 +125,13 @@ export async function handleCreatorAiChat(params: {
     status: string;
   }>;
 }> {
-  if (!isGoogleCloudAiConfigured()) {
+  const stewardPriceCommand =
+    params.creatorId === BUSINESS_STEWARD_AI_ID &&
+    params.ctx.isPlatformOwner &&
+    !params.ctx.landingDemo &&
+    looksLikeOwnerPriceCommand(params.message);
+
+  if (!stewardPriceCommand && !isGoogleCloudAiConfigured()) {
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
       message: "This feature is not available right now.",
@@ -209,6 +226,14 @@ export async function handleCreatorAiChat(params: {
   try {
     if (!params.ctx.landingDemo) {
       await assertUserIsAgeVerified(params.ctx.userId);
+      assertConductAccepted({
+        userId,
+        isPlatformOwner: params.ctx.isPlatformOwner,
+      });
+      assertNotUnderWorldReview({
+        userId,
+        isPlatformOwner: params.ctx.isPlatformOwner,
+      });
     }
     assertUserCanUseAi(userId, params.ctx.isPlatformOwner);
 
@@ -225,7 +250,62 @@ export async function handleCreatorAiChat(params: {
       assertMessageWithinAiRole(message, params.creatorId, params.ctx.isPlatformOwner, def.name);
     }
 
+    if (
+      params.creatorId === BUSINESS_STEWARD_AI_ID &&
+      params.ctx.isPlatformOwner &&
+      !params.ctx.landingDemo
+    ) {
+      const priceChange = await tryApplyOwnerPriceCommand(message);
+      if (priceChange) {
+        return {
+          reply: formatOwnerPriceCommandReply(priceChange),
+          model: "owner-price-catalog",
+          creatorId: def.id,
+          creatorName: def.name,
+        };
+      }
+    }
+
+    if (
+      params.creatorId === "platform-world-director-ai" &&
+      params.ctx.isPlatformOwner &&
+      !params.ctx.landingDemo
+    ) {
+      const worldCmd = await tryApplyWorldDirectorCommand(message);
+      if (worldCmd) {
+        return {
+          reply: worldCmd,
+          model: "ur-world-catalog",
+          creatorId: def.id,
+          creatorName: def.name,
+        };
+      }
+    }
+
+    if (!params.ctx.landingDemo) {
+      const { flag } = await recordAndMonitorCommunication({
+        channel: "ai_chat",
+        userId,
+        userEmail: params.ctx.userEmail ?? undefined,
+        peerId: params.creatorId,
+        original: message,
+        isPlatformOwner: params.ctx.isPlatformOwner,
+      });
+      if (flag) {
+        return {
+          reply: flag.memberWarning,
+          model: "world-director-monitor",
+          creatorId: def.id,
+          creatorName: def.name,
+        };
+      }
+    }
+
     const history = sanitizeChatHistory(params.history ?? [], 20, 4000);
+    const nativeReplyLanguage =
+      params.ctx.isPlatformOwner || params.ctx.landingDemo
+        ? undefined
+        : getNativeLanguage(userId);
 
     const caps = getHiveCapabilities(params.creatorId);
     const attachments = params.attachments ?? [];
@@ -304,6 +384,7 @@ export async function handleCreatorAiChat(params: {
         userId,
         history,
         attachments: visionAttachments,
+        responseLanguage: nativeReplyLanguage,
       });
       rawReply = hiveResult.reply;
       model = hiveResult.model;
@@ -344,6 +425,10 @@ export async function handleCreatorAiChat(params: {
         }
       }
 
+      if (nativeReplyLanguage && nativeReplyLanguage !== "English") {
+        basePrompt += `\n\n## Reply language\nThis member's native language is ${nativeReplyLanguage}. They may mix English with ${nativeReplyLanguage}. Reply entirely in ${nativeReplyLanguage}.`;
+      }
+
       let systemPrompt: string;
       if (params.ctx.landingDemo || isAffiliateOnlyAi(params.creatorId)) {
         systemPrompt = basePrompt;
@@ -380,6 +465,7 @@ export async function handleCreatorAiChat(params: {
         maxOutputTokens: params.ctx.landingDemo ? 80 : undefined,
         temperature: params.ctx.landingDemo ? 0.85 : undefined,
         attachments: visionAttachments.length ? visionAttachments : undefined,
+        responseLanguage: nativeReplyLanguage,
       });
       rawReply = result.reply;
       model = result.model;

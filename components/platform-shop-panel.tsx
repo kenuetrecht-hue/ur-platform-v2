@@ -13,6 +13,7 @@ type Product = {
   imageUrl?: string;
   sourceType: string;
   affiliateUrl?: string;
+  digitalKind?: string;
   category: string;
   orders: number;
 };
@@ -43,7 +44,8 @@ function ProductCard({ product, onBuy }: { product: Product; onBuy: () => void }
         ${(product.priceCents / 100).toFixed(2)}
       </Text>
       <Text style={{ color: colors.muted, fontSize: 10 }}>
-        {product.category} · {product.orders} sold · {product.sourceType}
+        {product.category}
+        {product.digitalKind ? ` · ${product.digitalKind}` : ""} · {product.orders} sold · {product.sourceType}
       </Text>
       {product.sourceType === "affiliate" ? (
         <>
@@ -90,6 +92,10 @@ export function PlatformShopPanel() {
         <Text style={{ color: colors.muted, fontSize: 10, marginTop: 4 }}>
           Checkout is simulated until Stripe/LLC is ready — full catalog & AI manager work now.
         </Text>
+        <Text style={{ color: colors.muted, fontSize: 10, marginTop: 6, lineHeight: 15 }}>
+          Creators sell merch in their own shops (Creator Dashboard → Store). This page is UR originals,
+          dropship, and partner picks.
+        </Text>
       </View>
 
       <Pressable
@@ -118,30 +124,50 @@ export function PlatformShopPanel() {
         </Pressable>
       ) : null}
 
-      <Text style={{ color: colors.foreground, fontWeight: "800" }}>Platform picks</Text>
-      {(shop.data?.products ?? []).map((p) => (
-        <ProductCard
-          key={p.id}
-          product={p}
-          onBuy={() => purchase.mutate({ productId: p.id })}
-        />
-      ))}
+      {(() => {
+        const products = shop.data?.products ?? [];
+        const originals = products.filter((p) => p.sourceType === "owner_digital");
+        const partner = products.filter((p) => p.sourceType === "affiliate");
+        const merch = products.filter((p) => p.sourceType !== "owner_digital" && p.sourceType !== "affiliate");
+        const sections = [
+          { title: "UR originals", items: originals },
+          { title: "Platform merch", items: merch },
+          { title: "Partner picks (Amazon / Walmart)", items: partner },
+        ];
+        return sections.map((section) =>
+          section.items.length === 0 ? null : (
+            <View key={section.title} style={{ gap: 14 }}>
+              <Text style={{ color: colors.foreground, fontWeight: "800" }}>{section.title}</Text>
+              {section.items.map((p) => (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  onBuy={() => purchase.mutate({ productId: p.id })}
+                />
+              ))}
+            </View>
+          ),
+        );
+      })()}
 
-      {(creatorShops.data ?? []).length > 0 ? (
-        <>
-          <Text style={{ color: colors.foreground, fontWeight: "800", marginTop: 8 }}>Creator merch shops</Text>
-          {creatorShops.data!.map((s) => (
-            <Pressable
-              key={s.id}
-              onPress={() => router.push({ pathname: "/shop", params: { slug: s.slug } })}
-              style={[styles.creatorShop, { borderColor: colors.border, backgroundColor: colors.surface }]}
-            >
-              <Text style={{ color: colors.foreground, fontWeight: "700" }}>{s.name}</Text>
-              <Text style={{ color: colors.muted, fontSize: 11 }}>/shop/{s.slug}</Text>
-            </Pressable>
-          ))}
-        </>
-      ) : null}
+      <Text style={{ color: colors.foreground, fontWeight: "800", marginTop: 8 }}>Creator merch shops</Text>
+      <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+        Each creator sells their own merch at /shop/their-slug — not mixed into this catalog.
+      </Text>
+      {(creatorShops.data ?? []).length === 0 ? (
+        <Text style={{ color: colors.muted, fontSize: 12 }}>No creator shops listed yet.</Text>
+      ) : (
+        creatorShops.data!.map((s) => (
+          <Pressable
+            key={s.id}
+            onPress={() => router.push({ pathname: "/shop", params: { slug: s.slug } })}
+            style={[styles.creatorShop, { borderColor: colors.border, backgroundColor: colors.surface }]}
+          >
+            <Text style={{ color: colors.foreground, fontWeight: "700" }}>{s.name}</Text>
+            <Text style={{ color: colors.muted, fontSize: 11 }}>/shop/{s.slug}</Text>
+          </Pressable>
+        ))
+      )}
     </ScrollView>
   );
 }

@@ -136,6 +136,7 @@ export function purchaseExtraConcurrentSlot(params: {
   creatorId: string;
   plan: AiSubscriptionPlan;
   billingStateCode: string;
+  priceCents?: number;
 }): ConcurrentSlotLot {
   const email = params.userEmail.toLowerCase().trim();
   if (!email.includes("@")) {
@@ -150,7 +151,7 @@ export function purchaseExtraConcurrentSlot(params: {
     });
   }
 
-  const priceCents = getConcurrentSlotPriceCents(params.plan);
+  const priceCents = params.priceCents ?? getConcurrentSlotPriceCents(params.plan);
   calculateCustomerCheckout(priceCents, params.billingStateCode);
   const now = new Date();
   const durationDays = AI_SUBSCRIPTION_PLAN_DAYS[params.plan];

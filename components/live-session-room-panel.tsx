@@ -200,7 +200,7 @@ export function LiveSessionRoomPanel({ sessionId, creatorName, onLeft }: LiveSes
                   disabled={busy || !hasState}
                   style={[styles.btn, { backgroundColor: colors.primary, opacity: hasState ? 1 : 0.5 }]}
                 >
-                  <Text style={styles.btnText}>Pay $5 — 25 min speak time</Text>
+                  <Text style={styles.btnText}>Pay $5 — 20 min speak time</Text>
                 </Pressable>
               </View>
             ) : null}
@@ -220,7 +220,7 @@ export function LiveSessionRoomPanel({ sessionId, creatorName, onLeft }: LiveSes
               disabled={busy || !hasState}
               style={[styles.btn, { backgroundColor: colors.primary, opacity: hasState ? 1 : 0.5 }]}
             >
-              <Text style={styles.btnText}>Pay $5 — 25 min speak time</Text>
+              <Text style={styles.btnText}>Pay $5 — 20 min speak time</Text>
             </Pressable>
           </View>
         ) : (

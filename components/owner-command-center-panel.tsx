@@ -369,7 +369,7 @@ export function OwnerCommandCenterPanel() {
             <Text style={{ color: colors.foreground, fontSize: 13, lineHeight: 19 }}>{event.english}</Text>
             {event.originalExcerpt ? (
               <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
-                Original excerpt: {event.originalExcerpt}
+                Original (on file): {event.originalExcerpt}
               </Text>
             ) : null}
           </View>

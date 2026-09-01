@@ -134,13 +134,14 @@ export function purchaseWorkspace3dPlan(params: {
   plan: Workspace3dPlanId;
   billingStateCode: string;
   source?: Workspace3dSubscriptionRecord["source"];
+  priceCents?: number;
 }): Workspace3dSubscriptionRecord {
   const email = normalizeEmail(params.userEmail);
   if (!email.includes("@")) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Valid email required." });
   }
 
-  const priceCents = getWorkspace3dPlanPriceCents(params.plan);
+  const priceCents = params.priceCents ?? getWorkspace3dPlanPriceCents(params.plan);
   const checkout = calculateCustomerCheckout(priceCents, params.billingStateCode);
   const slots = getWorkspace3dConcurrentSlots(params.plan);
   const durationDays = WORKSPACE_3D_PLAN_DAYS[params.plan];
@@ -179,6 +180,7 @@ export function purchaseWorkspace3dExtraSlot(params: {
   userEmail: string;
   billingStateCode: string;
   source?: Workspace3dSubscriptionRecord["source"];
+  priceCents?: number;
 }): Workspace3dSubscriptionRecord {
   const sub = getActiveWorkspace3dSubscription(params.userId);
   if (!sub) {
@@ -188,7 +190,8 @@ export function purchaseWorkspace3dExtraSlot(params: {
     });
   }
 
-  const checkout = calculateCustomerCheckout(WORKSPACE_3D_EXTRA_AI_SLOT_CENTS, params.billingStateCode);
+  const slotCents = params.priceCents ?? WORKSPACE_3D_EXTRA_AI_SLOT_CENTS;
+  const checkout = calculateCustomerCheckout(slotCents, params.billingStateCode);
   sub.extraAiSlots += 1;
   sub.totalChargedCents += checkout.totalCents;
   subscriptionStore.set(subscriptionKey(params.userId), sub);

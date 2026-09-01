@@ -6,7 +6,6 @@ import {
   CREDIT_PRODUCTS,
   getCreditUpgradeOptions,
   getTextSubscriptionUpgradeOptions,
-  resolveCreditPurchase,
 } from "../../lib/usage-caps-catalog";
 import {
   buildCreditProductPlainPricing,
@@ -25,6 +24,7 @@ import { billingStateSchema } from "../../lib/billing-state-schema";
 import { formatUsd, getAiPriceTier } from "../../lib/ai-subscription-pricing";
 import { getActiveAiSubscription } from "../_core/ai-subscription-service";
 import { getAiUsageStatus } from "../_core/ai-usage-meter";
+import { liveCreditQuote, liveTextPassCents } from "../_core/owner-price-catalog-service";
 
 const productIdSchema = z.enum([
   "images-imagen",
@@ -41,38 +41,59 @@ const productIdSchema = z.enum([
 const periodSchema = z.enum(["day", "week", "month"]);
 
 export const usageCreditsRouter = router({
-  getCatalog: securePublicProcedure("usageCredits").query(() => {
+  getCatalog: securePublicProcedure("usageCredits").query(async () => {
+    const products = await Promise.all(
+      Object.values(CREDIT_PRODUCTS).map(async (p) => {
+        const plans = await Promise.all(
+          p.plans.map(async (plan) => {
+            const quote = await liveCreditQuote({
+              productId: p.id,
+              period: plan.period,
+            });
+            const priceCents = quote?.priceCents ?? plan.priceCents;
+            return {
+              period: plan.period,
+              priceDisplay: formatUsd(priceCents),
+              priceCents,
+              included: plan.included,
+              durationDays: plan.durationDays,
+              payReceiveLine: `You pay ${formatUsd(priceCents)} → You get ${plan.included} ${p.unit}`,
+            };
+          }),
+        );
+        const addons = await Promise.all(
+          (p.addons ?? []).map(async (a) => {
+            const quote = await liveCreditQuote({
+              productId: p.id,
+              addonId: a.id,
+            });
+            const priceCents = quote?.priceCents ?? a.priceCents;
+            return {
+              id: a.id,
+              label: a.label,
+              priceDisplay: formatUsd(priceCents),
+              priceCents,
+              included: a.included,
+              payReceiveLine: `You pay ${formatUsd(priceCents)} → You get ${a.included} ${p.unit}`,
+            };
+          }),
+        );
+        return {
+          id: p.id,
+          label: p.label,
+          unit: p.unit,
+          dailyHardCap: p.dailyHardCap,
+          plain: buildCreditProductPlainPricing(p.id),
+          plans,
+          addons,
+        };
+      }),
+    );
     return {
       headline: "You pay a clear price → You receive a fixed number of credits. No hidden unlimited use.",
       textSubscriptionExample: buildTextSubscriptionPlainPlans("ai-wellness-001"),
       platformCatalog: getPlatformPricingCatalog(),
-      products: Object.values(CREDIT_PRODUCTS).map((p) => ({
-        id: p.id,
-        label: p.label,
-        unit: p.unit,
-        dailyHardCap: p.dailyHardCap,
-        plain: buildCreditProductPlainPricing(p.id),
-        plans: p.plans.map((plan) => ({
-          period: plan.period,
-          priceDisplay: formatUsd(plan.priceCents),
-          priceCents: plan.priceCents,
-          included: plan.included,
-          durationDays: plan.durationDays,
-          payReceiveLine: buildCreditProductPlainPricing(p.id).plans.find(
-            (pl) => pl.period === plan.period,
-          )?.payReceiveLine,
-        })),
-        addons: (p.addons ?? []).map((a) => ({
-          id: a.id,
-          label: a.label,
-          priceDisplay: formatUsd(a.priceCents),
-          priceCents: a.priceCents,
-          included: a.included,
-          payReceiveLine: buildCreditProductPlainPricing(p.id).addons?.find(
-            (ad) => ad.label === a.label,
-          )?.payReceiveLine,
-        })),
-      })),
+      products,
     };
   }),
 
@@ -110,17 +131,31 @@ export const usageCreditsRouter = router({
         creatorId: z.string().trim().min(1).max(64).optional(),
       }),
     )
-    .query(({ input, ctx }) => {
+    .query(async ({ input, ctx }) => {
       const userId = String(ctx.user.id);
       const balance = getCreditBalance(userId, input.productId);
-      const creditOptions = getCreditUpgradeOptions({
-        productId: input.productId,
-        currentPeriod:
-          balance.activePeriod && balance.activePeriod !== "addon"
-            ? balance.activePeriod
-            : null,
-        currentRemaining: balance.remaining,
-      });
+      const creditOptions = await Promise.all(
+        getCreditUpgradeOptions({
+          productId: input.productId,
+          currentPeriod:
+            balance.activePeriod && balance.activePeriod !== "addon"
+              ? balance.activePeriod
+              : null,
+          currentRemaining: balance.remaining,
+        }).map(async (option) => {
+          const quote = await liveCreditQuote({
+            productId: input.productId,
+            period: option.period === "addon" ? undefined : (option.period as BillingPeriod),
+            addonId: option.addonId,
+          });
+          const priceCents = quote?.priceCents ?? option.priceCents;
+          return {
+            ...option,
+            priceCents,
+            priceDisplay: formatUsd(priceCents),
+          };
+        }),
+      );
 
       let textOptions: ReturnType<typeof getTextSubscriptionUpgradeOptions> = [];
       if (input.creatorId) {
@@ -131,12 +166,21 @@ export const usageCreditsRouter = router({
           creatorId: input.creatorId,
           isPlatformOwner: ctx.isPlatformOwner,
         });
-        textOptions = getTextSubscriptionUpgradeOptions({
-          tier: getAiPriceTier(input.creatorId),
-          creatorId: input.creatorId,
-          currentPlan: sub?.plan ?? null,
-          messagesRemaining: usage.messagesRemaining,
-        });
+        textOptions = await Promise.all(
+          getTextSubscriptionUpgradeOptions({
+            tier: getAiPriceTier(input.creatorId),
+            creatorId: input.creatorId,
+            currentPlan: sub?.plan ?? null,
+            messagesRemaining: usage.messagesRemaining,
+          }).map(async (option) => {
+            const priceCents = await liveTextPassCents(option.period as "day" | "week" | "month");
+            return {
+              ...option,
+              priceCents,
+              priceDisplay: formatUsd(priceCents),
+            };
+          }),
+        );
       }
 
       return {
@@ -160,9 +204,9 @@ export const usageCreditsRouter = router({
         clientPlatform: z.enum(["web", "native"]),
       }),
     )
-    .mutation(({ input, ctx }) => {
+    .mutation(async ({ input, ctx }) => {
       assertSimulatedPurchaseAllowed();
-      const resolved = resolveCreditPurchase({
+      const resolved = await liveCreditQuote({
         productId: input.productId,
         period: input.period as BillingPeriod | undefined,
         addonId: input.addonId,

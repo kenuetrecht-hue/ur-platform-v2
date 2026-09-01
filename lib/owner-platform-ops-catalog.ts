@@ -2,6 +2,7 @@ import type { AiCreatorCatalogEntry } from "./ai-creator-catalog";
 
 /** Owner-only ops AIs — not shown to regular users. */
 export const BUSINESS_STEWARD_AI_ID = "platform-business-steward-ai";
+export const WORLD_DIRECTOR_AI_ID = "platform-world-director-ai";
 
 export const OWNER_PLATFORM_OPS_CATALOG: AiCreatorCatalogEntry[] = [
   {
@@ -32,6 +33,14 @@ export const OWNER_PLATFORM_OPS_CATALOG: AiCreatorCatalogEntry[] = [
     avatar: "🛡️",
     category: "Owner Operations",
     mission: "Malware protection, security monitoring, and incident response.",
+  },
+  {
+    id: WORLD_DIRECTOR_AI_ID,
+    name: "World Director AI",
+    avatar: "🏙️",
+    category: "Owner Operations",
+    mission:
+      "Owner-only UR World watch — monitors member talk, red-flags rule breaks in English, pauses accounts for your review, and runs the city locker. Members cannot see this AI.",
   },
 ];
 

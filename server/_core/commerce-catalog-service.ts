@@ -21,7 +21,7 @@ import { submitFulfillmentOrder, type FulfillmentProvider } from "./commerce-ful
 export const STORE_MANAGER_AI_ID = "store-manager";
 
 export type StoreKind = "platform" | "creator";
-export type ProductSource = "dropship" | "affiliate" | "creator_merch";
+export type ProductSource = "dropship" | "affiliate" | "creator_merch" | "owner_digital";
 export type ProductStatus = "active" | "paused" | "archived";
 
 export type CommerceStore = {
@@ -45,6 +45,8 @@ export type StoreProduct = {
   sourceType: ProductSource;
   affiliateUrl?: string;
   supplier?: string;
+  /** Owner original goods — ebooks, songs, merch, other. */
+  digitalKind?: "ebook" | "song" | "merch" | "other";
   status: ProductStatus;
   category: string;
   tags: string[];
@@ -176,7 +178,7 @@ export function ensurePlatformStore(): CommerceStore {
       ownerUserId: "platform",
       name: "UR Platform Shop",
       slug: "shop",
-      tagline: "Curated dropship picks & affiliate deals — managed by Store Manager AI",
+      tagline: "UR originals (ebooks, songs, merch) and Amazon/Walmart picks. Creators sell merch in their own shops.",
       createdAt: now,
       updatedAt: now,
     };
@@ -254,6 +256,7 @@ export function addStoreProduct(params: {
   category?: string;
   tags?: string[];
   aiAssisted?: boolean;
+  digitalKind?: "ebook" | "song" | "merch" | "other";
 }): StoreProduct {
   const store = stores.get(params.storeId);
   if (!store) {
@@ -275,6 +278,7 @@ export function addStoreProduct(params: {
     sourceType: params.sourceType,
     affiliateUrl: params.affiliateUrl?.slice(0, 2000),
     supplier: params.supplier?.slice(0, 64),
+    digitalKind: params.sourceType === "owner_digital" ? params.digitalKind : undefined,
     status,
     category: params.category?.slice(0, 64) ?? "General",
     tags: (params.tags ?? []).slice(0, 10),
@@ -347,7 +351,9 @@ export function simulateProductPurchase(params: {
   products.set(product.id, product);
 
   const creatorShareCents =
-    store.kind === "creator" ? Math.floor((product.priceCents * CREATOR_SHARE_BPS) / 10000) : 0;
+    store.kind === "creator" && product.sourceType === "creator_merch"
+      ? Math.floor((product.priceCents * CREATOR_SHARE_BPS) / 10000)
+      : 0;
   const platformShareCents = product.priceCents - creatorShareCents;
 
   const order: StoreOrder = {
@@ -477,6 +483,7 @@ export function rotateCatalog(storeId: string): CatalogRotationResult {
   const activated: string[] = [];
 
   for (const p of active) {
+    if (p.sourceType === "owner_digital") continue;
     if (p.views >= 10 && p.orders === 0) {
       p.status = "archived";
       p.updatedAt = new Date().toISOString();
@@ -536,6 +543,21 @@ Top: ${ca.topProducts.map((p) => p.title).join(", ") || "none yet"}
   }
 
   context += `
+
+## Owner original merch (ebooks, songs, physical)
+List original ebooks, songs, and merch on the **platform shop only** (sourceType owner_digital). Those SKUs stay on the storefront during catalog rotation. UR keeps 100%. Checkout is still simulated until Stripe is live. Do **not** put owner goods in creator merch stores.
+
+## Creator merch stores (separate area)
+Enrolled creators already have their own shop at /shop/:slug and a Store tab in the Creator Dashboard. They list creator_merch there (85% creator / 15% UR). Never mix creator merch onto the platform shop.
+
+## Affiliate programs (Amazon Associates + Walmart Affiliates)
+Amazon and Walmart are the two retail networks wired here. They are sufficient for a large US merchandise catalog.
+- Owner pastes an official amazon.com or walmart.com product URL. Tracking tags come from AMAZON_ASSOCIATE_TAG / WALMART_TRACKING_ID after program approval (placeholder your-* values in .env are ignored).
+- Do not invent "high-paying" product URLs, ASINs, or guaranteed commissions. Suggest categories (lighting, mics, desk gear) and let the owner pick real listings.
+- FTC: disclose that UR Platform LLC may earn a commission.
+- Amazon Associates: no paid/incentivized reviews; do not hide the destination; do not use Amazon trademarks in ads except as their brand guidelines allow; qualifying purchases typically cookie ~24 hours.
+- Walmart Affiliates: disclose the relationship; do not fabricate product claims; disclose AI-enhanced imagery if used.
+- Affiliate/AI listings stay paused until the owner approves them in Administration.
 
 ## Your operational powers
 - Recommend which products to pause, archive, or promote

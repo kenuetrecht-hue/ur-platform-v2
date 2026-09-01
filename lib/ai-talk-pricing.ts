@@ -3,7 +3,7 @@
  *
  * Pay-as-you-go reference: 25¢ per minute.
  * Pack rule: every $1 purchased = 5 talk minutes.
- * $5 pack = 25 minutes — must checkout in the mobile app (see payment-channel-policy).
+ * $5 pack = 20 minutes at 25¢/min (no bonus minutes) — must checkout in the mobile app.
  * $120 pack = 500 minutes — bulk two-way voice, web checkout.
  * $200 pack = 1,000 minutes — heavy two-way voice, web checkout.
  */
@@ -17,8 +17,11 @@ export type AiTalkPackId = (typeof AI_TALK_PACK_IDS)[number];
 /** Published per-minute rate when buying à la carte (reference). */
 export const AI_TALK_RATE_CENTS_PER_MINUTE = 25;
 
-/** Minutes granted per whole dollar in a talk pack. */
+/** Minutes granted per whole dollar in a talk pack ($1 web pack). */
 export const AI_TALK_MINUTES_PER_DOLLAR = 5;
+
+/** $5 in-app pack — 20 minutes at 25¢/min, no bonus minutes. */
+export const AI_TALK_FIVE_DOLLAR_MINUTES = 20;
 
 /** Bulk pack — $120 for 500 talk minutes. */
 export const AI_TALK_BULK_500_PRICE_CENTS = 12_000;
@@ -60,12 +63,12 @@ export const AI_TALK_PACKS: Record<AiTalkPackId, AiTalkPack> = {
   talk_5: {
     id: "talk_5",
     label: "$5 Talk",
-    billedMinutes: computeTalkMinutesForDollars(5),
+    billedMinutes: AI_TALK_FIVE_DOLLAR_MINUTES,
     bonusMinutes: 0,
-    totalMinutes: computeTalkMinutesForDollars(5),
+    totalMinutes: AI_TALK_FIVE_DOLLAR_MINUTES,
     priceCents: 500,
     rateCentsPerMinute: AI_TALK_RATE_CENTS_PER_MINUTE,
-    tagline: "25 minutes for $5 — mobile app in-app purchase",
+    tagline: "20 minutes for $5 — mobile app in-app purchase",
     featured: true,
     requiredPaymentChannel: getRequiredPaymentChannel(500),
   },

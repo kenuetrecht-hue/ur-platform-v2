@@ -108,7 +108,7 @@ export function buildOvertimeNotice(params: {
 }
 
 export const LIVE_SESSION_SPEAK_DISCLOSURE =
-  "Voice back-and-forth with the AI in this group class requires purchased talk time ($1 / 5 min, $5 / 25 min, $120 / 500 min, or $200 / 1,000 min). " +
+  "Voice back-and-forth with the AI in this group class requires purchased talk time ($1 / 5 min, $5 / 20 min, $120 / 500 min, or $200 / 1,000 min). " +
   "Voice questions are answered before text questions in the queue.";
 
 export const LIVE_SESSION_OVERTIME_DISCLOSURE =

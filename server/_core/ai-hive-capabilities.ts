@@ -48,6 +48,7 @@ export const HIVE_CAPABILITY_OVERRIDES: Partial<
   "ai-songwriter-001": { imageGeneration: true },
   "ai-content-helper-001": { imageGeneration: true },
   "platform-business-steward-ai": { photoAnalysis: true, imageGeneration: true },
+  "platform-world-director-ai": { photoAnalysis: true, imageGeneration: true },
 };
 
 export function getHiveCapabilities(creatorId: string): HiveCapabilityFlags {
@@ -120,6 +121,11 @@ export const DOMAIN_KEYWORDS: Record<string, string[]> = {
     "urplatform", "creator payout", "runway", "conversion", "funnel", "signup",
     "app store", "play console", "aso", "cac", "unit economics", "gemini cost",
     "kyc", "landing page", "retention", "go-live", "operating cash",
+  ],
+  "platform-world-director-ai": [
+    "ur world", "avatar", "apparel", "locker", "cosmetic pack", "plaza", "gift pack",
+    "red flag", "review", "pause", "hate", "harassment", "reactivate", "discontinue",
+    "native language", "translate",
   ],
   "ai-marketing-001": ["marketing", "brand", "campaign", "seo", "ads", "social media", "audience"],
   "store-manager": ["store", "shop", "product", "dropship", "merch", "catalog", "sku", "inventory", "affiliate product", "storefront"],
@@ -263,6 +269,7 @@ export const HIVE_PEER_GRAPH: Record<string, string[]> = {
     "ai-product-001",
     "platform-administration-ai",
   ],
+  "platform-world-director-ai": ["platform-business-steward-ai", "ai-3d-specialist", "ai-logo-brand-001"],
   contentmate: ["linguamate", "ai-marketing-001", "ai-content-helper-001", "store-manager", "ai-culinary-001"],
   "store-manager": ["ai-3d-specialist", "ai-marketing-001", "contentmate", "ai-product-001"],
   linguamate: ["contentmate", "ai-translator-001"],

@@ -4,6 +4,15 @@
  */
 
 import { TRPCError } from "@trpc/server";
+import { isAllowedAffiliateProductUrl } from "../../lib/affiliate-link-policy";
+import {
+  getAmazonAssociateTag,
+  getCjDropshippingApiKey,
+  getPrintfulApiKey,
+  getPrintfulStoreId,
+  getPrintifyApiToken,
+  getWalmartTrackingId,
+} from "./secrets";
 
 export type FulfillmentProvider =
   | "printful"
@@ -68,15 +77,15 @@ const PROVIDER_DEFS: Omit<ProviderStatus, "configured">[] = [
 function readProviderConfigured(id: FulfillmentProvider): boolean {
   switch (id) {
     case "printful":
-      return Boolean(process.env.PRINTFUL_API_KEY?.trim());
+      return Boolean(getPrintfulApiKey());
     case "printify":
-      return Boolean(process.env.PRINTIFY_API_TOKEN?.trim());
+      return Boolean(getPrintifyApiToken());
     case "cj_dropshipping":
-      return Boolean(process.env.CJ_DROPSHIPPING_API_KEY?.trim());
+      return Boolean(getCjDropshippingApiKey());
     case "amazon_associates":
-      return Boolean(process.env.AMAZON_ASSOCIATE_TAG?.trim());
+      return Boolean(getAmazonAssociateTag());
     case "walmart_affiliate":
-      return Boolean(process.env.WALMART_TRACKING_ID?.trim());
+      return Boolean(getWalmartTrackingId());
     default:
       return false;
   }
@@ -99,26 +108,25 @@ export function buildAffiliateOutboundUrl(params: {
   if (!url.startsWith("http")) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Product URL must start with http(s)." });
   }
+  if (!isAllowedAffiliateProductUrl(url, params.provider)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message:
+        params.provider === "amazon_associates"
+          ? "Use an official Amazon product page (amazon.com, amzn.to, or a.co)."
+          : "Use an official Walmart product page (walmart.com).",
+    });
+  }
 
   if (params.provider === "amazon_associates") {
-    const tag = process.env.AMAZON_ASSOCIATE_TAG?.trim();
-    if (!tag) {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message: "Set AMAZON_ASSOCIATE_TAG in .env after Amazon Associates approval.",
-      });
-    }
+    const tag = getAmazonAssociateTag();
+    if (!tag) return url;
     const sep = url.includes("?") ? "&" : "?";
     return `${url}${sep}tag=${encodeURIComponent(tag)}`;
   }
 
-  const affid = process.env.WALMART_TRACKING_ID?.trim();
-  if (!affid) {
-    throw new TRPCError({
-      code: "PRECONDITION_FAILED",
-      message: "Set WALMART_TRACKING_ID in .env after Walmart Affiliates approval.",
-    });
-  }
+  const affid = getWalmartTrackingId();
+  if (!affid) return url;
   const sep = url.includes("?") ? "&" : "?";
   return `${url}${sep}affid=${encodeURIComponent(affid)}`;
 }
@@ -185,8 +193,8 @@ export async function submitFulfillmentOrder(
 }
 
 async function submitPrintfulOrder(params: FulfillmentOrderRequest): Promise<FulfillmentOrderResult> {
-  const apiKey = process.env.PRINTFUL_API_KEY!.trim();
-  const storeId = process.env.PRINTFUL_STORE_ID?.trim();
+  const apiKey = getPrintfulApiKey();
+  const storeId = getPrintfulStoreId();
   // Live POST https://api.printful.com/v2/orders when LLC + Printful account ready
   void apiKey;
   void storeId;

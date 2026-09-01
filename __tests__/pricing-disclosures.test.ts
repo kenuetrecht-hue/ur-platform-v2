@@ -52,7 +52,7 @@ describe("pricing-disclosures", () => {
     expect(summary.pricing.subtotalDisplay).toContain("$5.00");
     expect(summary.pricing.salesTaxCents).toBeGreaterThan(0);
     expect(summary.youPay.value).toContain(checkout.totalDisplay);
-    expect(summary.youReceive.some((l) => l.value.includes("25 minutes"))).toBe(true);
+    expect(summary.youReceive.some((l) => l.value.includes("20 minutes"))).toBe(true);
     expect(summary.youReceive.some((l) => l.label === "Must use within" && l.value.includes("lose what isn't used"))).toBe(true);
     expect(summary.youReceive.some((l) => l.label === "If unused after 30 days")).toBe(true);
     expect(summary.notIncluded.some((s) => s.includes("Text chat"))).toBe(true);

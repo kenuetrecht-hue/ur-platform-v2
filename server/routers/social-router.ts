@@ -2,6 +2,13 @@ import { z } from "zod";
 import { secureProcedure, router } from "../_core/trpc";
 import { assertUserIsAgeVerified } from "../_core/age-kyc-service";
 import {
+  getNativeLanguage,
+  recordAndMonitorCommunication,
+  throwIfWorldFlagged,
+  translateForMember,
+} from "../_core/world-monitor-service";
+import { requireWorldAccess } from "./conduct-router";
+import {
   acceptFriendRequest,
   getSocialDashboard,
   listDirectMessages,
@@ -142,13 +149,29 @@ export const socialRouter = router({
         body: z.string().min(1).max(2000),
       }),
     )
-    .mutation(({ ctx, input }) =>
-      sendDirectMessage({
+    .mutation(async ({ ctx, input }) => {
+      requireWorldAccess(ctx);
+      const { flag } = await recordAndMonitorCommunication({
+        channel: "direct_message",
+        userId: String(ctx.user.id),
+        userEmail: ctx.user.email ?? undefined,
+        peerId: input.recipientUserId,
+        original: input.body,
+        isPlatformOwner: ctx.isPlatformOwner,
+      });
+      throwIfWorldFlagged(flag);
+      const recipientNative = getNativeLanguage(input.recipientUserId);
+      const deliveredBody =
+        recipientNative !== "English"
+          ? await translateForMember(input.body, recipientNative)
+          : undefined;
+      return sendDirectMessage({
         senderUserId: String(ctx.user.id),
         recipientUserId: input.recipientUserId,
         body: input.body,
-      }),
-    ),
+        deliveredBody,
+      });
+    }),
 
   listMessages: secureProcedure("social")
     .input(z.object({ withUserId: z.string().min(1), limit: z.number().int().min(1).max(200).optional() }))
@@ -182,8 +205,17 @@ export const socialRouter = router({
         body: z.string().min(1).max(2000),
       }),
     )
-    .mutation(({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
+      requireWorldAccess(ctx);
       const userId = socialUser(ctx);
+      const { flag } = await recordAndMonitorCommunication({
+        channel: "direct_message",
+        userId,
+        userEmail: ctx.user.email ?? undefined,
+        original: `${input.subject}\n${input.body}`,
+        isPlatformOwner: ctx.isPlatformOwner,
+      });
+      throwIfWorldFlagged(flag);
       return sendPlatformMail({
         senderUserId: userId,
         senderEmail: ctx.user.email ?? "",
@@ -379,7 +411,16 @@ export const socialRouter = router({
     .input(createPostInputSchema)
     .mutation(async ({ ctx, input }) => {
       await assertUserIsAgeVerified(ctx.user.id);
+      requireWorldAccess(ctx);
       const userId = socialUser(ctx);
+      const { flag } = await recordAndMonitorCommunication({
+        channel: "social_post",
+        userId,
+        userEmail: ctx.user.email ?? undefined,
+        original: input.body,
+        isPlatformOwner: ctx.isPlatformOwner,
+      });
+      throwIfWorldFlagged(flag);
       const post = createFeedPost({
         authorUserId: userId,
         authorEmail: ctx.user.email ?? "",
@@ -418,7 +459,16 @@ export const socialRouter = router({
     .input(z.object({ postId: z.string().uuid(), body: z.string().min(1).max(1000) }))
     .mutation(async ({ ctx, input }) => {
       await assertUserIsAgeVerified(ctx.user.id);
+      requireWorldAccess(ctx);
       const userId = socialUser(ctx);
+      const { flag } = await recordAndMonitorCommunication({
+        channel: "social_post",
+        userId,
+        userEmail: ctx.user.email ?? undefined,
+        original: input.body,
+        isPlatformOwner: ctx.isPlatformOwner,
+      });
+      throwIfWorldFlagged(flag);
       return addPostComment({
         postId: input.postId,
         authorUserId: userId,

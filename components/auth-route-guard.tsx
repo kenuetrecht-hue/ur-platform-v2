@@ -4,6 +4,8 @@ import { useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { trpc } from "@/lib/trpc";
+import { ConductAgreementGate } from "@/components/conduct-agreement-gate";
+import { WorldReviewHoldGate } from "@/components/world-review-hold-gate";
 
 function isAuthRoute(segments: string[]): boolean {
   const root = segments[0];
@@ -40,6 +42,12 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     retry: 1,
     staleTime: 15_000,
   });
+  const conductQuery = trpc.conduct.status.useQuery(undefined, {
+    enabled: clientReady && isAuthenticated && kycQuery.data?.verified === true,
+    retry: 1,
+    staleTime: 8_000,
+    refetchInterval: 8_000,
+  });
 
   useEffect(() => {
     setClientReady(true);
@@ -57,7 +65,8 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       segments[0] === "jobsite" ||
       segments[0] === "owner-ops" ||
       segments[0] === "3d-workspace" ||
-      segments[0] === "playroom";
+      segments[0] === "playroom" ||
+      segments[0] === "world";
 
     if (!isAuthenticated && (inProtectedRoute || inAgeVerify)) {
       router.replace("/login");
@@ -109,6 +118,31 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
       </View>
+    );
+  }
+
+  const kycVerified = kycQuery.data?.verified === true;
+  const inProduct =
+    isAuthenticated && kycVerified && !isAgeVerifyRoute(segments) && !isAuthRoute(segments);
+
+  if (inProduct && conductQuery.isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (inProduct && conductQuery.data?.required === true && conductQuery.data?.accepted === false) {
+    return <ConductAgreementGate />;
+  }
+
+  if (inProduct && conductQuery.data?.reviewHold) {
+    return (
+      <WorldReviewHoldGate
+        status={conductQuery.data.reviewHold.status}
+        memberWarning={conductQuery.data.reviewHold.memberWarning}
+      />
     );
   }
 

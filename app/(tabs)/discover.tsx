@@ -37,7 +37,7 @@ export default function DiscoverScreen() {
           subtitle="Find creators, trending content, and all AI specialists."
         />
 
-        <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+        <View style={{ paddingHorizontal: 16, marginBottom: 12, gap: 10 }}>
           <Pressable
             onPress={() => router.push("/ais")}
             style={{
@@ -59,6 +59,30 @@ export default function DiscoverScreen() {
               </Text>
             </View>
             <IconSymbol name="chevron.right" size={18} color="#fff" />
+          </Pressable>
+          <Pressable
+            onPress={() => router.push("/world")}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 14,
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 14,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <Text style={{ fontSize: 28 }}>🏙️</Text>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ fontSize: 17, fontWeight: "700", color: colors.foreground }}>
+                UR World — Civic Plaza
+              </Text>
+              <Text style={{ fontSize: 13, color: colors.muted }}>
+                Walk your avatar · talk at a desk · same Talk Time packs
+              </Text>
+            </View>
+            <IconSymbol name="chevron.right" size={18} color={colors.muted} />
           </Pressable>
         </View>
 

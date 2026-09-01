@@ -1,5 +1,5 @@
 /**
- * Hard-coded AI talk-time policy — $5 / 25 minutes, 30-day expiry, millisecond metering.
+ * Hard-coded AI talk-time policy — $5 / 20 minutes, 30-day expiry, millisecond metering.
  */
 
 import type { AiTalkPackId } from "./ai-talk-pricing";
@@ -31,7 +31,7 @@ export const AI_TALK_EXPIRY_PURCHASE_DISCLOSURE =
 export const AI_TALK_EXPIRY_TRACKER_HEADLINE = "Use it within 30 days or you lose what isn't used";
 
 export const AI_TALK_FIVE_DOLLAR_PACK_DISCLOSURE =
-  "The $5 mobile-app pack includes exactly 25 minutes of AI speech time. Every second is tracked. Unused minutes expire 30 days after purchase.";
+  "The $5 mobile-app pack includes exactly 20 minutes of AI speech time. Every second is tracked. Unused minutes expire 30 days after purchase.";
 
 export const AI_TALK_BULK_500_PACK_DISCLOSURE =
   "The $120 web pack includes exactly 500 minutes of AI speech time for two-way voice with the AIs. Every second is tracked. Unused minutes expire 30 days after purchase.";

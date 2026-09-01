@@ -25,9 +25,9 @@ import {
 describe("ai-talk-time-tracker", () => {
   beforeEach(() => _clearTalkTimeForTests());
 
-  it("hard-codes $5 pack as 25 minutes in milliseconds", () => {
-    expect(packTotalMilliseconds("talk_5")).toBe(25 * 60_000);
-    expect(minutesToMilliseconds(25)).toBe(1_500_000);
+  it("hard-codes $5 pack as 20 minutes in milliseconds", () => {
+    expect(packTotalMilliseconds("talk_5")).toBe(20 * 60_000);
+    expect(minutesToMilliseconds(20)).toBe(1_200_000);
   });
 
   it("creates lots that expire in 30 days", () => {
@@ -40,7 +40,7 @@ describe("ai-talk-time-tracker", () => {
     });
     const expiresMs = Date.parse(lot.expiresAt);
     expect(expiresMs - purchasedAt).toBe(AI_TALK_LOT_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
-    expect(lot.millisecondsIncluded).toBe(1_500_000);
+    expect(lot.millisecondsIncluded).toBe(1_200_000);
   });
 
   it("deducts speech to the millisecond", () => {
@@ -52,7 +52,7 @@ describe("ai-talk-time-tracker", () => {
       source: "voice_synthesis",
     });
     expect(usage.durationMs).toBe(3250);
-    expect(getTalkMillisecondsRemaining("u1")).toBe(1_500_000 - 3250);
+    expect(getTalkMillisecondsRemaining("u1")).toBe(1_200_000 - 3250);
     expect(getSpeechUsageLog("u1")).toHaveLength(1);
   });
 
@@ -63,7 +63,7 @@ describe("ai-talk-time-tracker", () => {
 
   it("expires unused balance after 30 days", () => {
     createTalkTimeLot({ userId: "u1", packId: "talk_5", priceCents: 500 });
-    expect(getTalkMillisecondsRemaining("u1")).toBe(1_500_000);
+    expect(getTalkMillisecondsRemaining("u1")).toBe(1_200_000);
     _expireTalkLotsForTests("u1");
     expect(getTalkMillisecondsRemaining("u1")).toBe(0);
   });

@@ -11,6 +11,7 @@ import {
   assertProductVisibleToPublic,
   setAffiliateApproval,
 } from "../server/_core/commerce-affiliate-compliance";
+import { isUnsetOrPlaceholderEnv } from "../lib/affiliate-link-policy";
 
 describe("Commerce fulfillment adapters", () => {
   const envBackup = { ...process.env };
@@ -33,6 +34,34 @@ describe("Commerce fulfillment adapters", () => {
       productUrl: "https://www.amazon.com/dp/B001",
     });
     expect(url).toContain("tag=ur-platform-20");
+  });
+
+  it("treats empty and your-* env values as placeholders", () => {
+    expect(isUnsetOrPlaceholderEnv("")).toBe(true);
+    expect(isUnsetOrPlaceholderEnv("your-amazon-associate-tag")).toBe(true);
+    expect(isUnsetOrPlaceholderEnv("ur-platform-20")).toBe(false);
+  });
+
+  it("treats placeholder affiliate tags as unconfigured", () => {
+    process.env.AMAZON_ASSOCIATE_TAG = "your-amazon-associate-tag";
+    process.env.WALMART_TRACKING_ID = "your-walmart-tracking-id";
+    expect(isProviderConfigured("amazon_associates")).toBe(false);
+    expect(isProviderConfigured("walmart_affiliate")).toBe(false);
+    const url = buildAffiliateOutboundUrl({
+      provider: "amazon_associates",
+      productUrl: "https://www.amazon.com/dp/B001",
+    });
+    expect(url).not.toContain("tag=");
+  });
+
+  it("rejects non-Amazon/Walmart affiliate URLs", () => {
+    process.env.AMAZON_ASSOCIATE_TAG = "ur-platform-20";
+    expect(() =>
+      buildAffiliateOutboundUrl({
+        provider: "amazon_associates",
+        productUrl: "https://evil.example/product",
+      }),
+    ).toThrow();
   });
 
   it("simulates Printful order when key missing", async () => {

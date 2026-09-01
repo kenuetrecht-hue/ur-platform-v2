@@ -70,7 +70,9 @@ export function approveAffiliateProduct(params: {
 export const AFFILIATE_AI_COMPLIANCE_RULES = [
   "All AI-generated affiliate copy must be reviewed by the platform owner before going live.",
   "Never use Amazon/Walmart product data to train AI models.",
-  "Disclose affiliate relationship and AI assistance on every listing.",
+  "Disclose the affiliate relationship (FTC) and AI assistance on every listing.",
   "Product claims must match the actual item — no fabricated reviews or endorsements.",
-  "Walmart AI policy: disclose AI-enhanced product imagery when applicable.",
+  "Amazon Associates: no paid or incentivized reviews; do not cloak or wrap links to hide the destination; follow Amazon brand guidelines for trademarks in ads.",
+  "Walmart Affiliates: honest claims only; disclose AI-enhanced product imagery when applicable.",
+  "Only official amazon.com / walmart.com product URLs — tracking tags come from AMAZON_ASSOCIATE_TAG and WALMART_TRACKING_ID after each program approves the LLC.",
 ] as const;

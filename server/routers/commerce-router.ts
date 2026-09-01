@@ -32,6 +32,8 @@ import {
   type FulfillmentProvider,
 } from "../_core/commerce-fulfillment-adapters";
 import { getContentCreatorProfile } from "../_core/partner-program-service";
+import { sanitizeUserText } from "../_core/input-sanitize";
+import { affiliateNetworkFromUrl, OWNER_DIGITAL_KINDS } from "../../lib/affiliate-link-policy";
 
 export const commerceRouter = router({
   /** Provider readiness — add API keys in .env when you sign up with each company. */
@@ -81,6 +83,17 @@ export const commerceRouter = router({
     return listStoreProducts(store.id, true)
       .map((p) => getProductWithApproval(p.id))
       .filter((p) => p && p.approval === "pending");
+  }),
+
+  ownerPlatformCatalog: ownerProcedure.query(() => {
+    const store = ensurePlatformStore();
+    return {
+      store,
+      products: listStoreProducts(store.id, true).map((p) => ({
+        ...p,
+        approval: getProductWithApproval(p.id)?.approval ?? "not_required",
+      })),
+    };
   }),
 
   approveAffiliateProduct: ownerProcedure
@@ -150,21 +163,78 @@ export const commerceRouter = router({
         description: z.string().max(2000).default(""),
         priceCents: z.number().int().min(99).max(999999),
         imageUrl: z.string().max(2000).optional(),
-        sourceType: z.enum(["dropship", "affiliate", "creator_merch"]),
+        sourceType: z.enum(["dropship", "affiliate", "creator_merch", "owner_digital"]),
         affiliateUrl: z.string().max(2000).optional(),
         supplier: z.string().max(64).optional(),
         category: z.string().max(64).optional(),
         tags: z.array(z.string().max(32)).max(10).optional(),
         aiAssisted: z.boolean().optional(),
+        digitalKind: z.enum(OWNER_DIGITAL_KINDS).optional(),
       }),
     )
     .mutation(({ ctx, input }) => {
-      assertCanManageStore({
+      const store = assertCanManageStore({
         userId: String(ctx.user.id),
         storeId: input.storeId,
         isPlatformOwner: ctx.isPlatformOwner,
       });
-      const product = addStoreProduct(input);
+
+      if (input.sourceType === "creator_merch") {
+        if (store.kind !== "creator") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Creator merch belongs in the creator's own store, not the UR shop.",
+          });
+        }
+      } else {
+        if (store.kind !== "platform") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Owner originals and affiliate picks list on the UR shop only. Creators keep their own merch stores.",
+          });
+        }
+        if (!ctx.isPlatformOwner) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only the platform owner may list products on the UR shop.",
+          });
+        }
+      }
+
+      let affiliateUrl = input.affiliateUrl?.trim();
+      let supplier = input.supplier;
+      if (input.sourceType === "affiliate") {
+        if (!affiliateUrl) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Paste an official Amazon or Walmart product URL.",
+          });
+        }
+        const network = affiliateNetworkFromUrl(affiliateUrl);
+        if (!network) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Affiliate listings must be official amazon.com or walmart.com product pages.",
+          });
+        }
+        supplier = network;
+        affiliateUrl = buildAffiliateOutboundUrl({ provider: network, productUrl: affiliateUrl });
+      }
+
+      const product = addStoreProduct({
+        storeId: input.storeId,
+        title: sanitizeUserText(input.title, 120),
+        description: sanitizeUserText(input.description, 2000),
+        priceCents: input.priceCents,
+        imageUrl: input.imageUrl ? sanitizeUserText(input.imageUrl, 2000) : undefined,
+        sourceType: input.sourceType,
+        affiliateUrl,
+        supplier,
+        category: input.category ? sanitizeUserText(input.category, 64) : undefined,
+        tags: input.tags?.map((t) => sanitizeUserText(t, 32)).filter(Boolean),
+        aiAssisted: input.aiAssisted,
+        digitalKind: input.sourceType === "owner_digital" ? (input.digitalKind ?? "other") : undefined,
+      });
       return {
         ...product,
         approval: getProductWithApproval(product.id)?.approval ?? "not_required",

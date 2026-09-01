@@ -179,8 +179,9 @@ export function buildSubscriptionPurchaseSummary(params: {
   tier: AiPriceTier;
   tierLabel: string;
   stateCode?: UsStateCode | null;
+  priceCents?: number;
 }): PurchaseSummary {
-  const priceCents = getPlanPriceCents(params.creatorId, params.plan);
+  const priceCents = params.priceCents ?? getPlanPriceCents(params.creatorId, params.plan);
   const allowance = getUsageAllowanceQuote(params.plan, params.tier);
   const days = AI_SUBSCRIPTION_PLAN_DAYS[params.plan];
   const planLabel =
@@ -249,10 +250,12 @@ export function buildSubscriptionPurchaseSummary(params: {
 export function buildTalkPurchaseSummary(
   packId: AiTalkPackId,
   stateCode?: UsStateCode | null,
+  priceCents?: number,
 ): PurchaseSummary {
   const pack = getAiTalkPack(packId);
-  const { pricing, youPay, priceBreakdown } = buildPricingBlock(pack.priceCents, stateCode, "one-time");
-  const channel = getRequiredPaymentChannel(pack.priceCents);
+  const liveCents = priceCents ?? pack.priceCents;
+  const { pricing, youPay, priceBreakdown } = buildPricingBlock(liveCents, stateCode, "one-time");
+  const channel = getRequiredPaymentChannel(liveCents);
 
   return {
     productType: "ai_talk",
@@ -311,6 +314,7 @@ export function buildUsageCreditPurchaseSummary(params: {
   period?: BillingPeriod;
   addonId?: string;
   stateCode?: UsStateCode | null;
+  priceCents?: number;
 }): PurchaseSummary | null {
   const resolved = resolveCreditPurchase({
     productId: params.productId,
@@ -322,7 +326,7 @@ export function buildUsageCreditPurchaseSummary(params: {
   const plain = buildCreditProductPlainPricing(params.productId);
   const product = CREDIT_PRODUCTS[params.productId];
   const { pricing, youPay, priceBreakdown } = buildPricingBlock(
-    resolved.priceCents,
+    params.priceCents ?? resolved.priceCents,
     params.stateCode,
     params.addonId ? "one-time top-up" : "one-time",
   );
@@ -375,8 +379,9 @@ export function buildUsageCreditPurchaseSummary(params: {
 export function buildWorkspace3dPurchaseSummary(params: {
   planId: Workspace3dPlanId;
   stateCode?: UsStateCode | null;
+  priceCents?: number;
 }): PurchaseSummary {
-  const priceCents = getWorkspace3dPlanPriceCents(params.planId);
+  const priceCents = params.priceCents ?? getWorkspace3dPlanPriceCents(params.planId);
   const slots = getWorkspace3dConcurrentSlots(params.planId);
   const days = WORKSPACE_3D_PLAN_DAYS[params.planId];
   const planLabel = getWorkspace3dPlanLabel(params.planId);
@@ -430,9 +435,10 @@ export function buildWorkspace3dPurchaseSummary(params: {
 
 export function buildWorkspace3dExtraSlotPurchaseSummary(
   stateCode?: UsStateCode | null,
+  priceCents = WORKSPACE_3D_EXTRA_AI_SLOT_CENTS,
 ): PurchaseSummary {
   const { pricing, youPay, priceBreakdown } = buildPricingBlock(
-    WORKSPACE_3D_EXTRA_AI_SLOT_CENTS,
+    priceCents,
     stateCode,
     "one-time, 30 days (matches active workspace plan)",
   );

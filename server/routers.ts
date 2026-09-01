@@ -28,6 +28,7 @@ import { partnerDashboardRouter } from "./routers/partner-dashboard-router";
 import { socialRouter } from "./routers/social-router";
 import { contentProtectionRouter } from "./routers/content-protection-router";
 import { commerceRouter } from "./routers/commerce-router";
+import { urWorldRouter } from "./routers/ur-world-router";
 import { blueprintReaderRouter } from "./routers/blueprint-reader-router";
 import { aiSubscriptionRouter } from "./routers/ai-subscription-router";
 import { aiTalkRouter } from "./routers/ai-talk-router";
@@ -39,6 +40,7 @@ import { landingRouter } from "./routers/landing-router";
 import { jobsiteRouter } from "./routers/jobsite-router";
 import { muxVideoRouter } from "./routers/mux-video-router";
 import { ageKycRouter } from "./routers/age-kyc-router";
+import { conductRouter } from "./routers/conduct-router";
 import { destroyAllSessionsForUser } from "./_core/forge-session-manager";
 import { getAgeKycPublicStatus } from "./_core/age-kyc-service";
 import { isSupabaseAuthReachable } from "./supabase-auth";
@@ -238,6 +240,7 @@ export const appRouter = router({
   social: socialRouter,
   contentProtection: contentProtectionRouter,
   commerce: commerceRouter,
+  urWorld: urWorldRouter,
   blueprintReader: blueprintReaderRouter,
   aiSubscription: aiSubscriptionRouter,
   aiTalk: aiTalkRouter,
@@ -247,6 +250,7 @@ export const appRouter = router({
   jobsite: jobsiteRouter,
   muxVideo: muxVideoRouter,
   ageKyc: ageKycRouter,
+  conduct: conductRouter,
 });
 
 export type AppRouter = typeof appRouter;

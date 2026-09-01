@@ -1,7 +1,9 @@
-import { View, Text, Pressable, ActivityIndicator, StyleSheet, Linking } from "react-native";
+import { useState } from "react";
+import { View, Text, Pressable, ActivityIndicator, StyleSheet, Linking, TextInput } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
+import { OWNER_DIGITAL_KIND_LABEL, OWNER_DIGITAL_KINDS, type OwnerDigitalKind } from "@/lib/affiliate-link-policy";
 
 /** Owner commerce dashboard — provider keys, affiliate approvals, catalog sync. */
 export function CommerceOpsPanel() {
@@ -19,6 +21,27 @@ export function CommerceOpsPanel() {
   const sync = trpc.commerce.syncProviderCatalog.useMutation({
     onSuccess: () => void utils.commerce.platformShop.invalidate(),
   });
+  const catalog = trpc.commerce.ownerPlatformCatalog.useQuery(undefined, {
+    enabled: isPlatformOwner,
+  });
+  const addProduct = trpc.commerce.addProduct.useMutation({
+    onSuccess: () => {
+      setTitle("");
+      setDescription("");
+      setAffiliateUrl("");
+      setImageUrl("");
+      void utils.commerce.platformShop.invalidate();
+      void utils.commerce.ownerPlatformCatalog.invalidate();
+      void utils.commerce.pendingAffiliateApprovals.invalidate();
+    },
+  });
+  const [listingKind, setListingKind] = useState<"owner_digital" | "affiliate">("owner_digital");
+  const [digitalKind, setDigitalKind] = useState<OwnerDigitalKind>("ebook");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("9.99");
+  const [imageUrl, setImageUrl] = useState("");
+  const [affiliateUrl, setAffiliateUrl] = useState("");
 
   if (status.isLoading) {
     return <ActivityIndicator color={colors.primary} style={{ margin: 16 }} />;
@@ -71,6 +94,137 @@ export function CommerceOpsPanel() {
 
       {isPlatformOwner ? (
         <>
+          <Text style={[styles.section, { color: colors.foreground, marginTop: 12 }]}>
+            List on the UR shop (not creator stores)
+          </Text>
+          <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16, marginBottom: 8 }}>
+            Creators already list merch in their own shops. Use this form for your ebooks, songs, merch,
+            and Amazon/Walmart affiliate picks.
+          </Text>
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+            {(
+              [
+                { id: "owner_digital" as const, label: "Your original" },
+                { id: "affiliate" as const, label: "Amazon / Walmart" },
+              ]
+            ).map((opt) => (
+              <Pressable
+                key={opt.id}
+                onPress={() => setListingKind(opt.id)}
+                style={[
+                  styles.chip,
+                  {
+                    borderColor: listingKind === opt.id ? colors.primary : colors.border,
+                    backgroundColor: listingKind === opt.id ? `${colors.primary}18` : colors.background,
+                  },
+                ]}
+              >
+                <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: "700" }}>{opt.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          {listingKind === "owner_digital" ? (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+              {OWNER_DIGITAL_KINDS.map((kind) => (
+                <Pressable
+                  key={kind}
+                  onPress={() => setDigitalKind(kind)}
+                  style={[
+                    styles.chip,
+                    {
+                      borderColor: digitalKind === kind ? colors.primary : colors.border,
+                      backgroundColor: digitalKind === kind ? `${colors.primary}18` : colors.background,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: colors.foreground, fontSize: 10, fontWeight: "600" }}>
+                    {OWNER_DIGITAL_KIND_LABEL[kind]}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            placeholder="Title"
+            maxLength={120}
+            placeholderTextColor={colors.muted}
+            style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+          />
+          <TextInput
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Description (FTC disclosure for affiliate picks)"
+            maxLength={2000}
+            multiline
+            placeholderTextColor={colors.muted}
+            style={[styles.input, { borderColor: colors.border, color: colors.foreground, minHeight: 56 }]}
+          />
+          <TextInput
+            value={price}
+            onChangeText={setPrice}
+            placeholder="Display price USD"
+            keyboardType="decimal-pad"
+            placeholderTextColor={colors.muted}
+            style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+          />
+          <TextInput
+            value={imageUrl}
+            onChangeText={setImageUrl}
+            placeholder="Image URL (optional)"
+            maxLength={2000}
+            autoCapitalize="none"
+            placeholderTextColor={colors.muted}
+            style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+          />
+          {listingKind === "affiliate" ? (
+            <TextInput
+              value={affiliateUrl}
+              onChangeText={setAffiliateUrl}
+              placeholder="Official amazon.com or walmart.com product URL"
+              maxLength={2000}
+              autoCapitalize="none"
+              placeholderTextColor={colors.muted}
+              style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+            />
+          ) : null}
+          <Pressable
+            disabled={
+              !title.trim() ||
+              addProduct.isPending ||
+              !catalog.data?.store.id ||
+              (listingKind === "affiliate" && !affiliateUrl.trim())
+            }
+            onPress={() => {
+              const priceCents = Math.round(parseFloat(price || "0") * 100);
+              if (!Number.isFinite(priceCents) || priceCents < 99) return;
+              addProduct.mutate({
+                storeId: catalog.data!.store.id,
+                title: title.trim(),
+                description: description.trim(),
+                priceCents,
+                imageUrl: imageUrl.trim() || undefined,
+                sourceType: listingKind,
+                digitalKind: listingKind === "owner_digital" ? digitalKind : undefined,
+                affiliateUrl: listingKind === "affiliate" ? affiliateUrl.trim() : undefined,
+                category: listingKind === "owner_digital" ? OWNER_DIGITAL_KIND_LABEL[digitalKind] : "Affiliate",
+              });
+            }}
+            style={[styles.listBtn, { backgroundColor: colors.primary }]}
+          >
+            <Text style={styles.approveText}>
+              {addProduct.isPending
+                ? "Listing…"
+                : listingKind === "affiliate"
+                  ? "Add affiliate pick (pauses until you approve)"
+                  : "List original on UR shop"}
+            </Text>
+          </Pressable>
+          {addProduct.error ? (
+            <Text style={{ color: "#dc2626", fontSize: 11 }}>{addProduct.error.message}</Text>
+          ) : null}
+
           <Text style={[styles.section, { color: colors.foreground, marginTop: 12 }]}>
             Pending affiliate / AI listings ({pending.data?.length ?? 0})
           </Text>
@@ -142,4 +296,7 @@ const styles = StyleSheet.create({
   smallBtn: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6 },
   approveBtn: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
   approveText: { color: "#fff", fontWeight: "700", fontSize: 11 },
+  chip: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6 },
+  input: { borderWidth: 1, borderRadius: 10, padding: 10, fontSize: 13, marginTop: 6 },
+  listBtn: { borderRadius: 10, padding: 12, alignItems: "center", marginTop: 8 },
 });

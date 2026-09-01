@@ -15,6 +15,7 @@ export const BUSINESS_STEWARD_ADMIN_HREF = adminTabHref(BUSINESS_STEWARD_AI_ID);
 export const ADMIN_QUICK_HREFS = {
   allAis: "/(tabs)/ais",
   lab3d: "/3d-workspace",
+  world: "/world",
   create: "/(tabs)/create",
   discover: "/(tabs)/discover",
 } as const;

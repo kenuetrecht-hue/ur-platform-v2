@@ -42,5 +42,6 @@ describe("platform-section-flags", () => {
     expect(inferSectionFromOpsText("isolate the 3d workspace due to bug")).toBe("3d_workspace");
     expect(inferSectionFromOpsText("hive town hall errors")).toBe("hive_town_hall");
     expect(inferSectionFromOpsText("clock in failed on the job site")).toBe("jobsite");
+    expect(inferSectionFromOpsText("UR World plaza is down")).toBe("ur_world");
   });
 });

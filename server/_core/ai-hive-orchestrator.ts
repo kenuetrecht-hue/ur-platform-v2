@@ -271,6 +271,7 @@ export async function runHiveConsultation(params: {
   userId: string;
   history?: GoogleChatTurn[];
   attachments?: Array<{ mimeType: string; base64: string }>;
+  responseLanguage?: string;
 }): Promise<{
   reply: string;
   model: string;
@@ -301,6 +302,7 @@ export async function runHiveConsultation(params: {
       systemPrompt: peerPromptResult.systemPrompt,
       history: [],
       message: `[Hive consultation request from ${def.name}]\n\nProblem: ${params.message}\n\nProvide your domain-specific insight only.`,
+      responseLanguage: params.responseLanguage,
     });
 
     consultedPeers.push({ id: peerId, name: peer.name, insight });
@@ -324,6 +326,7 @@ export async function runHiveConsultation(params: {
     history: params.history ?? [],
     message: params.message,
     attachments: params.attachments?.length ? params.attachments : undefined,
+    responseLanguage: params.responseLanguage,
   });
 
   return {

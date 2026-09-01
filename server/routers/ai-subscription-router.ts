@@ -10,14 +10,7 @@ import {
   listUserAiSubscriptions,
   purchaseAiSubscription,
 } from "../_core/ai-subscription-service";
-import {
-  getAiSubscriptionPlans,
-  getConcurrentSlotPlans,
-  getConcurrentSlotPriceCents,
-  getPlatformPassPriceCents,
-  INCLUDED_CONCURRENT_AI_SLOTS,
-  type AiSubscriptionPlan,
-} from "../../lib/ai-subscription-pricing";
+import { formatUsd, getAiSubscriptionPlans, getConcurrentSlotPlans, INCLUDED_CONCURRENT_AI_SLOTS, type AiSubscriptionPlan } from "../../lib/ai-subscription-pricing";
 import { getUsageAllowanceQuote } from "../../lib/ai-usage-allowances";
 import { getAiUsageStatus } from "../_core/ai-usage-meter";
 import { getUsageDashboard } from "../_core/usage-dashboard-service";
@@ -27,8 +20,11 @@ import {
 } from "../_core/ai-platform-pass-slots";
 import { buildSubscriptionPurchaseSummary, formatPurchaseReceiptMessage } from "../../lib/pricing-disclosures";
 import { optionalBillingStateSchema, billingStateSchema } from "../../lib/billing-state-schema";
+import type { UsStateCode } from "../../lib/us-state-taxes";
 import { assertPaymentChannelAllowed, assertSimulatedPurchaseAllowed, paymentChannelNote } from "../_core/payment-channel-guard";
-import { AI_SUBSCRIPTION_PRICING_SUMMARY } from "../../lib/payment-channel-policy";
+import { liveSlotCents, liveTextPassCents } from "../_core/owner-price-catalog-service";
+import { acceptedNoRefundSchema, assertAndRecordNoRefundAck } from "../_core/conduct-ledger-service";
+import { requireWorldAccess } from "./conduct-router";
 
 const clientPlatformSchema = z.enum(["web", "native"]);
 
@@ -50,35 +46,64 @@ export const aiSubscriptionRouter = router({
         stateCode: optionalBillingStateSchema,
       }),
     )
-    .query(({ input }) => {
+    .query(async ({ input }) => {
       const plans = getAiSubscriptionPlans(input.creatorId);
       const creatorName = getCreatorAi(input.creatorId)?.name ?? "AI Specialist";
+      const liveDayCents = await liveTextPassCents("day");
+      const livePlans = await Promise.all(
+        plans.map(async (p) => {
+          const priceCents = await liveTextPassCents(p.plan);
+          let savingsVsDaily = p.savingsVsDaily;
+          if (p.plan !== "day") {
+            const equivalentDaily = liveDayCents * p.durationDays;
+            savingsVsDaily =
+              equivalentDaily > priceCents
+                ? `Save $${((equivalentDaily - priceCents) / 100).toFixed(2)} vs daily`
+                : undefined;
+          }
+          return {
+            ...p,
+            ...getUsageAllowanceQuote(p.plan, "standard"),
+            priceCents,
+            priceDisplay: formatUsd(priceCents),
+            savingsVsDaily,
+            requiredPaymentChannel: "web_browser" as const,
+            purchaseSummary: buildSubscriptionPurchaseSummary({
+              creatorId: input.creatorId,
+              creatorName,
+              plan: p.plan,
+              tier: "standard",
+              tierLabel: "Platform pass",
+              stateCode: (input.stateCode ?? null) as UsStateCode | null,
+              priceCents,
+            }),
+          };
+        }),
+      );
+      const concurrentSlotPlans = await Promise.all(
+        getConcurrentSlotPlans().map(async (p) => {
+          const priceCents = await liveSlotCents(p.plan);
+          return {
+            ...p,
+            priceCents,
+            priceDisplay: formatUsd(priceCents),
+          };
+        }),
+      );
       return {
         creatorId: input.creatorId,
         creatorName,
         tier: "standard" as const,
         tierLabel: "Platform pass",
         includedConcurrentSlots: INCLUDED_CONCURRENT_AI_SLOTS,
-        concurrentSlotPlans: getConcurrentSlotPlans(),
-        plans: plans.map((p) => ({
-          ...p,
-          ...getUsageAllowanceQuote(p.plan, "standard"),
-          requiredPaymentChannel: "web_browser" as const,
-          purchaseSummary: buildSubscriptionPurchaseSummary({
-            creatorId: input.creatorId,
-            creatorName,
-            plan: p.plan,
-            tier: "standard",
-            tierLabel: "Platform pass",
-            stateCode: input.stateCode ?? null,
-          }),
-        })),
+        concurrentSlotPlans,
+        plans: livePlans,
         usageNote:
           "Day, week, or month unlocks every UR specialist — one at a time. Hive and Town Hall need an extra concurrent slot. Hive = 3 messages · Learn/chapters = 5 · 10 web searches/day included.",
-        pricingNote: AI_SUBSCRIPTION_PRICING_SUMMARY,
+        pricingNote: "Amounts on each card are the current checkout prices.",
         paymentNote: "AI subscriptions must be purchased through your web browser — not in the mobile app.",
         baseNote:
-          "Platform text pass — $7.99/day, $15.99/week, $24.99/month. Talk to every AI one at a time. Extra concurrent slot: $4.99/day · $9.99/week · $14.99/month.",
+          "Platform text pass — talk to every AI one at a time. Extra concurrent slots are listed below.",
       };
     }),
 
@@ -128,10 +153,12 @@ export const aiSubscriptionRouter = router({
         plan: planSchema,
         stateCode: billingStateSchema,
         clientPlatform: clientPlatformSchema,
+        acceptedNoRefund: acceptedNoRefundSchema,
       }),
     )
-    .mutation(({ input, ctx }) => {
+    .mutation(async ({ input, ctx }) => {
       assertSectionEnabledForRequest("commerce", ctx.isPlatformOwner);
+      requireWorldAccess(ctx);
       assertSimulatedPurchaseAllowed();
       const userId = String(ctx.user.id);
       const email = ctx.user.email;
@@ -139,10 +166,19 @@ export const aiSubscriptionRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Account email required." });
       }
 
-      const priceCents = getPlatformPassPriceCents(input.plan as AiSubscriptionPlan);
+      const priceCents = await liveTextPassCents(input.plan as AiSubscriptionPlan);
       assertPaymentChannelAllowed({
         subtotalCents: priceCents,
         clientPlatform: input.clientPlatform,
+      });
+
+      assertAndRecordNoRefundAck({
+        userId: String(ctx.user.id),
+        userEmail: email,
+        sku: `text.${input.plan}`,
+        amountCents: priceCents,
+        acceptedNoRefund: true,
+        ipAddress: ctx.ip,
       });
 
       if (ctx.isPlatformOwner) {
@@ -172,6 +208,7 @@ export const aiSubscriptionRouter = router({
         billingStateCode: input.stateCode,
         isContentCreator: false,
         source: "simulated",
+        priceCents,
       });
 
       const creatorName = getCreatorAi(input.creatorId)?.name ?? "AI Specialist";
@@ -181,7 +218,8 @@ export const aiSubscriptionRouter = router({
         plan: input.plan as AiSubscriptionPlan,
         tier: "standard",
         tierLabel: "Platform pass",
-        stateCode: input.stateCode,
+        stateCode: input.stateCode as UsStateCode,
+        priceCents,
       });
 
       return {
@@ -207,10 +245,12 @@ export const aiSubscriptionRouter = router({
         plan: planSchema,
         stateCode: billingStateSchema,
         clientPlatform: clientPlatformSchema,
+        acceptedNoRefund: acceptedNoRefundSchema,
       }),
     )
-    .mutation(({ input, ctx }) => {
+    .mutation(async ({ input, ctx }) => {
       assertSectionEnabledForRequest("commerce", ctx.isPlatformOwner);
+      requireWorldAccess(ctx);
       assertSimulatedPurchaseAllowed();
       const email = ctx.user.email;
       if (!email) {
@@ -223,10 +263,19 @@ export const aiSubscriptionRouter = router({
         });
       }
 
-      const priceCents = getConcurrentSlotPriceCents(input.plan as AiSubscriptionPlan);
+      const priceCents = await liveSlotCents(input.plan as AiSubscriptionPlan);
       assertPaymentChannelAllowed({
         subtotalCents: priceCents,
         clientPlatform: input.clientPlatform,
+      });
+
+      assertAndRecordNoRefundAck({
+        userId: String(ctx.user.id),
+        userEmail: email,
+        sku: `slot.${input.plan}`,
+        amountCents: priceCents,
+        acceptedNoRefund: true,
+        ipAddress: ctx.ip,
       });
 
       const lot = purchaseExtraConcurrentSlot({
@@ -235,6 +284,7 @@ export const aiSubscriptionRouter = router({
         creatorId: input.creatorId,
         plan: input.plan as AiSubscriptionPlan,
         billingStateCode: input.stateCode,
+        priceCents,
       });
 
       return {

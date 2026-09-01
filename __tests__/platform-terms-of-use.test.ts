@@ -39,12 +39,16 @@ describe("platform-terms-of-use", () => {
     expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "ai-no-refunds")).toBe(true);
     expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "creator-transactions")).toBe(true);
     expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "human-conduct")).toBe(true);
+    expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "community-conduct")).toBe(true);
+    expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "communications-audit")).toBe(true);
+    expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "law-enforcement")).toBe(true);
   });
 
   it("signup acknowledgment mentions harassment, no refunds, and 18+", () => {
     expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("harassment");
     expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("no refunds");
     expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("18");
+    expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("timestamped");
   });
 
   it("names Indiana as the home state and governing law", () => {

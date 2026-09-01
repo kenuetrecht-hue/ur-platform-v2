@@ -63,6 +63,7 @@ export function UsageUpgradePanel({ productId, creatorId, title, compact = false
       productId,
       period: selectedPlan.period as "day" | "week" | "month",
       stateCode,
+      priceCents: selectedPlan.priceCents,
     });
   }, [hasState, selectedPlan, productId, stateCode]);
 

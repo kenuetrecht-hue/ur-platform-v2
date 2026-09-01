@@ -60,7 +60,7 @@ export default function ShopScreen() {
       <TabScreenHeader
         icon="🛍️"
         title="UR Shop"
-        subtitle="Platform dropship store, affiliate picks, and creator merchandise."
+        subtitle="UR originals and partner picks. Creators sell merch in their own shops."
       />
       <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingBottom: 8 }}>
         {[
