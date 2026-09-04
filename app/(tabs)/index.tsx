@@ -84,6 +84,34 @@ export default function HomeScreen() {
           subtitle="Your creator hub — trending content, daily rewards, and quick actions."
         />
 
+        <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+          <AppPressable
+            onPress={() => router.push("/world")}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 14,
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 14,
+              borderWidth: 1.5,
+              borderColor: colors.primary,
+            }}
+          >
+            <Text pointerEvents="none" style={{ fontSize: 28 }}>
+              🏙️
+            </Text>
+            <View pointerEvents="none" style={{ flex: 1, gap: 2 }}>
+              <Text style={{ fontSize: 17, fontWeight: "800", color: colors.foreground }}>
+                UR World — Civic Plaza
+              </Text>
+              <Text style={{ fontSize: 13, color: colors.muted, lineHeight: 18 }}>
+                Walk your avatar through the night plaza, sit, talk at a desk, and open the locker. Entertainment city — not land.
+              </Text>
+            </View>
+          </AppPressable>
+        </View>
+
         <DailyHubPanel />
 
         <View style={{ paddingHorizontal: 16, gap: 12 }}>
@@ -106,6 +134,10 @@ export default function HomeScreen() {
                 {
                   label: "All AI Specialists",
                   onPress: () => router.push("/ais"),
+                },
+                {
+                  label: "UR World",
+                  onPress: () => router.push("/world"),
                 },
                 {
                   label: "ContentMate",
@@ -228,12 +260,8 @@ export default function HomeScreen() {
                   onPress: () => router.push("/playroom"),
                 },
                 {
-                  label: "3D Workspace",
+                  label: "UR 3D Workspace",
                   onPress: () => router.push("/3d-workspace"),
-                },
-                {
-                  label: "UR World",
-                  onPress: () => router.push("/world"),
                 },
                 {
                   label: "Creator Dashboard",

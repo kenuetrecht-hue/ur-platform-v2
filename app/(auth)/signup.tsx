@@ -6,6 +6,7 @@ import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { LAUNCH_PROMOTION_SUBLINE } from "@/lib/launch-promotion-config";
+import { AFFILIATE_REFERRAL_PAYOUT_RULE } from "@/lib/affiliate-referral-payout-policy";
 import { CREATOR_CONTENT_PROTECTION_NOTICE } from "@/lib/creator-content-protection-copy";
 import { TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
 import { saveLandingDemoAttributionId } from "@/lib/landing-demo-attribution-storage";
@@ -17,7 +18,7 @@ import { explainAuthFailure } from "@/lib/auth-network-error";
 
 const ROLES: { id: UserRole; label: string; desc: string }[] = [
   { id: "creator", label: "Content creator", desc: "Host paid live classes · 85% instant payouts" },
-  { id: "affiliate", label: "Affiliate", desc: "Refer creators · earn $5 each" },
+  { id: "affiliate", label: "Affiliate", desc: "Refer creators · $5 after their free 24h, then 5 sales" },
   { id: "worker", label: "Worker", desc: "Find work on the platform" },
   { id: "3d-user", label: "3D / Print", desc: "3D models & printing" },
 ];
@@ -167,6 +168,12 @@ export default function SignUpScreen() {
       >
         <View style={{ gap: 24 }}>
           <View style={{ alignItems: "center", gap: 8 }}>
+            <Link href="/welcome" style={{ color: colors.muted, fontSize: 13 }}>
+              ← Back to homepage
+            </Link>
+            <Link href="/download" style={{ color: colors.primary, fontSize: 13, fontWeight: "700" }}>
+              Download the app from this website
+            </Link>
             <Text
               style={{
                 fontSize: 32,
@@ -424,6 +431,11 @@ export default function SignUpScreen() {
                     {CREATOR_CONTENT_PROTECTION_NOTICE}
                   </Text>
                 </>
+              ) : null}
+              {role === "creator" || role === "affiliate" ? (
+                <Text style={{ color: colors.muted, fontSize: 12, marginTop: 8, lineHeight: 18 }}>
+                  {AFFILIATE_REFERRAL_PAYOUT_RULE}
+                </Text>
               ) : null}
             </View>
           </View>

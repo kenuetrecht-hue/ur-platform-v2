@@ -42,6 +42,7 @@ export const LAUNCH_PROMOTION_TIERS: LaunchPromotionTier[] = [
     extras: [
       `${discountedPlatformFeePercent(50)}% platform fee (normally ${PLATFORM_FEE_PERCENT}%)`,
       "0% platform fee your first 24 hours (Genesis Clock)",
+      "Affiliate $5 only after this free 24 hours, then 5 later sales",
       "2 lifetime drawing entries",
       "1 free weekly ticket for life",
     ],
@@ -58,6 +59,7 @@ export const LAUNCH_PROMOTION_TIERS: LaunchPromotionTier[] = [
     extras: [
       `${discountedPlatformFeePercent(60)}% platform fee (normally ${PLATFORM_FEE_PERCENT}%)`,
       "0% platform fee your first 24 hours (Genesis Clock)",
+      "Affiliate $5 only after this free 24 hours, then 5 later sales",
     ],
   },
   {
@@ -72,6 +74,7 @@ export const LAUNCH_PROMOTION_TIERS: LaunchPromotionTier[] = [
     extras: [
       `${discountedPlatformFeePercent(50)}% platform fee (normally ${PLATFORM_FEE_PERCENT}%)`,
       "0% platform fee your first 24 hours (Genesis Clock)",
+      "Affiliate $5 only after this free 24 hours, then 5 later sales",
     ],
   },
 ];

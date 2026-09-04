@@ -6,8 +6,18 @@ import {
   UR_WORLD_REFUSAL,
 } from "../lib/ur-world-disclosures";
 import { avatarLookFromUserId } from "../lib/ur-world-avatar";
-import { nearestTalkDesk, UR_WORLD_TALK_DESKS, buildWorldTalkHref } from "../lib/ur-world-plaza";
+import {
+  nearestTalkDesk,
+  nearestPlazaNearby,
+  UR_WORLD_TALK_DESKS,
+  UR_WORLD_STATIONS,
+  UR_WORLD_SIGN_LINES,
+  UR_WORLD_PALETTE,
+  buildWorldTalkHref,
+  buildWorldSitHref,
+} from "../lib/ur-world-plaza";
 import { UR_WORLD_PLAN_STATUS, UR_WORLD_STORK_SYSTEM_RULE } from "../lib/ur-world-future-plan";
+import { UR_WORLD_LOOK_TIER, UR_WORLD_LOOK_UPGRADE_PLAN } from "../lib/ur-world-look-upgrade-plan";
 import { UR_WORLD_TALK_BULK_LINE } from "../lib/ur-world-talk-upsell";
 import { inferSectionFromOpsText } from "../lib/platform-section-flags";
 import {
@@ -45,6 +55,38 @@ describe("UR World talk city", () => {
     expect(a).toEqual(b);
     expect(a.initial).toBe("K");
     expect(a.bodyHex).toMatch(/^#[0-9a-f]{6}$/);
+    expect(a.silhouette).toBe("member");
+    expect(a.title).toBeUndefined();
+  });
+
+  it("gives the platform owner a unique UR Sheriff look members cannot buy", async () => {
+    const member = getUrWorldSnapshot("user-42", "Ken");
+    const owner = getUrWorldSnapshot("owner-1", "Kenneth", true);
+    expect(owner.avatar.title).toBe("UR Sheriff");
+    expect(owner.avatar.silhouette).toBe("owner");
+    expect(owner.avatar.bodyHex).not.toBe(member.avatar.bodyHex);
+    expect(member.avatar.title).toBeUndefined();
+    expect(owner.equipped.jacket?.mesh).toBe("shirt");
+    expect(owner.equipped.pants?.mesh).toBe("jeans");
+    expect(owner.equipped.boots?.mesh).toBe("sneakers");
+    expect(owner.cosmeticCatalog.some((p) => p.id === "ur-sheriff")).toBe(false);
+    expect(owner.cosmeticOwned.some((o) => o.packId === "ur-sheriff" && o.ownerOnly && !o.giftable)).toBe(true);
+    expect(() =>
+      purchaseCosmeticPack({ userId: "user-42", userEmail: "a@b.com", packId: "ur-sheriff" }),
+    ).toThrow();
+    expect(await tryApplyWorldDirectorCommand("SET OWNER TITLE Civic Host", { ownerUserId: "owner-1" })).toMatch(
+      /Civic Host/,
+    );
+    expect(getUrWorldSnapshot("owner-1", "Kenneth", true).avatar.title).toBe("Civic Host");
+    expect(
+      await tryApplyWorldDirectorCommand(
+        "MAKE OWNER OUTFIT weekend shirt #e7e0d4 jeans #2c3d5a shoes #f4f1ea",
+        { ownerUserId: "owner-1" },
+      ),
+    ).toMatch(/owner-weekend/);
+    expect(getUrWorldSnapshot("owner-1", "Kenneth", true).equipped.jacket?.colorHex).toBe("#e7e0d4");
+    expect(await tryApplyWorldDirectorCommand("DRESS OWNER", { ownerUserId: "owner-1" })).toMatch(/ur-sheriff/);
+    await expect(tryApplyWorldDirectorCommand("SET OWNER TITLE King", { ownerUserId: "owner-1" })).rejects.toThrow();
   });
 
   it("detects a trade desk when you walk up", () => {
@@ -52,6 +94,23 @@ describe("UR World talk city", () => {
     expect(nearestTalkDesk(desk.x, desk.z)?.id).toBe("trade");
     expect(nearestTalkDesk(0, 2)).toBeNull();
     expect(buildWorldTalkHref(desk).params.ai).toBe("ai-electrician-001");
+  });
+
+  it("picks fountain over the sit ring, and spawn is still empty", () => {
+    const heart = nearestPlazaNearby(0, 8);
+    expect(heart?.id).toBe("fountain");
+    const bench = nearestPlazaNearby(4.5, 8);
+    expect(bench?.kind).toBe("station");
+    expect(bench?.id).toBe("sit");
+    expect(nearestPlazaNearby(0, 2)).toBeNull();
+    expect(nearestPlazaNearby(8, 30)?.id).toBe("garden");
+    expect(nearestPlazaNearby(28, 14)?.id).toBe("bar");
+    expect(nearestPlazaNearby(-28, 14)?.id).toBe("well");
+    expect(buildWorldSitHref()).toBe("/(tabs)/messages");
+    expect(UR_WORLD_STATIONS).toHaveLength(5);
+    expect(UR_WORLD_SIGN_LINES.every((s) => s.text === "UR")).toBe(true);
+    expect(UR_WORLD_PALETTE.neonBlue).toBe("#4F46E5");
+    expect(UR_WORLD_PALETTE.neonPurple).toBe("#7C3AED");
   });
 
   it("blocks investment pitches but allows legal restatements", () => {
@@ -91,6 +150,26 @@ describe("UR World talk city", () => {
     expect(steward).toContain("Stork");
     expect(steward).toContain("/world");
     expect(UR_WORLD_STORK_SYSTEM_RULE).toContain("Never");
+    expect(UR_WORLD_STORK_SYSTEM_RULE).toContain("Plan B");
+    expect(UR_WORLD_STORK_SYSTEM_RULE).toContain("glTF");
+    expect(UR_WORLD_STORK_SYSTEM_RULE).toContain("$40");
+    expect(UR_WORLD_STORK_SYSTEM_RULE).toContain("$3,000");
+    expect(steward).toContain("Plan B");
+    expect(steward).toContain("UPGRADE UR WORLD LOOK TO B");
+  });
+
+  it("keeps look upgrades queued until the owner has cash", () => {
+    expect(UR_WORLD_LOOK_TIER).toBe("A");
+    expect(UR_WORLD_LOOK_UPGRADE_PLAN.currentTier).toBe("A");
+    expect(UR_WORLD_LOOK_UPGRADE_PLAN.tiers.B.status).toBe("queued");
+    expect(UR_WORLD_LOOK_UPGRADE_PLAN.tiers.C.status).toBe("queued");
+    expect(UR_WORLD_LOOK_UPGRADE_PLAN.tiers.D.status).toBe("queued-do-not-start");
+    expect(UR_WORLD_LOOK_UPGRADE_PLAN.tiers.B.costUsd).toMatch(/40/);
+    expect(UR_WORLD_LOOK_UPGRADE_PLAN.tiers.C.costUsd).toMatch(/3,000/);
+    expect(UR_WORLD_LOOK_UPGRADE_PLAN.files.glbLoaderExample).toContain("SceneLoader");
+    expect(UR_WORLD_PLAN_STATUS.now).toContain("Plan A");
+    expect(UR_WORLD_PLAN_STATUS.now.toLowerCase()).toContain("avatar");
+    expect(UR_WORLD_PLAN_STATUS.now.toLowerCase()).toContain("locker");
   });
 
   it("infers ur_world from ops chat", () => {
@@ -150,8 +229,12 @@ describe("UR World talk city", () => {
     const director = buildPlatformOpsSystemPrompt(WORLD_DIRECTOR_AI_ID);
     expect(director).toContain("Civic Dawn");
     expect(director).toContain("SET WORLD PACK PRICE");
+    expect(director).toContain("DRESS OWNER");
+    expect(director).toContain("MAKE OWNER OUTFIT");
     expect(director).toContain("REACTIVATE WORLD USER");
     expect(director).toContain("DISCONTINUE WORLD USER");
+    expect(director).toContain("Plan A");
+    expect(director).toContain("SET NEXT LOOK SCENE");
     expect(await tryApplyWorldDirectorCommand("SET WORLD PACK PRICE civic-dawn 2.49")).toMatch(/2\.49/);
     expect(liveCosmeticPacks().find((p) => p.id === "civic-dawn")?.priceCents).toBe(249);
     expect(await tryApplyWorldDirectorCommand("PAUSE WORLD PACK night-shift")).toMatch(/night-shift/i);

@@ -7,6 +7,7 @@ import { TRPCError } from "@trpc/server";
 import { recordPaidMembership } from "./access-entitlements";
 import { createHandoffToken } from "./app-handoff-service";
 import { LANDING_ALL_SPECIALISTS_MONTHLY_CENTS } from "../../lib/landing-checkout-pricing";
+import { calculateCustomerCheckout } from "../../lib/stripe-checkout-pricing";
 
 const PURCHASE_COOLDOWN_MS = 60_000;
 const purchaseCooldownByIp = new Map<string, number>();
@@ -24,11 +25,13 @@ export function purchaseLandingPlatformPass(params: {
   email: string;
   ip: string;
   userId?: string;
+  billingStateCode?: string | null;
 }): {
   handoffToken: string;
   email: string;
   membershipId: string;
-  priceCents: number | null;
+  priceCents: number;
+  checkout: ReturnType<typeof calculateCustomerCheckout>;
 } {
   const ipKey = normalizeIp(params.ip);
   const lastPurchase = purchaseCooldownByIp.get(ipKey);
@@ -41,6 +44,9 @@ export function purchaseLandingPlatformPass(params: {
 
   const email = params.email.toLowerCase().trim();
   const userId = params.userId ?? guestUserId(email);
+
+  const priceCents = LANDING_ALL_SPECIALISTS_MONTHLY_CENTS;
+  const checkout = calculateCustomerCheckout(priceCents, params.billingStateCode);
 
   const membership = recordPaidMembership({
     userId,
@@ -61,6 +67,7 @@ export function purchaseLandingPlatformPass(params: {
     handoffToken,
     email,
     membershipId: membership.id,
-    priceCents: LANDING_ALL_SPECIALISTS_MONTHLY_CENTS,
+    priceCents,
+    checkout,
   };
 }

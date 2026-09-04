@@ -15,6 +15,10 @@ import { TabScreenHeader } from "@/components/tab-screen-header";
 import { EquipmentHubPanel } from "@/components/equipment-hub-panel";
 import { WorkspaceBabylonViewport } from "@/components/workspace-babylon-viewport";
 import { WorkspaceDesignLayersPanel } from "@/components/workspace-design-layers-panel";
+import { WorkspacePhysicsPanel } from "@/components/workspace-physics-panel";
+import { WorkspaceGettingStarted } from "@/components/workspace-getting-started";
+import { XrHeadsetPanel } from "@/components/xr-headset-panel";
+import { WorkspaceTapButton } from "@/components/workspace-tap-button";
 import { BlueprintReaderPanel } from "@/components/blueprint-reader-panel";
 import { CreatorAIInterface } from "@/components/creator-ai-interface";
 import { AIDisclosureWrapper } from "@/components/ai-disclosure-wrapper";
@@ -30,6 +34,14 @@ import { AI_CREATOR_CATALOG } from "@/lib/ai-creator-catalog";
 import { PlatformSectionGate } from "@/components/platform-section-gate";
 import { WorkspaceWebHandoffBanner } from "@/components/workspace-web-handoff-banner";
 import { useAuth } from "@/lib/auth-context";
+import {
+  UR_3D_WORKSPACE_LEGAL,
+  UR_3D_WORKSPACE_PRODUCT_NAME,
+  UR_3D_WORKSPACE_SUBTITLE,
+  UR_3D_WORKSPACE_VS_WORLD,
+  WORKSPACE_3D_PROJECT_TYPES,
+} from "@/lib/ur-3d-workspace";
+import type { CadCameraView, CadDrawTool, CadPlanPoint } from "@/lib/workspace-cad";
 
 const WORKSPACE_TABS = [
   { id: "builder", label: "Builder", emoji: "🎮" },
@@ -39,10 +51,12 @@ const WORKSPACE_TABS = [
 type WorkspaceTabId = (typeof WORKSPACE_TABS)[number]["id"];
 
 const PROJECT_TYPES = [
+  { id: "architecture" as const, label: "Architecture", emoji: "🏛️" },
+  { id: "construction" as const, label: "Construction", emoji: "🏗️" },
+  { id: "hvac" as const, label: "HVAC", emoji: "❄️" },
+  { id: "robotics" as const, label: "Robotics", emoji: "🤖" },
   { id: "merchandise" as const, label: "Merchandise", emoji: "👕" },
   { id: "3d_printing" as const, label: "3D Print", emoji: "🖨️" },
-  { id: "architecture" as const, label: "Architecture", emoji: "🏛️" },
-  { id: "robotics" as const, label: "Robotics", emoji: "🤖" },
   { id: "marine" as const, label: "Marine", emoji: "⚓" },
   { id: "software" as const, label: "Software App", emoji: "💻" },
   { id: "general" as const, label: "General", emoji: "✨" },
@@ -54,6 +68,7 @@ const WORKSPACE_CATEGORIES = new Set([
   "Technology",
   "Construction",
   "Engineering",
+  "Education",
   "Creative",
   "Platform",
   "Marine",
@@ -84,15 +99,22 @@ export default function Workspace3DScreen() {
   }, [catalogData]);
 
   const [projectType, setProjectType] = useState<(typeof PROJECT_TYPES)[number]["id"]>(() => {
-    if (params.project === "merchandise" || params.project === "3d_printing") {
-      return params.project;
+    const requested = params.project;
+    if (requested && (WORKSPACE_3D_PROJECT_TYPES as readonly string[]).includes(requested)) {
+      return requested as (typeof PROJECT_TYPES)[number]["id"];
     }
-    return "merchandise";
+    return "architecture";
   });
-  const [projectName, setProjectName] = useState("My merchandise design");
+  const [projectName, setProjectName] = useState("New CAD build");
   const [description, setDescription] = useState("");
   const [activeAiId, setActiveAiId] = useState("ai-blueprint-reader-001");
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [drawTool, setDrawTool] = useState<CadDrawTool>("select");
+  const [orthoLock, setOrthoLock] = useState(true);
+  const [chainFrom, setChainFrom] = useState<CadPlanPoint | null>(null);
+  const [cameraView, setCameraView] = useState<CadCameraView>("iso");
+  const [drawPending, setDrawPending] = useState<CadPlanPoint | null>(null);
+  const [drewSegment, setDrewSegment] = useState(false);
   const [activeTab, setActiveTab] = useState<WorkspaceTabId>(
     params.pricing === "1" ? "pricing" : "builder",
   );
@@ -154,25 +176,38 @@ export default function Workspace3DScreen() {
     designApi,
   ]);
 
-  const viewportHeight = Platform.OS === "web" ? 440 : 280;
+  const viewportHeight = Platform.OS === "web" ? 520 : 280;
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenContainer className="bg-background">
         <PlatformSectionGate sectionId="3d_workspace">
-        <ScrollView contentContainerStyle={{ paddingBottom: 40, gap: 14 }}>
+        <ScrollView
+          keyboardShouldPersistTaps="always"
+          nestedScrollEnabled
+          contentContainerStyle={{ paddingBottom: 40, gap: 14 }}
+        >
           <TabScreenHeader
-            icon="🎮"
-            title="3D Component Builder"
-            subtitle="Babylon.js canvas · STL upload · layered design · AI collaboration · print export"
+            icon="📐"
+            title={UR_3D_WORKSPACE_PRODUCT_NAME}
+            subtitle={UR_3D_WORKSPACE_SUBTITLE}
           />
 
           <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 16 }}>
             <Text style={{ color: colors.primary, fontWeight: "600" }}>← Back</Text>
           </Pressable>
 
-          <WorkspaceWebHandoffBanner variant="merch" />
+          <WorkspaceWebHandoffBanner variant="general" />
+
+          <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18, paddingHorizontal: 16 }}>
+            {UR_3D_WORKSPACE_VS_WORLD}
+          </Text>
+          <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16, paddingHorizontal: 16 }}>
+            {UR_3D_WORKSPACE_LEGAL}
+          </Text>
+
+          <XrHeadsetPanel context="workspace" />
 
           <AiHubTabRow
             tabs={WORKSPACE_TABS.map((t) => ({ id: t.id, label: t.label, emoji: t.emoji }))}
@@ -201,10 +236,25 @@ export default function Workspace3DScreen() {
           ) : null}
 
           {Platform.OS === "web" ? (
-            <Text style={{ color: colors.muted, fontSize: 11, paddingHorizontal: 16, lineHeight: 16 }}>
-              Drag to orbit · scroll to zoom · click meshes to select layers · upload STL up to 8 MB
+            <Text style={{ color: colors.muted, fontSize: 12, paddingHorizontal: 16, lineHeight: 18 }}>
+              Grid = floor. 1 square = 1 foot. Follow Start here, then click the drawing table.
             </Text>
           ) : null}
+
+          <WorkspaceGettingStarted
+            layers={designApi.design.layers}
+            cameraView={cameraView}
+            drawTool={drawTool}
+            hasPendingStart={Boolean(drawPending ?? chainFrom)}
+            drewSegment={drewSegment}
+            onShowRoom={() => designApi.loadStarterRoom()}
+            onLookFromAbove={() => setCameraView("plan")}
+            onStartWall={() => {
+              setCameraView("plan");
+              setDrawTool("wall");
+              setChainFrom(null);
+            }}
+          />
 
           <Pressable onPress={() => router.push("/playroom")} style={{ paddingHorizontal: 16 }}>
             <Text style={{ color: colors.primary, fontWeight: "600" }}>🎪 Open AI Playroom →</Text>
@@ -221,7 +271,49 @@ export default function Workspace3DScreen() {
             onSelectAi={setActiveAiId}
             projectName={projectName}
             height={viewportHeight}
+            drawTool={drawTool}
+            onDrawToolChange={(tool) => {
+              setDrawTool(tool);
+              if (tool === "select") setChainFrom(null);
+            }}
+            orthoLock={orthoLock}
+            chainFrom={chainFrom}
+            cameraView={cameraView}
+            onCameraViewChange={setCameraView}
+            onDrawPendingChange={setDrawPending}
+            onDrawSegment={(start, end) => {
+              const ok = designApi.addCadDraw(drawTool, start, end);
+              if (ok) setDrewSegment(true);
+              if (ok && (drawTool === "wall" || drawTool === "hvac_duct" || drawTool === "pipe")) {
+                setChainFrom(end);
+              }
+            }}
           />
+
+          <View style={{ paddingHorizontal: 16, flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <WorkspaceTapButton
+              onPress={() => setOrthoLock((v) => !v)}
+              style={[styles.chip, { borderColor: orthoLock ? colors.primary : colors.border }]}
+            >
+              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
+                Ortho {orthoLock ? "on" : "off"}
+              </Text>
+            </WorkspaceTapButton>
+            <WorkspaceTapButton
+              onPress={() => setChainFrom(null)}
+              style={[styles.chip, { borderColor: colors.border }]}
+            >
+              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>Finish chain</Text>
+            </WorkspaceTapButton>
+            <WorkspaceTapButton
+              onPress={() => designApi.loadStarterRoom()}
+              style={[styles.chip, { borderColor: colors.border }]}
+            >
+              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>Starter 12×12 room</Text>
+            </WorkspaceTapButton>
+          </View>
+
+          <WorkspacePhysicsPanel designApi={designApi} />
 
           <WorkspaceDesignLayersPanel designApi={designApi} sessionSaved={Boolean(sessionId)} />
 
@@ -229,9 +321,19 @@ export default function Workspace3DScreen() {
             <Text style={[styles.section, { color: colors.foreground }]}>Project type</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
               {PROJECT_TYPES.map((t) => (
-                <Pressable
+                <WorkspaceTapButton
                   key={t.id}
-                  onPress={() => setProjectType(t.id)}
+                  onPress={() => {
+                    setProjectType(t.id);
+                    if (t.id === "robotics") setActiveAiId("ai-robotics-001");
+                    if (t.id === "hvac") setActiveAiId("ai-hvac-001");
+                    if (t.id === "architecture" || t.id === "construction") {
+                      setActiveAiId("ai-blueprint-reader-001");
+                    }
+                    if (t.id === "merchandise" || t.id === "3d_printing") {
+                      setActiveAiId("ai-3d-specialist");
+                    }
+                  }}
                   style={[
                     styles.chip,
                     {
@@ -250,7 +352,7 @@ export default function Workspace3DScreen() {
                   >
                     {t.label}
                   </Text>
-                </Pressable>
+                </WorkspaceTapButton>
               ))}
             </ScrollView>
 
@@ -264,7 +366,7 @@ export default function Workspace3DScreen() {
             <TextInput
               value={description}
               onChangeText={setDescription}
-              placeholder="What are you making? (keychain, logo, figurine…)"
+              placeholder="What are you building? (room, HVAC run, robot cell…)"
               placeholderTextColor={colors.muted}
               multiline
               style={[

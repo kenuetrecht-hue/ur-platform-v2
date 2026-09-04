@@ -15,6 +15,7 @@ import {
 } from "../../lib/ur-world-economy";
 import { UR_WORLD_LICENSE_FACT, UR_WORLD_SHORT_FOOTER } from "../../lib/ur-world-disclosures";
 import { getLockerSnapshot, _resetUrWorldLockerForTests } from "./ur-world-locker-service";
+import { _resetLookFundForTests } from "./ur-world-look-fund-service";
 
 export type PlotLicenseStatus = "available" | "licensed";
 
@@ -192,9 +193,9 @@ export function listUserConstructionJobs(userId: string): ConstructionJob[] {
   return jobs.filter((j) => j.userId === userId).slice(-20);
 }
 
-export function getUrWorldSnapshot(userId: string, displayName?: string) {
+export function getUrWorldSnapshot(userId: string, displayName?: string, isPlatformOwner = false) {
   seedPlots();
-  const locker = getLockerSnapshot(userId, displayName);
+  const locker = getLockerSnapshot(userId, displayName, isPlatformOwner);
   return {
     footer: UR_WORLD_SHORT_FOOTER,
     balanceCents: getCityWalletBalance(userId),
@@ -204,6 +205,7 @@ export function getUrWorldSnapshot(userId: string, displayName?: string) {
     equipped: locker.equipped,
     cosmeticOwned: locker.owned,
     cosmeticCatalog: locker.catalog,
+    ownerTitle: locker.ownerTitle,
     plots: listWorldPlots().map((p) => ({
       ...p,
       isMine: p.licenseeUserId === userId,
@@ -219,4 +221,5 @@ export function _resetUrWorldForTests(): void {
   jobs.length = 0;
   seedPlots();
   _resetUrWorldLockerForTests();
+  _resetLookFundForTests();
 }

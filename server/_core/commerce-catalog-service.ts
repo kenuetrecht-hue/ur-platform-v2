@@ -17,6 +17,7 @@ import {
   assertProductVisibleToPublic,
 } from "./commerce-affiliate-compliance";
 import { submitFulfillmentOrder, type FulfillmentProvider } from "./commerce-fulfillment-adapters";
+import { calculateCustomerCheckout } from "../../lib/stripe-checkout-pricing";
 
 export const STORE_MANAGER_AI_ID = "store-manager";
 
@@ -335,7 +336,8 @@ export function simulateProductPurchase(params: {
   productId: string;
   buyerUserId: string;
   buyerEmail: string;
-}): StoreOrder {
+  billingStateCode?: string | null;
+}): StoreOrder & { checkout: ReturnType<typeof calculateCustomerCheckout> } {
   const product = products.get(params.productId);
   if (!product || !assertProductVisibleToPublic(product)) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Product not available." });
@@ -392,6 +394,7 @@ export function simulateProductPurchase(params: {
     }
   }
 
+  const checkout = calculateCustomerCheckout(product.priceCents, params.billingStateCode);
   recordTransaction({
     type: "other",
     payerUserId: params.buyerUserId,
@@ -399,10 +402,18 @@ export function simulateProductPurchase(params: {
     amountCents: product.priceCents,
     description: `[Simulated] ${product.title} — ${store.name}`,
     status: "completed",
-    metadata: { orderId: order.id, storeId: store.id, productId: product.id, simulated: true },
+    metadata: {
+      orderId: order.id,
+      storeId: store.id,
+      productId: product.id,
+      simulated: true,
+      chargeCents: checkout.totalCents,
+      salesTaxCents: checkout.salesTaxCents,
+      stripeFeeCents: checkout.stripeFeeCents,
+    },
   });
 
-  return order;
+  return { ...order, checkout };
 }
 
 export type StoreAnalytics = {

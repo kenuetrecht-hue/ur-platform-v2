@@ -16,6 +16,7 @@ import { FriendVideoCallPanel } from "@/components/friend-video-call-panel";
 import { SocialFeedPanel } from "@/components/social-feed-panel";
 import { SocialHubTabBar, type SocialHubTab } from "@/components/social-hub-tab-bar";
 import { InternetCenterMailPanel } from "@/components/internet-center-mail-panel";
+import { CreatorTipButton } from "@/components/creator-tip-button";
 import { brandHighlightSurface } from "@/lib/brand-theme";
 
 type Tab = SocialHubTab;
@@ -248,6 +249,7 @@ export function SocialHubPanel() {
               subs.map((s) => (
                 <View key={s.id} style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
                   <Text style={{ color: colors.foreground, fontWeight: "700" }}>{s.creatorName}</Text>
+                  <CreatorTipButton creatorUserId={s.creatorUserId} creatorName={s.creatorName} />
                   <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
                     <Text style={{ color: colors.muted, fontSize: 12 }}>Ride along with AI sessions</Text>
                     <Switch

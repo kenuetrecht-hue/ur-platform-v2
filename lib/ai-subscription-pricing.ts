@@ -51,11 +51,13 @@ export const CONCURRENT_AI_SLOT_CENTS: Record<AiSubscriptionPlan, number> = {
   month: 1499,
 };
 
-const PREMIUM_CREATOR_IDS = new Set(["linguamate", "ai-translator-001"]);
+const PREMIUM_CREATOR_IDS = new Set(["linguamate", "ai-translator-001", "ai-reading-001"]);
 
 const PROFESSIONAL_CREATOR_IDS = new Set([
   "ai-coder-001",
   "ai-game-dev-001",
+  "ai-blockchain-001",
+  "ai-math-001",
   "ai-blueprint-reader-001",
   "ai-3d-specialist",
   "ai-robotics-001",

@@ -14,6 +14,8 @@ import { webSearchRouter } from "./web-search-router";
 import { aiRealEstateRouter } from "./ai-real-estate-router";
 import { aiLanguageRouter } from "./ai-language-router";
 import { stampsPersistenceRouter } from "./routers/stamps-persistence";
+import { thanksStampsRouter } from "./routers/thanks-stamps-router";
+import { creatorTipsRouter } from "./routers/creator-tips-router";
 import { chatRouter } from "./routers/chat-router";
 import { aiCreatorChatRouter } from "./routers/ai-creator-chat-router";
 import { platformOpsRouter } from "./routers/platform-ops-router";
@@ -224,6 +226,8 @@ export const appRouter = router({
   webSearch: webSearchRouter,
 
   stamps: stampsPersistenceRouter,
+  thanksStamps: thanksStampsRouter,
+  creatorTips: creatorTipsRouter,
   chat: chatRouter,
   aiCreators: aiCreatorChatRouter,
   hiveTownHall: hiveTownHallRouter,

@@ -274,13 +274,19 @@ export const commerceRouter = router({
     }),
 
   simulatePurchase: secureCheckoutProcedure("commerce")
-    .input(z.object({ productId: z.string().uuid() }))
+    .input(
+      z.object({
+        productId: z.string().uuid(),
+        billingStateCode: z.string().trim().length(2).optional(),
+      }),
+    )
     .mutation(({ ctx, input }) => {
       assertSectionEnabledForRequest("commerce", ctx.isPlatformOwner);
       return simulateProductPurchase({
         productId: input.productId,
         buyerUserId: String(ctx.user.id),
         buyerEmail: ctx.user.email ?? "",
+        billingStateCode: input.billingStateCode,
       });
     }),
 

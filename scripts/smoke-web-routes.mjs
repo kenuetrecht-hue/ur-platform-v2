@@ -11,6 +11,7 @@ const API_ORIGIN = `http://localhost:${API_PORT}`;
 const WEB_ROUTES = [
   "/",
   "/welcome",
+  "/download",
   "/login",
   "/signup",
   "/age-verify",

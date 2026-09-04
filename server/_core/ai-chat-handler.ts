@@ -39,6 +39,7 @@ import {
 } from "./google-ai";
 import { sanitizeChatHistory, sanitizeUserText } from "./input-sanitize";
 import { mapServiceErrorToTrpc } from "./service-errors";
+import { resolveAiReplyOrFallback } from "../../lib/ai-empty-reply";
 import {
   buildLandingDemoPromptAppend,
   LANDING_DEMO_MESSAGE_MAX,
@@ -67,6 +68,7 @@ import {
   tryApplyOwnerPriceCommand,
 } from "./owner-price-catalog-service";
 import { tryApplyWorldDirectorCommand } from "./ur-world-locker-service";
+import { tryApplyLookFundOwnerCommand } from "./ur-world-look-fund-service";
 import {
   createOpsIncident,
   inferIncidentFromOpsChat,
@@ -264,6 +266,15 @@ export async function handleCreatorAiChat(params: {
           creatorName: def.name,
         };
       }
+      const lookFund = tryApplyLookFundOwnerCommand(message);
+      if (lookFund) {
+        return {
+          reply: lookFund,
+          model: "ur-world-look-receipt",
+          creatorId: def.id,
+          creatorName: def.name,
+        };
+      }
     }
 
     if (
@@ -271,7 +282,7 @@ export async function handleCreatorAiChat(params: {
       params.ctx.isPlatformOwner &&
       !params.ctx.landingDemo
     ) {
-      const worldCmd = await tryApplyWorldDirectorCommand(message);
+      const worldCmd = await tryApplyWorldDirectorCommand(message, { ownerUserId: userId });
       if (worldCmd) {
         return {
           reply: worldCmd,
@@ -386,7 +397,7 @@ export async function handleCreatorAiChat(params: {
         attachments: visionAttachments,
         responseLanguage: nativeReplyLanguage,
       });
-      rawReply = hiveResult.reply;
+      rawReply = resolveAiReplyOrFallback(hiveResult.reply, def.name);
       model = hiveResult.model;
       hivePeerInsights = hiveResult.consultedPeers.map((p) => ({
         id: p.id,
@@ -467,7 +478,7 @@ export async function handleCreatorAiChat(params: {
         attachments: visionAttachments.length ? visionAttachments : undefined,
         responseLanguage: nativeReplyLanguage,
       });
-      rawReply = result.reply;
+      rawReply = resolveAiReplyOrFallback(result.reply, def.name);
       model = result.model;
     }
 
@@ -482,6 +493,7 @@ export async function handleCreatorAiChat(params: {
     if (!isPlatformAiRole(params.creatorId)) {
       reply = sanitizeAiReplyForRole(reply, params.creatorId, params.ctx.isPlatformOwner, def.name);
     }
+    reply = resolveAiReplyOrFallback(reply, def.name);
 
     if (params.ctx.landingDemo) {
       reply = truncateLandingDemoReply(reply, LANDING_DEMO_REPLY_MAX);

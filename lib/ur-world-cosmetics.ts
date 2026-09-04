@@ -9,7 +9,7 @@ import { getRequiredPaymentChannel } from "./payment-channel-policy";
 export const UR_WORLD_COSMETIC_LICENSE =
   "Each pack is a limited entertainment license to wear looks in UR World. Not resold, not an investment, not cash.";
 
-export type CosmeticSlot = "hat" | "jacket" | "boots" | "accent";
+export type CosmeticSlot = "hat" | "jacket" | "boots" | "accent" | "pants" | "hair";
 
 export type EquippedPiece = {
   packId: string;
@@ -24,7 +24,21 @@ export type CosmeticPiece = {
   slot: CosmeticSlot;
   name: string;
   colorHex: string;
-  mesh: "cap" | "hardhat" | "toque" | "jacket" | "apron" | "vest" | "boots" | "scarf" | "patch";
+  mesh:
+    | "cap"
+    | "hardhat"
+    | "toque"
+    | "jacket"
+    | "apron"
+    | "vest"
+    | "boots"
+    | "scarf"
+    | "patch"
+    | "shirt"
+    | "jeans"
+    | "sneakers"
+    | "star"
+    | "hair";
 };
 
 export type UrWorldCosmeticPack = {
@@ -34,6 +48,8 @@ export type UrWorldCosmeticPack = {
   district: string;
   priceCents: number;
   pieces: CosmeticPiece[];
+  /** Never listed or sold. Platform owner only. */
+  ownerOnly?: boolean;
 };
 
 const PACKS: UrWorldCosmeticPack[] = [
@@ -171,13 +187,36 @@ const PACKS: UrWorldCosmeticPack[] = [
 
 export const UR_WORLD_COSMETIC_PACKS: readonly UrWorldCosmeticPack[] = PACKS;
 
-export type UrWorldCosmeticPackId = (typeof PACKS)[number]["id"];
+/** Owner-only casual look — jeans, shirt, sneakers, civic star. Not sold. Not a cop uniform. */
+export const UR_OWNER_SHERIFF_PACK: UrWorldCosmeticPack = {
+  id: "ur-sheriff",
+  name: "UR Sheriff",
+  tagline: "Laid-back civic host — oatmeal shirt, indigo jeans, clean sneakers, UR star. Only the platform owner.",
+  district: "Civic Plaza",
+  priceCents: 199,
+  ownerOnly: true,
+  pieces: [
+    { slot: "hair", name: "Casual crop", colorHex: "#3b2f2a", mesh: "hair" },
+    { slot: "jacket", name: "Oatmeal casual shirt", colorHex: "#e7e0d4", mesh: "shirt" },
+    { slot: "pants", name: "Indigo jeans", colorHex: "#3a4f73", mesh: "jeans" },
+    { slot: "boots", name: "Clean white sneakers", colorHex: "#f4f1ea", mesh: "sneakers" },
+    { slot: "accent", name: "UR Sheriff star", colorHex: "#e8c547", mesh: "star" },
+  ],
+};
+
+export type UrWorldCosmeticPackId = (typeof PACKS)[number]["id"] | typeof UR_OWNER_SHERIFF_PACK.id;
 
 export function listCosmeticPacks(): UrWorldCosmeticPack[] {
   return PACKS.map((p) => ({ ...p, pieces: p.pieces.map((x) => ({ ...x })) }));
 }
 
 export function getCosmeticPack(id: string): UrWorldCosmeticPack | undefined {
+  if (id === UR_OWNER_SHERIFF_PACK.id) {
+    return {
+      ...UR_OWNER_SHERIFF_PACK,
+      pieces: UR_OWNER_SHERIFF_PACK.pieces.map((x) => ({ ...x })),
+    };
+  }
   return PACKS.find((p) => p.id === id);
 }
 

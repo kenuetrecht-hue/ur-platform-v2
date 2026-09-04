@@ -14,8 +14,15 @@ export default function Root({ children }: PropsWithChildren) {
         <title>UR Platform — AI specialists, creators, and 3D workspace</title>
         <meta
           name="description"
-          content="UR Platform: 44+ secure AI specialists, creator tools, 3D workspace, loyalty rewards, shop, and social hub."
+          content="UR Platform: 44+ secure AI specialists, creator tools, 3D workspace, loyalty rewards, shop, and social hub. Install the app from this website — no App Store or Google Play required."
         />
+        <meta name="theme-color" content="#07080d" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="UR" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <ScrollViewStyleReset />
       </head>
       <body>{children}</body>

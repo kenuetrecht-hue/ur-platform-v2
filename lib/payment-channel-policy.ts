@@ -15,7 +15,7 @@ export const IN_APP_ONLY_SUBTOTAL_CENTS = 500;
 export const PAYMENT_CHANNEL_POLICY_HEADLINE = "How UR payments work";
 
 export const PAYMENT_CHANNEL_POLICY_SUMMARY =
-  "$5 purchases must be completed in the UR mobile app. All other services — including every AI " +
+  "$5 purchases — including Talk Time and social stamp packs — must be completed in the UR mobile app. All other services — including every AI " +
   "subscription (day, week, month), $1 talk packs, and the $120 / 500-minute and $200 / 1,000-minute packs — must be purchased through your web browser.";
 
 export const AI_SUBSCRIPTION_PRICING_SUMMARY =

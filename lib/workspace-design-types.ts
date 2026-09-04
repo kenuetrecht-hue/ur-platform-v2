@@ -31,6 +31,44 @@ export type DesignLayerStl = {
   isAscii?: boolean;
 };
 
+export const DESIGN_LAYER_ROLES = [
+  "wall",
+  "slab",
+  "hvac_duct",
+  "pipe",
+  "column",
+  "robot_pad",
+  "generic",
+] as const;
+
+export type DesignLayerRole = (typeof DESIGN_LAYER_ROLES)[number];
+
+export const CAD_DISCIPLINES = [
+  "architecture",
+  "mechanical",
+  "plumbing",
+  "electrical",
+  "robotics",
+  "general",
+] as const;
+
+export type CadDiscipline = (typeof CAD_DISCIPLINES)[number];
+
+/** Plan-view point. Y is elevation on CadSegment. Units: feet. */
+export type CadPlanPoint = { x: number; z: number };
+
+/** Centerline segment — CAD walls, ducts, and pipes. */
+export type CadSegment = {
+  start: CadPlanPoint;
+  end: CadPlanPoint;
+  /** Wall/duct height, or slab thickness. Feet. */
+  height: number;
+  /** Wall/duct/pipe thickness (plan width). Feet. */
+  thickness: number;
+  /** Bottom elevation. Feet. */
+  baseElevation: number;
+};
+
 export type DesignLayer = {
   id: string;
   name: string;
@@ -42,6 +80,9 @@ export type DesignLayer = {
   transform: DesignLayerTransform;
   primitive?: DesignLayerPrimitive;
   stl?: DesignLayerStl;
+  role?: DesignLayerRole;
+  discipline?: CadDiscipline;
+  cad?: CadSegment;
   createdBy?: string;
   updatedAt: string;
 };
@@ -62,4 +103,4 @@ export const DEFAULT_TRANSFORM: DesignLayerTransform = {
 };
 
 export const MAX_STL_BYTES = 8 * 1024 * 1024; // 8 MB
-export const MAX_DESIGN_LAYERS = 32;
+export const MAX_DESIGN_LAYERS = 64;

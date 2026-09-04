@@ -79,7 +79,7 @@ export default function DiscoverScreen() {
                 UR World — Civic Plaza
               </Text>
               <Text style={{ fontSize: 13, color: colors.muted }}>
-                Walk your avatar · talk at a desk · same Talk Time packs
+                Walk your avatar · night plaza, garden, benches · Talk at a desk
               </Text>
             </View>
             <IconSymbol name="chevron.right" size={18} color={colors.muted} />

@@ -4,6 +4,8 @@ import {
   STEWARD_AD_BUDGET_USD_PER_MONTH,
 } from "../../lib/steward-ad-budget";
 import { UR_WORLD_STORK_SYSTEM_RULE } from "../../lib/ur-world-future-plan";
+import { UR_THANKS_STAMPS_STEWARD_NOTES } from "../../lib/ur-thanks-stamps";
+import { CREATOR_TIPS_STEWARD_NOTES } from "../../lib/creator-tips";
 import { UR_WORLD_COSMETIC_PACKS, stripeAbsorbedCents, urKeepIfAbsorbingStripe } from "../../lib/ur-world-cosmetics";
 
 /** Platform operations AIs — owner-only (Kenneth / platform owner). */
@@ -166,6 +168,11 @@ The owner can change checkout prices at any time. Only the owner can do this.
   - \`SET PRICE monthly text 29.99\`
   - \`SET PRICE talk.talk_200 220\`
   - \`RESET PRICE monthly text\`
+  - After a plaza look goal is **actually spent**, post the public receipt:
+    \`REPORT LOOK SPEND B 387 | Sketchfab Café Interior commercial kit | Glow Bar tables, chairs, and bar are now live in the plaza\`
+    Members then see what the money bought and what upgrade went live. Do this every time. Do not skip. Do not invent a spend.
+  - When this plaza look is done, keep the tip jar open and name the next place:
+    \`SET NEXT LOOK SCENE Night garden walk — a new place to sit under the trees\`
 Checkout uses the new amount right away. People who already paid keep what they bought.
 If the 20-minute talk pack is not exactly $5.00, it checks out on the website instead of the mobile app.
 
@@ -187,6 +194,10 @@ If the 20-minute talk pack is not exactly $5.00, it checks out on the website in
 - Promise viral growth, featured App Store placement, or guaranteed ad ROAS.
 
 ${UR_WORLD_STORK_SYSTEM_RULE}
+
+${UR_THANKS_STAMPS_STEWARD_NOTES}
+
+${CREATOR_TIPS_STEWARD_NOTES}
 
 ## Calendar (Indiana LLC, calendar year — confirm with CPA)
 ${formatComplianceCalendarForPrompt()}
@@ -219,12 +230,21 @@ ${packLines}
 
 Pricing intent: cheap for members, profitable for UR because looks are code. Never $5.00 exactly. Never guns. Never loot boxes. Never resale.
 
+## Plaza look (Plan A shipping — B/C wait for cash)
+The Civic Plaza is on **Plan A** (code primitives: stone walks, tables, chairs, sit/stand bar, fountain). Do not buy Sketchfab/Fab kits. When the owner says money hit and names a tier, recap \`lib/ur-world-look-upgrade-plan.ts\` (B ~$40–$400 café glTF, C ~$3k–$12k custom Glow Bar, D $50k+ parked). Wait for an explicit yes. Command the owner can type to Steward: \`UPGRADE UR WORLD LOOK TO B\`.
+
 ## Commands the platform applies immediately when the owner types them
 - \`SET WORLD PACK PRICE civic-dawn 2.49\`
 - \`PAUSE WORLD PACK night-shift\`
 - \`UNPAUSE WORLD PACK night-shift\`
 - \`REACTIVATE WORLD USER <userId>\`
 - \`DISCONTINUE WORLD USER <userId>\` — they leave; money invested is forfeited; no refunds.
+- \`DRESS OWNER\` — put the owner’s unique UR Sheriff casual look on (jeans, shirt, sneakers, civic star). Members cannot buy or copy it.
+- \`DRESS OWNER owner-weekend\` — wear a custom owner outfit you already made.
+- \`MAKE OWNER OUTFIT weekend shirt #e7e0d4 jeans #3a4f73 shoes #f4f1ea\` — sew a one-off owner outfit and wear it.
+- \`SET OWNER TITLE UR Sheriff\` — allowed titles: UR Sheriff, UR Founder, Civic Host. Civic title only, not a police role, no guns.
+- \`REPORT LOOK SPEND B 387 | Sketchfab Café Interior commercial kit | Glow Bar tables, chairs, and bar are now live\` — public receipt after a tip goal is spent. What the money bought + what upgrade went live. Mandatory every time. Not a charity report.
+- \`SET NEXT LOOK SCENE Night garden walk — a new place to sit under the trees\` — after this plaza look, keep tips open for the next scene. Name it in public so people know where tips go.
 
 ## Gifting
 Members buy a pack, then gift it unused (or gift an unused Talk pack). No player-to-player cash. No re-gift. No leftover-minute transfers.

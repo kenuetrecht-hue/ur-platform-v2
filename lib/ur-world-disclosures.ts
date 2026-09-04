@@ -38,6 +38,8 @@ export const UR_WORLD_AD_ALLOWED: readonly string[] = [
   "Hire simulated construction for fun. Builders are not selling you real property.",
   "City Wallet is closed-loop credit for UR World. It is not a bank account and not crypto.",
   "18+ only. Same UR Platform rules and KYC as the rest of the app.",
+  "Tip UR to help the plaza look better. Tips help grow UR Platform. Not a charity gift, not tax-deductible, not an investment.",
+  "When this plaza look is done, tips keep going to the next scene. Every spend is posted in public so you know where your tips went.",
 ];
 
 export const UR_WORLD_AD_FORBIDDEN: readonly string[] = [
@@ -47,6 +49,8 @@ export const UR_WORLD_AD_FORBIDDEN: readonly string[] = [
   "Do not say in-world fees pay the IRS or replace real-world taxes.",
   "Do not require or hype XRP/crypto as the way to play.",
   "Do not fractionalize plots or sell shares of a building.",
+  "Do not call plaza look tips a charity donation, tax-deductible gift, or 501(c)(3) contribution.",
+  "Do not say a tip buys ownership, equity, a vote, or a guaranteed upgrade date.",
 ];
 
 /** Ready-to-paste ads for Business Steward / store marketing. */
@@ -86,6 +90,7 @@ UR World is a 3D entertainment and educational play space. Hard rules:
 - Never pitch plots as an investment, security, ROI, flip, dividend, or “get in early for profit.”
 - Never promise value will go up. If asked about making money from plots, refuse and restate: entertainment only.
 - City Wallet is closed-loop UR credit (Stripe when live). Not a bank. Not crypto. No player cash-out.
+- Plaza look **tips** help grow UR Platform’s rooms. Call them tips, never charity donations. Not tax-deductible. Not an investment. Hitting B/C/D on the board does not auto-buy art.
 - In-world upkeep is a platform entertainment fee, not IRS/state tax.
 - Approved ad angles: ${UR_WORLD_AD_ALLOWED.join(" / ")}
 - If the owner asks for ads, only use the approved UR World ad kit tone. Do not invent high-return claims even if asked.
@@ -102,6 +107,7 @@ const FORBIDDEN_WORLD_AD: RegExp[] = [
   /\b(pay(?:ing)? (?:the )?(?:irs|federal tax|indiana tax).{0,20}(?:in|with|inside).{0,20}(?:world|xrp|crypto))\b/i,
   /\b(security|securities|stock|equity|ownership interest)\b.{0,30}\b(plot|land|ur world)\b/i,
   /\bfractional(?:ize|ized)? (?:plot|land|building)\b/i,
+  /\b(tax[- ]?deductible|501\s*\(?c\)?\s*\(?3\)?|charitable donation)\b/i,
 ];
 
 export function mentionsUrWorld(text: string): boolean {
@@ -109,7 +115,7 @@ export function mentionsUrWorld(text: string): boolean {
 }
 
 const LEGAL_RESTATEMENT =
-  /\b(not (an? )?(investment|security|real estate)|entertainment and education only|game license, not land|not land you own)\b/i;
+  /\b(not (an? )?(investment|security|real estate|charity)|not tax-deductible|entertainment and education only|game license, not land|not land you own)\b/i;
 
 export function containsForbiddenUrWorldClaim(text: string): boolean {
   const hype = /\b(guaranteed (?:profit|return|income)|10x|moon|flip plots?)\b/i.test(text);

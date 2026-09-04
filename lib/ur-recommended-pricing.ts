@@ -256,9 +256,9 @@ export const UR_RECOMMENDED_PRICING: RecommendedProductPricing[] = [
       day: { usd: 0, cap: "N/A" },
       week: { usd: 0, cap: "N/A" },
       month: { usd: 0, cap: "N/A" },
-      other: "$5 bonus after referred creator's 5th paid transaction",
+      other: "$5 after the referred creator's free 24 hours, then 5 later sales",
     },
-    notes: "Paid after verified revenue.",
+    notes: "Launch joiners get 24 hours free. Sales in that window do not count. Then five transactions. First 30 days only for the free day.",
   },
   {
     id: "loyalty-text",

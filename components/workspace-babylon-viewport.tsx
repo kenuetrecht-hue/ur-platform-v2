@@ -1,10 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { View, Text, ActivityIndicator, Platform, StyleSheet, Pressable } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { WorkspaceTapButton } from "@/components/workspace-tap-button";
 import { openWebBrowserCheckout } from "@/lib/web-checkout";
 import { build3dWorkspaceWebPath } from "@/lib/forge-platform-handoff";
 import type { DesignLayer, WorkspaceDesignState } from "@/lib/workspace-design-types";
 import { base64ToArrayBuffer } from "@/lib/stl-utils";
+import {
+  CAD_CAMERA_PRESETS,
+  CAD_DRAW_TOOLS,
+  constrainOrtho,
+  formatFeetInches,
+  snapPlanPoint,
+  type CadCameraView,
+  type CadDrawTool,
+  type CadPlanPoint,
+} from "@/lib/workspace-cad";
+import { workspaceBeginnerStatus } from "@/lib/workspace-first-steps";
 
 type Specialist = { id: string; name: string; avatar: string };
 
@@ -17,7 +29,39 @@ export type WorkspaceBabylonViewportProps = {
   onSelectAi?: (id: string) => void;
   projectName?: string;
   height?: number;
+  drawTool?: CadDrawTool;
+  onDrawToolChange?: (tool: CadDrawTool) => void;
+  orthoLock?: boolean;
+  chainFrom?: CadPlanPoint | null;
+  onDrawSegment?: (start: CadPlanPoint, end: CadPlanPoint) => void;
+  cameraView?: CadCameraView;
+  onCameraViewChange?: (view: CadCameraView) => void;
+  onDrawPendingChange?: (point: CadPlanPoint | null) => void;
 };
+
+function applyCadCamera(
+  BABYLON: BabylonModule,
+  camera: InstanceType<BabylonModule["ArcRotateCamera"]>,
+  view: CadCameraView,
+  canvas: HTMLCanvasElement,
+) {
+  const preset = CAD_CAMERA_PRESETS[view];
+  camera.alpha = preset.alpha;
+  camera.beta = preset.beta;
+  camera.radius = preset.radius;
+  camera.target = new BABYLON.Vector3(0, 4, 0);
+  if (preset.ortho) {
+    camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+    const aspect = Math.max(canvas.clientWidth, 1) / Math.max(canvas.clientHeight, 1);
+    const half = 22;
+    camera.orthoLeft = -half * aspect;
+    camera.orthoRight = half * aspect;
+    camera.orthoBottom = -half;
+    camera.orthoTop = half;
+  } else {
+    camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+  }
+}
 
 type BabylonModule = typeof import("@babylonjs/core");
 
@@ -214,19 +258,71 @@ export function WorkspaceBabylonViewport({
   selectedAiId,
   onSelectAi,
   projectName,
-  height = 420,
+  height = 480,
+  drawTool = "select",
+  onDrawToolChange,
+  orthoLock = true,
+  chainFrom = null,
+  onDrawSegment,
+  cameraView: cameraViewProp,
+  onCameraViewChange,
+  onDrawPendingChange,
 }: WorkspaceBabylonViewportProps) {
   const colors = useColors();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef<{ dispose: () => void; resize: () => void } | null>(null);
   const sceneRef = useRef<InstanceType<BabylonModule["Scene"]> | null>(null);
+  const cameraRef = useRef<InstanceType<BabylonModule["ArcRotateCamera"]> | null>(null);
   const nodeMapRef = useRef(new Map<string, InstanceType<BabylonModule["TransformNode"]>>());
   const fingerprintRef = useRef(new Map<string, string>());
   const babylonRef = useRef<BabylonModule | null>(null);
+  const onSelectLayerRef = useRef(onSelectLayer);
+  const onDrawSegmentRef = useRef(onDrawSegment);
+  const drawToolRef = useRef(drawTool);
+  const orthoLockRef = useRef(orthoLock);
+  const chainFromRef = useRef(chainFrom);
+  const pendingStartRef = useRef<CadPlanPoint | null>(null);
+  const pointerDownRef = useRef<{ x: number; y: number } | null>(null);
   const [loading, setLoading] = useState(Platform.OS === "web");
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [viewMode, setViewMode] = useState<"solid" | "wireframe">("solid");
+  const [cameraViewInternal, setCameraViewInternal] = useState<CadCameraView>("iso");
+  const cameraView = cameraViewProp ?? cameraViewInternal;
+  const cameraViewRef = useRef<CadCameraView>(cameraView);
+  const [pendingStart, setPendingStart] = useState<CadPlanPoint | null>(null);
+  const [hoverPoint, setHoverPoint] = useState<CadPlanPoint | null>(null);
+  const onDrawPendingChangeRef = useRef(onDrawPendingChange);
+  const onCameraViewChangeRef = useRef(onCameraViewChange);
+
+  onSelectLayerRef.current = onSelectLayer;
+  onDrawSegmentRef.current = onDrawSegment;
+  drawToolRef.current = drawTool;
+  orthoLockRef.current = orthoLock;
+  chainFromRef.current = chainFrom;
+  pendingStartRef.current = pendingStart;
+  cameraViewRef.current = cameraView;
+  onDrawPendingChangeRef.current = onDrawPendingChange;
+  onCameraViewChangeRef.current = onCameraViewChange;
+
+  const applyView = (view: CadCameraView) => {
+    if (cameraViewProp == null) setCameraViewInternal(view);
+    onCameraViewChangeRef.current?.(view);
+    if (babylonRef.current && cameraRef.current && canvasRef.current) {
+      applyCadCamera(babylonRef.current, cameraRef.current, view, canvasRef.current);
+    }
+  };
+
+  const setPending = (point: CadPlanPoint | null) => {
+    pendingStartRef.current = point;
+    setPendingStart(point);
+    onDrawPendingChangeRef.current?.(point);
+  };
+
+  useEffect(() => {
+    if (!ready || !babylonRef.current || !cameraRef.current || !canvasRef.current) return;
+    applyCadCamera(babylonRef.current, cameraRef.current, cameraView, canvasRef.current);
+  }, [cameraView, ready]);
 
   useEffect(() => {
     if (Platform.OS !== "web" || typeof window === "undefined") {
@@ -252,17 +348,18 @@ export function WorkspaceBabylonViewport({
 
         const camera = new BABYLON.ArcRotateCamera(
           "cam",
-          -Math.PI / 3,
-          Math.PI / 2.8,
-          50,
-          new BABYLON.Vector3(0, 5, 0),
+          CAD_CAMERA_PRESETS.iso.alpha,
+          CAD_CAMERA_PRESETS.iso.beta,
+          CAD_CAMERA_PRESETS.iso.radius,
+          new BABYLON.Vector3(0, 4, 0),
           scene,
         );
         camera.attachControl(canvasRef.current, true);
-        camera.lowerRadiusLimit = 12;
-        camera.upperRadiusLimit = 150;
+        camera.lowerRadiusLimit = 8;
+        camera.upperRadiusLimit = 180;
         camera.wheelPrecision = 25;
         camera.panningSensibility = 80;
+        cameraRef.current = camera;
 
         new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0.4, 1, 0.2), scene);
         const key = new BABYLON.DirectionalLight(
@@ -274,27 +371,76 @@ export function WorkspaceBabylonViewport({
 
         const ground = BABYLON.MeshBuilder.CreateGround(
           "workspace-grid",
-          { width: 80, height: 80, subdivisions: 16 },
+          { width: 120, height: 120, subdivisions: 24 },
           scene,
         );
         const gmat = new BABYLON.StandardMaterial("grid-mat", scene);
         gmat.diffuseColor = new BABYLON.Color3(0.18, 0.2, 0.28);
         gmat.wireframe = true;
-        gmat.alpha = 0.6;
+        gmat.alpha = 0.55;
         ground.material = gmat;
         ground.isPickable = false;
         ground.position.y = -0.01;
 
+        const pickPlane = BABYLON.MeshBuilder.CreateGround(
+          "cad-pick",
+          { width: 200, height: 200 },
+          scene,
+        );
+        pickPlane.visibility = 0;
+        pickPlane.isPickable = true;
+        pickPlane.position.y = 0;
+
+        const planPointFromPick = (): CadPlanPoint | null => {
+          const pick = scene.pick(scene.pointerX, scene.pointerY, (m) => m.name === "cad-pick");
+          if (!pick?.hit || !pick.pickedPoint) return null;
+          return snapPlanPoint({ x: pick.pickedPoint.x, z: pick.pickedPoint.z });
+        };
+
         scene.onPointerObservable.add((info) => {
           const { PointerEventTypes } = BABYLON;
-          if (info.type === PointerEventTypes.POINTERDOWN && info.pickInfo?.hit) {
-            const layerId = info.pickInfo.pickedMesh?.metadata?.layerId as string | undefined;
-            if (layerId) onSelectLayer(layerId);
+          if (info.type === PointerEventTypes.POINTERMOVE && drawToolRef.current !== "select") {
+            setHoverPoint(planPointFromPick());
           }
+          if (info.type === PointerEventTypes.POINTERDOWN) {
+            pointerDownRef.current = { x: scene.pointerX, y: scene.pointerY };
+          }
+          if (info.type !== PointerEventTypes.POINTERUP) return;
+          const down = pointerDownRef.current;
+          pointerDownRef.current = null;
+          if (!down) return;
+          const dragged = Math.hypot(scene.pointerX - down.x, scene.pointerY - down.y) > 6;
+          if (dragged) return;
+
+          if (drawToolRef.current !== "select") {
+            let point = planPointFromPick();
+            if (!point) return;
+            const start = pendingStartRef.current ?? chainFromRef.current;
+            if (start && orthoLockRef.current && drawToolRef.current !== "slab") {
+              point = constrainOrtho(start, point);
+              point = snapPlanPoint(point);
+            }
+            if (start) {
+              onDrawSegmentRef.current?.(start, point);
+              setPending(null);
+            } else {
+              setPending(point);
+            }
+            return;
+          }
+
+          const pick = scene.pick(scene.pointerX, scene.pointerY, (m) => Boolean(m.metadata?.layerId));
+          const layerId = pick?.pickedMesh?.metadata?.layerId as string | undefined;
+          if (layerId) onSelectLayerRef.current(layerId);
         });
 
         engine.runRenderLoop(() => scene.render());
-        const onResize = () => engine.resize();
+        const onResize = () => {
+          engine.resize();
+          if (cameraRef.current && canvasRef.current) {
+            applyCadCamera(BABYLON, cameraRef.current, cameraViewRef.current, canvasRef.current);
+          }
+        };
         window.addEventListener("resize", onResize);
         removeResize = () => window.removeEventListener("resize", onResize);
 
@@ -314,12 +460,26 @@ export function WorkspaceBabylonViewport({
       engineRef.current?.dispose();
       engineRef.current = null;
       sceneRef.current = null;
+      cameraRef.current = null;
       nodeMapRef.current.clear();
       fingerprintRef.current.clear();
       babylonRef.current = null;
       setReady(false);
     };
-  }, [onSelectLayer]);
+    // Engine mounts once; draw/select callbacks use refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (drawTool === "select") {
+      setPending(null);
+    }
+  }, [drawTool]);
+
+  useEffect(() => {
+    if (!ready) return;
+    engineRef.current?.resize();
+  }, [ready, height]);
 
   useEffect(() => {
     if (!ready || !sceneRef.current || !babylonRef.current) return;
@@ -335,62 +495,108 @@ export function WorkspaceBabylonViewport({
     );
   }, [design, selectedLayerId, ready, viewMode]);
 
+  const statusStart = pendingStart ?? chainFrom;
+  const status = workspaceBeginnerStatus({
+    drawTool,
+    hasPendingStart: Boolean(statusStart),
+    startLabel: statusStart
+      ? `${formatFeetInches(statusStart.x)}, ${formatFeetInches(statusStart.z)}`
+      : undefined,
+    orthoLock,
+  });
+
   if (Platform.OS !== "web") {
     return (
       <View style={[styles.fallback, { height, borderColor: colors.border }]}>
-        <Text style={{ fontSize: 36 }}>🎮</Text>
-        <Text style={{ color: colors.foreground, fontWeight: "800" }}>{projectName ?? "3D Builder"}</Text>
+        <Text style={{ fontSize: 36 }}>📐</Text>
+        <Text style={{ color: colors.foreground, fontWeight: "800" }}>{projectName ?? "UR 3D Workspace"}</Text>
         <Text style={{ color: colors.muted, fontSize: 12, textAlign: "center", paddingHorizontal: 16 }}>
-          Full Babylon.js builder with STL upload runs on web. Layers sync when you open the workspace in a browser.
+          CAD-style drawing (plan view, snap walls, HVAC runs) runs in the browser. Layers sync to this account.
         </Text>
         <Pressable
-          onPress={() => void openWebBrowserCheckout(build3dWorkspaceWebPath({ project: "merchandise" }))}
+          onPress={() => void openWebBrowserCheckout(build3dWorkspaceWebPath({ project: "architecture" }))}
           style={[styles.nativeWebBtn, { backgroundColor: colors.primary }]}
         >
-          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Open in browser</Text>
+          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Open CAD lab in browser</Text>
         </Pressable>
       </View>
     );
   }
 
   return (
-    <View style={[styles.wrap, { height, borderColor: colors.border }]}>
-      {loading ? (
-        <View style={styles.overlay}>
-          <ActivityIndicator color={colors.primary} size="large" />
-          <Text style={styles.overlayText}>Loading Babylon.js engine…</Text>
-        </View>
-      ) : null}
-      {error ? (
-        <View style={styles.overlay}>
-          <Text style={[styles.overlayText, { color: "#fbbf24" }]}>{error}</Text>
-          <Text style={styles.overlayHint}>Run: pnpm add @babylonjs/core @babylonjs/loaders</Text>
-        </View>
-      ) : null}
-      {/* @ts-expect-error web canvas */}
-      <canvas
-        ref={canvasRef}
-        style={{ width: "100%", height: "100%", display: loading || error ? "none" : "block" }}
-      />
-
-      <View style={[styles.toolbar, { pointerEvents: "box-none" }]}>
+    <View style={[styles.wrap, { borderColor: colors.border }]}>
+      <View style={styles.chromeRow}>
         <Text style={styles.toolbarTitle} numberOfLines={1}>
-          {projectName ?? "3D Builder"} · {design.layers.length} layers
+          {projectName ?? "UR 3D Workspace"} · {design.layers.length} pcs
         </Text>
-        <View style={styles.toolbarBtns}>
-          <Pressable
-            onPress={() => setViewMode((m) => (m === "solid" ? "wireframe" : "solid"))}
-            style={[styles.toolBtn, viewMode === "wireframe" && { backgroundColor: colors.primary }]}
+        {(Object.keys(CAD_CAMERA_PRESETS) as CadCameraView[]).map((view) => (
+          <WorkspaceTapButton
+            key={view}
+            onPress={() => applyView(view)}
+            style={[styles.toolBtn, cameraView === view && { backgroundColor: colors.primary }]}
           >
-            <Text style={styles.toolBtnText}>{viewMode === "wireframe" ? "◻ Solid" : "◇ Wire"}</Text>
-          </Pressable>
+            <Text style={styles.toolBtnText}>{CAD_CAMERA_PRESETS[view].label}</Text>
+          </WorkspaceTapButton>
+        ))}
+        <WorkspaceTapButton
+          onPress={() => setViewMode((m) => (m === "solid" ? "wireframe" : "solid"))}
+          style={[styles.toolBtn, viewMode === "wireframe" && { backgroundColor: colors.primary }]}
+        >
+          <Text style={styles.toolBtnText}>{viewMode === "wireframe" ? "Solid" : "Wire"}</Text>
+        </WorkspaceTapButton>
+      </View>
+
+      <View style={styles.chromeRow}>
+        {CAD_DRAW_TOOLS.map((t) => (
+          <WorkspaceTapButton
+            key={t.id}
+            onPress={() => onDrawToolChange?.(t.id)}
+            style={[styles.toolBtn, drawTool === t.id && { backgroundColor: colors.primary }]}
+          >
+            <Text style={styles.toolBtnText}>
+              {t.emoji} {t.label}
+            </Text>
+          </WorkspaceTapButton>
+        ))}
+      </View>
+
+      <View style={[styles.canvasHost, { height }]}>
+        {loading ? (
+          <View style={styles.overlay}>
+            <ActivityIndicator color={colors.primary} size="large" />
+            <Text style={styles.overlayText}>Loading CAD viewport…</Text>
+          </View>
+        ) : null}
+        {error ? (
+          <View style={styles.overlay}>
+            <Text style={[styles.overlayText, { color: "#fbbf24" }]}>{error}</Text>
+            <Text style={styles.overlayHint}>Run: pnpm add @babylonjs/core @babylonjs/loaders</Text>
+          </View>
+        ) : null}
+        {/* @ts-expect-error web canvas */}
+        <canvas
+          ref={canvasRef}
+          style={{
+            width: "100%",
+            height: "100%",
+            display: loading || error ? "none" : "block",
+            cursor: drawTool === "select" ? "default" : "crosshair",
+          }}
+        />
+        <View style={styles.statusBar} pointerEvents="none">
+          <Text style={styles.statusText}>{status}</Text>
+          {hoverPoint && drawTool !== "select" ? (
+            <Text style={styles.statusText}>
+              X {formatFeetInches(hoverPoint.x)} · Z {formatFeetInches(hoverPoint.z)}
+            </Text>
+          ) : null}
         </View>
       </View>
 
       {specialists.length > 0 ? (
-        <View style={styles.aiBar}>
-          {specialists.slice(0, 6).map((s) => (
-            <Pressable
+        <View style={styles.chromeRow}>
+          {specialists.slice(0, 8).map((s) => (
+            <WorkspaceTapButton
               key={s.id}
               onPress={() => onSelectAi?.(s.id)}
               style={[
@@ -399,7 +605,7 @@ export function WorkspaceBabylonViewport({
               ]}
             >
               <Text>{s.avatar}</Text>
-            </Pressable>
+            </WorkspaceTapButton>
           ))}
         </View>
       ) : null}
@@ -414,7 +620,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: "hidden",
     backgroundColor: "#0a0b10",
+  },
+  chromeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    zIndex: 20,
+  },
+  canvasHost: {
     position: "relative",
+    width: "100%",
+    backgroundColor: "#0a0b10",
+    zIndex: 0,
   },
   fallback: {
     marginHorizontal: 16,
@@ -441,34 +662,26 @@ const styles = StyleSheet.create({
   },
   overlayText: { color: "#cbd5e1", fontSize: 13, textAlign: "center" },
   overlayHint: { color: "#64748b", fontSize: 11, marginTop: 8 },
-  toolbar: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    backgroundColor: "rgba(0,0,0,0.45)",
-  },
-  toolbarTitle: { color: "#e2e8f0", fontSize: 11, fontWeight: "700", flex: 1 },
-  toolbarBtns: { flexDirection: "row", gap: 6 },
+  toolbarTitle: { color: "#e2e8f0", fontSize: 11, fontWeight: "700", flexGrow: 1, minWidth: 80 },
   toolBtn: {
     borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 6,
     backgroundColor: "rgba(255,255,255,0.12)",
   },
   toolBtnText: { color: "#fff", fontSize: 10, fontWeight: "700" },
-  aiBar: {
+  statusBar: {
     position: "absolute",
     bottom: 8,
     left: 8,
-    flexDirection: "row",
-    gap: 6,
+    right: 8,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    zIndex: 2,
   },
+  statusText: { color: "#cbd5e1", fontSize: 10, fontWeight: "600" },
   aiChip: {
     width: 32,
     height: 32,

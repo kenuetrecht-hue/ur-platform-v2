@@ -32,6 +32,7 @@ import { SocialPostAssistantBar } from "@/components/social-post-assistant-bar";
 import { brandDisclosureSurface, brandHighlightSurface, brandGradientPair, withAlpha } from "@/lib/brand-theme";
 import { ContentProtectionReportSheet } from "@/components/content-protection-report-sheet";
 import { LinearGradient } from "expo-linear-gradient";
+import { CreatorTipButton } from "@/components/creator-tip-button";
 
 type FeedSort = "latest" | "top" | "friends";
 
@@ -48,6 +49,7 @@ function timeAgo(iso: string): string {
 function PostCard({
   post,
   myUserId,
+  stamps,
   onRefresh,
 }: {
   post: {
@@ -73,13 +75,23 @@ function PostCard({
     hashtags: string[];
     createdAt: string;
     recentComments: Array<{ id: string; authorName: string; body: string }>;
+    stampReactions?: Array<{
+      id: string;
+      mark: string;
+      name: string;
+      colorHex: string;
+      fromName: string;
+    }>;
+    authorIsCreator?: boolean;
   };
   myUserId: string;
+  stamps: Array<{ instanceId: string; name: string; mark: string; colorHex: string }>;
   onRefresh: () => void;
 }) {
   const colors = useColors();
   const [commentText, setCommentText] = useState("");
   const [showComments, setShowComments] = useState(false);
+  const [showStamps, setShowStamps] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const like = trpc.social.toggleLike.useMutation({ onSuccess: () => onRefresh() });
   const comment = trpc.social.addComment.useMutation({
@@ -90,6 +102,12 @@ function PostCard({
   });
   const del = trpc.social.deletePost.useMutation({ onSuccess: () => onRefresh() });
   const share = trpc.social.sharePost.useMutation({ onSuccess: () => onRefresh() });
+  const stamp = trpc.social.reactWithStamp.useMutation({
+    onSuccess: () => {
+      setShowStamps(false);
+      onRefresh();
+    },
+  });
   const commentsQ = trpc.social.listComments.useQuery(
     { postId: post.id },
     { enabled: showComments },
@@ -195,13 +213,59 @@ function PostCard({
             {post.likedByMe ? "❤️" : "🤍"} {post.likeCount}
           </Text>
         </Pressable>
+        <Pressable onPress={() => setShowStamps((v) => !v)} style={styles.actionBtn}>
+          <Text style={{ color: colors.foreground, fontWeight: "600" }}>
+            🔖 {(post.stampReactions?.length ?? 0) > 0 ? post.stampReactions!.length : "Stamp"}
+          </Text>
+        </Pressable>
         <Pressable onPress={() => setShowComments((v) => !v)} style={styles.actionBtn}>
           <Text style={{ color: colors.foreground, fontWeight: "600" }}>💬 {post.commentCount}</Text>
         </Pressable>
         <Pressable onPress={() => void sharePost()} style={styles.actionBtn}>
           <Text style={{ color: colors.foreground, fontWeight: "600" }}>↗ {post.shareCount}</Text>
         </Pressable>
+        {post.authorIsCreator && post.authorUserId !== myUserId ? (
+          <CreatorTipButton creatorUserId={post.authorUserId} creatorName={post.authorName} />
+        ) : null}
       </View>
+
+      {(post.stampReactions?.length ?? 0) > 0 ? (
+        <View style={styles.stampRow}>
+          {post.stampReactions!.map((row) => (
+            <View key={row.id} style={[styles.stampChip, { borderColor: row.colorHex }]}>
+              <Text style={{ color: colors.foreground, fontWeight: "800" }}>{row.mark}</Text>
+              <Text style={{ color: colors.muted, fontSize: 10 }}>{row.fromName}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {showStamps ? (
+        <View style={[styles.stampTray, { borderColor: colors.border }]}>
+          <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+            Stick a stamp like an emoji. This is not a tip — creators do not get money from stamps.
+          </Text>
+          {stamps.length === 0 ? (
+            <Text style={{ color: colors.muted, fontSize: 11 }}>
+              Buy stamps on Profile — 4 per $1 — then tap one here.
+            </Text>
+          ) : (
+            <View style={styles.stampRow}>
+              {stamps.slice(0, 16).map((item) => (
+                <Pressable
+                  key={item.instanceId}
+                  onPress={() => stamp.mutate({ postId: post.id, instanceId: item.instanceId })}
+                  disabled={stamp.isPending}
+                  style={[styles.stampChip, { borderColor: item.colorHex }]}
+                >
+                  <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "800" }}>{item.mark}</Text>
+                  <Text style={{ color: colors.foreground, fontSize: 10 }}>{item.name}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </View>
+      ) : null}
 
       {(showComments ? commentsQ.data : post.recentComments)?.map((c) => (
         <View key={c.id} style={{ paddingVertical: 4 }}>
@@ -267,6 +331,7 @@ export function SocialFeedPanel() {
   const feed = trpc.social.feed.useQuery({ sort, hashtag });
   const trending = trpc.social.trendingHashtags.useQuery();
   const stats = trpc.social.feedStats.useQuery();
+  const stampWallet = trpc.thanksStamps.wallet.useQuery();
 
   const createPost = trpc.social.createPost.useMutation({
     onSuccess: () => {
@@ -289,6 +354,7 @@ export function SocialFeedPanel() {
 
   const refresh = () => {
     void utils.social.feed.invalidate();
+    void utils.thanksStamps.wallet.invalidate();
   };
 
   const sorts: { id: FeedSort; label: string }[] = [
@@ -578,7 +644,13 @@ export function SocialFeedPanel() {
           </Text>
         ) : (
           feed.data?.posts.map((post) => (
-            <PostCard key={post.id} post={post} myUserId={myUserId} onRefresh={refresh} />
+            <PostCard
+              key={post.id}
+              post={post}
+              myUserId={myUserId}
+              stamps={stampWallet.data?.items ?? []}
+              onRefresh={refresh}
+            />
           ))
         )}
       </ScrollView>
@@ -633,8 +705,11 @@ const styles = StyleSheet.create({
   disclosure: { borderRadius: 8, borderWidth: 1, padding: 8 },
   media: { width: "100%", height: 220, borderRadius: 10 },
   videoPlaceholder: { height: 120, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  actions: { flexDirection: "row", gap: 16, paddingTop: 4 },
+  actions: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 16, paddingTop: 4 },
   actionBtn: { paddingVertical: 4 },
+  stampRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  stampChip: { borderWidth: 1, borderRadius: 8, paddingVertical: 4, paddingHorizontal: 8, minWidth: 52, alignItems: "center" },
+  stampTray: { borderWidth: 1, borderRadius: 10, padding: 8, gap: 6 },
   commentRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   commentInput: { flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, fontSize: 13 },
   commentSend: { borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },

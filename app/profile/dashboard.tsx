@@ -3,6 +3,7 @@ import { View, Text, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { ProfileStackScreen } from "@/components/profile-stack-screen";
 import { LoyaltyTrackingPanel } from "@/components/loyalty-tracking-panel";
+import { ThanksStampsPanel } from "@/components/thanks-stamps-panel";
 import { CustomLinkCard } from "@/components/transaction-history-list";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
@@ -82,6 +83,8 @@ export default function ProfileDashboardScreen() {
         ) : null}
 
         <LoyaltyTrackingPanel />
+
+        <ThanksStampsPanel />
 
         <Pressable
           onPress={() => router.push("/profile/analytics")}

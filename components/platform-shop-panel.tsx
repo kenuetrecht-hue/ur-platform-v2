@@ -1,9 +1,13 @@
 import { View, Text, ScrollView, Pressable, Image, ActivityIndicator, Linking, StyleSheet } from "react-native";
+import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { SOCIAL_POST_DISCLOSURE } from "@/lib/platform-disclosure-copy";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
+import { BillingStatePicker } from "@/components/billing-state-picker";
+import { calculateCustomerCheckout } from "@/lib/stripe-checkout-pricing";
+import type { UsStateCode } from "@/lib/us-state-taxes";
 
 type Product = {
   id: string;
@@ -18,7 +22,15 @@ type Product = {
   orders: number;
 };
 
-function ProductCard({ product, onBuy }: { product: Product; onBuy: () => void }) {
+function ProductCard({
+  product,
+  onBuy,
+  billedTotal,
+}: {
+  product: Product;
+  onBuy: () => void;
+  billedTotal?: string;
+}) {
   const colors = useColors();
   const view = trpc.commerce.viewProduct.useMutation();
   const click = trpc.commerce.clickProduct.useMutation();
@@ -42,6 +54,7 @@ function ProductCard({ product, onBuy }: { product: Product; onBuy: () => void }
       </Text>
       <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 16 }}>
         ${(product.priceCents / 100).toFixed(2)}
+        {billedTotal ? ` · you pay ${billedTotal}` : " · plus tax & card fee"}
       </Text>
       <Text style={{ color: colors.muted, fontSize: 10 }}>
         {product.category}
@@ -68,6 +81,7 @@ export function PlatformShopPanel() {
   const router = useRouter();
   const { isPlatformOwner } = usePlatformOwner();
   const utils = trpc.useUtils();
+  const [billingState, setBillingState] = useState<UsStateCode | null>(null);
   const shop = trpc.commerce.platformShop.useQuery();
   const creatorShops = trpc.commerce.listCreatorShops.useQuery();
   const purchase = trpc.commerce.simulatePurchase.useMutation({
@@ -90,8 +104,10 @@ export function PlatformShopPanel() {
         </Text>
         <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>{shop.data?.store.tagline}</Text>
         <Text style={{ color: colors.muted, fontSize: 10, marginTop: 4 }}>
-          Checkout is simulated until Stripe/LLC is ready — full catalog & AI manager work now.
+          Checkout is simulated until Stripe is live. You pay sales tax and the Stripe card fee — UR
+          and creators do not absorb those.
         </Text>
+        <BillingStatePicker value={billingState} onChange={setBillingState} />
         <Text style={{ color: colors.muted, fontSize: 10, marginTop: 6, lineHeight: 15 }}>
           Creators sell merch in their own shops (Creator Dashboard → Store). This page is UR originals,
           dropship, and partner picks.
@@ -142,7 +158,15 @@ export function PlatformShopPanel() {
                 <ProductCard
                   key={p.id}
                   product={p}
-                  onBuy={() => purchase.mutate({ productId: p.id })}
+                  billedTotal={
+                    billingState
+                      ? calculateCustomerCheckout(p.priceCents, billingState).totalDisplay
+                      : undefined
+                  }
+                  onBuy={() => {
+                    if (!billingState) return;
+                    purchase.mutate({ productId: p.id, billingStateCode: billingState });
+                  }}
                 />
               ))}
             </View>

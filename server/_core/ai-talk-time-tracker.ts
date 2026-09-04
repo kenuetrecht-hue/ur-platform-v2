@@ -181,7 +181,8 @@ export function getTalkTimeStatus(userId: string): {
   };
 }
 
-export function assertTalkTimeAvailable(userId: string, requiredMs = 1): void {
+export function assertTalkTimeAvailable(userId: string, requiredMs = 1, isPlatformOwner = false): void {
+  if (isPlatformOwner) return;
   if (getTalkMillisecondsRemaining(userId) < requiredMs) {
     throw new TRPCError({
       code: "FORBIDDEN",
@@ -191,15 +192,33 @@ export function assertTalkTimeAvailable(userId: string, requiredMs = 1): void {
   }
 }
 
-/** Deduct exact speech duration (milliseconds) from oldest active lot first. */
+const OWNER_COMPLIMENTARY_LOT_ID = "owner-complimentary";
+
+/** Deduct exact speech duration (milliseconds) from oldest active lot first. Owner is not billed. */
 export function consumeTalkTimeMs(params: {
   userId: string;
   creatorId: string;
   durationMs: number;
   source: SpeechUsageRecord["source"];
   startedAtMs?: number;
+  isPlatformOwner?: boolean;
 }): SpeechUsageRecord {
   const durationMs = Math.max(1, Math.ceil(params.durationMs));
+  const startedAtMs = params.startedAtMs ?? nowMs();
+  if (params.isPlatformOwner) {
+    const record: SpeechUsageRecord = {
+      id: randomUUID(),
+      userId: params.userId,
+      creatorId: params.creatorId,
+      lotId: OWNER_COMPLIMENTARY_LOT_ID,
+      startedAt: new Date(startedAtMs).toISOString(),
+      endedAt: new Date(startedAtMs + durationMs).toISOString(),
+      durationMs,
+      source: params.source,
+    };
+    speechLog.push(record);
+    return record;
+  }
   purgeExpiredLots(params.userId);
 
   const activeLots = getActiveTalkLots(params.userId);
@@ -213,7 +232,6 @@ export function consumeTalkTimeMs(params: {
 
   let remainingToDeduct = durationMs;
   let primaryLotId = activeLots[0]!.id;
-  const startedAtMs = params.startedAtMs ?? nowMs();
 
   for (const lot of activeLots) {
     if (remainingToDeduct <= 0) break;

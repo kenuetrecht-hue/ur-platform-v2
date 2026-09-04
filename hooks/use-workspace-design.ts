@@ -15,6 +15,11 @@ import {
 } from "@/lib/workspace-design-utils";
 import type { PrimitiveType } from "@/lib/workspace-design-types";
 import type { StlParseResult } from "@/lib/stl-utils";
+import type { CadDrawTool, CadPlanPoint } from "@/lib/workspace-cad";
+import { createLayerFromDrawTool, resizeCadLayer } from "@/lib/workspace-cad";
+import type { BuildKitId } from "@/lib/workspace-build-kits";
+import { createBuildKitLayers, createStarterRoomDesignState } from "@/lib/workspace-build-kits";
+import { applyPhysicsPositions } from "@/lib/workspace-physics";
 
 function loadLocalDesign(sessionId: string): WorkspaceDesignState | null {
   if (typeof localStorage === "undefined") return null;
@@ -162,6 +167,51 @@ export function useWorkspaceDesign(sessionId: string | null) {
     [persist],
   );
 
+  const addBuildKit = useCallback(
+    (kit: BuildKitId) => {
+      let next = design;
+      for (const layer of createBuildKitLayers(kit)) {
+        next = addLayer(next, layer);
+      }
+      persist(next);
+    },
+    [design, persist],
+  );
+
+  const loadStarterRoom = useCallback(() => {
+    persist(createStarterRoomDesignState());
+  }, [persist]);
+
+  const addCadDraw = useCallback(
+    (tool: CadDrawTool, start: CadPlanPoint, end: CadPlanPoint) => {
+      const layer = createLayerFromDrawTool(tool, start, end);
+      if (!layer) return false;
+      persist(addLayer(design, layer));
+      return true;
+    },
+    [design, persist],
+  );
+
+  const updateCadDimensions = useCallback(
+    (layerId: string, patch: { length?: number; height?: number; thickness?: number }) => {
+      const layer = design.layers.find((l) => l.id === layerId);
+      if (!layer) return;
+      persist(updateLayer(design, layerId, resizeCadLayer(layer, patch)));
+    },
+    [design, persist],
+  );
+
+  const applyPhysicsPositionsToDesign = useCallback(
+    (positions: Record<string, { x: number; y: number; z: number }>) => {
+      persist({
+        ...design,
+        layers: applyPhysicsPositions(design.layers, positions),
+        version: design.version + 1,
+      });
+    },
+    [design, persist],
+  );
+
   return {
     design,
     isLoading: serverDesign.isLoading,
@@ -171,6 +221,11 @@ export function useWorkspaceDesign(sessionId: string | null) {
     patchDesign,
     addPrimitive,
     addStl,
+    addBuildKit,
+    addCadDraw,
+    loadStarterRoom,
+    updateCadDimensions,
+    applyPhysicsPositionsToDesign,
     updateLayerById,
     removeLayerById,
     moveLayerById,

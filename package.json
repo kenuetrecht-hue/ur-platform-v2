@@ -41,6 +41,7 @@
   "dependencies": {
     "@babylonjs/core": "^8.56.2",
     "@babylonjs/loaders": "^8.56.2",
+    "@dimforge/rapier3d-compat": "^0.19.2",
     "@expo/vector-icons": "^15.0.3",
     "@google-cloud/vertexai": "^1.12.0",
     "@google/generative-ai": "^0.24.1",
@@ -54,6 +55,7 @@
     "@trpc/react-query": "11.7.2",
     "@trpc/server": "11.7.2",
     "axios": "^1.13.2",
+    "cannon-es": "^0.20.0",
     "clsx": "^2.1.1",
     "cookie": "^1.1.1",
     "dotenv": "^16.6.1",

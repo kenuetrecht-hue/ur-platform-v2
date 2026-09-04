@@ -22,6 +22,8 @@ import {
 } from "../../lib/creator-content-protection-core";
 import { buildPlatformPublicUrl } from "../../lib/platform-urls";
 import { CREATOR_CANONICAL_SHARE_NOTICE } from "../../lib/creator-content-protection-copy";
+import { getContentCreatorProfile } from "./partner-program-service";
+import { spendThanksStampForReaction } from "./ur-thanks-stamps-service";
 
 export type PostVisibility = "public" | "friends";
 export type PostKind = "text" | "photo" | "video" | "link";
@@ -71,9 +73,20 @@ export type FeedComment = {
   createdAt: string;
 };
 
+export type FeedStampReaction = {
+  id: string;
+  mark: string;
+  name: string;
+  colorHex: string;
+  fromName: string;
+  at: string;
+};
+
 export type FeedPostView = FeedPost & {
   likedByMe: boolean;
   recentComments: FeedComment[];
+  stampReactions: FeedStampReaction[];
+  authorIsCreator: boolean;
 };
 
 const profiles = new Map<string, SocialUserProfile>();
@@ -81,6 +94,7 @@ const posts = new Map<string, FeedPost>();
 const likes = new Map<string, Set<string>>(); // postId -> userIds
 const comments: FeedComment[] = [];
 const shares = new Map<string, number>();
+const stampReactions: Array<FeedStampReaction & { postId: string; userId: string }> = [];
 
 const AVATAR_EMOJIS = ["😊", "🙂", "😎", "🤩", "🧑‍🔧", "👷", "🎬", "🔗", "✨", "🚀"];
 
@@ -181,6 +195,11 @@ function enrichPost(post: FeedPost, viewerUserId: string): FeedPostView {
     shareCount: shares.get(post.id) ?? 0,
     likedByMe: postLikes.has(viewerUserId),
     recentComments: postComments.slice(0, 3),
+    stampReactions: stampReactions
+      .filter((row) => row.postId === post.id)
+      .slice(0, 40)
+      .map(({ postId: _p, userId: _u, ...rest }) => rest),
+    authorIsCreator: Boolean(getContentCreatorProfile(post.authorUserId)),
   };
 }
 
@@ -336,6 +355,38 @@ export function togglePostLike(params: { postId: string; userId: string }): { li
   }
   likes.set(params.postId, set);
   return { liked, likeCount: set.size };
+}
+
+export function reactToPostWithStamp(params: {
+  postId: string;
+  userId: string;
+  displayName?: string;
+  instanceId: string;
+}): FeedStampReaction {
+  const post = posts.get(params.postId);
+  if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found." });
+  if (!canViewPost(post, params.userId)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "You cannot stamp this post." });
+  }
+  const spent = spendThanksStampForReaction({
+    userId: params.userId,
+    instanceId: params.instanceId,
+    displayName: params.displayName,
+  });
+  const row = {
+    id: randomUUID(),
+    postId: params.postId,
+    userId: params.userId,
+    mark: spent.design.mark,
+    name: spent.design.name,
+    colorHex: spent.design.colorHex,
+    fromName: spent.fromName,
+    at: new Date().toISOString(),
+  };
+  stampReactions.unshift(row);
+  if (stampReactions.length > 2000) stampReactions.length = 2000;
+  const { postId: _p, userId: _u, ...view } = row;
+  return view;
 }
 
 export function addPostComment(params: {

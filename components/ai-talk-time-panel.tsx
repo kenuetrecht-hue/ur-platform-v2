@@ -137,6 +137,7 @@ export function AiTalkTimePanel({
   const timeVerbose = status.data?.timeRemainingVerbose;
   const trackerLots = status.data?.trackerLots ?? [];
   const purchasedTrackerLots = purchase.data?.trackerLots ?? trackerLots;
+  const ownerComplimentary = status.data?.ownerComplimentary === true;
 
   const hasTalk = isAuthenticated && (status.data?.hasTalkAccess ?? false);
 
@@ -168,6 +169,27 @@ export function AiTalkTimePanel({
   }, [hasState, selectedPack, stateCode, visiblePacks]);
 
 
+
+  if (compact && ownerComplimentary) {
+    return (
+      <View style={[styles.balance, { borderColor: colors.primary, backgroundColor: colors.surface }]}>
+        <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
+          🎙️ Included (owner) · every specialist · Talk packs are not billed
+        </Text>
+      </View>
+    );
+  }
+
+  if (ownerComplimentary) {
+    return (
+      <View style={[styles.box, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+        <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 15 }}>AI Talk Time</Text>
+        <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13, marginTop: 8, lineHeight: 18 }}>
+          Platform owner — talk, voice, and video are included on every AI. Press Voice or Video. You are not billed a Talk pack.
+        </Text>
+      </View>
+    );
+  }
 
   if (compact && hasTalk && !showPurchase) {
     if (trackerLots.length > 0) {

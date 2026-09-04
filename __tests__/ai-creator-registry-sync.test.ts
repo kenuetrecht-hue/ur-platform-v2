@@ -23,6 +23,9 @@ const MARINA_ID = "ai-marina-mechanic-001";
 const FUNDING_ID = "ai-funding-001";
 const CNC_ID = "ai-cnc-master-001";
 const CULINARY_ID = "ai-culinary-001";
+const CHAIN_SMITH_ID = "ai-blockchain-001";
+const MATH_ID = "ai-math-001";
+const READING_ID = "ai-reading-001";
 
 describe("AI creator catalog sync", () => {
   it("public catalog has expected count", () => {
@@ -246,6 +249,70 @@ describe("Culinary Arts AI", () => {
     const def = getCreatorAi(CULINARY_ID);
     expect(getCurriculumForCreator(def!).length).toBeGreaterThanOrEqual(8);
     expect(getCurriculumForCreator(def!).some((m) => /knife|allergen|ServSafe|equipment/i.test(m.title))).toBe(true);
+  });
+});
+
+describe("ChainSmith", () => {
+  it("is registered in Technology on server and client", () => {
+    expect(isCreatorAiId(CHAIN_SMITH_ID)).toBe(true);
+    expect(ALL_CREATOR_AI_IDS).toContain(CHAIN_SMITH_ID);
+    expect(getCatalogCreator(CHAIN_SMITH_ID)?.name).toBe("ChainSmith");
+    expect(getCatalogCreator(CHAIN_SMITH_ID)?.category).toBe("Technology");
+  });
+
+  it("teaches and codes blockchains, not markets", () => {
+    const def = getCreatorAi(CHAIN_SMITH_ID);
+    expect(def?.mission).toMatch(/teach and build blockchains/i);
+    expect(def?.inScope.join(" ")).toMatch(/teaching chain|solidity|hash/i);
+    expect(def?.outOfScope.join(" ")).toMatch(/investment|mainnet|mixer/i);
+  });
+
+  it("routes chain-coding questions to this specialist", () => {
+    expect(scoreCreatorDomainMatch(CHAIN_SMITH_ID, "Help me code a blockchain with proof of work")).toBeGreaterThan(0);
+    expect(scoreCreatorDomainMatch(CHAIN_SMITH_ID, "Write a Solidity smart contract lab")).toBeGreaterThan(0);
+  });
+
+  it("has hive peers, handoffs, and a blockchain Learn curriculum", () => {
+    expect(getHivePeers(CHAIN_SMITH_ID)).toContain("ai-coder-001");
+    expect(getHivePeers(CHAIN_SMITH_ID)).toContain("ai-crypto-001");
+    expect(getHandoffSuggestions(CHAIN_SMITH_ID).some((h) => h.targetCreatorId === "ai-coder-001")).toBe(true);
+    const def = getCreatorAi(CHAIN_SMITH_ID);
+    expect(getCurriculumForCreator(def!).length).toBeGreaterThanOrEqual(8);
+    expect(getCurriculumForCreator(def!).some((m) => /hash|block|solidity|chain/i.test(m.title))).toBe(true);
+  });
+});
+
+describe("Math Mentor AI", () => {
+  it("is registered as Education, not bookkeeping", () => {
+    expect(isCreatorAiId(MATH_ID)).toBe(true);
+    expect(getCatalogCreator(MATH_ID)?.name).toBe("Math Mentor AI");
+    expect(getCatalogCreator(MATH_ID)?.category).toBe("Education");
+    expect(getCreatorAi(MATH_ID)?.outOfScope.join(" ")).toMatch(/bookkeeping|Accountant/i);
+  });
+
+  it("routes algebra to Math Mentor, not the accountant", () => {
+    expect(scoreCreatorDomainMatch(MATH_ID, "Help me factor this algebra equation")).toBeGreaterThan(0);
+    expect(getHandoffSuggestions("ai-accountant-001").some((h) => h.targetCreatorId === MATH_ID)).toBe(true);
+    expect(getCurriculumForCreator(getCreatorAi(MATH_ID)!).some((m) => /algebra|calculus|geometry/i.test(m.title))).toBe(
+      true,
+    );
+  });
+});
+
+describe("Reading AI", () => {
+  it("is registered in Language with phonics, not a commercial brand clone", () => {
+    expect(isCreatorAiId(READING_ID)).toBe(true);
+    expect(getCatalogCreator(READING_ID)?.name).toBe("Reading AI");
+    expect(getCatalogCreator(READING_ID)?.category).toBe("Language");
+    expect(getCreatorAi(READING_ID)?.inScope.join(" ")).toMatch(/phonics/i);
+    expect(getCreatorAi(READING_ID)?.outOfScope.join(" ")).toMatch(/trademarked|dyslexia/i);
+  });
+
+  it("hands off speaking to LinguaMate", () => {
+    expect(scoreCreatorDomainMatch(READING_ID, "Teach me phonics so I can learn to read")).toBeGreaterThan(0);
+    expect(getHivePeers(READING_ID)).toContain("linguamate");
+    expect(getHandoffSuggestions("linguamate").some((h) => h.targetCreatorId === READING_ID)).toBe(true);
+    expect(getHandoffSuggestions(READING_ID).some((h) => h.targetCreatorId === "linguamate")).toBe(true);
   });
 });
 

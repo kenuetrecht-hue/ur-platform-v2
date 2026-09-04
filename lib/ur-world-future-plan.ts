@@ -4,9 +4,10 @@
  */
 
 import { UR_WORLD_AI_SYSTEM_RULE, UR_WORLD_SHORT_FOOTER } from "./ur-world-disclosures";
+import { UR_WORLD_LOOK_UPGRADE_STORK_NOTES } from "./ur-world-look-upgrade-plan";
 
 export const UR_WORLD_PLAN_STATUS = {
-  now: "Civic Plaza talk city — walk, avatar, three desks that start existing Talk, in-room $120/$200 upsell, ten apparel packs in the locker, buy-then-gift unused.",
+  now: "Civic Plaza talk city — Plan A look (stone walkways, tables and chairs, sit/stand bar, fountain), plaza look tips toward B/C/D, blue/purple night plaza, garden, UR Sheriff owner avatar, three desks that start existing Talk, locker packs (20% earmarked as look tips), buy-then-gift unused.",
   next: "Measure talk minutes started from /world and $5 → $120 conversion. Do not build garage/farm until that moves.",
   later:
     "Creator skins + optional real merch bundle; tool wraps not guns; Trade Yard + Maker Lab; stalls; City Wallet licenses; garage paint; Fields; Harbor; Crew Call district; ghosts.",
@@ -19,8 +20,9 @@ export const UR_WORLD_PLAN_PHASES = [
     id: "now",
     title: "Now (talk city)",
     ships: [
-      "Walkable Civic Plaza on web Babylon (native opens the browser).",
-      "Every signed-in member gets a deterministic avatar (colors from account id).",
+      "Walkable Civic Plaza on web Babylon — Plan A look: tiled stone/concrete walks, café tables with legs, chairs with backs, sit/stand Glow Bar, layered fountain. Look upgrades B/C/D wait for owner cash (see ur-world-look-upgrade-plan.ts).",
+      "Plaza look tips on /world: members tip toward B ($400), C ($12,000), D ($50,000 start), then the next scene. 20% of clothing packs earmarked. Chart, weekly top 3, who crossed each bar, public spend receipts. Tips keep being accepted after this level. Not charity, not tax-deductible, not an investment. Owner still approves the art buy.",
+      "Every signed-in member gets a deterministic avatar. The platform owner is UR Sheriff — unique casual silhouette (shirt, jeans, sneakers). World Director can DRESS OWNER / MAKE OWNER OUTFIT.",
       "Three desks: Trade Yard (electrician), The Line (culinary), Language Walk (LinguaMate).",
       "Walk up → existing Talk (same packs, same 30-day meter).",
       "In-room copy for $120 / 500 min and $200 / 1,000 min as time in the city.",
@@ -104,5 +106,7 @@ ${UR_WORLD_PLAN_STATUS.never}
 
 ${UR_WORLD_AI_SYSTEM_RULE}
 
-When the owner asks “what are we building in UR World?”, recap Now → Prove → Later → Never from this plan. Do not promise dates Rockstar could not hit. ${UR_WORLD_SHORT_FOOTER}
+${UR_WORLD_LOOK_UPGRADE_STORK_NOTES}
+
+When the owner asks “what are we building in UR World?”, recap Now → Prove → Later → Never from this plan, then the look ladder A → B → C (D parked). Do not promise dates Rockstar could not hit. ${UR_WORLD_SHORT_FOOTER}
 `.trim();

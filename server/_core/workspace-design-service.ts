@@ -42,6 +42,19 @@ const DesignLayerSchema = z.object({
     })
     .optional(),
   createdBy: z.string().max(64).optional(),
+  role: z.enum(["wall", "slab", "hvac_duct", "pipe", "column", "robot_pad", "generic"]).optional(),
+  discipline: z
+    .enum(["architecture", "mechanical", "plumbing", "electrical", "robotics", "general"])
+    .optional(),
+  cad: z
+    .object({
+      start: z.object({ x: z.number(), z: z.number() }),
+      end: z.object({ x: z.number(), z: z.number() }),
+      height: z.number(),
+      thickness: z.number(),
+      baseElevation: z.number(),
+    })
+    .optional(),
   updatedAt: z.string(),
 });
 

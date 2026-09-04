@@ -22,6 +22,8 @@ import {
 import {
   AI_HUB_CATEGORY_GROUPS,
   filterCreatorsByGroup,
+  hubGroupIdForCategory,
+  nextHubSelection,
 } from "@/lib/ai-hub-navigation";
 import { OWNER_OPS_AI_IDS, isOwnerOpsAiId } from "@/lib/owner-platform-ops-catalog";
 import { trpc } from "@/lib/trpc";
@@ -138,21 +140,19 @@ export default function AIsScreen() {
     if (!creator) return;
     setSelectedAiId(params.ai);
     setCatalogOpen(false);
-    const group = AI_HUB_CATEGORY_GROUPS.find(
-      (g) => g.categories.length > 0 && g.categories.includes(creator.category),
-    );
-    if (group) {
-      setCategoryGroup(group.id);
-    }
+    setCategoryGroup(hubGroupIdForCategory(creator.category));
   }, [params.ai, creators]);
 
   useEffect(() => {
-    if (filteredCreators.length === 0) return;
-    const visible = filteredCreators.some((c) => c.id === selectedAiId);
-    if (!visible) {
-      setSelectedAiId(filteredCreators[0]!.id);
+    const nextId = nextHubSelection({
+      deepLinkedAiId: typeof params.ai === "string" ? params.ai : undefined,
+      selectedAiId,
+      visibleIds: filteredCreators.map((c) => c.id),
+    });
+    if (nextId !== selectedAiId) {
+      setSelectedAiId(nextId);
     }
-  }, [filteredCreators, selectedAiId]);
+  }, [filteredCreators, selectedAiId, params.ai]);
 
   const totalCount = data?.total ?? AI_CREATOR_CATALOG.length;
 

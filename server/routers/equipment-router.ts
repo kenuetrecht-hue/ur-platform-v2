@@ -188,8 +188,18 @@ export const equipmentRouter = router({
       z.object({
         name: z.string().min(1).max(120),
         projectType: z
-          .enum(["merchandise", "3d_printing", "architecture", "robotics", "software", "marine", "general"])
-          .default("merchandise"),
+          .enum([
+            "merchandise",
+            "3d_printing",
+            "architecture",
+            "construction",
+            "hvac",
+            "robotics",
+            "software",
+            "marine",
+            "general",
+          ])
+          .default("architecture"),
         description: z.string().max(2000).default(""),
         activeAiIds: z.array(z.string().max(64)).max(8).optional(),
       }),

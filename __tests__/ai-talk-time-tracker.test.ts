@@ -8,6 +8,7 @@ import {
   _clearTalkTimeForTests,
   _expireTalkLotsForTests,
   secondsToBillingMs,
+  assertTalkTimeAvailable,
 } from "../server/_core/ai-talk-time-tracker";
 import {
   AI_TALK_LOT_EXPIRY_DAYS,
@@ -130,5 +131,20 @@ describe("talk time expiry tracker copy", () => {
     expect(view.remainingDisplay).toBe("1:30");
     expect(view.daysUntilExpiry).toBe(30);
     expect(view.loseByLabel).toContain("Use by");
+  });
+
+  it("does not bill the platform owner for talk packs", () => {
+    expect(() => assertTalkTimeAvailable("owner", 1, true)).not.toThrow();
+    const usage = consumeTalkTimeMs({
+      userId: "owner",
+      creatorId: "linguamate",
+      durationMs: 8000,
+      source: "voice_synthesis",
+      isPlatformOwner: true,
+    });
+    expect(usage.lotId).toBe("owner-complimentary");
+    expect(usage.durationMs).toBe(8000);
+    expect(getTalkMillisecondsRemaining("owner")).toBe(0);
+    expect(() => assertTalkTimeAvailable("member", 1, false)).toThrow(/Purchase AI talk time/);
   });
 });

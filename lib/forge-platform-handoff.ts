@@ -1,5 +1,5 @@
 import { buildPlatformPublicUrl } from "@/lib/platform-urls";
-import { GAME_FORGE_ID, TECH_BUILDER_ID } from "@/lib/forge-specialists";
+import { CHAIN_SMITH_ID, GAME_FORGE_ID, TECH_BUILDER_ID } from "@/lib/forge-specialists";
 
 export type ForgeHandoffReason =
   | "storage_high"
@@ -25,11 +25,12 @@ export const FORGE_NATIVE_LIMITS = {
 export function forgeCreatorLabel(creatorId: string): string {
   if (creatorId === GAME_FORGE_ID) return "GameForge";
   if (creatorId === TECH_BUILDER_ID) return "TechBuilder";
+  if (creatorId === CHAIN_SMITH_ID) return "ChainSmith";
   return "Forge";
 }
 
 export function buildForgeAisWebPath(creatorId: string, surface: "build" | "learn" | "chat" = "build"): string {
-  const group = creatorId === GAME_FORGE_ID ? "tech" : "platform";
+  const group = creatorId === GAME_FORGE_ID || creatorId === CHAIN_SMITH_ID ? "tech" : "platform";
   const params = new URLSearchParams({
     group,
     ai: creatorId,

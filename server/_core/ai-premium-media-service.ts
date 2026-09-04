@@ -98,12 +98,12 @@ export function hasAffiliateVoiceAccess(userId: string): boolean {
   }) !== null;
 }
 
-export function hasAiVideoTalkAccess(userId: string): boolean {
-  return hasTalkMillisecondsRemaining(userId);
+export function hasAiVideoTalkAccess(userId: string, isPlatformOwner = false): boolean {
+  return isPlatformOwner || hasTalkMillisecondsRemaining(userId);
 }
 
-export function hasAiTalkAccess(userId: string): boolean {
-  return hasTalkMillisecondsRemaining(userId);
+export function hasAiTalkAccess(userId: string, isPlatformOwner = false): boolean {
+  return isPlatformOwner || hasTalkMillisecondsRemaining(userId);
 }
 
 export function getAiTalkMinutesRemaining(userId: string): number {
@@ -263,7 +263,9 @@ export function consumePremiumMinute(params: {
   userId: string;
   kind: PremiumMediaKind;
   creatorId?: string;
+  isPlatformOwner?: boolean;
 }): void {
+  if (params.isPlatformOwner) return;
   const talkKinds: PremiumMediaKind[] = ["ai_talk", "ai_video_talk"];
   if (talkKinds.includes(params.kind)) {
     consumeTalkTimeMs({

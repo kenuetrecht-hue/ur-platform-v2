@@ -7,8 +7,11 @@ import {
   getTrendingHashtags,
   deleteFeedPost,
   recordPostShare,
+  reactToPostWithStamp,
 } from "../server/_core/social-feed-service";
 import { registerSocialUser } from "../server/_core/social-service";
+import { purchaseThanksStampPack, getThanksStampsWallet } from "../server/_core/ur-thanks-stamps-service";
+import { enrollContentCreator } from "../server/_core/partner-program-service";
 
 describe("Social feed", () => {
   const authorId = "feed-author-1";
@@ -112,5 +115,34 @@ describe("Social feed", () => {
         rightsConfirmed: true,
       }),
     ).toThrow(/already registered to another creator/);
+  });
+
+  it("lets casual members stick a purchased stamp on a post like an emoji", () => {
+    enrollContentCreator({
+      userId: authorId,
+      userEmail: "author@test.com",
+      displayName: "Author",
+    });
+    const post = createFeedPost({
+      authorUserId: authorId,
+      authorEmail: "author@test.com",
+      authorName: "Author",
+      body: "New class this Friday #stamps",
+      rightsConfirmed: true,
+    });
+    purchaseThanksStampPack({ userId: viewerId, userEmail: "viewer@test.com", packId: "thanks_1" });
+    const stamp = getThanksStampsWallet(viewerId).items[0]!;
+    const reaction = reactToPostWithStamp({
+      postId: post.id,
+      userId: viewerId,
+      displayName: "Viewer Friend",
+      instanceId: stamp.instanceId,
+    });
+    expect(reaction.mark).toBeTruthy();
+    expect(getThanksStampsWallet(viewerId).count).toBe(3);
+    const feed = getFeed({ viewerUserId: viewerId, sort: "latest" });
+    const found = feed.posts.find((p) => p.id === post.id);
+    expect(found?.stampReactions.some((row) => row.id === reaction.id)).toBe(true);
+    expect(found?.authorIsCreator).toBe(true);
   });
 });

@@ -6,12 +6,16 @@ import { formatWorldUsd } from "@/lib/ur-world-economy";
 import { UR_WORLD_COSMETIC_LICENSE } from "@/lib/ur-world-cosmetics";
 import { getClientPlatform, openWebBrowserCheckout } from "@/lib/web-checkout";
 import { NoRefundPurchaseAck } from "@/components/no-refund-purchase-ack";
+import { BillingStatePicker } from "@/components/billing-state-picker";
+import { calculateCustomerCheckout } from "@/lib/stripe-checkout-pricing";
+import type { UsStateCode } from "@/lib/us-state-taxes";
 
 type Owned = {
   instanceId: string;
   packId: string;
   packName: string;
   giftable: boolean;
+  ownerOnly?: boolean;
 };
 
 type Pack = {
@@ -35,6 +39,7 @@ export function UrWorldLockerPanel({
   const [giftTarget, setGiftTarget] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [acceptedNoRefund, setAcceptedNoRefund] = useState(false);
+  const [billingState, setBillingState] = useState<UsStateCode | null>(null);
 
   const buy = trpc.urWorld.buyApparel.useMutation({
     onSuccess: async (res) => {
@@ -74,9 +79,8 @@ export function UrWorldLockerPanel({
     <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
       <Text style={[styles.title, { color: colors.foreground }]}>Avatar locker</Text>
       <Text style={[styles.body, { color: colors.muted }]}>
-        Ten looks. Cheap on purpose — they are code, not cotton. UR keeps the list price; when
-        Stripe is live you still pay processing on top like other UR checkouts. Gift unused only. No
-        resale.
+        Ten looks. Cheap on purpose — they are code, not cotton. Twenty percent of each pack is
+        earmarked as a plaza look tip (helps grow UR Platform’s rooms). Gift unused only. No resale.
       </Text>
       <Text style={[styles.body, { color: colors.muted, marginTop: 6 }]}>{UR_WORLD_COSMETIC_LICENSE}</Text>
 
@@ -84,13 +88,17 @@ export function UrWorldLockerPanel({
         checked={acceptedNoRefund}
         onToggle={() => setAcceptedNoRefund((v) => !v)}
       />
+      <BillingStatePicker value={billingState} onChange={setBillingState} />
 
       {catalog.map((pack) => (
         <View key={pack.id} style={[styles.pack, { borderColor: colors.border }]}>
           <Text style={{ color: colors.foreground, fontWeight: "800" }}>{pack.name}</Text>
           <Text style={{ color: colors.muted, fontSize: 11 }}>{pack.district} · {pack.tagline}</Text>
           <Text style={{ color: colors.primary, fontWeight: "700", marginTop: 4 }}>
-            {formatWorldUsd(pack.priceCents)} · web
+            {formatWorldUsd(pack.priceCents)}
+            {billingState
+              ? ` · you pay ${calculateCustomerCheckout(pack.priceCents, billingState).totalDisplay}`
+              : " · plus tax & card fee"}
           </Text>
           <Pressable
             onPress={() => {
@@ -102,7 +110,16 @@ export function UrWorldLockerPanel({
                 setNotice("Check the no-refund box before buying.");
                 return;
               }
-              buy.mutate({ packId: pack.id, clientPlatform: getClientPlatform(), acceptedNoRefund: true });
+              if (!billingState) {
+                setNotice("Select your billing state so tax and the card fee go on your card.");
+                return;
+              }
+              buy.mutate({
+                packId: pack.id,
+                clientPlatform: getClientPlatform(),
+                acceptedNoRefund: true,
+                billingStateCode: billingState,
+              });
             }}
             style={[styles.btn, { backgroundColor: colors.primary, opacity: !acceptedNoRefund && Platform.OS === "web" ? 0.55 : 1 }]}
             disabled={buy.isPending || (!acceptedNoRefund && Platform.OS === "web")}
@@ -125,7 +142,11 @@ export function UrWorldLockerPanel({
         <View key={item.instanceId} style={[styles.pack, { borderColor: colors.border }]}>
           <Text style={{ color: colors.foreground, fontWeight: "700" }}>{item.packName}</Text>
           <Text style={{ color: colors.muted, fontSize: 11 }}>
-            {item.giftable ? "Unused — you may gift or wear" : "Worn — yours to keep, not giftable"}
+            {item.ownerOnly
+              ? "Owner only — not for sale, not giftable"
+              : item.giftable
+                ? "Unused — you may gift or wear"
+                : "Worn — yours to keep, not giftable"}
           </Text>
           <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
             <Pressable

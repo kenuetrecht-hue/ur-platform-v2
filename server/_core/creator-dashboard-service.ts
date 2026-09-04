@@ -97,10 +97,13 @@ export function getCreatorAnalytics(userId: string) {
     (t) => Date.now() - Date.parse(t.createdAt) < 30 * 24 * 60 * 60 * 1000,
   );
   const earnings30dCents = last30Days.reduce((s, t) => s + t.amountCents, 0);
-  const creatorShareCents = Math.round(txStats.totalVolumeCents * CREATOR_PAYOUT_SHARE);
+  const classGrossCents = Math.max(0, (profile?.totalEarningsCents ?? 0) - (profile?.totalTipCents ?? 0));
+  const creatorShareCents =
+    Math.round(classGrossCents * CREATOR_PAYOUT_SHARE) + (profile?.totalTipCents ?? 0);
 
   return {
     totalEarningsCents: profile?.totalEarningsCents ?? 0,
+    totalTipCents: profile?.totalTipCents ?? 0,
     creatorShareCents,
     platformFeeCents: txStats.totalVolumeCents - creatorShareCents,
     totalPaidOutCents: payout.totalPaidOutCents,

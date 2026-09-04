@@ -24,6 +24,7 @@ import { useNetworkConnectivity, isMeteringConnected } from "@/hooks/use-network
 import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync";
 import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { useAuth } from "@/lib/auth-context";
+import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { METER_HEARTBEAT_INTERVAL_MS } from "@/lib/ai-metering-policy";
 import { buildAiChatDisclosure, AI_WELCOME_DISCLOSURE_SUFFIX } from "@/lib/platform-disclosure-copy";
 import { brandDisclosureSurface, withAlpha } from "@/lib/brand-theme";
@@ -37,6 +38,7 @@ import type { ChatMessageAttachmentPreview, ChatSearchCitation } from "@/lib/cha
 import { AiChatSearchCitations } from "@/components/ai-chat-search-citations";
 import { AiChatMessageMedia } from "@/components/ai-chat-message-media";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
+import { ThanksStampsWall } from "@/components/thanks-stamps-wall";
 
 interface ChatMessage {
   role: "user" | "ai";
@@ -241,11 +243,13 @@ export function CreatorAIInterface({
   const hiveProfile = trpc.aiCreators.getHiveProfile.useQuery({ creatorId });
   const handoffs = trpc.aiCreators.getHandoffs.useQuery({ creatorId });
   const isAssociateAi = creatorId === AFFILIATE_ASSOCIATE_ID;
+  const { isPlatformOwner } = usePlatformOwner();
   const talkMinutes = talkStatus.data?.minutesRemaining ?? premium.data?.talkMinutesRemaining ?? 0;
   const talkMsLeft = talkStatus.data?.millisecondsRemaining ?? talkMinutes * 60_000;
   const talkLoseBy = talkStatus.data?.earliestLoseByLabel;
-  const hasTalkTime = talkMinutes > 0;
-  const talkLowBalance = talkStatus.data?.lowBalance ?? isTalkTimeLowBalance(talkMsLeft);
+  const ownerTalkIncluded = isPlatformOwner || talkStatus.data?.ownerComplimentary === true;
+  const hasTalkTime = ownerTalkIncluded || talkStatus.data?.hasTalkAccess === true || talkMinutes > 0;
+  const talkLowBalance = ownerTalkIncluded ? false : (talkStatus.data?.lowBalance ?? isTalkTimeLowBalance(talkMsLeft));
   const supportsVoice = isForgeSpecialist(creatorId) || isAssociateAi || hasTalkTime;
   const forgeEmbedded = embedded && isForgeSpecialist(creatorId);
   const showVoiceHiveControls = !embedded || forgeEmbedded;
@@ -637,6 +641,8 @@ export function CreatorAIInterface({
         </Text>
       </View>
 
+      <ThanksStampsWall targetType="ai" targetId={creatorId} targetName={creatorName} compact />
+
       {!embedded && apiReachable === false ? (
         <View
           style={[
@@ -803,7 +809,9 @@ export function CreatorAIInterface({
                       ? "🎙️ Hear Associate AI"
                       : `🎙️ Voice pack $${premium.data?.affiliateVoicePriceUsd ?? "2.99"}`
                     : hasTalkTime
-                      ? `🎙️ Voice — ${talkMinutes} min left${talkLowBalance ? " · last 5 min, re-up now" : ""}${talkLoseBy ? ` · ${talkLoseBy}` : " · use within 30 days or it is lost"}`
+                      ? ownerTalkIncluded
+                        ? "🎙️ Voice — included (owner)"
+                        : `🎙️ Voice — ${talkMinutes} min left${talkLowBalance ? " · last 5 min, re-up now" : ""}${talkLoseBy ? ` · ${talkLoseBy}` : " · use within 30 days or it is lost"}`
                       : "🎙️ Voice — buy talk time"}
               </Text>
               {voiceStatus ? (
@@ -826,7 +834,7 @@ export function CreatorAIInterface({
               ]}
             >
               <Text style={{ color: videoActive ? "#fff" : colors.foreground, fontSize: 12, fontWeight: "600" }}>
-                {videoActive ? "📹 Video talk ON" : "📹 Video talk"}
+                {videoActive ? "📹 Video talk ON" : ownerTalkIncluded ? "📹 Video talk — included (owner)" : "📹 Video talk"}
               </Text>
             </Pressable>
           ) : null}

@@ -210,7 +210,7 @@ export function PlatformOpsConsole({
   const stewardWelcome =
     "Owner channel active. I'm Business Steward AI — your private operator for urplatform.llc. Launch ad budget is $2/day and $60/month (text + stills). Change store prices here or say SET PRICE monthly text 29.99. I do not file taxes or deploy code.";
   const worldDirectorWelcome =
-    "Owner channel active. I'm World Director AI — I watch UR World and in-platform talk. Red flags pause the member and land here in English. REACTIVATE WORLD USER or DISCONTINUE WORLD USER after you review. Catalog: SET WORLD PACK PRICE civic-dawn 2.49. Apparel is never $5.00.";
+    "Owner channel active. I'm World Director AI — I watch UR World and in-platform talk. Red flags pause the member and land here in English. Your plaza avatar is the UR Sheriff (casual, not a cop uniform). DRESS OWNER · MAKE OWNER OUTFIT weekend shirt #e7e0d4 jeans #3a4f73 shoes #f4f1ea · SET OWNER TITLE UR Sheriff. Catalog: SET WORLD PACK PRICE civic-dawn 2.49. Apparel is never $5.00.";
   const opsWelcome = `Owner channel active. I'm ${selectedMeta?.name ?? "Ops AI"}. I can diagnose, isolate a broken section, and draft a fix. Nothing is finalized until you type ${OWNER_REMEDIATION_CONFIRM_PHRASE} in Owner Ops.`;
 
   return (

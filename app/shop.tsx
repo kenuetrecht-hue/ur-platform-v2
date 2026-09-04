@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
@@ -6,11 +7,15 @@ import { CreatorStorePanel } from "@/components/creator-store-panel";
 import { trpc } from "@/lib/trpc";
 import { ScrollView, View, Text, ActivityIndicator, Pressable, Image, StyleSheet } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { BillingStatePicker } from "@/components/billing-state-picker";
+import { calculateCustomerCheckout } from "@/lib/stripe-checkout-pricing";
+import type { UsStateCode } from "@/lib/us-state-taxes";
 
 function CreatorShopView({ slug }: { slug: string }) {
   const colors = useColors();
   const shop = trpc.commerce.shopBySlug.useQuery({ slug });
   const purchase = trpc.commerce.simulatePurchase.useMutation();
+  const [billingState, setBillingState] = useState<UsStateCode | null>(null);
 
   if (shop.isLoading) return <ActivityIndicator color={colors.primary} style={{ margin: 24 }} />;
   if (!shop.data) {
@@ -21,15 +26,28 @@ function CreatorShopView({ slug }: { slug: string }) {
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
       <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18 }}>{shop.data.store.name}</Text>
       <Text style={{ color: colors.muted, fontSize: 12 }}>{shop.data.store.tagline}</Text>
+      <Text style={{ color: colors.muted, fontSize: 11 }}>
+        Listed price plus your state sales tax and the Stripe card fee. Creators keep 85% of the
+        listed price — they do not absorb tax.
+      </Text>
+      <BillingStatePicker value={billingState} onChange={setBillingState} />
       {shop.data.products.map((p) => (
         <View key={p.id} style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
           {p.imageUrl ? <Image source={{ uri: p.imageUrl }} style={styles.img} /> : null}
           <Text style={{ color: colors.foreground, fontWeight: "700" }}>{p.title}</Text>
           <Text style={{ color: colors.muted, fontSize: 12 }}>{p.description}</Text>
-          <Text style={{ color: colors.primary, fontWeight: "800" }}>${(p.priceCents / 100).toFixed(2)}</Text>
+          <Text style={{ color: colors.primary, fontWeight: "800" }}>
+            ${(p.priceCents / 100).toFixed(2)}
+            {billingState
+              ? ` · you pay ${calculateCustomerCheckout(p.priceCents, billingState).totalDisplay}`
+              : " · plus tax & card fee"}
+          </Text>
           <Pressable
-            onPress={() => purchase.mutate({ productId: p.id })}
-            style={[styles.btn, { backgroundColor: colors.primary }]}
+            onPress={() => {
+              if (!billingState) return;
+              purchase.mutate({ productId: p.id, billingStateCode: billingState });
+            }}
+            style={[styles.btn, { backgroundColor: colors.primary, opacity: billingState ? 1 : 0.55 }]}
           >
             <Text style={{ color: "#fff", fontWeight: "700" }}>Simulated buy</Text>
           </Pressable>

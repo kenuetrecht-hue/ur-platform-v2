@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   TECH_BUILDER_ID,
   GAME_FORGE_ID,
+  CHAIN_SMITH_ID,
   isForgeSpecialist,
   forgeLearnLabel,
 } from "../lib/forge-specialists";
@@ -36,12 +37,14 @@ describe("Forge specialists", () => {
   it("identifies TechBuilder and GameForge", () => {
     expect(isForgeSpecialist(TECH_BUILDER_ID)).toBe(true);
     expect(isForgeSpecialist(GAME_FORGE_ID)).toBe(true);
+    expect(isForgeSpecialist(CHAIN_SMITH_ID)).toBe(true);
     expect(isForgeSpecialist("ai-news-001")).toBe(false);
   });
 
   it("returns correct learn tab labels", () => {
     expect(forgeLearnLabel(TECH_BUILDER_ID)).toBe("Learn to code");
     expect(forgeLearnLabel(GAME_FORGE_ID)).toBe("Learn game dev");
+    expect(forgeLearnLabel(CHAIN_SMITH_ID)).toBe("Learn blockchain");
     expect(forgeLearnLabel("ai-news-001")).toBe("Learn the trade");
   });
 

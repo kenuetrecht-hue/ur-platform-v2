@@ -24,9 +24,8 @@ export function AffiliateDashboardPanel() {
         <Text style={{ fontSize: 28 }}>🔗</Text>
         <Text style={[styles.title, { color: colors.foreground }]}>Affiliate Dashboard</Text>
         <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 21 }}>
-          Share your UR Platform link and earn ${info.data?.affiliateBonusUsd ?? "5.00"} for every content
-          creator you refer — paid after they complete their{" "}
-          {info.data?.payoutAfterTransactions ?? 5}th transaction on the platform.
+          {info.data?.rule ??
+            "Share your UR Platform link and earn $5.00 for every content creator you refer — only after their first 24 free hours, then five later sales. Sales during those first 24 hours do not count. The free day is for people who join in the first 30 days of launch."}
         </Text>
         <Pressable
           onPress={() => enroll.mutate()}
@@ -51,9 +50,7 @@ export function AffiliateDashboardPanel() {
       <View style={[styles.banner, { backgroundColor: `${colors.primary}12`, borderColor: colors.primary }]}>
         <Text style={[styles.title, { color: colors.foreground }]}>Affiliate Dashboard</Text>
         <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>
-          Send creators your link. When they sign up and complete{" "}
-          {dash.data.payoutAfterTransactions} paid transactions, you earn $
-          {dash.data.bonusPerCreatorUsd}.
+          {dash.data.payoutRule}
         </Text>
         <Text style={{ color: colors.foreground, fontSize: 12, marginTop: 6 }}>
           {profile.totalReferrals} referrals · {profile.qualifiedReferrals} qualified · $
@@ -91,9 +88,18 @@ export function AffiliateDashboardPanel() {
         referrals.map((r) => (
           <View key={r.creatorUserId} style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
             <Text style={{ color: colors.foreground, fontWeight: "700" }}>{r.creatorName}</Text>
-            <Text style={{ color: colors.muted, fontSize: 12 }}>
-              {r.creatorEmail} · {r.transactionCount}/{dash.data.payoutAfterTransactions} transactions
-              {r.bonusPaid ? " · ✓ $5.00 paid" : r.transactionsRemaining > 0 ? ` · ${r.transactionsRemaining} to qualify` : ""}
+            <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
+              {r.creatorEmail}
+              {" · "}
+              {r.qualifyingTransactionCount}/{dash.data.payoutAfterTransactions} after the free 24 hours
+              {r.bonusPaid
+                ? " · $5.00 paid"
+                : r.transactionsRemaining > 0
+                  ? ` · ${r.transactionsRemaining} more qualifying sales`
+                  : ""}
+            </Text>
+            <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+              {r.payoutStatus}
             </Text>
           </View>
         ))

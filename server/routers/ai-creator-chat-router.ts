@@ -444,6 +444,7 @@ export const aiCreatorChatRouter = router({
           userId,
           kind: "affiliate_voice",
           creatorId: AFFILIATE_ASSOCIATE_ID,
+          isPlatformOwner: ctx.isPlatformOwner,
         });
       } else if (input.creatorId === "contentmate") {
         if (!hasCreatorVoiceAccess(userId, "contentmate") && !ctx.isPlatformOwner) {
@@ -452,7 +453,12 @@ export const aiCreatorChatRouter = router({
             message: "Purchase a ContentMate voice pack from the Creator Dashboard to hear your assistant speak.",
           });
         }
-        consumePremiumMinute({ userId, kind: "creator_voice", creatorId: "contentmate" });
+        consumePremiumMinute({
+          userId,
+          kind: "creator_voice",
+          creatorId: "contentmate",
+          isPlatformOwner: ctx.isPlatformOwner,
+        });
       } else {
         assertAiEntitled({
           userId: ctx.user.id,
@@ -462,7 +468,7 @@ export const aiCreatorChatRouter = router({
           creatorId: input.creatorId,
         });
         if (!ctx.isPlatformOwner) {
-          assertTalkTimeAvailable(userId, 1);
+          assertTalkTimeAvailable(userId, 1, false);
         }
       }
 
@@ -589,14 +595,14 @@ export const aiCreatorChatRouter = router({
         feature: "ai_chat",
         creatorId: input.creatorId,
       });
-      if (!hasAiVideoTalkAccess(String(ctx.user.id)) && !ctx.isPlatformOwner) {
+      if (!hasAiVideoTalkAccess(String(ctx.user.id), ctx.isPlatformOwner) && !ctx.isPlatformOwner) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Purchase AI talk time to start voice or video chat with this specialist.",
         });
       }
       if (!ctx.isPlatformOwner) {
-        assertTalkTimeAvailable(String(ctx.user.id), 1);
+        assertTalkTimeAvailable(String(ctx.user.id), 1, false);
         const balance = getTalkMillisecondsRemaining(String(ctx.user.id));
         const session = startMeterSession({
           userId: String(ctx.user.id),

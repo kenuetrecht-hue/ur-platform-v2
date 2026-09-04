@@ -51,6 +51,7 @@ export function initializePromotionalSystem(launchDate: Date = getLaunchDate()):
       benefits: [
         "92.5% earnings for 180 days",
         "100% earnings for first 24 hours",
+        "Affiliate $5 only after this free 24 hours, then 5 later sales",
         "1 free ticket each week for LIFE",
         "Monthly drawing: 24-hour 100% earnings prize",
       ],
@@ -68,6 +69,7 @@ export function initializePromotionalSystem(launchDate: Date = getLaunchDate()):
       benefits: [
         "94% earnings for 90 days",
         "100% earnings for first 24 hours",
+        "Affiliate $5 only after this free 24 hours, then 5 later sales",
         "Standard promotional benefits",
       ],
       color: "#C0C0C0", // Silver
@@ -84,6 +86,7 @@ export function initializePromotionalSystem(launchDate: Date = getLaunchDate()):
       benefits: [
         "92.5% earnings for 30 days",
         "100% earnings for first 24 hours",
+        "Affiliate $5 only after this free 24 hours, then 5 later sales",
         "Standard promotional benefits",
       ],
       color: "#CD7F32", // Bronze

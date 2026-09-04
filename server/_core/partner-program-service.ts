@@ -1,16 +1,13 @@
 /**
  * Content creator & affiliate partner program.
- * - Creators host paid classes (tracked transactions).
- * - Affiliates earn $5 when a referred creator completes their 5th transaction.
+ * $5 referral fee: after the creator's free 24 hours (launch joiners), then 5 later sales.
  */
 
-import { randomUUID } from "crypto";
 import { TRPCError } from "@trpc/server";
 import {
   getOrCreateUserLink,
   setUserLinkRole,
   resolveUserLink,
-  buildCustomUrl,
   buildSignupUrlFromSlug,
 } from "./user-link-service";
 import { recordTransaction, listAllTransactions } from "./transaction-ledger-service";
@@ -19,9 +16,20 @@ import {
   mapContentProtectionError,
   registerCreatorIdentity,
 } from "./creator-content-protection-service";
+import {
+  AFFILIATE_PAYOUT_AFTER_QUALIFYING_TRANSACTIONS,
+  AFFILIATE_REFERRAL_BONUS_CENTS,
+  AFFILIATE_REFERRAL_PAYOUT_RULE,
+  AFFILIATE_REFERRAL_PAYOUT_RULE_SHORT,
+  canPayAffiliateReferralBonus,
+  describeAffiliateReferralProgress,
+  remainingQualifyingTransactions,
+  resolveCreatorFreeServiceEnd,
+  shouldCountTowardAffiliatePayout,
+} from "../../lib/affiliate-referral-payout-policy";
 
-export const AFFILIATE_BONUS_CENTS = 500;
-export const AFFILIATE_PAYOUT_AFTER_TRANSACTIONS = 5;
+export const AFFILIATE_BONUS_CENTS = AFFILIATE_REFERRAL_BONUS_CENTS;
+export const AFFILIATE_PAYOUT_AFTER_TRANSACTIONS = AFFILIATE_PAYOUT_AFTER_QUALIFYING_TRANSACTIONS;
 
 export type ContentCreatorProfile = {
   userId: string;
@@ -33,8 +41,13 @@ export type ContentCreatorProfile = {
   referredByAffiliateUserId?: string;
   referredByAffiliateCode?: string;
   transactionCount: number;
+  /** Sales after the free 24 hours — only these count toward the $5 referral fee. */
+  qualifyingTransactionCount: number;
+  /** ISO end of launch free service, or null if they joined after the 30-day window. */
+  freeServiceEndsAt: string | null;
   affiliateBonusPaid: boolean;
   totalEarningsCents: number;
+  totalTipCents: number;
 };
 
 export type AffiliateProfile = {
@@ -57,6 +70,8 @@ export type AffiliateReferralRecord = {
   creatorName: string;
   referredAt: string;
   transactionCount: number;
+  qualifyingTransactionCount: number;
+  freeServiceEndsAt: string | null;
   bonusPaid: boolean;
   bonusPaidAt?: string;
 };
@@ -95,6 +110,8 @@ export function enrollContentCreator(params: {
   userEmail: string;
   displayName: string;
   referralCode?: string;
+  enrolledAt?: Date;
+  launchDate?: Date;
 }): ContentCreatorProfile {
   const existing = creators.get(params.userId);
   if (existing) return existing;
@@ -125,18 +142,27 @@ export function enrollContentCreator(params: {
     role: "creator",
   });
 
+  const enrolledAt = params.enrolledAt ?? new Date();
+  const freeServiceEndsAt = resolveCreatorFreeServiceEnd({
+    enrolledAt,
+    launchDate: params.launchDate,
+  });
+
   const profile: ContentCreatorProfile = {
     userId: params.userId,
     userEmail: normalizeEmail(params.userEmail),
     displayName: params.displayName,
     customSlug: link.slug,
     customUrl: link.customUrl,
-    enrolledAt: new Date().toISOString(),
+    enrolledAt: enrolledAt.toISOString(),
     referredByAffiliateUserId,
     referredByAffiliateCode,
     transactionCount: 0,
+    qualifyingTransactionCount: 0,
+    freeServiceEndsAt: freeServiceEndsAt?.toISOString() ?? null,
     affiliateBonusPaid: false,
     totalEarningsCents: 0,
+    totalTipCents: 0,
   };
   creators.set(params.userId, profile);
 
@@ -153,6 +179,8 @@ export function enrollContentCreator(params: {
       creatorName: profile.displayName,
       referredAt: profile.enrolledAt,
       transactionCount: 0,
+      qualifyingTransactionCount: 0,
+      freeServiceEndsAt: profile.freeServiceEndsAt,
       bonusPaid: false,
     });
     affiliateReferrals.set(referredByAffiliateUserId, list);
@@ -211,6 +239,20 @@ export function getContentCreatorProfile(userId: string): ContentCreatorProfile 
   return creators.get(userId) ?? null;
 }
 
+export function creditCreatorTipEarnings(userId: string, amountCents: number): ContentCreatorProfile {
+  const creator = creators.get(userId);
+  if (!creator) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "That member is not a content creator, so they cannot receive tips. Pass stamps like emojis instead, or tip an enrolled creator.",
+    });
+  }
+  creator.totalEarningsCents += amountCents;
+  creator.totalTipCents += amountCents;
+  creators.set(userId, creator);
+  return creator;
+}
+
 export function getAffiliateProfile(userId: string): AffiliateProfile | null {
   return affiliates.get(userId) ?? null;
 }
@@ -222,7 +264,7 @@ export function buildReferralLink(referralCode: string): string {
 }
 
 export function buildReferralShareText(referralCode: string): string {
-  return `Join UR Platform as a content creator and host paid live classes. Use my link: ${buildReferralLink(referralCode)}`;
+  return `Join UR Platform as a content creator. First 30 days: 24 hours free. I earn $5 only after your free day ends and you complete five later sales. ${AFFILIATE_REFERRAL_PAYOUT_RULE_SHORT} Use my link: ${buildReferralLink(referralCode)}`;
 }
 
 export function recordCreatorTransaction(params: {
@@ -234,10 +276,12 @@ export function recordCreatorTransaction(params: {
   creatorAiId?: string;
   paymentIntentId?: string;
   attributionSlug?: string;
+  occurredAt?: Date;
 }): {
   creator: ContentCreatorProfile;
   affiliateBonusTriggered: boolean;
   affiliateUserId?: string;
+  countedTowardAffiliatePayout: boolean;
 } {
   const creator = creators.get(params.creatorUserId);
   if (!creator) {
@@ -247,7 +291,18 @@ export function recordCreatorTransaction(params: {
     });
   }
 
+  const occurredAt = params.occurredAt ?? new Date();
+  const freeServiceEndsAt = creator.freeServiceEndsAt ? new Date(creator.freeServiceEndsAt) : null;
+  const countedTowardAffiliatePayout = shouldCountTowardAffiliatePayout({
+    freeServiceEndsAt,
+    transactionAt: occurredAt,
+  });
+
   creator.transactionCount += 1;
+  creator.qualifyingTransactionCount = creator.qualifyingTransactionCount ?? 0;
+  if (countedTowardAffiliatePayout) {
+    creator.qualifyingTransactionCount += 1;
+  }
   creator.totalEarningsCents += params.amountCents;
   creators.set(params.creatorUserId, creator);
 
@@ -265,7 +320,11 @@ export function recordCreatorTransaction(params: {
     creatorAiId: params.creatorAiId,
     paymentIntentId: params.paymentIntentId,
     attributionSlug: params.attributionSlug ?? creator.referredByAffiliateCode,
-    metadata: { creatorTransactionNumber: creator.transactionCount },
+    metadata: {
+      creatorTransactionNumber: creator.transactionCount,
+      qualifyingTransactionNumber: creator.qualifyingTransactionCount,
+      countedTowardAffiliatePayout,
+    },
   });
 
   const ledgerTx = listAllTransactions({ userId: params.creatorUserId, limit: 1 })[0];
@@ -281,8 +340,12 @@ export function recordCreatorTransaction(params: {
 
   if (
     creator.referredByAffiliateUserId &&
-    !creator.affiliateBonusPaid &&
-    creator.transactionCount >= AFFILIATE_PAYOUT_AFTER_TRANSACTIONS
+    canPayAffiliateReferralBonus({
+      alreadyPaid: creator.affiliateBonusPaid,
+      freeServiceEndsAt,
+      qualifyingTransactionCount: creator.qualifyingTransactionCount,
+      now: occurredAt,
+    })
   ) {
     affiliateUserId = creator.referredByAffiliateUserId;
     const affiliate = affiliates.get(affiliateUserId);
@@ -295,8 +358,9 @@ export function recordCreatorTransaction(params: {
       const rec = list.find((r) => r.creatorUserId === params.creatorUserId);
       if (rec) {
         rec.transactionCount = creator.transactionCount;
+        rec.qualifyingTransactionCount = creator.qualifyingTransactionCount;
         rec.bonusPaid = true;
-        rec.bonusPaidAt = new Date().toISOString();
+        rec.bonusPaidAt = occurredAt.toISOString();
       }
       affiliateReferrals.set(affiliateUserId, list);
     }
@@ -309,7 +373,7 @@ export function recordCreatorTransaction(params: {
     recordTransaction({
       type: "affiliate_bonus",
       amountCents: AFFILIATE_BONUS_CENTS,
-      description: `Affiliate bonus — ${creator.displayName} completed ${AFFILIATE_PAYOUT_AFTER_TRANSACTIONS} transactions`,
+      description: `Affiliate bonus — ${creator.displayName} finished the free 24 hours and completed ${AFFILIATE_PAYOUT_AFTER_TRANSACTIONS} later transactions`,
       payeeUserId: affiliateUserId,
       payeeEmail: affiliateProfile?.userEmail,
       affiliateUserId,
@@ -319,11 +383,14 @@ export function recordCreatorTransaction(params: {
   } else if (creator.referredByAffiliateUserId) {
     const list = affiliateReferrals.get(creator.referredByAffiliateUserId) ?? [];
     const rec = list.find((r) => r.creatorUserId === params.creatorUserId);
-    if (rec) rec.transactionCount = creator.transactionCount;
+    if (rec) {
+      rec.transactionCount = creator.transactionCount;
+      rec.qualifyingTransactionCount = creator.qualifyingTransactionCount;
+    }
     affiliateReferrals.set(creator.referredByAffiliateUserId, list);
   }
 
-  return { creator, affiliateBonusTriggered, affiliateUserId };
+  return { creator, affiliateBonusTriggered, affiliateUserId, countedTowardAffiliatePayout };
 }
 
 export function getCreatorDashboard(userId: string) {
@@ -337,9 +404,18 @@ export function getCreatorDashboard(userId: string) {
     customUrl: profile.customUrl,
     customSlug: profile.customSlug,
     transactionsUntilAffiliateQualifies: profile.referredByAffiliateUserId
-      ? Math.max(0, AFFILIATE_PAYOUT_AFTER_TRANSACTIONS - profile.transactionCount)
+      ? remainingQualifyingTransactions(profile.qualifyingTransactionCount)
       : null,
     affiliatePayoutThreshold: AFFILIATE_PAYOUT_AFTER_TRANSACTIONS,
+    payoutRule: AFFILIATE_REFERRAL_PAYOUT_RULE,
+    payoutStatus: profile.referredByAffiliateUserId
+      ? describeAffiliateReferralProgress({
+          freeServiceEndsAt: profile.freeServiceEndsAt ? new Date(profile.freeServiceEndsAt) : null,
+          now: new Date(),
+          qualifyingTransactionCount: profile.qualifyingTransactionCount,
+          bonusPaid: profile.affiliateBonusPaid,
+        })
+      : null,
   };
 }
 
@@ -357,9 +433,17 @@ export function getAffiliateDashboard(userId: string) {
     shareText: buildReferralShareText(profile.referralCode),
     bonusPerCreatorUsd: (AFFILIATE_BONUS_CENTS / 100).toFixed(2),
     payoutAfterTransactions: AFFILIATE_PAYOUT_AFTER_TRANSACTIONS,
+    payoutRule: AFFILIATE_REFERRAL_PAYOUT_RULE,
+    payoutRuleShort: AFFILIATE_REFERRAL_PAYOUT_RULE_SHORT,
     referrals: referrals.map((r) => ({
       ...r,
-      transactionsRemaining: Math.max(0, AFFILIATE_PAYOUT_AFTER_TRANSACTIONS - r.transactionCount),
+      transactionsRemaining: remainingQualifyingTransactions(r.qualifyingTransactionCount),
+      payoutStatus: describeAffiliateReferralProgress({
+        freeServiceEndsAt: r.freeServiceEndsAt ? new Date(r.freeServiceEndsAt) : null,
+        now: new Date(),
+        qualifyingTransactionCount: r.qualifyingTransactionCount,
+        bonusPaid: r.bonusPaid,
+      }),
     })),
   };
 }

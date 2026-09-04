@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import type { Workspace3dProjectType } from "../../lib/ur-3d-workspace";
 import {
   EquipmentIntegrationEngine,
   type ConnectivityType,
@@ -257,7 +258,7 @@ export type Workspace3DSession = {
   id: string;
   userId: string;
   name: string;
-  projectType: "merchandise" | "3d_printing" | "architecture" | "robotics" | "software" | "marine" | "general";
+  projectType: Workspace3dProjectType;
   description: string;
   activeAiIds: string[];
   createdAt: string;

@@ -93,26 +93,34 @@ export const aiTalkRouter = router({
     const userId = String(ctx.user.id);
     const status = getPremiumMediaStatus(userId);
     const talkTime = getTalkTimeStatus(userId);
+    const ownerComplimentary = ctx.isPlatformOwner === true;
     return {
-      minutesRemaining: status.talkMinutesRemaining,
-      millisecondsRemaining: talkTime.millisecondsRemaining,
+      ownerComplimentary,
+      minutesRemaining: ownerComplimentary ? 9999 : status.talkMinutesRemaining,
+      millisecondsRemaining: ownerComplimentary ? 86_400_000 : talkTime.millisecondsRemaining,
       millisecondsUsed: talkTime.millisecondsUsed,
-      timeRemainingDisplay: formatTalkTimeRemaining(talkTime.millisecondsRemaining),
-      timeRemainingVerbose: formatTalkTimeRemainingVerbose(talkTime.millisecondsRemaining),
-      earliestExpiryAt: talkTime.earliestExpiryAt,
-      earliestExpiryDisplay: talkTime.earliestExpiryAt
-        ? formatTalkExpiryDate(talkTime.earliestExpiryAt)
-        : null,
-      earliestLoseByLabel: talkTime.earliestExpiryAt
-        ? formatTalkLotLoseBy(talkTime.earliestExpiryAt)
-        : null,
+      timeRemainingDisplay: ownerComplimentary ? "Included (owner)" : formatTalkTimeRemaining(talkTime.millisecondsRemaining),
+      timeRemainingVerbose: ownerComplimentary
+        ? "Platform owner talk is included on every specialist. You are not billed Talk packs."
+        : formatTalkTimeRemainingVerbose(talkTime.millisecondsRemaining),
+      earliestExpiryAt: ownerComplimentary ? null : talkTime.earliestExpiryAt,
+      earliestExpiryDisplay: ownerComplimentary
+        ? null
+        : talkTime.earliestExpiryAt
+          ? formatTalkExpiryDate(talkTime.earliestExpiryAt)
+          : null,
+      earliestLoseByLabel: ownerComplimentary
+        ? null
+        : talkTime.earliestExpiryAt
+          ? formatTalkLotLoseBy(talkTime.earliestExpiryAt)
+          : null,
       expiryHeadline: AI_TALK_EXPIRY_TRACKER_HEADLINE,
-      lowBalance: isTalkTimeLowBalance(talkTime.millisecondsRemaining),
-      lowBalanceNotice: getTalkLowBalanceNotice(talkTime.millisecondsRemaining),
-      activeLots: talkTime.lots,
-      trackerLots: talkTime.lots.map((lot) => lot.tracker),
+      lowBalance: ownerComplimentary ? false : isTalkTimeLowBalance(talkTime.millisecondsRemaining),
+      lowBalanceNotice: ownerComplimentary ? null : getTalkLowBalanceNotice(talkTime.millisecondsRemaining),
+      activeLots: ownerComplimentary ? [] : talkTime.lots,
+      trackerLots: ownerComplimentary ? [] : talkTime.lots.map((lot) => lot.tracker),
       openMeterSession: getOpenMeterSession(userId),
-      hasTalkAccess: ctx.isPlatformOwner || talkTime.millisecondsRemaining > 0,
+      hasTalkAccess: ownerComplimentary || talkTime.millisecondsRemaining > 0,
       activeEntitlement: status.aiTalk,
       expiryDisclosure: AI_TALK_EXPIRY_PURCHASE_DISCLOSURE,
     };
@@ -197,7 +205,7 @@ export const aiTalkRouter = router({
     })),
 
   checkAccess: secureProcedure("aiTalk").query(({ ctx }) => ({
-    allowed: ctx.isPlatformOwner || hasAiTalkAccess(String(ctx.user.id)),
+    allowed: hasAiTalkAccess(String(ctx.user.id), ctx.isPlatformOwner),
     minutesRemaining: ctx.isPlatformOwner ? 9999 : getAiTalkMinutesRemaining(String(ctx.user.id)),
   })),
 

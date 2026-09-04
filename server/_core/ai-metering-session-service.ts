@@ -37,6 +37,7 @@ export type ActiveMeterSession = {
   finalizedAt: string | null;
   pauseReason: "disconnect" | "user" | "auto" | null;
   speechUsageId: string | null;
+  complimentary: boolean;
 };
 
 const sessions = new Map<string, ActiveMeterSession>();
@@ -107,6 +108,7 @@ export function startMeterSession(params: {
   kind: MeterSessionKind;
   maxBillableMs: number;
   source?: SpeechUsageRecord["source"];
+  isPlatformOwner?: boolean;
 }): ActiveMeterSession {
   sweepStaleSessions();
 
@@ -119,10 +121,12 @@ export function startMeterSession(params: {
   }
 
   const maxBillableMs = Math.max(1, Math.ceil(params.maxBillableMs));
-  assertTalkTimeAvailable(params.userId, 1);
+  assertTalkTimeAvailable(params.userId, 1, params.isPlatformOwner);
 
   const at = nowMs();
-  const balance = getTalkMillisecondsRemaining(params.userId);
+  const balance = params.isPlatformOwner
+    ? Math.max(maxBillableMs, 86_400_000)
+    : getTalkMillisecondsRemaining(params.userId);
   const session: ActiveMeterSession = {
     id: `meter-${randomUUID().slice(0, 12)}`,
     userId: params.userId,
@@ -141,6 +145,7 @@ export function startMeterSession(params: {
     finalizedAt: null,
     pauseReason: null,
     speechUsageId: null,
+    complimentary: params.isPlatformOwner === true,
   };
 
   sessions.set(session.id, session);
@@ -283,6 +288,7 @@ export function finalizeMeterSession(params: {
       durationMs: billedMs,
       source: session.source,
       startedAtMs: Date.parse(session.startedAt),
+      isPlatformOwner: session.complimentary,
     });
     speechUsageId = usage.id;
     session.speechUsageId = usage.id;

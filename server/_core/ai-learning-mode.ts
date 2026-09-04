@@ -45,6 +45,11 @@ import {
   isGameTeachingCreator,
 } from "./game-dev-teaching-curriculum";
 import {
+  buildBlockchainTeachingPromptAddition,
+  getBlockchainTeachingModules,
+  isBlockchainTeachingCreator,
+} from "./blockchain-teaching-curriculum";
+import {
   buildBlueprintTeachingPromptAddition,
   getBlueprintTeachingModules,
   isBlueprintTeachingCreator,
@@ -74,6 +79,16 @@ import {
   getCulinaryTeachingModules,
   isCulinaryTeachingCreator,
 } from "./culinary-teaching-curriculum";
+import {
+  buildReadingTeachingPromptAddition,
+  getReadingTeachingModules,
+  isReadingTeachingCreator,
+} from "./reading-teaching-curriculum";
+import {
+  buildMathTeachingPromptAddition,
+  getMathTeachingModules,
+  isMathTeachingCreator,
+} from "./math-teaching-curriculum";
 import {
   buildOwnerBusinessTeachingPromptAddition,
   getOwnerBusinessTeachingModules,
@@ -256,6 +271,9 @@ export function getCurriculumForCreator(def: CreatorAiDefinition): LearningModul
   if (isGameTeachingCreator(def.id)) {
     return getGameTeachingModules();
   }
+  if (isBlockchainTeachingCreator(def.id)) {
+    return getBlockchainTeachingModules();
+  }
   if (isBlueprintTeachingCreator(def.id)) {
     return getBlueprintTeachingModules();
   }
@@ -273,6 +291,12 @@ export function getCurriculumForCreator(def: CreatorAiDefinition): LearningModul
   }
   if (isCulinaryTeachingCreator(def.id)) {
     return getCulinaryTeachingModules();
+  }
+  if (isReadingTeachingCreator(def.id)) {
+    return getReadingTeachingModules();
+  }
+  if (isMathTeachingCreator(def.id)) {
+    return getMathTeachingModules();
   }
   if (isOwnerBusinessTeachingCreator(def.id)) {
     return getOwnerBusinessTeachingModules();
@@ -331,12 +355,15 @@ EDUCATIONAL LEARNING MODE (Tier 1 Educational AI)
 ${modeInstructions[mode]}
 ${isCoderTeachingCreator(def.id) ? `\n\n${buildCoderTeachingPromptAddition(level, mode, topic)}` : ""}
 ${isGameTeachingCreator(def.id) ? `\n\n${buildGameTeachingPromptAddition(level, mode, topic)}` : ""}
+${isBlockchainTeachingCreator(def.id) ? `\n\n${buildBlockchainTeachingPromptAddition(level, mode, topic)}` : ""}
 ${isBlueprintTeachingCreator(def.id) ? `\n\n${buildBlueprintTeachingPromptAddition(level, mode, topic)}` : ""}
 ${isCreativeTeachingCreator(def.id) ? `\n\n${buildCreativeTeachingPromptAddition(def.id, level, mode, topic)}` : ""}
 ${isLegalMasterTeachingCreator(def.id) ? `\n\n${buildLegalMasterTeachingPromptAddition(def.id, level, mode, topic)}` : ""}
 ${isFundingTeachingCreator(def.id) ? `\n\n${buildFundingTeachingPromptAddition(level, mode, topic)}` : ""}
 ${isCncTeachingCreator(def.id) ? `\n\n${buildCncTeachingPromptAddition(level, mode, topic)}` : ""}
 ${isCulinaryTeachingCreator(def.id) ? `\n\n${buildCulinaryTeachingPromptAddition(level, mode, topic)}` : ""}
+${isReadingTeachingCreator(def.id) ? `\n\n${buildReadingTeachingPromptAddition(level, mode, topic)}` : ""}
+${isMathTeachingCreator(def.id) ? `\n\n${buildMathTeachingPromptAddition(level, mode, topic)}` : ""}
 ${isOwnerBusinessTeachingCreator(def.id) ? `\n\n${buildOwnerBusinessTeachingPromptAddition(level, mode, topic)}` : ""}
 
 Rules:

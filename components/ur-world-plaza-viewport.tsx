@@ -4,14 +4,8 @@ import { useColors } from "@/hooks/use-colors";
 import { openWebBrowserCheckout } from "@/lib/web-checkout";
 import type { UrWorldAvatarLook } from "@/lib/ur-world-avatar";
 import type { EquippedLoadout } from "@/lib/ur-world-cosmetics";
-import {
-  UR_WORLD_HQ,
-  UR_WORLD_SPAWN,
-  UR_WORLD_TALK_DESKS,
-  nearestTalkDesk,
-  type UrWorldTalkDesk,
-} from "@/lib/ur-world-plaza";
-import { UR_WORLD_PLOT_SEEDS } from "@/lib/ur-world-economy";
+import { UR_WORLD_SPAWN, nearestPlazaNearby, type UrWorldPlazaNearby } from "@/lib/ur-world-plaza";
+import { buildCivicPlaza } from "@/components/ur-world-plaza-scene";
 
 type BabylonModule = typeof import("@babylonjs/core");
 
@@ -19,87 +13,11 @@ type Props = {
   avatar: UrWorldAvatarLook;
   equipped?: EquippedLoadout;
   height?: number;
-  onNearbyDesk: (desk: UrWorldTalkDesk | null) => void;
+  onNearby: (spot: UrWorldPlazaNearby | null) => void;
 };
 
 function hexColor(BABYLON: BabylonModule, hex: string) {
   return BABYLON.Color3.FromHexString(hex.startsWith("#") ? hex : `#${hex}`);
-}
-
-function addBox(
-  BABYLON: BabylonModule,
-  scene: InstanceType<BabylonModule["Scene"]>,
-  name: string,
-  opts: { w: number; h: number; d: number; x: number; y: number; z: number; color: string },
-) {
-  const mesh = BABYLON.MeshBuilder.CreateBox(name, { width: opts.w, height: opts.h, depth: opts.d }, scene);
-  mesh.position = new BABYLON.Vector3(opts.x, opts.y, opts.z);
-  mesh.checkCollisions = true;
-  const mat = new BABYLON.StandardMaterial(`${name}-mat`, scene);
-  mat.diffuseColor = hexColor(BABYLON, opts.color);
-  mat.specularColor = new BABYLON.Color3(0.12, 0.12, 0.12);
-  mesh.material = mat;
-  return mesh;
-}
-
-function buildPlaza(BABYLON: BabylonModule, scene: InstanceType<BabylonModule["Scene"]>) {
-  scene.collisionsEnabled = true;
-  scene.gravity = new BABYLON.Vector3(0, -0.35, 0);
-  scene.clearColor = new BABYLON.Color4(0.45, 0.62, 0.72, 1);
-
-  new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0.25, 1, 0.15), scene);
-  const sun = new BABYLON.DirectionalLight("sun", new BABYLON.Vector3(-0.45, -1.2, -0.35), scene);
-  sun.intensity = 0.65;
-
-  const ground = BABYLON.MeshBuilder.CreateGround("plaza-ground", { width: 90, height: 90, subdivisions: 4 }, scene);
-  const gmat = new BABYLON.StandardMaterial("plaza-ground-mat", scene);
-  gmat.diffuseColor = new BABYLON.Color3(0.42, 0.45, 0.4);
-  gmat.specularColor = new BABYLON.Color3(0.05, 0.05, 0.05);
-  ground.material = gmat;
-  ground.checkCollisions = true;
-
-  addBox(BABYLON, scene, "civic-hall", {
-    w: UR_WORLD_HQ.width,
-    h: UR_WORLD_HQ.height,
-    d: UR_WORLD_HQ.depth,
-    x: UR_WORLD_HQ.x,
-    y: UR_WORLD_HQ.height / 2,
-    z: UR_WORLD_HQ.z,
-    color: UR_WORLD_HQ.colorHex,
-  });
-
-  for (const desk of UR_WORLD_TALK_DESKS) {
-    const mesh = addBox(BABYLON, scene, `desk-${desk.id}`, {
-      w: desk.width,
-      h: desk.height,
-      d: desk.depth,
-      x: desk.x,
-      y: desk.height / 2,
-      z: desk.z,
-      color: desk.colorHex,
-    });
-    const glow = mesh.material as InstanceType<BabylonModule["StandardMaterial"]>;
-    glow.emissiveColor = hexColor(BABYLON, desk.colorHex).scale(0.28);
-  }
-
-  for (const plot of UR_WORLD_PLOT_SEEDS) {
-    addBox(BABYLON, scene, `plot-${plot.id}`, {
-      w: 3.2,
-      h: 0.18,
-      d: 3.2,
-      x: plot.x,
-      y: 0.09,
-      z: plot.z,
-      color: "#8a7a5a",
-    });
-  }
-
-  const rim = BABYLON.MeshBuilder.CreateBox("plaza-rim", { width: 88, height: 1.4, depth: 1.2 }, scene);
-  rim.position = new BABYLON.Vector3(0, 0.7, -44);
-  rim.checkCollisions = true;
-  const rmat = new BABYLON.StandardMaterial("rim-mat", scene);
-  rmat.diffuseColor = new BABYLON.Color3(0.35, 0.38, 0.42);
-  rim.material = rmat;
 }
 
 function buildAvatar(
@@ -107,12 +25,13 @@ function buildAvatar(
   scene: InstanceType<BabylonModule["Scene"]>,
   look: UrWorldAvatarLook,
 ) {
+  const owner = look.silhouette === "owner";
   const body = BABYLON.MeshBuilder.CreateCapsule(
     "avatar-body",
-    { height: 1.7, radius: 0.32, tessellation: 10 },
+    { height: owner ? 1.78 : 1.7, radius: owner ? 0.3 : 0.32, tessellation: 10 },
     scene,
   );
-  body.position = new BABYLON.Vector3(UR_WORLD_SPAWN.x, 0.85, UR_WORLD_SPAWN.z);
+  body.position = new BABYLON.Vector3(UR_WORLD_SPAWN.x, owner ? 0.89 : 0.85, UR_WORLD_SPAWN.z);
   body.checkCollisions = true;
   body.ellipsoid = new BABYLON.Vector3(0.38, 0.85, 0.38);
   body.ellipsoidOffset = new BABYLON.Vector3(0, 0, 0);
@@ -122,18 +41,40 @@ function buildAvatar(
 
   const head = BABYLON.MeshBuilder.CreateSphere("avatar-head", { diameter: 0.52, segments: 12 }, scene);
   head.parent = body;
-  head.position = new BABYLON.Vector3(0, 0.97, 0);
+  head.position = new BABYLON.Vector3(0, owner ? 1.0 : 0.97, 0);
   const headMat = new BABYLON.StandardMaterial("avatar-head-mat", scene);
-  headMat.diffuseColor = hexColor(BABYLON, look.accentHex);
+  headMat.diffuseColor = hexColor(BABYLON, owner ? look.bodyHex : look.accentHex);
   head.material = headMat;
 
-  const badge = BABYLON.MeshBuilder.CreatePlane("avatar-badge", { width: 0.28, height: 0.28 }, scene);
-  badge.parent = body;
-  badge.position = new BABYLON.Vector3(0, 0.38, 0.34);
-  const badgeMat = new BABYLON.StandardMaterial("avatar-badge-mat", scene);
-  badgeMat.diffuseColor = hexColor(BABYLON, look.accentHex);
-  badgeMat.emissiveColor = hexColor(BABYLON, look.accentHex).scale(0.4);
-  badge.material = badgeMat;
+  if (!owner) {
+    const badge = BABYLON.MeshBuilder.CreatePlane("avatar-badge", { width: 0.28, height: 0.28 }, scene);
+    badge.parent = body;
+    badge.position = new BABYLON.Vector3(0, 0.38, 0.34);
+    const badgeMat = new BABYLON.StandardMaterial("avatar-badge-mat", scene);
+    badgeMat.diffuseColor = hexColor(BABYLON, look.accentHex);
+    badgeMat.emissiveColor = hexColor(BABYLON, look.accentHex).scale(0.4);
+    badge.material = badgeMat;
+  } else if (look.title) {
+    const plate = BABYLON.MeshBuilder.CreatePlane("avatar-title", { width: 1.55, height: 0.28 }, scene);
+    plate.parent = body;
+    plate.position = new BABYLON.Vector3(0, 1.55, 0);
+    plate.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+    const tex = new BABYLON.DynamicTexture("avatar-title-tex", { width: 512, height: 96 }, scene, false);
+    const ctx = tex.getContext();
+    ctx.fillStyle = "#1e1b4b";
+    ctx.fillRect(0, 0, 512, 96);
+    ctx.fillStyle = "#A78BFA";
+    ctx.font = "bold 42px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(look.title, 256, 62);
+    tex.update();
+    const plateMat = new BABYLON.StandardMaterial("avatar-title-mat", scene);
+    plateMat.diffuseTexture = tex;
+    plateMat.emissiveTexture = tex;
+    plateMat.emissiveColor = new BABYLON.Color3(0.4, 0.35, 0.7);
+    plateMat.backFaceCulling = false;
+    plate.material = plateMat;
+  }
 
   return body;
 }
@@ -145,21 +86,53 @@ function dressAvatar(
   look: UrWorldAvatarLook,
   equipped?: EquippedLoadout,
 ) {
+  const hair = equipped?.hair;
+  if (hair || look.silhouette === "owner") {
+    const mesh = BABYLON.MeshBuilder.CreateSphere("avatar-hair", { diameter: 0.56, segments: 10 }, scene);
+    mesh.parent = body;
+    mesh.position = new BABYLON.Vector3(0, 1.14, -0.02);
+    mesh.scaling.y = 0.72;
+    const mat = new BABYLON.StandardMaterial("avatar-hair-mat", scene);
+    mat.diffuseColor = hexColor(BABYLON, hair?.colorHex ?? "#3b2f2a");
+    mesh.material = mat;
+  }
+
   const jacket = equipped?.jacket;
   if (jacket) {
+    const isShirt = jacket.mesh === "shirt";
     const mesh = BABYLON.MeshBuilder.CreateBox(
       "avatar-jacket",
-      { width: 0.72, height: 0.7, depth: 0.48 },
+      isShirt ? { width: 0.62, height: 0.52, depth: 0.42 } : { width: 0.72, height: 0.7, depth: 0.48 },
       scene,
     );
     mesh.parent = body;
-    mesh.position = new BABYLON.Vector3(0, 0.12, 0);
+    mesh.position = new BABYLON.Vector3(0, isShirt ? 0.18 : 0.12, 0);
     const mat = new BABYLON.StandardMaterial("avatar-jacket-mat", scene);
     mat.diffuseColor = hexColor(BABYLON, jacket.colorHex);
     mesh.material = mat;
   } else {
     const bodyMat = body.material as InstanceType<BabylonModule["StandardMaterial"]>;
     if (bodyMat) bodyMat.diffuseColor = hexColor(BABYLON, look.bodyHex);
+  }
+
+  const pants = equipped?.pants;
+  if (pants) {
+    const hips = BABYLON.MeshBuilder.CreateBox("avatar-jeans-hips", { width: 0.52, height: 0.28, depth: 0.4 }, scene);
+    hips.parent = body;
+    hips.position = new BABYLON.Vector3(0, -0.22, 0);
+    const pmat = new BABYLON.StandardMaterial("avatar-jeans-mat", scene);
+    pmat.diffuseColor = hexColor(BABYLON, pants.colorHex);
+    hips.material = pmat;
+    for (const side of [-1, 1]) {
+      const leg = BABYLON.MeshBuilder.CreateBox(
+        `avatar-jeans-leg-${side}`,
+        { width: 0.2, height: 0.62, depth: 0.22 },
+        scene,
+      );
+      leg.parent = body;
+      leg.position = new BABYLON.Vector3(side * 0.14, -0.55, 0);
+      leg.material = pmat;
+    }
   }
 
   const hat = equipped?.hat;
@@ -177,45 +150,66 @@ function dressAvatar(
 
   const boots = equipped?.boots;
   if (boots) {
+    const sneakers = boots.mesh === "sneakers";
     for (const side of [-1, 1]) {
       const mesh = BABYLON.MeshBuilder.CreateBox(
         `avatar-boot-${side}`,
-        { width: 0.18, height: 0.16, depth: 0.28 },
+        sneakers ? { width: 0.2, height: 0.14, depth: 0.34 } : { width: 0.18, height: 0.16, depth: 0.28 },
         scene,
       );
       mesh.parent = body;
-      mesh.position = new BABYLON.Vector3(side * 0.14, -0.78, 0.04);
+      mesh.position = new BABYLON.Vector3(side * 0.14, -0.82, sneakers ? 0.06 : 0.04);
       const mat = new BABYLON.StandardMaterial(`avatar-boot-mat-${side}`, scene);
       mat.diffuseColor = hexColor(BABYLON, boots.colorHex);
       mesh.material = mat;
+      if (sneakers) {
+        const sole = BABYLON.MeshBuilder.CreateBox(
+          `avatar-sole-${side}`,
+          { width: 0.2, height: 0.05, depth: 0.36 },
+          scene,
+        );
+        sole.parent = body;
+        sole.position = new BABYLON.Vector3(side * 0.14, -0.9, 0.07);
+        const smat = new BABYLON.StandardMaterial(`avatar-sole-mat-${side}`, scene);
+        smat.diffuseColor = hexColor(BABYLON, "#312e81");
+        sole.material = smat;
+      }
     }
   }
 
   const accent = equipped?.accent;
   if (accent) {
+    const star = accent.mesh === "star";
     const mesh = BABYLON.MeshBuilder.CreateBox(
       "avatar-accent",
-      { width: accent.mesh === "scarf" ? 0.55 : 0.22, height: 0.12, depth: 0.12 },
+      star
+        ? { width: 0.16, height: 0.16, depth: 0.06 }
+        : { width: accent.mesh === "scarf" ? 0.55 : 0.22, height: 0.12, depth: 0.12 },
       scene,
     );
     mesh.parent = body;
-    mesh.position = new BABYLON.Vector3(0, 0.42, 0.32);
+    mesh.position = new BABYLON.Vector3(star ? 0.18 : 0, 0.32, 0.24);
+    if (star) mesh.rotation.z = Math.PI / 4;
     const mat = new BABYLON.StandardMaterial("avatar-accent-mat", scene);
     mat.diffuseColor = hexColor(BABYLON, accent.colorHex);
-    mat.emissiveColor = hexColor(BABYLON, accent.colorHex).scale(0.25);
+    mat.emissiveColor = hexColor(BABYLON, accent.colorHex).scale(0.35);
     mesh.material = mat;
   }
 }
 
 /** Web Babylon plaza — third-person walk. Native callers should not mount this. */
-export function UrWorldPlazaViewport({ avatar, equipped, height = 520, onNearbyDesk }: Props) {
+export function UrWorldPlazaViewport({ avatar, equipped, height = 640, onNearby }: Props) {
   const colors = useColors();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const onNearbyRef = useRef(onNearbyDesk);
-  onNearbyRef.current = onNearbyDesk;
+  const onNearbyRef = useRef(onNearby);
+  onNearbyRef.current = onNearby;
   const avatarRef = useRef(avatar);
   avatarRef.current = avatar;
-  const loadoutKey = JSON.stringify(equipped ?? {});
+  const loadoutKey = JSON.stringify({
+    equipped: equipped ?? {},
+    title: avatar.title ?? "",
+    silhouette: avatar.silhouette ?? "member",
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -243,7 +237,7 @@ export function UrWorldPlazaViewport({ avatar, equipped, height = 520, onNearbyD
         });
         engine = babylonEngine;
         const scene = new BABYLON.Scene(babylonEngine);
-        buildPlaza(BABYLON, scene);
+        const plaza = buildCivicPlaza(BABYLON, scene);
         const body = buildAvatar(BABYLON, scene, avatarRef.current);
         dressAvatar(BABYLON, scene, body, avatarRef.current, equipped);
 
@@ -285,9 +279,12 @@ export function UrWorldPlazaViewport({ avatar, equipped, height = 520, onNearbyD
         });
         document.addEventListener("mousemove", onMouse);
 
-        let lastDeskId: string | null = null;
+        let lastSpotId: string | null = null;
+        let elapsed = 0;
         scene.onBeforeRenderObservable.add(() => {
           const dt = Math.min(babylonEngine.getDeltaTime() / 1000, 0.05);
+          elapsed += dt;
+          plaza.tick(dt, elapsed);
           const speed = 8;
           let fwd = 0;
           let strafe = 0;
@@ -309,11 +306,11 @@ export function UrWorldPlazaViewport({ avatar, equipped, height = 520, onNearbyD
           camera.position.y = 3.4;
           camera.setTarget(body.position.add(new BABYLON.Vector3(0, 0.7, 0)));
 
-          const desk = nearestTalkDesk(body.position.x, body.position.z);
-          const id = desk?.id ?? null;
-          if (id !== lastDeskId) {
-            lastDeskId = id;
-            onNearbyRef.current(desk);
+          const spot = nearestPlazaNearby(body.position.x, body.position.z);
+          const id = spot?.id ?? null;
+          if (id !== lastSpotId) {
+            lastSpotId = id;
+            onNearbyRef.current(spot);
           }
         });
 
@@ -376,7 +373,7 @@ export function UrWorldPlazaViewport({ avatar, equipped, height = 520, onNearbyD
         style={{ width: "100%", height: "100%", display: loading || error ? "none" : "block", outline: "none" }}
       />
       <View style={styles.hint} pointerEvents="none">
-        <Text style={styles.hintText}>Click the city · WASD walk · mouse look</Text>
+        <Text style={styles.hintText}>Click the city · WASD walk · mouse look · walk up to glow</Text>
       </View>
     </View>
   );
@@ -388,7 +385,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     overflow: "hidden",
-    backgroundColor: "#1c2428",
+    backgroundColor: "#120c24",
     position: "relative",
   },
   fallback: {
@@ -405,7 +402,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#1c2428ee",
+    backgroundColor: "#120c24ee",
     zIndex: 3,
     padding: 16,
   },

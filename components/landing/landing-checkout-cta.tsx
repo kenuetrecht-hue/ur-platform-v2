@@ -12,18 +12,29 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "expo-router";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
-import { LANDING_SPECIALIST_COUNT_LABEL } from "@/lib/landing-checkout-pricing";
+import {
+  LANDING_ALL_SPECIALISTS_MONTHLY_CENTS,
+  LANDING_SPECIALIST_COUNT_LABEL,
+  getLandingPlatformPassPriceDisplay,
+} from "@/lib/landing-checkout-pricing";
+import { BillingStatePicker } from "@/components/billing-state-picker";
+import { calculateCustomerCheckout } from "@/lib/stripe-checkout-pricing";
+import type { UsStateCode } from "@/lib/us-state-taxes";
 import { buildHandoffUrl } from "@/lib/app-handoff-url";
 import { PaymentChannelNotice } from "@/components/payment-channel-notice";
 import { LandingPaymentSuccessModal } from "@/components/landing/landing-payment-success-modal";
 import { PricingComingSoonPanel } from "@/components/pricing-coming-soon-panel";
+import { LandingAppDownloadLink } from "@/components/landing/landing-app-download-link";
 import { PUBLIC_PRICING_ENABLED } from "@/lib/pricing-visibility";
 
 export function LandingCheckoutCta() {
   const { isAuthenticated } = useAuth();
   const [email, setEmail] = useState("");
+  const [billingState, setBillingState] = useState<UsStateCode | null>(null);
   const [handoffUrl, setHandoffUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const quote = calculateCustomerCheckout(LANDING_ALL_SPECIALISTS_MONTHLY_CENTS, billingState);
+  const monthlyLabel = getLandingPlatformPassPriceDisplay();
 
   const purchase = trpc.landing.purchasePlatformPass.useMutation({
     onSuccess: (data) => {
@@ -43,8 +54,15 @@ export function LandingCheckoutCta() {
       setError("Enter your email to activate membership after payment.");
       return;
     }
+    if (!billingState) {
+      setError("Select your billing state so sales tax and the Stripe card fee are added to your card.");
+      return;
+    }
     setError(null);
-    purchase.mutate({ email: trimmed });
+    purchase.mutate({
+      email: trimmed,
+      billingStateCode: billingState,
+    });
   };
 
   return (
@@ -55,11 +73,25 @@ export function LandingCheckoutCta() {
         {PUBLIC_PRICING_ENABLED ? (
           <>
             <Text style={styles.sub}>
-              All {LANDING_SPECIALIST_COUNT_LABEL} specialists share one UR account — one membership per
-              AI. Subscriptions via web browser; talk packs via mobile app.
+              All {LANDING_SPECIALIST_COUNT_LABEL} specialists on one account — {monthlyLabel} text
+              pass. You pay sales tax and the Stripe card fee. UR and content creators do not absorb
+              those. Voice talk is sold separately.
             </Text>
+            <Text style={styles.priceLine}>{monthlyLabel} plus tax & card fee</Text>
+            {billingState ? (
+              <Text style={styles.quote}>
+                {quote.subtotalDisplay} + {quote.salesTaxDisplay} tax + {quote.stripeFeeDisplay} card
+                fee = {quote.totalDisplay} charged to you
+              </Text>
+            ) : (
+              <Text style={styles.quote}>
+                Pick your billing state to see tax. Oregon and a few others have no sales tax — the
+                card fee still sits on top.
+              </Text>
+            )}
 
             <PaymentChannelNotice compact />
+            <BillingStatePicker value={billingState} onChange={setBillingState} />
 
             {!isAuthenticated ? (
               <Link href="/login" asChild>
@@ -91,7 +123,7 @@ export function LandingCheckoutCta() {
                     <ActivityIndicator color="#001018" />
                   ) : (
                     <Text style={styles.stripeBtnText}>
-                      Unlock All {LANDING_SPECIALIST_COUNT_LABEL} Specialists
+                      Unlock All {LANDING_SPECIALIST_COUNT_LABEL} — {quote.totalDisplay}
                     </Text>
                   )}
                 </Pressable>
@@ -102,8 +134,8 @@ export function LandingCheckoutCta() {
 
         <Text style={styles.note}>
           Adults 18+ only. Sign in, photograph ID front and back plus a matching selfie, then
-          purchase. By continuing you agree to platform disclosures. Secure checkout with UR
-          Platform LLC. AI output is educational and entertainment only.
+          purchase. Sales tax and Stripe’s 2.9% + $0.30 are added to your card — not taken from UR
+          or from a creator. AI output is educational and entertainment only.
         </Text>
           </>
         ) : (
@@ -116,6 +148,9 @@ export function LandingCheckoutCta() {
             <PricingComingSoonPanel compact />
           </>
         )}
+        <View style={{ alignItems: "center", marginTop: 8 }}>
+          <LandingAppDownloadLink variant="inline" />
+        </View>
       </View>
 
       {PUBLIC_PRICING_ENABLED ? (
@@ -142,7 +177,9 @@ const styles = StyleSheet.create({
   },
   tag: { color: T.electric, fontSize: 10, fontWeight: "800", letterSpacing: 2, marginBottom: 8 },
   title: { color: T.text, fontSize: 26, fontWeight: "900", marginBottom: 10 },
-  sub: { color: T.muted, fontSize: 14, lineHeight: 21, marginBottom: 16 },
+  sub: { color: T.muted, fontSize: 14, lineHeight: 21, marginBottom: 10 },
+  priceLine: { color: T.gold, fontSize: 20, fontWeight: "900", marginBottom: 6 },
+  quote: { color: T.muted, fontSize: 13, lineHeight: 19, marginBottom: 14 },
   input: {
     borderWidth: 1,
     borderColor: T.border,

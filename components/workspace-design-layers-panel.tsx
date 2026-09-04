@@ -12,10 +12,20 @@ import {
   Alert,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { WorkspaceTapButton } from "@/components/workspace-tap-button";
 import type { PrimitiveType } from "@/lib/workspace-design-types";
 import { designLayerSummary, snapValue } from "@/lib/workspace-design-utils";
 import { parseStlFile } from "@/lib/stl-utils";
 import type { useWorkspaceDesign } from "@/hooks/use-workspace-design";
+import { BUILD_KITS } from "@/lib/workspace-build-kits";
+import { computeWorkspaceTakeoff, formatWorkspaceTakeoff } from "@/lib/workspace-build-kits";
+import {
+  cadLengthFt,
+  describeCadLayer,
+  parseLengthFt,
+  roleLabel,
+} from "@/lib/workspace-cad";
+import { UR_3D_WORKSPACE_LEGAL } from "@/lib/ur-3d-workspace";
 
 type DesignApi = ReturnType<typeof useWorkspaceDesign>;
 
@@ -42,6 +52,9 @@ export function WorkspaceDesignLayersPanel({
   const [posX, setPosX] = useState("");
   const [posY, setPosY] = useState("");
   const [posZ, setPosZ] = useState("");
+  const [dimLength, setDimLength] = useState("");
+  const [dimHeight, setDimHeight] = useState("");
+  const [dimThickness, setDimThickness] = useState("");
 
   const {
     design,
@@ -50,6 +63,9 @@ export function WorkspaceDesignLayersPanel({
     patchDesign,
     addPrimitive,
     addStl,
+    addBuildKit,
+    loadStarterRoom,
+    updateCadDimensions,
     updateLayerById,
     removeLayerById,
     moveLayerById,
@@ -59,6 +75,7 @@ export function WorkspaceDesignLayersPanel({
 
   const selected = design.layers.find((l) => l.id === selectedLayerId) ?? null;
   const summary = designLayerSummary(design);
+  const takeoff = computeWorkspaceTakeoff(design.layers);
 
   useEffect(() => {
     if (selectedLayerId) syncPosFields(selectedLayerId);
@@ -70,6 +87,15 @@ export function WorkspaceDesignLayersPanel({
     setPosX(String(layer.transform.position.x));
     setPosY(String(layer.transform.position.y));
     setPosZ(String(layer.transform.position.z));
+    if (layer.cad) {
+      setDimLength(String(cadLengthFt(layer) || Math.abs(layer.cad.end.x - layer.cad.start.x)));
+      setDimHeight(String(layer.cad.height));
+      setDimThickness(String(layer.cad.thickness));
+    } else if (layer.primitive) {
+      setDimLength(String(layer.primitive.depth ?? layer.primitive.width ?? ""));
+      setDimHeight(String(layer.primitive.height ?? ""));
+      setDimThickness(String(layer.primitive.width ?? layer.primitive.diameter ?? ""));
+    }
   };
 
   const handleSelect = (id: string) => {
@@ -147,19 +173,66 @@ export function WorkspaceDesignLayersPanel({
         />
       </View>
 
+      <Text style={[styles.section, { color: colors.foreground }]}>CAD kits</Text>
+      <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16, marginBottom: 6 }}>
+        These drop a ready-made piece. If you are new, tap 12×12 room first — then draw extra walls on the grid.
+      </Text>
+      <ScrollView
+        horizontal
+        nestedScrollEnabled
+        keyboardShouldPersistTaps="always"
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 6 }}
+      >
+        {BUILD_KITS.map((k) => (
+          <WorkspaceTapButton
+            key={k.id}
+            onPress={() => {
+              try {
+                addBuildKit(k.id);
+              } catch (err) {
+                Alert.alert("Could not add kit", err instanceof Error ? err.message : "Layer limit reached");
+              }
+            }}
+            style={[styles.addBtn, { borderColor: colors.border }]}
+          >
+            <Text>{k.emoji}</Text>
+            <Text style={{ color: colors.foreground, fontSize: 10, fontWeight: "600" }}>{k.label}</Text>
+          </WorkspaceTapButton>
+        ))}
+        <WorkspaceTapButton
+          onPress={() => loadStarterRoom()}
+          style={[styles.addBtn, { borderColor: colors.primary, backgroundColor: `${colors.primary}12` }]}
+        >
+          <Text>🏠</Text>
+          <Text style={{ color: colors.primary, fontSize: 10, fontWeight: "700" }}>12×12 room</Text>
+        </WorkspaceTapButton>
+      </ScrollView>
+
+      <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16, marginVertical: 8 }}>
+        {formatWorkspaceTakeoff(takeoff)}
+      </Text>
+      <Text style={{ color: colors.muted, fontSize: 10, lineHeight: 14, marginBottom: 8 }}>{UR_3D_WORKSPACE_LEGAL}</Text>
+
       <Text style={[styles.section, { color: colors.foreground }]}>Add shape</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+      <ScrollView
+        horizontal
+        nestedScrollEnabled
+        keyboardShouldPersistTaps="always"
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 6 }}
+      >
         {PRIMITIVES.map((p) => (
-          <Pressable
+          <WorkspaceTapButton
             key={p.type}
             onPress={() => addPrimitive(p.type)}
             style={[styles.addBtn, { borderColor: colors.border }]}
           >
             <Text>{p.emoji}</Text>
             <Text style={{ color: colors.foreground, fontSize: 10, fontWeight: "600" }}>{p.label}</Text>
-          </Pressable>
+          </WorkspaceTapButton>
         ))}
-        <Pressable
+        <WorkspaceTapButton
           onPress={handleStlPick}
           disabled={uploading}
           style={[styles.addBtn, { borderColor: colors.primary, backgroundColor: `${colors.primary}12` }]}
@@ -172,7 +245,7 @@ export function WorkspaceDesignLayersPanel({
               <Text style={{ color: colors.primary, fontSize: 10, fontWeight: "700" }}>Upload STL</Text>
             </>
           )}
-        </Pressable>
+        </WorkspaceTapButton>
       </ScrollView>
 
       {Platform.OS === "web" ? (
@@ -210,7 +283,8 @@ export function WorkspaceDesignLayersPanel({
                   {layer.name}
                 </Text>
                 <Text style={{ color: colors.muted, fontSize: 10 }}>
-                  {layer.kind}
+                  {roleLabel(layer.role)}
+                  {layer.cad ? ` · ${describeCadLayer(layer)}` : ""}
                   {layer.stl ? ` · ${layer.stl.triangleCount?.toLocaleString() ?? "?"} tri` : ""}
                 </Text>
               </View>
@@ -243,18 +317,69 @@ export function WorkspaceDesignLayersPanel({
           </View>
 
           <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>Color</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+          <ScrollView
+            horizontal
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="always"
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 6 }}
+          >
             {COLOR_PRESETS.map((c) => (
-              <Pressable
+              <WorkspaceTapButton
                 key={c}
                 onPress={() => updateLayerById(selected.id, { color: c })}
                 style={[
                   styles.colorSwatch,
                   { backgroundColor: c, borderColor: selected.color === c ? colors.primary : colors.border },
                 ]}
-              />
+              >
+                <View />
+              </WorkspaceTapButton>
             ))}
           </ScrollView>
+
+          <Text style={{ color: colors.muted, fontSize: 11, marginTop: 6 }}>
+            CAD size (length · height · thickness, feet or 8'-6")
+          </Text>
+          <View style={styles.posRow}>
+            <TextInput
+              value={dimLength}
+              onChangeText={setDimLength}
+              keyboardType="numeric"
+              placeholder="L"
+              placeholderTextColor={colors.muted}
+              style={[styles.posInput, { borderColor: colors.border, color: colors.foreground }]}
+            />
+            <TextInput
+              value={dimHeight}
+              onChangeText={setDimHeight}
+              keyboardType="numeric"
+              placeholder="H"
+              placeholderTextColor={colors.muted}
+              style={[styles.posInput, { borderColor: colors.border, color: colors.foreground }]}
+            />
+            <TextInput
+              value={dimThickness}
+              onChangeText={setDimThickness}
+              keyboardType="numeric"
+              placeholder="T"
+              placeholderTextColor={colors.muted}
+              style={[styles.posInput, { borderColor: colors.border, color: colors.foreground }]}
+            />
+            <Pressable
+              onPress={() => {
+                if (!selected) return;
+                updateCadDimensions(selected.id, {
+                  length: parseLengthFt(dimLength) ?? undefined,
+                  height: parseLengthFt(dimHeight) ?? undefined,
+                  thickness: parseLengthFt(dimThickness) ?? undefined,
+                });
+              }}
+              style={[styles.applyBtn, { backgroundColor: colors.primary }]}
+            >
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 11 }}>Size</Text>
+            </Pressable>
+          </View>
 
           <Text style={{ color: colors.muted, fontSize: 11, marginTop: 6 }}>Position (X Y Z)</Text>
           <View style={styles.posRow}>

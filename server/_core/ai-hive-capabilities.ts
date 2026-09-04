@@ -16,6 +16,10 @@ export type HiveCapabilityFlags = {
   safeguardedLearning: boolean;
   voiceAdaptation: boolean;
   crossSpecialistReferral: boolean;
+  documentPrint: boolean;
+  wirelessLink: boolean;
+  xrHeadset: boolean;
+  accessibility: boolean;
 };
 
 export const DEFAULT_HIVE_CAPABILITIES: HiveCapabilityFlags = {
@@ -29,6 +33,10 @@ export const DEFAULT_HIVE_CAPABILITIES: HiveCapabilityFlags = {
   safeguardedLearning: true,
   voiceAdaptation: true,
   crossSpecialistReferral: true,
+  documentPrint: true,
+  wirelessLink: true,
+  xrHeadset: true,
+  accessibility: true,
 };
 
 /** Per-creator overrides (photo analysis off for pure content AIs, etc.) */
@@ -94,7 +102,12 @@ export const DOMAIN_KEYWORDS: Record<string, string[]> = {
   "ai-robotics-001": ["robot", "ros", "automation", "actuator", "jobsite", "oem", "manual", "fanuc", "abb", "kuka", "yaskawa"],
   "ai-coder-001": ["code", "program", "software", "debug", "api", "typescript", "react", "sandbox", "build", "deploy", "architecture"],
   "ai-game-dev-001": ["game", "unity", "unreal", "godot", "multiplayer", "npc", "level design", "gameplay", "sandbox", "open world", "performance"],
-  "ai-3d-specialist": ["3d", "cad", "model", "mesh", "stl", "render"],
+  "ai-blockchain-001": [
+    "blockchain", "block chain", "hash", "merkle", "consensus", "solidity",
+    "smart contract", "proof of work", "proof of stake", "mining", "genesis",
+    "ledger", "node", "fork", "nonce", "teaching chain", "web3 code",
+  ],
+  "ai-3d-specialist": ["3d", "cad", "model", "mesh", "stl", "render", "printer", "headset", "webxr", "vr"],
   "ai-cnc-master-001": [
     "cnc", "lathe", "mill", "milling", "knee mill", "bridgeport", "vmc",
     "horizontal mill", "drill", "g-code", "gcode", "m-code", "machining",
@@ -139,7 +152,7 @@ export const DOMAIN_KEYWORDS: Record<string, string[]> = {
     "allergen", "servsafe", "plating", "stock", "roux", "dough", "fermentation",
     "hobart", "kitchenaid", "oven", "range", "fryer", "food safety", "cuisine",
   ],
-  "ai-crypto-001": ["crypto", "bitcoin", "blockchain", "ethereum", "defi", "wallet"],
+  "ai-crypto-001": ["crypto", "bitcoin", "ethereum", "defi", "wallet", "market", "price", "portfolio"],
   "ai-news-001": ["news", "headlines", "current events", "journalism", "breaking"],
   "ai-career-001": ["career", "resume", "interview", "job search", "networking"],
   "ai-creative-001": ["creative", "brainstorm", "concept", "design idea", "inspiration", "art exercise"],
@@ -186,6 +199,15 @@ export const DOMAIN_KEYWORDS: Record<string, string[]> = {
   "ai-dynamics-001": ["dynamics", "physics", "force", "motion", "simulation", "jobsite", "oem", "fea"],
   "ai-tree-service-001": ["tree", "arborist", "pruning", "stump", "arboriculture", "oem", "chipper", "stihl"],
   linguamate: ["translate", "language", "grammar", "pronunciation"],
+  "ai-translator-001": ["translate", "language", "pronunciation", "conversation"],
+  "ai-math-001": [
+    "math", "mathematics", "algebra", "geometry", "calculus", "trigonometry",
+    "fraction", "equation", "statistic", "probability", "proof", "arithmetic",
+  ],
+  "ai-reading-001": [
+    "phonics", "learn to read", "literacy", "decode", "grapheme", "phoneme",
+    "sounding out", "reading lesson", "adult literacy", "decodable",
+  ],
   contentmate: ["content", "video", "creator", "social media", "tiktok", "youtube"],
 };
 
@@ -249,8 +271,9 @@ export const HIVE_PEER_GRAPH: Record<string, string[]> = {
     "ai-automotive-001",
     "ai-marina-mechanic-001",
   ],
-  "ai-coder-001": ["ai-3d-specialist", "ai-product-001", "platform-security-ai"],
+  "ai-coder-001": ["ai-3d-specialist", "ai-product-001", "platform-security-ai", "ai-blockchain-001"],
   "ai-game-dev-001": ["ai-coder-001", "ai-3d-specialist", "ai-author-001", "platform-security-ai"],
+  "ai-blockchain-001": ["ai-coder-001", "ai-crypto-001", "platform-security-ai"],
   "platform-doctor-ai": ["ai-wellness-001", "ai-fitness-001", "platform-security-ai"],
   "platform-security-ai": ["platform-administration-ai", "ai-coder-001", "platform-doctor-ai"],
   "platform-administration-ai": ["platform-security-ai", "ai-customer-service-001", "platform-business-steward-ai"],
@@ -272,10 +295,10 @@ export const HIVE_PEER_GRAPH: Record<string, string[]> = {
   "platform-world-director-ai": ["platform-business-steward-ai", "ai-3d-specialist", "ai-logo-brand-001"],
   contentmate: ["linguamate", "ai-marketing-001", "ai-content-helper-001", "store-manager", "ai-culinary-001"],
   "store-manager": ["ai-3d-specialist", "ai-marketing-001", "contentmate", "ai-product-001"],
-  linguamate: ["contentmate", "ai-translator-001"],
+  linguamate: ["contentmate", "ai-translator-001", "ai-reading-001"],
   "ai-wellness-001": ["platform-doctor-ai", "ai-fitness-001", "ai-culinary-001", "platform-security-ai"],
   "ai-fitness-001": ["ai-wellness-001", "ai-culinary-001", "platform-doctor-ai"],
-  "ai-crypto-001": ["ai-business-001", "ai-news-001", "ai-accountant-001"],
+  "ai-crypto-001": ["ai-business-001", "ai-news-001", "ai-accountant-001", "ai-blockchain-001"],
   "ai-news-001": ["ai-crypto-001", "ai-marketing-001", "contentmate"],
   "ai-career-001": ["ai-hr-001", "ai-business-001", "ai-marketing-001"],
   "ai-creative-001": ["contentmate", "ai-author-001", "ai-songwriter-001", "ai-musician-001", "ai-poet-001", "ai-logo-brand-001", "ai-3d-specialist"],
@@ -310,7 +333,7 @@ export const HIVE_PEER_GRAPH: Record<string, string[]> = {
   "ai-attorney-accountant-001": ["ai-attorney-001", "ai-accountant-001", "ai-attorney-tax-001", "ai-business-001"],
   "ai-attorney-tax-001": ["ai-attorney-001", "ai-attorney-accountant-001", "ai-accountant-001", "ai-attorney-credit-001"],
   "ai-attorney-credit-001": ["ai-attorney-001", "ai-attorney-tax-001", "ai-accountant-001", "ai-business-001", "ai-funding-001"],
-  "ai-accountant-001": ["ai-business-001", "ai-funding-001", "ai-realestate-001", "ai-attorney-accountant-001", "ai-attorney-tax-001"],
+  "ai-accountant-001": ["ai-business-001", "ai-funding-001", "ai-realestate-001", "ai-attorney-accountant-001", "ai-attorney-tax-001", "ai-math-001"],
   "ai-marketing-001": ["contentmate", "ai-sales-001", "ai-creative-001"],
   "ai-sales-001": ["ai-marketing-001", "ai-customer-service-001", "ai-business-001"],
   "ai-hr-001": ["ai-career-001", "ai-operations-001", "platform-administration-ai"],
@@ -320,8 +343,10 @@ export const HIVE_PEER_GRAPH: Record<string, string[]> = {
   "ai-content-helper-001": ["contentmate", "ai-author-001", "ai-creative-001"],
   "ai-drywall-001": ["ai-framer-001", "ai-contractor-001", "ai-roofer-001"],
   "ai-tree-service-001": ["ai-landscaping-001", "ai-contractor-001"],
-  "ai-dynamics-001": ["ai-structural-001", "ai-automotive-001", "ai-robotics-001"],
-  "ai-translator-001": ["linguamate", "contentmate"],
+  "ai-dynamics-001": ["ai-structural-001", "ai-automotive-001", "ai-robotics-001", "ai-math-001"],
+  "ai-translator-001": ["linguamate", "contentmate", "ai-reading-001"],
+  "ai-math-001": ["ai-accountant-001", "ai-structural-001", "ai-hvac-001", "ai-robotics-001", "ai-coder-001"],
+  "ai-reading-001": ["linguamate", "ai-translator-001", "ai-author-001"],
 };
 
 export const HIVE_OMNI_PROMPT = `
@@ -337,6 +362,11 @@ You are part of the **UR AI Hive** — a network of specialist assistants that c
 6. **Hive collaboration** — You dominate **your domain only**. For other domains, name the correct UR specialist and offer to focus on your part.
 7. **Safeguarded learning** — Learn interaction patterns to serve this user better; never learn to bypass safety or change your core job.
 8. **Cross-specialist referral** — If a question belongs to a hive peer listed below, say: "For [topic], our [Peer Name] is the dominant specialist — open them in AI Hub. I can help with [your domain] meanwhile."
+9. **Print** — Offer worksheets, takeoffs, and plans through the user's own printer dialog or authorized 3D-printer connection. Never claim you pressed print on a machine they did not pick.
+10. **Headset / World** — UR World and UR 3D Workspace can open in a VR headset browser (WebXR). GameForge playtests belong there too. This is not a cheat overlay.
+11. **Access** — Keep language simple when asked. Reading AI teaches phonics; LinguaMate teaches speaking. Suggest large type and captions.
+
+**Wireless (honest):** Bluetooth and Wi-Fi links are only for devices the user chooses later. Refuse scanning other people's networks or pairing without consent.
 
 **Hive rules:**
 - You are the **dominant expert** in your specialty — speak with authority in-domain.

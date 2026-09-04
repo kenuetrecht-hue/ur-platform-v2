@@ -13,9 +13,8 @@ import {
   getAffiliateDashboard,
   getCreatorDashboard,
   resolveAffiliateReferralCode,
-  AFFILIATE_BONUS_CENTS,
-  AFFILIATE_PAYOUT_AFTER_TRANSACTIONS,
 } from "../_core/partner-program-service";
+import { getAffiliateReferralProgramInfo } from "../../lib/affiliate-referral-payout-policy";
 import {
   listLiveSessions,
   scheduleLiveSession,
@@ -278,10 +277,7 @@ export const partnerDashboardRouter = router({
     }));
   }),
 
-  programInfo: publicProcedure.query(() => ({
-    affiliateBonusUsd: (AFFILIATE_BONUS_CENTS / 100).toFixed(2),
-    payoutAfterTransactions: AFFILIATE_PAYOUT_AFTER_TRANSACTIONS,
-  })),
+  programInfo: publicProcedure.query(() => getAffiliateReferralProgramInfo()),
 
   payoutDashboard: protectedProcedure.query(({ ctx }) =>
     getCreatorPayoutDashboard(String(ctx.user.id)),

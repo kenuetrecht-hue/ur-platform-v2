@@ -48,6 +48,7 @@ import {
   getTrendingHashtags,
   listPostComments,
   recordPostShare,
+  reactToPostWithStamp,
   togglePostLike,
   upsertSocialProfile,
   getSocialProfile,
@@ -453,6 +454,24 @@ export const socialRouter = router({
     .mutation(async ({ ctx, input }) => {
       await assertUserIsAgeVerified(ctx.user.id);
       return togglePostLike({ postId: input.postId, userId: socialUser(ctx) });
+    }),
+
+  reactWithStamp: secureProcedure("stamps")
+    .input(
+      z.object({
+        postId: z.string().trim().uuid(),
+        instanceId: z.string().trim().uuid(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await assertUserIsAgeVerified(ctx.user.id);
+      requireWorldAccess(ctx);
+      return reactToPostWithStamp({
+        postId: input.postId,
+        userId: socialUser(ctx),
+        displayName: ctx.user.name ?? undefined,
+        instanceId: input.instanceId,
+      });
     }),
 
   addComment: secureProcedure("social")

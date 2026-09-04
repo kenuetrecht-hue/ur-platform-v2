@@ -157,6 +157,8 @@ export function LandingPromoBanner() {
         <Text style={styles.affiliateLabel}>Referred by an affiliate? (optional)</Text>
         <Text style={styles.affiliateHint}>
           Paste their referral link or enter their affiliate code — we attach it when you sign up.
+          They earn $5 only after your first 24 free hours and five later sales. Sales during those
+          first 24 hours do not count.
         </Text>
         <TextInput
           value={affiliateInput}

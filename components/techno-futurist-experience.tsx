@@ -20,6 +20,7 @@ import { LandingDemoChat } from "@/components/landing/landing-demo-chat";
 import { LandingTownHallCarousel } from "@/components/landing/landing-town-hall-carousel";
 import { LandingSocialProof } from "@/components/landing/landing-social-proof";
 import { LandingCheckoutCta } from "@/components/landing/landing-checkout-cta";
+import { LandingAppDownloadLink } from "@/components/landing/landing-app-download-link";
 import { LandingPromoBanner } from "@/components/landing/landing-promo-banner";
 import { LandingAiCategoryHub } from "@/components/landing/landing-ai-category-hub";
 import { LANDING_DEMO_CREATOR_IDS } from "@/lib/landing-demo-policy";
@@ -78,6 +79,7 @@ export function TechnoFuturistExperience() {
             <View style={styles.topBar}>
               <Text style={styles.logo}>UR PLATFORM</Text>
               <View style={styles.topLinks}>
+                <LandingAppDownloadLink variant="top" />
                 <LandingSignInButton variant="top" />
               </View>
             </View>
@@ -101,6 +103,7 @@ export function TechnoFuturistExperience() {
                   <Text style={styles.heroCtaText}>Create account →</Text>
                 </Pressable>
               </Link>
+              <LandingAppDownloadLink variant="hero" />
             </View>
 
             <LandingPromoBanner />
@@ -117,6 +120,7 @@ export function TechnoFuturistExperience() {
             <LandingCheckoutCta />
 
             <View style={styles.footer}>
+              <LandingAppDownloadLink variant="footer" />
               <Link href="/login" asChild>
                 <Pressable accessibilityRole="link">
                   <Text style={styles.link}>Already have an account? Sign in</Text>

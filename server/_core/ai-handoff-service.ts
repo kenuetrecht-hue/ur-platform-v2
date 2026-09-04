@@ -35,6 +35,13 @@ const HANDOFF_GRAPH: Record<string, HandoffSuggestion[]> = {
       prefillPrompt: "Review my build and suggest a launch roadmap.",
       route: "/(tabs)/ais",
     },
+    {
+      targetCreatorId: "ai-blockchain-001",
+      targetName: "ChainSmith",
+      reason: "Teach and code a blockchain or smart-contract lab.",
+      prefillPrompt: "Help me understand and code a teaching blockchain — hashes, blocks, and a first mine.",
+      route: "/(tabs)/ais",
+    },
   ],
   "ai-game-dev-001": [
     {
@@ -56,6 +63,45 @@ const HANDOFF_GRAPH: Record<string, HandoffSuggestion[]> = {
       targetName: "AI Author Muse",
       reason: "Story, lore, and quest design.",
       prefillPrompt: "Help me write the story and quest lines for my game world.",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-3d-specialist",
+      targetName: "AI 3D Designer",
+      reason: "Play this world in a 3D helmet and the CAD lab.",
+      prefillPrompt: "Help me take this game into a VR headset and the UR 3D Workspace.",
+      route: "/world",
+    },
+  ],
+  "ai-crypto-001": [
+    {
+      targetCreatorId: "ai-blockchain-001",
+      targetName: "ChainSmith",
+      reason: "Write and learn actual chain code — not market talk.",
+      prefillPrompt: "Teach me to code a teaching blockchain — hashes, blocks, and mining.",
+      route: "/(tabs)/ais",
+    },
+  ],
+  "ai-blockchain-001": [
+    {
+      targetCreatorId: "ai-coder-001",
+      targetName: "TechBuilder",
+      reason: "App, API, and UR Platform code around the chain.",
+      prefillPrompt: "Help me wrap this teaching chain in an app — API, UI, and tests.",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-crypto-001",
+      targetName: "AI Crypto Analyst",
+      reason: "Markets, risk, and portfolio education — not chain code.",
+      prefillPrompt: "Explain market and risk concepts around crypto — not investment advice.",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "platform-security-ai",
+      targetName: "Security AI",
+      reason: "Key handling and threat basics.",
+      prefillPrompt: "Review how I'm storing teaching keys and what I must never do with real wallets.",
       route: "/(tabs)/ais",
     },
   ],
@@ -455,6 +501,49 @@ const HANDOFF_GRAPH: Record<string, HandoffSuggestion[]> = {
       reason: "Layout the kitchen, pass, or food truck.",
       prefillPrompt: "Help me model this kitchen or food-truck layout in the 3D workspace.",
       route: "/3d-workspace",
+    },
+  ],
+  linguamate: [
+    {
+      targetCreatorId: "ai-reading-001",
+      targetName: "Reading AI",
+      reason: "Learn to read the language you are speaking.",
+      prefillPrompt: "Teach me to read this language with phonics — sounds first, then letters.",
+      route: "/(tabs)/ais",
+    },
+  ],
+  "ai-reading-001": [
+    {
+      targetCreatorId: "linguamate",
+      targetName: "LinguaMate",
+      reason: "Practice speaking after you can read the words.",
+      prefillPrompt: "I can sound out these words — help me speak and converse.",
+      route: "/(tabs)/ais",
+    },
+  ],
+  "ai-math-001": [
+    {
+      targetCreatorId: "ai-accountant-001",
+      targetName: "Accountant Pro AI",
+      reason: "Books and tax concepts, not algebra.",
+      prefillPrompt: "Help me with bookkeeping — Math Mentor already covered the numbers.",
+      route: "/(tabs)/ais",
+    },
+    {
+      targetCreatorId: "ai-3d-specialist",
+      targetName: "AI 3D Designer",
+      reason: "Measure the room in the 3D Workspace.",
+      prefillPrompt: "Help me apply this geometry to a room takeoff in the 3D workspace.",
+      route: "/3d-workspace",
+    },
+  ],
+  "ai-accountant-001": [
+    {
+      targetCreatorId: "ai-math-001",
+      targetName: "Math Mentor AI",
+      reason: "Pure math and algebra — not the ledger.",
+      prefillPrompt: "Teach me the math behind this — not bookkeeping.",
+      route: "/(tabs)/ais",
     },
   ],
 };

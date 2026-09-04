@@ -12,6 +12,7 @@ export const LANDING_DEMO_CREATOR_IDS = [
   "linguamate",
   "ai-wellness-001",
   "ai-3d-specialist",
+  "ai-culinary-001",
 ] as const;
 
 export type LandingDemoCreatorId = (typeof LANDING_DEMO_CREATOR_IDS)[number];

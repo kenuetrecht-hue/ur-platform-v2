@@ -89,6 +89,11 @@ const config: ExpoConfig = {
     // SPA mode — avoids SSR/hydration breaking clicks (Pressable, forms) in dev browser.
     output: "single",
     favicon: "./assets/images/favicon.png",
+    name: "UR Platform",
+    shortName: "UR",
+    description: "Install UR from this website — no App Store or Google Play required.",
+    themeColor: "#07080d",
+    backgroundColor: "#07080d",
   },
   plugins: [
     "expo-router",

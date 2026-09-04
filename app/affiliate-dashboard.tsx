@@ -11,7 +11,7 @@ export default function AffiliateDashboardScreen() {
           <TabScreenHeader
             icon="🔗"
             title="Affiliate Dashboard"
-            subtitle="Share links · earn $5 per creator after their 5th transaction."
+            subtitle="Share links. $5 only after the creator's free 24 hours, then five later sales."
           />
           <AffiliateDashboardPanel />
       </ScreenContainer>

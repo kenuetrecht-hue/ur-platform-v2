@@ -156,7 +156,7 @@ export function ContentCreatorDashboardPanel() {
               "🎬 Schedule 15–60 min live classes",
               "📣 Share to Facebook & social",
               "✨ ContentMate AI for promo copy",
-              "⚡ 85% instant blockchain payouts",
+              "⚡ 85% on classes & merch · 100% of tips (fan pays the card fee)",
             ].map((item) => (
               <Text key={item} style={{ color: colors.foreground, fontSize: 13 }}>
                 {item}
@@ -223,6 +223,16 @@ export function ContentCreatorDashboardPanel() {
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}>
         {tab === "overview" ? (
           <>
+            {dash.data.payoutStatus ? (
+              <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 14 }}>
+                  Referral fee for the person who brought you
+                </Text>
+                <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>
+                  {dash.data.payoutStatus}
+                </Text>
+              </View>
+            ) : null}
             {link ? (
               <CustomLinkCard customUrl={link.customUrl} slug={link.slug} label="Your creator link" />
             ) : null}
@@ -243,8 +253,13 @@ export function ContentCreatorDashboardPanel() {
                 <StatCard
                   label="Total earned"
                   value={`$${(analytics.totalEarningsCents / 100).toFixed(2)}`}
-                  sub={`${analytics.creatorSharePercent}% creator share`}
+                  sub={`Classes ${analytics.creatorSharePercent}% · tips 100%`}
                   accent={colors.primary}
+                />
+                <StatCard
+                  label="Tips received"
+                  value={`$${((analytics.totalTipCents ?? 0) / 100).toFixed(2)}`}
+                  sub="You keep 100% · fan pays card fee"
                 />
                 <StatCard
                   label="Last 30 days"
@@ -273,7 +288,7 @@ export function ContentCreatorDashboardPanel() {
                 <StatCard
                   label="Platform fee"
                   value={`$${(analytics.platformFeeCents / 100).toFixed(2)}`}
-                  sub="15% retained"
+                  sub="15% on classes · $0 on tips"
                 />
               </View>
             ) : null}

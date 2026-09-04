@@ -17,12 +17,21 @@ function isPublicMarketing(segments: string[]): boolean {
   return root === "welcome" || root === "handoff" || root === "link" || root === undefined;
 }
 
+function isDownloadRoute(segments: string[]): boolean {
+  return segments[0] === "download";
+}
+
 function isAgeVerifyRoute(segments: string[]): boolean {
   return segments[0] === "age-verify";
 }
 
 function isPublicRoute(segments: string[]): boolean {
-  return isAuthRoute(segments) || isPublicMarketing(segments) || isAgeVerifyRoute(segments);
+  return (
+    isAuthRoute(segments) ||
+    isPublicMarketing(segments) ||
+    isAgeVerifyRoute(segments) ||
+    isDownloadRoute(segments)
+  );
 }
 
 /**
@@ -58,6 +67,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
 
     const inAuthRoute = isAuthRoute(segments);
     const inPublicMarketing = isPublicMarketing(segments);
+    const inDownload = isDownloadRoute(segments);
     const inAgeVerify = isAgeVerifyRoute(segments);
     const inProtectedRoute =
       segments[0] === "(tabs)" ||
@@ -81,7 +91,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     const kycVerified = kycQuery.data?.verified === true;
     const kycReady = !kycQuery.isLoading;
 
-    if (isAuthenticated && kycReady && !kycVerified && !inAgeVerify) {
+    if (isAuthenticated && kycReady && !kycVerified && !inAgeVerify && !inDownload) {
       router.replace("/age-verify");
       return;
     }
@@ -91,7 +101,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (isAuthenticated && kycVerified && inPublicMarketing) {
+    if (isAuthenticated && kycVerified && inPublicMarketing && !inDownload) {
       router.replace(canAccessAdminDashboard ? "/(tabs)/admin" : "/(tabs)");
     }
   }, [
@@ -113,7 +123,13 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (clientReady && isAuthenticated && kycQuery.isLoading && !isAgeVerifyRoute(segments)) {
+  if (
+    clientReady &&
+    isAuthenticated &&
+    kycQuery.isLoading &&
+    !isAgeVerifyRoute(segments) &&
+    !isDownloadRoute(segments)
+  ) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />

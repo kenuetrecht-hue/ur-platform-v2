@@ -11,7 +11,7 @@ export const AI_HUB_CATEGORY_GROUPS: AiHubCategoryGroup[] = [
   { id: "all", label: "All", emoji: "✨", categories: [] },
   { id: "platform", label: "Platform", emoji: "🏠", categories: ["Platform"] },
   { id: "construction", label: "Trades", emoji: "🔨", categories: ["Construction", "Outdoor"] },
-  { id: "engineering", label: "Engineering", emoji: "🏛️", categories: ["Engineering"] },
+  { id: "engineering", label: "Engineering", emoji: "🏛️", categories: ["Engineering", "Education", "Manufacturing", "Blueprint & Schematics"] },
   {
     id: "automotive",
     label: "Automotive & Marine",
@@ -31,6 +31,7 @@ export const AI_HUB_CATEGORY_GROUPS: AiHubCategoryGroup[] = [
       "Operations",
       "Product",
       "Real Estate",
+      "Commerce",
     ],
   },
   {
@@ -46,6 +47,7 @@ export const AI_HUB_CATEGORY_GROUPS: AiHubCategoryGroup[] = [
     emoji: "🧘",
     categories: ["Health & Wellness", "Health & Fitness"],
   },
+  { id: "kitchen", label: "Kitchen", emoji: "🍳", categories: ["Culinary"] },
   { id: "tech", label: "Tech", emoji: "💻", categories: ["Technology", "Game Development", "Support"] },
   { id: "legalMasters", label: "Legal Masters", emoji: "👔", categories: ["Legal Masters"] },
   { id: "legal", label: "Legal", emoji: "⚖️", categories: ["Legal Reference"] },
@@ -70,6 +72,31 @@ export function filterCreatorsByGroup<
     const words = query.split(/\s+/).filter(Boolean);
     return words.every((word) => haystack.includes(word));
   });
+}
+
+/** Hub tab for a specialist category, or `all` so deep links never hide the AI. */
+export function hubGroupIdForCategory(category: string): string {
+  const group = AI_HUB_CATEGORY_GROUPS.find(
+    (g) => g.categories.length > 0 && g.categories.includes(category),
+  );
+  return group?.id ?? "all";
+}
+
+/**
+ * Keep a deep-linked specialist selected even if the current tab filter
+ * has not switched yet (Platform tab would otherwise snap back to ContentMate).
+ */
+export function nextHubSelection(params: {
+  deepLinkedAiId?: string;
+  selectedAiId: string;
+  visibleIds: string[];
+}): string {
+  if (params.deepLinkedAiId && params.selectedAiId === params.deepLinkedAiId) {
+    return params.selectedAiId;
+  }
+  if (params.visibleIds.length === 0) return params.selectedAiId;
+  if (params.visibleIds.includes(params.selectedAiId)) return params.selectedAiId;
+  return params.visibleIds[0]!;
 }
 
 /** Pick the first specialist in a hub category (used when switching tabs). */

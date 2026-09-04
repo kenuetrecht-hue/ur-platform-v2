@@ -7,9 +7,12 @@ import {
   StyleSheet,
   Animated,
   Platform,
+  Pressable,
   useWindowDimensions,
 } from "react-native";
+import { Link } from "expo-router";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
+import { APP_DOWNLOAD_PATH } from "@/lib/app-download";
 
 type Props = {
   visible: boolean;
@@ -78,8 +81,8 @@ export function LandingPaymentSuccessModal({ visible, handoffUrl }: Props) {
           <Text style={styles.successTag}>◈</Text>
           <Text style={styles.title}>PAYMENT SUCCESSFUL</Text>
           <Text style={styles.sub}>
-            Scan this code with your phone&apos;s camera to download the mobile app and log in
-            instantly.
+            Scan this code with your phone&apos;s camera to open UR and finish login. Install the
+            app from this website — no App Store or Google Play required.
           </Text>
 
           <View style={[styles.qrWrap, { width: qrSize + 32, height: qrSize + 32 }]}>
@@ -112,6 +115,11 @@ export function LandingPaymentSuccessModal({ visible, handoffUrl }: Props) {
           {Platform.OS === "web" ? (
             <Text style={styles.hint}>Point your phone camera at the glowing code above.</Text>
           ) : null}
+          <Link href={APP_DOWNLOAD_PATH} asChild>
+            <Pressable accessibilityRole="link" style={styles.downloadLink}>
+              <Text style={styles.downloadLinkText}>Download the app from this website</Text>
+            </Pressable>
+          </Link>
         </Animated.View>
       </View>
     </Modal>
@@ -191,6 +199,16 @@ const styles = StyleSheet.create({
   hint: {
     color: T.muted,
     fontSize: 12,
+    textAlign: "center",
+  },
+  downloadLink: {
+    marginTop: 12,
+    paddingVertical: 4,
+  },
+  downloadLinkText: {
+    color: T.electric,
+    fontSize: 14,
+    fontWeight: "800",
     textAlign: "center",
   },
 });

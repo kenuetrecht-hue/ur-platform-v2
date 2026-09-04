@@ -10,6 +10,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { trpc } from "@/lib/trpc";
 import { CustomLinkCard } from "@/components/transaction-history-list";
 import { LoyaltyTrackingPanel } from "@/components/loyalty-tracking-panel";
+import { ThanksStampsPanel } from "@/components/thanks-stamps-panel";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -144,6 +145,8 @@ export default function ProfileScreen() {
 
           <LoyaltyTrackingPanel />
 
+          <ThanksStampsPanel />
+
           <Pressable
             onPress={() => router.push("/(tabs)/messages")}
             style={{
@@ -245,7 +248,7 @@ export default function ProfileScreen() {
                 🔗 Affiliate Dashboard
               </Text>
               <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4, lineHeight: 18 }}>
-                Share referral links · earn $5 when a creator completes their 5th transaction.
+                Share referral links. $5 only after their first 24 free hours, then five later sales. Sales on day one do not count.
               </Text>
             </Pressable>
           ) : null}

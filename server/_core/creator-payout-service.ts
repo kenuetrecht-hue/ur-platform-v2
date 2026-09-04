@@ -168,24 +168,28 @@ function simulateBlockchainTxHash(): string {
 }
 
 /**
- * Instant payout — triggered after each creator sale when payout account is connected.
+ * Instant payout — triggered after each creator sale (85%) or tip (100%) when payout is connected.
  */
 export function processInstantCreatorPayout(params: {
   creatorUserId: string;
   grossCents: number;
   sourceTransactionId?: string;
   description?: string;
+  /** sale = 85/15. tip = creator keeps 100%. pending_release = already-net balance. */
+  kind?: "sale" | "tip" | "pending_release";
 }): PayoutTransfer | null {
+  const share =
+    params.kind === "tip" || params.kind === "pending_release" ? 1 : CREATOR_PAYOUT_SHARE;
+  const netCents = Math.round(params.grossCents * share);
+  const platformFeeCents = params.grossCents - netCents;
+
   const profile = profiles.get(params.creatorUserId);
   if (!profile || profile.status !== "connected" || !profile.method) {
     const pending = getCreatorPayoutProfile(params.creatorUserId);
-    pending.pendingBalanceCents += Math.round(params.grossCents * CREATOR_PAYOUT_SHARE);
+    pending.pendingBalanceCents += netCents;
     profiles.set(params.creatorUserId, pending);
     return null;
   }
-
-  const platformFeeCents = Math.round(params.grossCents * (1 - CREATOR_PAYOUT_SHARE));
-  const netCents = params.grossCents - platformFeeCents;
 
   const transfer: PayoutTransfer = {
     id: randomUUID(),
@@ -256,8 +260,10 @@ export function getCreatorPayoutDashboard(userId: string) {
     setupRequired: payout.status !== "connected",
     setupMessage:
       payout.status === "connected"
-        ? "Instant blockchain payouts active — you receive 85% of each sale within seconds."
-        : "Connect Uphold or a USDC wallet to receive earnings instantly after each class sale.",
+        ? "Instant payouts active — 85% of each class/merch sale, 100% of tips (the fan pays the card fee)."
+        : "Connect Uphold or a USDC wallet to receive earnings instantly after each class sale or tip.",
+    tipSharePercent: 100,
+    classSharePercent: Math.round(CREATOR_PAYOUT_SHARE * 100),
   };
 }
 
@@ -271,7 +277,8 @@ export function flushPendingPayouts(userId: string): PayoutTransfer[] {
   profiles.set(userId, profile);
   const tx = processInstantCreatorPayout({
     creatorUserId: userId,
-    grossCents: Math.round(amount / CREATOR_PAYOUT_SHARE),
+    grossCents: amount,
+    kind: "pending_release",
     description: "Released pending creator balance",
   });
   return tx ? [tx] : [];

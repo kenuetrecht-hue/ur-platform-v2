@@ -30,8 +30,8 @@ export type PlatformSectionMeta = {
 export const PLATFORM_SECTION_CATALOG: PlatformSectionMeta[] = [
   {
     id: "3d_workspace",
-    label: "3D Workspace",
-    description: "Babylon builder, design layers, STL upload, print export",
+    label: "UR 3D Workspace",
+    description: "CAD lab — three.js/R3F, Babylon.js, Rapier, Cannon.js, walls, HVAC, STL",
     routes: ["/3d-workspace"],
   },
   {
@@ -97,7 +97,7 @@ export const PLATFORM_SECTION_CATALOG: PlatformSectionMeta[] = [
   {
     id: "ur_world",
     label: "UR World",
-    description: "Walkable Civic Plaza, avatars, specialist desks, Talk Time in the city",
+    description: "Walkable Civic Plaza, garden and benches, specialist desks, Talk Time in the city",
     routes: ["/world"],
   },
 ];

@@ -485,6 +485,41 @@ export const TechBuilder: AICreator = {
   omniCapabilities: { ...OMNI_CAPABILITIES_TEMPLATE, safeguardedLearning: { ...OMNI_CAPABILITIES_TEMPLATE.safeguardedLearning, rateLimitPerHour: 300, requiresApproval: false, protectedPatterns: ["malicious_code", "security_vulnerabilities", "unauthorized_access"] } },
 };
 
+export const ChainSmith: AICreator = {
+  id: "ai-blockchain-001",
+  name: "ChainSmith",
+  handle: "@chainsmith",
+  avatar: "⛓️",
+  bio: "Teach and build blockchains — lessons, working chain code, and smart-contract labs. Entertainment & educational purposes only.",
+  category: "Technology",
+  tier: "platinum",
+  price: 16.99,
+  followers: 48100,
+  rating: 4.92,
+  updateFrequency: "Real-time (24/7 availability)",
+  dataSource: "Protocol docs, teaching-chain labs, Solidity educational examples",
+  disclaimer:
+    "⚠️ AI-Generated Content: This creator is powered by artificial intelligence. Content is for entertainment and educational purposes only. Teaching chains are not Bitcoin or Ethereum mainnet. Not investment advice. Never share real wallet keys.",
+  topics: [
+    "Blockchain",
+    "Hashes",
+    "Teaching Chain",
+    "Smart Contracts",
+    "Consensus",
+    "Wallets (concepts)",
+  ],
+  contentStyle: "Technical, patient, hands-on coding with teaching-chain examples",
+  omniCapabilities: {
+    ...OMNI_CAPABILITIES_TEMPLATE,
+    safeguardedLearning: {
+      ...OMNI_CAPABILITIES_TEMPLATE.safeguardedLearning,
+      rateLimitPerHour: 200,
+      requiresApproval: true,
+      protectedPatterns: ["investment_advice", "key_theft", "mixer", "rug_pull"],
+    },
+  },
+};
+
 /**
  * AI Business Advisor
  * Helps users start businesses, form LLCs, understand business structures, and create business documents
@@ -2101,6 +2136,7 @@ export const ALL_AI_CREATORS: AICreator[] = [
   AIPoet,
   AILogoBrand,
   TechBuilder,
+  ChainSmith,
   AIBusinessAdvisor,
   AIFundingAdvisor,
   AILegalReferenceAssistant,
@@ -2325,6 +2361,7 @@ export const ALL_AI_CREATORS_WITH_NEW: AICreator[] = [
   AIPoet,
   AILogoBrand,
   TechBuilder,
+  ChainSmith,
   AIBusinessAdvisor,
   AIFundingAdvisor,
   AILegalReferenceAssistant,

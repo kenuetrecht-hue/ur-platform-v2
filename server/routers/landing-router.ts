@@ -52,6 +52,7 @@ const DEMO_VOICE_PERSONA: Partial<Record<string, keyof typeof AI_PERSONA_VOICES>
   linguamate: "TECH_BUILDER",
   "ai-wellness-001": "COMPLIANCE_DOCTOR",
   "ai-3d-specialist": "TECH_BUILDER",
+  "ai-culinary-001": "TECH_BUILDER",
 };
 
 function assertLandingDemoSection(isPlatformOwner: boolean): void {
@@ -228,13 +229,16 @@ export const landingRouter = router({
     priceCents: LANDING_ALL_SPECIALISTS_MONTHLY_CENTS,
     priceDisplay: getLandingPlatformPassPriceDisplay(),
     specialistCountLabel: LANDING_SPECIALIST_COUNT_LABEL,
-    pricingReady: LANDING_ALL_SPECIALISTS_MONTHLY_CENTS != null,
+    pricingReady: true,
+    taxNote:
+      "You pay sales tax for your billing state plus Stripe’s card fee. UR and content creators do not absorb those.",
   })),
 
   purchasePlatformPass: secureCheckoutProcedure("landing")
     .input(
       z.object({
         email: z.string().trim().email().max(120),
+        billingStateCode: z.string().trim().length(2).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -250,6 +254,7 @@ export const landingRouter = router({
         email,
         ip: ctx.ip,
         userId: String(ctx.user.id),
+        billingStateCode: input.billingStateCode,
       });
     }),
 

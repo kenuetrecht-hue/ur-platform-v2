@@ -97,13 +97,16 @@ export function createPrimitiveLayer(input: {
   };
 }
 
-/** Full control over shape dimensions — used by AI playroom build plans. */
+/** Full control over shape dimensions — used by AI playroom build plans and CAD walls. */
 export function createCustomLayer(input: {
   name: string;
   primitive: DesignLayerPrimitive;
   color: string;
   transform?: Partial<DesignLayerTransform>;
   createdBy?: string;
+  role?: DesignLayer["role"];
+  discipline?: DesignLayer["discipline"];
+  cad?: DesignLayer["cad"];
 }): DesignLayer {
   return {
     id: newLayerId(),
@@ -121,6 +124,9 @@ export function createCustomLayer(input: {
       scale: { ...DEFAULT_TRANSFORM.scale, ...input.transform?.scale },
     },
     primitive: input.primitive,
+    role: input.role,
+    discipline: input.discipline,
+    cad: input.cad,
     createdBy: input.createdBy,
     updatedAt: new Date().toISOString(),
   };

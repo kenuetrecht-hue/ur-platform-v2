@@ -20,7 +20,8 @@ import { TechBuilderSandboxPanel } from "@/components/tech-builder-sandbox-panel
 import { TechBuilderLearnPanel } from "@/components/tech-builder-learn-panel";
 import { GameForgeSandboxPanel } from "@/components/game-forge-sandbox-panel";
 import { GameForgeLearnPanel } from "@/components/game-forge-learn-panel";
-import { isForgeSpecialist, forgeLearnLabel } from "@/lib/forge-specialists";
+import { isForgeSpecialist, forgeLearnLabel, isChainSmith } from "@/lib/forge-specialists";
+import { TEACHING_CHAIN_STARTER_FILE } from "@/lib/teaching-blockchain-starter";
 
 import { AiLiveSessionsPanel } from "@/components/ai-live-sessions-panel";
 import { AiSpecialistPricingPanel } from "@/components/ai-specialist-pricing-panel";
@@ -134,6 +135,7 @@ export function AiCreatorPanel({
   const isForge = isForgeSpecialist(creatorId);
   const isTechBuilder = creatorId === "ai-coder-001";
   const isGameForge = creatorId === "ai-game-dev-001";
+  const chainSmith = isChainSmith(creatorId);
 
   const showLiveTab =
     !isOwnerOps &&
@@ -159,10 +161,12 @@ export function AiCreatorPanel({
         />
       ) : surface === "live" && showLiveTab ? (
         <AiLiveSessionsPanel creatorId={creatorId} creatorName={creatorName} />
-      ) : surface === "build" && isTechBuilder ? (
+      ) : surface === "build" && (isTechBuilder || chainSmith) ? (
         <TechBuilderSandboxPanel
-          initialFilePath={sandboxSeed?.path}
-          initialFileContent={sandboxSeed?.content}
+          initialFilePath={sandboxSeed?.path ?? (chainSmith ? TEACHING_CHAIN_STARTER_FILE.path : undefined)}
+          initialFileContent={
+            sandboxSeed?.content ?? (chainSmith ? TEACHING_CHAIN_STARTER_FILE.content : undefined)
+          }
         />
       ) : surface === "build" && isGameForge ? (
         <GameForgeSandboxPanel
@@ -182,7 +186,7 @@ export function AiCreatorPanel({
           overlapHeaderHeight={overlapHeaderHeight}
         />
         </View>
-      ) : isTechBuilder ? (
+      ) : isTechBuilder || chainSmith ? (
         <TechBuilderLearnPanel
           creatorId={creatorId}
           creatorName={creatorName}

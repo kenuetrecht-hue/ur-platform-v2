@@ -20,6 +20,11 @@ import {
   isGameTeachingCreator,
 } from "../_core/game-dev-teaching-curriculum";
 import {
+  getBlockchainPracticeExercises,
+  getBlockchainSelfPacedPath,
+  isBlockchainTeachingCreator,
+} from "../_core/blockchain-teaching-curriculum";
+import {
   getBlueprintSelfPacedPath,
   isBlueprintTeachingCreator,
 } from "../_core/blueprint-teaching-curriculum";
@@ -41,6 +46,14 @@ import {
   getOwnerBusinessTeachingTagline,
   isOwnerBusinessTeachingCreator,
 } from "../_core/owner-business-teaching-curriculum";
+import {
+  getMathSelfPacedPath,
+  isMathTeachingCreator,
+} from "../_core/math-teaching-curriculum";
+import {
+  getReadingSelfPacedPath,
+  isReadingTeachingCreator,
+} from "../_core/reading-teaching-curriculum";
 import {
   createPracticeQuestionSet,
   getLearningProgress,
@@ -108,6 +121,39 @@ export const aiLearningRouter = router({
                 advanced: getGameSelfPacedPath("advanced"),
               },
               tagline: "Learn game development on your own — from jam games to massive worlds.",
+            }
+          : {}),
+        ...(isBlockchainTeachingCreator(def.id)
+          ? {
+              blockchainAcademy: true,
+              selfPacedPaths: {
+                beginner: getBlockchainSelfPacedPath("beginner"),
+                intermediate: getBlockchainSelfPacedPath("intermediate"),
+                advanced: getBlockchainSelfPacedPath("advanced"),
+              },
+              tagline: "Learn blockchain on your own — hashes, working chain code, and contract labs.",
+            }
+          : {}),
+        ...(isMathTeachingCreator(def.id)
+          ? {
+              mathAcademy: true,
+              selfPacedPaths: {
+                beginner: getMathSelfPacedPath("beginner"),
+                intermediate: getMathSelfPacedPath("intermediate"),
+                advanced: getMathSelfPacedPath("advanced"),
+              },
+              tagline: "Learn mathematics — steps first, then speed. Not bookkeeping.",
+            }
+          : {}),
+        ...(isReadingTeachingCreator(def.id)
+          ? {
+              readingAcademy: true,
+              selfPacedPaths: {
+                beginner: getReadingSelfPacedPath("beginner"),
+                intermediate: getReadingSelfPacedPath("intermediate"),
+                advanced: getReadingSelfPacedPath("advanced"),
+              },
+              tagline: "Learn to read — systematic phonics in the language you choose.",
             }
           : {}),
         ...(isBlueprintTeachingCreator(def.id)
@@ -287,6 +333,20 @@ export const aiLearningRouter = router({
             starterFile: ex.starterFile,
           })),
           disclaimer: "Educational game dev practice — build scripts and docs in the secure Build sandbox.",
+        };
+      }
+
+      if (isBlockchainTeachingCreator(input.creatorId)) {
+        const exercises = getBlockchainPracticeExercises({ count: input.count });
+        return {
+          questions: exercises.map((ex) => ({
+            id: ex.id,
+            topic: ex.title,
+            question: ex.prompt,
+            level: ex.level,
+            starterFile: ex.starterFile,
+          })),
+          disclaimer: "Educational blockchain practice — write teaching-chain code in the Build sandbox.",
         };
       }
 
