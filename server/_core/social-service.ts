@@ -9,6 +9,11 @@ import { ENV } from "./env";
 import { getPlatformOwnerDisplayName, isOwnerEmail } from "./owner-auth";
 import { getUserByEmail, getUserByOpenId } from "../db";
 import { toSupabaseOpenId } from "../supabase-auth";
+import {
+  followCreatorChannel,
+  unfollowCreatorChannel,
+  _resetCreatorAudienceForTests,
+} from "./creator-audience-service";
 
 export type FriendshipStatus = "pending" | "accepted" | "blocked";
 
@@ -228,6 +233,7 @@ export function _resetSocialStateForTests(): void {
   emailIndex.clear();
   cachedOwnerUserId = undefined;
   welcomeFriendInFlight.clear();
+  _resetCreatorAudienceForTests();
 }
 
 export function resolveUserIdByEmail(email: string): string | null {
@@ -503,6 +509,10 @@ export function subscribeToCreator(params: {
     subscribedAt: new Date().toISOString(),
   };
   subscriptions.set(key, sub);
+  followCreatorChannel({
+    followerUserId: params.subscriberUserId,
+    creatorUserId: params.creatorUserId,
+  });
   return sub;
 }
 
@@ -510,6 +520,10 @@ export function unsubscribeFromCreator(params: {
   subscriberUserId: string;
   creatorUserId: string;
 }): boolean {
+  unfollowCreatorChannel({
+    followerUserId: params.subscriberUserId,
+    creatorUserId: params.creatorUserId,
+  });
   return subscriptions.delete(subKey(params.subscriberUserId, params.creatorUserId));
 }
 

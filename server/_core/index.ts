@@ -28,6 +28,7 @@ import { registerStaticWeb } from "./static-web";
 import { getCommerceMode, isSimulatedCommerceMode, DEV_SIMULATED_COMMERCE_NOTICE } from "../../lib/dev-commerce-mode";
 import { isDevAgeKycBypassEnabled } from "../../lib/dev-age-kyc-mode";
 import { hydrateContentProtectionFromDatabase } from "./creator-content-protection-service";
+import { hydrateCreatorRosterFromDatabase } from "./partner-program-service";
 import { hydrateRecentAiUserMemory } from "./ai-user-memory-persistence";
 import { startPlatformOpsMonitor } from "./platform-ops-monitor";
 
@@ -227,6 +228,7 @@ async function startServer() {
   console.log(`[api] server listening on port ${port}`);
   startForgeSessionJanitor();
   void hydrateContentProtectionFromDatabase();
+  void hydrateCreatorRosterFromDatabase();
   void hydrateRecentAiUserMemory();
   startPlatformOpsMonitor();
   console.log(

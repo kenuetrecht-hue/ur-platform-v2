@@ -27,6 +27,27 @@ import {
   resolveCreatorFreeServiceEnd,
   shouldCountTowardAffiliatePayout,
 } from "../../lib/affiliate-referral-payout-policy";
+import {
+  FOUNDING_AUDIENCE_FOLLOWERS_REQUIRED,
+  FOUNDING_AUDIENCE_PAID_SUBSCRIBERS_REQUIRED,
+  FOUNDING_AUDIENCE_YEAR_RULE,
+  joinedDuringBetaOrLaunchWindow,
+  resolveFoundingAudienceYear,
+  type FoundingAudienceYearStatus,
+} from "../../lib/founding-audience-year-discount";
+import { getLaunchDate } from "../../lib/launch-promotion-config";
+import {
+  getCreatorAudienceCounts,
+  getCreatorAudienceLedger,
+  restoreCreatorAudienceFromPersistence,
+  _resetCreatorAudienceForTests,
+} from "./creator-audience-service";
+import { CREATOR_AUDIENCE_FOLLOW_RULE } from "../../lib/creator-audience-policy";
+import {
+  loadCreatorRosterFromDb,
+  persistContentCreatorProfile,
+  type PersistedCreatorProfile,
+} from "./creator-audience-persistence";
 
 export const AFFILIATE_BONUS_CENTS = AFFILIATE_REFERRAL_BONUS_CENTS;
 export const AFFILIATE_PAYOUT_AFTER_TRANSACTIONS = AFFILIATE_PAYOUT_AFTER_QUALIFYING_TRANSACTIONS;
@@ -48,6 +69,11 @@ export type ContentCreatorProfile = {
   affiliateBonusPaid: boolean;
   totalEarningsCents: number;
   totalTipCents: number;
+  /** Signup order during beta / first 30 days (1–300 = launch hundreds). */
+  launchSlot: number | null;
+  broughtFollowerCount: number;
+  paidChannelSubscriberCount: number;
+  foundingAudienceVerified: boolean;
 };
 
 export type AffiliateProfile = {
@@ -80,6 +106,22 @@ const creators = new Map<string, ContentCreatorProfile>();
 const affiliates = new Map<string, AffiliateProfile>();
 const referralCodeIndex = new Map<string, string>();
 const affiliateReferrals = new Map<string, AffiliateReferralRecord[]>();
+let nextLaunchSlot = 1;
+let creatorRosterHydrated = false;
+
+export function _resetPartnerProgramForTests(): void {
+  creators.clear();
+  affiliates.clear();
+  referralCodeIndex.clear();
+  affiliateReferrals.clear();
+  nextLaunchSlot = 1;
+  creatorRosterHydrated = false;
+  _resetCreatorAudienceForTests();
+}
+
+export function _setNextLaunchSlotForTests(slot: number): void {
+  nextLaunchSlot = Math.max(1, Math.floor(slot));
+}
 
 function normalizeEmail(email: string): string {
   return email.toLowerCase().trim();
@@ -143,10 +185,13 @@ export function enrollContentCreator(params: {
   });
 
   const enrolledAt = params.enrolledAt ?? new Date();
+  const launchDate = params.launchDate ?? getLaunchDate();
   const freeServiceEndsAt = resolveCreatorFreeServiceEnd({
     enrolledAt,
-    launchDate: params.launchDate,
+    launchDate,
   });
+  const inWindow = joinedDuringBetaOrLaunchWindow({ enrolledAt, launchDate });
+  const launchSlot = inWindow ? nextLaunchSlot++ : null;
 
   const profile: ContentCreatorProfile = {
     userId: params.userId,
@@ -163,8 +208,13 @@ export function enrollContentCreator(params: {
     affiliateBonusPaid: false,
     totalEarningsCents: 0,
     totalTipCents: 0,
+    launchSlot,
+    broughtFollowerCount: 0,
+    paidChannelSubscriberCount: 0,
+    foundingAudienceVerified: false,
   };
   creators.set(params.userId, profile);
+  void persistContentCreatorProfile(profile);
 
   if (referredByAffiliateUserId) {
     const affiliate = affiliates.get(referredByAffiliateUserId);
@@ -236,7 +286,118 @@ export function enrollAffiliate(params: {
 }
 
 export function getContentCreatorProfile(userId: string): ContentCreatorProfile | null {
-  return creators.get(userId) ?? null;
+  const profile = creators.get(userId);
+  if (!profile) return null;
+  return liveAudienceOnProfile(profile);
+}
+
+function liveAudienceOnProfile(profile: ContentCreatorProfile): ContentCreatorProfile {
+  const audience = getCreatorAudienceCounts(profile.userId);
+  const meets =
+    audience.followerCount >= FOUNDING_AUDIENCE_FOLLOWERS_REQUIRED &&
+    audience.paidSubscriberCount >= FOUNDING_AUDIENCE_PAID_SUBSCRIBERS_REQUIRED;
+  return {
+    ...profile,
+    broughtFollowerCount: audience.followerCount,
+    paidChannelSubscriberCount: audience.paidSubscriberCount,
+    foundingAudienceVerified: meets,
+  };
+}
+
+export function getFoundingAudienceStatus(
+  userId: string,
+  now = new Date(),
+): FoundingAudienceYearStatus | null {
+  const profile = creators.get(userId);
+  if (!profile) return null;
+  const audience = getCreatorAudienceCounts(userId);
+  const meets =
+    audience.followerCount >= FOUNDING_AUDIENCE_FOLLOWERS_REQUIRED &&
+    audience.paidSubscriberCount >= FOUNDING_AUDIENCE_PAID_SUBSCRIBERS_REQUIRED;
+  return resolveFoundingAudienceYear({
+    enrolledAt: new Date(profile.enrolledAt),
+    launchSlot: profile.launchSlot,
+    broughtFollowerCount: audience.followerCount,
+    paidChannelSubscriberCount: audience.paidSubscriberCount,
+    verified: meets,
+    now,
+  });
+}
+
+export function listCreatorRoster() {
+  return [...creators.values()]
+    .map((c) => {
+      const profile = liveAudienceOnProfile(c);
+      const ledger = getCreatorAudienceLedger(c.userId);
+      return {
+        userId: profile.userId,
+        displayName: profile.displayName,
+        userEmail: profile.userEmail,
+        customSlug: profile.customSlug,
+        customUrl: profile.customUrl,
+        enrolledAt: profile.enrolledAt,
+        launchSlot: profile.launchSlot,
+        followerCount: ledger.followerCount,
+        paidSubscriberCount: ledger.paidSubscriberCount,
+        followers: ledger.followers,
+        paidSubscribers: ledger.paidSubscribers,
+        foundingAudienceVerified: profile.foundingAudienceVerified,
+        status: getFoundingAudienceStatus(c.userId)!,
+      };
+    })
+    .sort((a, b) => Date.parse(a.enrolledAt) - Date.parse(b.enrolledAt));
+}
+
+export function getOwnerCreatorRoster() {
+  const creatorsOnRoster = listCreatorRoster();
+  return {
+    creatorCount: creatorsOnRoster.length,
+    totalFollowers: creatorsOnRoster.reduce((sum, c) => sum + c.followerCount, 0),
+    totalPaidSubscribers: creatorsOnRoster.reduce((sum, c) => sum + c.paidSubscriberCount, 0),
+    audienceRule: CREATOR_AUDIENCE_FOLLOW_RULE,
+    creators: creatorsOnRoster,
+  };
+}
+
+export function restoreContentCreatorsFromPersistence(rows: PersistedCreatorProfile[]): void {
+  for (const row of rows) {
+    if (creators.has(row.userId)) continue;
+    const profile: ContentCreatorProfile = {
+      userId: row.userId,
+      userEmail: row.userEmail,
+      displayName: row.displayName,
+      customSlug: row.customSlug,
+      customUrl: row.customUrl,
+      enrolledAt: row.enrolledAt,
+      referredByAffiliateUserId: row.referredByAffiliateUserId,
+      referredByAffiliateCode: row.referredByAffiliateCode,
+      transactionCount: 0,
+      qualifyingTransactionCount: 0,
+      freeServiceEndsAt: row.freeServiceEndsAt,
+      affiliateBonusPaid: false,
+      totalEarningsCents: 0,
+      totalTipCents: 0,
+      launchSlot: row.launchSlot,
+      broughtFollowerCount: 0,
+      paidChannelSubscriberCount: 0,
+      foundingAudienceVerified: false,
+    };
+    creators.set(row.userId, profile);
+    if (row.launchSlot && row.launchSlot >= nextLaunchSlot) {
+      nextLaunchSlot = row.launchSlot + 1;
+    }
+  }
+}
+
+export async function hydrateCreatorRosterFromDatabase(): Promise<void> {
+  if (creatorRosterHydrated) return;
+  creatorRosterHydrated = true;
+  const data = await loadCreatorRosterFromDb();
+  restoreContentCreatorsFromPersistence(data.creators);
+  restoreCreatorAudienceFromPersistence({
+    follows: data.follows,
+    paidSubs: data.paidSubs,
+  });
 }
 
 export function creditCreatorTipEarnings(userId: string, amountCents: number): ContentCreatorProfile {
@@ -416,6 +577,10 @@ export function getCreatorDashboard(userId: string) {
           bonusPaid: profile.affiliateBonusPaid,
         })
       : null,
+    foundingAudience: getFoundingAudienceStatus(userId),
+    foundingAudienceRule: FOUNDING_AUDIENCE_YEAR_RULE,
+    audience: getCreatorAudienceLedger(userId),
+    audienceRule: CREATOR_AUDIENCE_FOLLOW_RULE,
   };
 }
 

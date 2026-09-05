@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { secureProcedure, router } from "../_core/trpc";
 import { assertUserIsAgeVerified } from "../_core/age-kyc-service";
 import {
@@ -62,6 +63,14 @@ import {
   type PostTone,
 } from "../_core/social-post-assistant-service";
 import { CONTENT_LICENSE_TYPES } from "../../lib/creator-content-protection-core";
+import { getContentCreatorProfile } from "../_core/partner-program-service";
+import {
+  cancelPaidChannelSubscription,
+  followCreatorChannel,
+  getMyCreatorAudienceStatus,
+  startPaidChannelSubscription,
+  unfollowCreatorChannel,
+} from "../_core/creator-audience-service";
 
 const createPostInputSchema = z
   .object({
@@ -98,6 +107,17 @@ const createPostInputSchema = z
       });
     }
   });
+
+function requireEnrolledCreator(creatorUserId: string) {
+  const creator = getContentCreatorProfile(creatorUserId);
+  if (!creator) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "That member is not an enrolled content creator.",
+    });
+  }
+  return creator;
+}
 
 function socialUser(ctx: { user: { id: string | number; email?: string | null; name?: string | null } }) {
   const userId = String(ctx.user.id);
@@ -236,13 +256,14 @@ export const socialRouter = router({
   subscribeCreator: secureProcedure("social")
     .input(
       z.object({
-        creatorUserId: z.string().min(1),
+        creatorUserId: z.string().trim().min(1).max(80),
         creatorName: z.string().min(1).max(120),
         creatorSlug: z.string().max(64).optional(),
         rideAlongWithAi: z.boolean().optional(),
       }),
     )
     .mutation(({ ctx, input }) => {
+      requireEnrolledCreator(input.creatorUserId);
       const sub = subscribeToCreator({
         subscriberUserId: String(ctx.user.id),
         creatorUserId: input.creatorUserId,
@@ -259,10 +280,73 @@ export const socialRouter = router({
     }),
 
   unsubscribeCreator: secureProcedure("social")
-    .input(z.object({ creatorUserId: z.string().min(1) }))
+    .input(z.object({ creatorUserId: z.string().trim().min(1).max(80) }))
     .mutation(({ ctx, input }) =>
       unsubscribeFromCreator({
         subscriberUserId: String(ctx.user.id),
+        creatorUserId: input.creatorUserId,
+      }),
+    ),
+
+  followCreator: secureProcedure("social")
+    .input(z.object({ creatorUserId: z.string().trim().min(1).max(80) }))
+    .mutation(({ ctx, input }) => {
+      const creator = requireEnrolledCreator(input.creatorUserId);
+      followCreatorChannel({
+        followerUserId: String(ctx.user.id),
+        creatorUserId: creator.userId,
+      });
+      return getMyCreatorAudienceStatus({
+        fanUserId: String(ctx.user.id),
+        creatorUserId: creator.userId,
+      });
+    }),
+
+  unfollowCreator: secureProcedure("social")
+    .input(z.object({ creatorUserId: z.string().trim().min(1).max(80) }))
+    .mutation(({ ctx, input }) => {
+      unfollowCreatorChannel({
+        followerUserId: String(ctx.user.id),
+        creatorUserId: input.creatorUserId,
+      });
+      return getMyCreatorAudienceStatus({
+        fanUserId: String(ctx.user.id),
+        creatorUserId: input.creatorUserId,
+      });
+    }),
+
+  subscribePaidChannel: secureProcedure("social")
+    .input(z.object({ creatorUserId: z.string().trim().min(1).max(80) }))
+    .mutation(({ ctx, input }) => {
+      const creator = requireEnrolledCreator(input.creatorUserId);
+      startPaidChannelSubscription({
+        subscriberUserId: String(ctx.user.id),
+        creatorUserId: creator.userId,
+      });
+      return getMyCreatorAudienceStatus({
+        fanUserId: String(ctx.user.id),
+        creatorUserId: creator.userId,
+      });
+    }),
+
+  cancelPaidChannel: secureProcedure("social")
+    .input(z.object({ creatorUserId: z.string().trim().min(1).max(80) }))
+    .mutation(({ ctx, input }) => {
+      cancelPaidChannelSubscription({
+        subscriberUserId: String(ctx.user.id),
+        creatorUserId: input.creatorUserId,
+      });
+      return getMyCreatorAudienceStatus({
+        fanUserId: String(ctx.user.id),
+        creatorUserId: input.creatorUserId,
+      });
+    }),
+
+  creatorAudience: secureProcedure("social")
+    .input(z.object({ creatorUserId: z.string().trim().min(1).max(80) }))
+    .query(({ ctx, input }) =>
+      getMyCreatorAudienceStatus({
+        fanUserId: String(ctx.user.id),
         creatorUserId: input.creatorUserId,
       }),
     ),

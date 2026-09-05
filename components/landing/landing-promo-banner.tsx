@@ -187,7 +187,8 @@ export function LandingPromoBanner() {
 
       <Text style={styles.footerNote}>
         Tier is assigned automatically by signup order during the {LAUNCH_SIGNUP_WINDOW_DAYS}-day window.
-        No coupon needed — your slot is your promotion.
+        No coupon needed — your slot is your promotion. Bring 1,000 followers and 1,000 paid
+        subscribers: 50% off for a year starts only after your first, second, or third-hundred deal ends.
       </Text>
     </LinearGradient>
   );

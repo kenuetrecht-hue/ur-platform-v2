@@ -12,6 +12,7 @@ import {
   LAUNCH_SIGNUP_WINDOW_DAYS,
   PLATFORM_FEE_PERCENT,
 } from "@/lib/launch-promotion-config";
+import { FOUNDING_AUDIENCE_YEAR_RULE_SHORT } from "@/lib/founding-audience-year-discount";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 
@@ -98,7 +99,7 @@ export function HomeLaunchPromoBanner() {
       <Text style={styles.headline}>{LAUNCH_PROMOTION_HEADLINE}</Text>
       <Text style={styles.sub}>
         First 300 creators lock tier discounts on the {PLATFORM_FEE_PERCENT}% platform fee. No coupon
-        — signup order is your code.
+        — signup order is your code. {FOUNDING_AUDIENCE_YEAR_RULE_SHORT}
       </Text>
 
       <View style={styles.countdownCard}>

@@ -5,10 +5,39 @@
 import { randomUUID } from "crypto";
 import { TRPCError } from "@trpc/server";
 import { recordTransaction } from "./transaction-ledger-service";
-import { getContentCreatorProfile } from "./partner-program-service";
+import { getContentCreatorProfile, getFoundingAudienceStatus } from "./partner-program-service";
+import { launchAdvantageDurationDays, launchHundredBandFromSlot } from "../../lib/founding-audience-year-discount";
+import { LAUNCH_PROMOTION_TIERS, PLATFORM_FEE_PERCENT } from "../../lib/launch-promotion-config";
 
 /** Creators receive 85% of each sale instantly; platform retains 15%. */
 export const CREATOR_PAYOUT_SHARE = 0.85;
+
+/** One decimal so 92.5% does not round to 93. */
+export function saleShareToPercent(share: number): number {
+  return Math.round(share * 1000) / 10;
+}
+
+function launchTierCreatorShare(now: Date, enrolledAt: Date, launchSlot: number | null): number | null {
+  const band = launchHundredBandFromSlot(launchSlot);
+  if (!band) return null;
+  const ends = new Date(enrolledAt.getTime() + launchAdvantageDurationDays(band) * 24 * 60 * 60 * 1000);
+  if (now.getTime() >= ends.getTime()) return null;
+  const discount = LAUNCH_PROMOTION_TIERS[band - 1]!.platformFeeDiscountPercent;
+  const feePercent = PLATFORM_FEE_PERCENT * (1 - discount / 100);
+  return (100 - feePercent) / 100;
+}
+
+/** Sale split for one creator — launch-tier first, then the year-long 50% audience offer. */
+export function getCreatorSaleShare(userId: string, now = new Date()): number {
+  const profile = getContentCreatorProfile(userId);
+  if (!profile) return CREATOR_PAYOUT_SHARE;
+  const enrolledAt = new Date(profile.enrolledAt);
+  const launchShare = launchTierCreatorShare(now, enrolledAt, profile.launchSlot);
+  if (launchShare != null) return launchShare;
+  const year = getFoundingAudienceStatus(userId, now);
+  if (year?.active) return year.creatorKeepPercent / 100;
+  return CREATOR_PAYOUT_SHARE;
+}
 
 export type PayoutMethod = "uphold" | "crypto_wallet";
 export type PayoutAsset = "USDC" | "BTC" | "ETH";
@@ -177,9 +206,12 @@ export function processInstantCreatorPayout(params: {
   description?: string;
   /** sale = 85/15. tip = creator keeps 100%. pending_release = already-net balance. */
   kind?: "sale" | "tip" | "pending_release";
+  now?: Date;
 }): PayoutTransfer | null {
   const share =
-    params.kind === "tip" || params.kind === "pending_release" ? 1 : CREATOR_PAYOUT_SHARE;
+    params.kind === "tip" || params.kind === "pending_release"
+      ? 1
+      : getCreatorSaleShare(params.creatorUserId, params.now);
   const netCents = Math.round(params.grossCents * share);
   const platformFeeCents = params.grossCents - netCents;
 
@@ -247,12 +279,13 @@ export function getCreatorPayoutDashboard(userId: string) {
   const creator = getContentCreatorProfile(userId);
   const payout = getCreatorPayoutProfile(userId);
   const recentPayouts = listCreatorPayouts(userId, 15);
+  const saleShare = getCreatorSaleShare(userId);
 
   return {
     enrolled: Boolean(creator),
     payout,
-    creatorSharePercent: Math.round(CREATOR_PAYOUT_SHARE * 100),
-    platformFeePercent: Math.round((1 - CREATOR_PAYOUT_SHARE) * 100),
+    creatorSharePercent: saleShareToPercent(saleShare),
+    platformFeePercent: saleShareToPercent(1 - saleShare),
     upholdAvailable: true,
     upholdOAuthConfigured: upholdConfigured(),
     canReceiveInstantPayouts: payout.status === "connected",
@@ -263,7 +296,7 @@ export function getCreatorPayoutDashboard(userId: string) {
         ? "Instant payouts active — 85% of each class/merch sale, 100% of tips (the fan pays the card fee)."
         : "Connect Uphold or a USDC wallet to receive earnings instantly after each class sale or tip.",
     tipSharePercent: 100,
-    classSharePercent: Math.round(CREATOR_PAYOUT_SHARE * 100),
+    classSharePercent: saleShareToPercent(saleShare),
   };
 }
 

@@ -31,6 +31,8 @@ import { CreatorSocialShareBar, CreatorPromoCard } from "@/components/creator-so
 import { CreatorContentMatePanel } from "@/components/creator-contentmate-panel";
 import { CreatorContentProtectionPanel } from "@/components/creator-content-protection-panel";
 import { MuxVideoUploader } from "@/components/mux-video-uploader";
+import { FOUNDING_AUDIENCE_YEAR_RULE } from "@/lib/founding-audience-year-discount";
+import { CREATOR_AUDIENCE_FOLLOW_RULE } from "@/lib/creator-audience-policy";
 
 type Tab = "overview" | "classes" | "promote" | "store" | "ai";
 
@@ -126,7 +128,6 @@ export function ContentCreatorDashboardPanel() {
       void utils.partnerDashboard.creatorDashboard.invalidate();
     },
   });
-
   const timePresets = useMemo(
     () => [
       { label: "Tomorrow 6 PM", iso: formatStartPreset(24 + 6 - new Date().getHours()) },
@@ -157,6 +158,7 @@ export function ContentCreatorDashboardPanel() {
               "📣 Share to Facebook & social",
               "✨ ContentMate AI for promo copy",
               "⚡ 85% on classes & merch · 100% of tips (fan pays the card fee)",
+              "🎯 1,000 followers + 1,000 paid subs during beta or the first 30 days: 50% off for a year after any first/second/third-hundred deal ends",
             ].map((item) => (
               <Text key={item} style={{ color: colors.foreground, fontSize: 13 }}>
                 {item}
@@ -288,10 +290,71 @@ export function ContentCreatorDashboardPanel() {
                 <StatCard
                   label="Platform fee"
                   value={`$${(analytics.platformFeeCents / 100).toFixed(2)}`}
-                  sub="15% on classes · $0 on tips"
+                  sub={`${100 - analytics.creatorSharePercent}% on classes · $0 on tips`}
+                />
+                <StatCard
+                  label="Followers"
+                  value={(dash.data.audience?.followerCount ?? p.broughtFollowerCount).toLocaleString()}
+                  sub="Live count · fans follow you"
+                />
+                <StatCard
+                  label="Paid subscribers"
+                  value={(dash.data.audience?.paidSubscriberCount ?? p.paidChannelSubscriberCount).toLocaleString()}
+                  sub="Live count · they can cancel"
                 />
               </View>
             ) : null}
+            <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+              <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 15 }}>
+                Your audience
+              </Text>
+              <Text style={{ color: colors.foreground, fontSize: 28, fontWeight: "900" }}>
+                {(dash.data.audience?.followerCount ?? p.broughtFollowerCount).toLocaleString()}
+                <Text style={{ fontSize: 14, fontWeight: "600", color: colors.muted }}> followers</Text>
+              </Text>
+              {(dash.data.audience?.followers ?? []).length > 0 ? (
+                <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+                  {(dash.data.audience?.followers ?? [])
+                    .slice(0, 20)
+                    .map((f) => (f.userId.length <= 14 ? f.userId : `${f.userId.slice(0, 12)}…`))
+                    .join(" · ")}
+                  {(dash.data.audience?.followers.length ?? 0) > 20 ? " · …" : ""}
+                </Text>
+              ) : (
+                <Text style={{ color: colors.muted, fontSize: 12 }}>No followers yet</Text>
+              )}
+              <Text style={{ color: colors.foreground, fontSize: 28, fontWeight: "900" }}>
+                {(dash.data.audience?.paidSubscriberCount ?? p.paidChannelSubscriberCount).toLocaleString()}
+                <Text style={{ fontSize: 14, fontWeight: "600", color: colors.muted }}> paid subscribers</Text>
+              </Text>
+              {(dash.data.audience?.paidSubscribers ?? []).length > 0 ? (
+                <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+                  {(dash.data.audience?.paidSubscribers ?? [])
+                    .slice(0, 20)
+                    .map((s) => (s.userId.length <= 14 ? s.userId : `${s.userId.slice(0, 12)}…`))
+                    .join(" · ")}
+                  {(dash.data.audience?.paidSubscribers.length ?? 0) > 20 ? " · …" : ""}
+                </Text>
+              ) : (
+                <Text style={{ color: colors.muted, fontSize: 12 }}>No paid subscribers yet</Text>
+              )}
+              <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
+                {dash.data.audienceRule ?? CREATOR_AUDIENCE_FOLLOW_RULE}
+              </Text>
+              {dash.data.foundingAudience ? (
+                <>
+                  <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13, marginTop: 6 }}>
+                    Founding audience year
+                  </Text>
+                  <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
+                    {dash.data.foundingAudienceRule ?? FOUNDING_AUDIENCE_YEAR_RULE}
+                  </Text>
+                  <Text style={{ color: colors.foreground, fontSize: 13, lineHeight: 19, fontWeight: "600" }}>
+                    {dash.data.foundingAudience.summary}
+                  </Text>
+                </>
+              ) : null}
+            </View>
             <View style={[styles.banner, { backgroundColor: `${colors.primary}12`, borderColor: colors.primary }]}>
               <Text style={[styles.title, { color: colors.foreground }]}>Welcome back, {p.displayName}</Text>
               <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>

@@ -1,6 +1,6 @@
 import "@/global.css";
 import { Stack } from "expo-router";
-import { Head } from "expo-router/head";
+import Head from "expo-router/head";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { Platform, View } from "react-native";

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import {
   adminPermissionProcedure,
+  ownerProcedure,
   protectedProcedure,
   publicProcedure,
   router,
@@ -13,6 +14,7 @@ import {
   getAffiliateDashboard,
   getCreatorDashboard,
   resolveAffiliateReferralCode,
+  getOwnerCreatorRoster,
 } from "../_core/partner-program-service";
 import { getAffiliateReferralProgramInfo } from "../../lib/affiliate-referral-payout-policy";
 import {
@@ -432,4 +434,6 @@ export const partnerDashboardRouter = router({
       billingStateCode: "FL",
     }),
   ),
+
+  creatorRoster: ownerProcedure.query(() => getOwnerCreatorRoster()),
 });

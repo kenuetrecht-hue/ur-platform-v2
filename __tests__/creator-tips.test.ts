@@ -45,6 +45,7 @@ describe("Creator tips (100% to creator, fan pays Stripe)", () => {
       userId: "tip-creator-1",
       userEmail: "creator@test.com",
       displayName: "Maya Chen",
+      enrolledAt: new Date("2026-10-01T00:00:00.000Z"),
     });
     completeUpholdConnection({
       userId: "tip-creator-1",

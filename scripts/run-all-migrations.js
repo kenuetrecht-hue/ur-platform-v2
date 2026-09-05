@@ -20,6 +20,7 @@ const SUPPLEMENTAL_MIGRATIONS = [
   { file: "drizzle/content-protection-migration.sql", label: "content-protection" },
   { file: "drizzle/ai-user-memory-migration.sql", label: "ai-user-memory" },
   { file: "drizzle/platform-ops-migration.sql", label: "platform-ops" },
+  { file: "drizzle/creator-audience-migration.sql", label: "creator-audience" },
 ];
 
 async function ensureDatabase() {

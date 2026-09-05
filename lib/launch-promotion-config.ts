@@ -45,6 +45,7 @@ export const LAUNCH_PROMOTION_TIERS: LaunchPromotionTier[] = [
       "Affiliate $5 only after this free 24 hours, then 5 later sales",
       "2 lifetime drawing entries",
       "1 free weekly ticket for life",
+      "Bring 1,000 followers + 1,000 paid subscribers: 50% off the platform fee for a year — starts after this 6-month advantage ends",
     ],
   },
   {
@@ -60,6 +61,7 @@ export const LAUNCH_PROMOTION_TIERS: LaunchPromotionTier[] = [
       `${discountedPlatformFeePercent(60)}% platform fee (normally ${PLATFORM_FEE_PERCENT}%)`,
       "0% platform fee your first 24 hours (Genesis Clock)",
       "Affiliate $5 only after this free 24 hours, then 5 later sales",
+      "Bring 1,000 followers + 1,000 paid subscribers: 50% off for a year — starts after this 90-day advantage ends",
     ],
   },
   {
@@ -75,13 +77,14 @@ export const LAUNCH_PROMOTION_TIERS: LaunchPromotionTier[] = [
       `${discountedPlatformFeePercent(50)}% platform fee (normally ${PLATFORM_FEE_PERCENT}%)`,
       "0% platform fee your first 24 hours (Genesis Clock)",
       "Affiliate $5 only after this free 24 hours, then 5 later sales",
+      "Bring 1,000 followers + 1,000 paid subscribers: 50% off for a year — starts after this 30-day advantage ends",
     ],
   },
 ];
 
 export const LAUNCH_PROMOTION_HEADLINE = "30-day creator launch";
 export const LAUNCH_PROMOTION_SUBLINE =
-  `First ${LAUNCH_CREATOR_SLOTS} creators lock in a discounted platform fee. Standard split: creators keep 85% · UR retains ${PLATFORM_FEE_PERCENT}% unless your tier discount applies.`;
+  `First ${LAUNCH_CREATOR_SLOTS} creators lock in a discounted platform fee. Standard split: creators keep 85% · UR retains ${PLATFORM_FEE_PERCENT}% unless your tier discount applies. Bring 1,000 followers and 1,000 paid subscribers during beta or these 30 days for 50% off for a year — that year starts after your first, second, or third-hundred deal ends.`;
 
 /** Default go-live anchor — override with EXPO_PUBLIC_LAUNCH_DATE or LAUNCH_DATE in .env */
 const DEFAULT_LAUNCH_DATE_ISO = "2026-08-12T05:00:00.000Z";

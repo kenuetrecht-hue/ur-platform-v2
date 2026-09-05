@@ -739,6 +739,46 @@ export const ownerPushDevices = mysqlTable("ownerPushDevices", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+/**
+ * Enrolled content creators — owner roster source of truth (who they are).
+ */
+export const contentCreatorProfiles = mysqlTable("contentCreatorProfiles", {
+  userId: varchar("userId", { length: 128 }).primaryKey(),
+  userEmail: varchar("userEmail", { length: 320 }).notNull(),
+  displayName: varchar("displayName", { length: 80 }).notNull(),
+  customSlug: varchar("customSlug", { length: 64 }).notNull(),
+  customUrl: varchar("customUrl", { length: 500 }).notNull(),
+  enrolledAt: timestamp("enrolledAt").notNull(),
+  launchSlot: int("launchSlot"),
+  referredByAffiliateUserId: varchar("referredByAffiliateUserId", { length: 128 }),
+  referredByAffiliateCode: varchar("referredByAffiliateCode", { length: 64 }),
+  freeServiceEndsAt: timestamp("freeServiceEndsAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ContentCreatorProfileRow = typeof contentCreatorProfiles.$inferSelect;
+
+/**
+ * Fan → creator follows. Count drops only when that fan unfollows.
+ */
+export const creatorChannelFollows = mysqlTable("creatorChannelFollows", {
+  id: varchar("id", { length: 260 }).primaryKey(),
+  followerUserId: varchar("followerUserId", { length: 128 }).notNull(),
+  creatorUserId: varchar("creatorUserId", { length: 128 }).notNull(),
+  followedAt: timestamp("followedAt").notNull(),
+});
+
+/**
+ * Fan → creator paid channel subscriptions. Count drops only when that fan cancels.
+ */
+export const creatorPaidChannelSubs = mysqlTable("creatorPaidChannelSubs", {
+  id: varchar("id", { length: 260 }).primaryKey(),
+  subscriberUserId: varchar("subscriberUserId", { length: 128 }).notNull(),
+  creatorUserId: varchar("creatorUserId", { length: 128 }).notNull(),
+  subscribedAt: timestamp("subscribedAt").notNull(),
+});
+
 export const platformOpsSandboxRepairs = mysqlTable("platformOpsSandboxRepairs", {
   id: varchar("id", { length: 64 }).primaryKey(),
   incidentId: varchar("incidentId", { length: 64 }).notNull(),

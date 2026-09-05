@@ -54,10 +54,38 @@ export function SocialHubPanel() {
       setCreatorUserId("");
       setCreatorName("");
       void utils.social.dashboard.invalidate();
+      void utils.partnerDashboard.creatorDashboard.invalidate();
     },
   });
   const unsubscribe = trpc.social.unsubscribeCreator.useMutation({
-    onSuccess: () => void utils.social.dashboard.invalidate(),
+    onSuccess: () => {
+      void utils.social.dashboard.invalidate();
+      void utils.partnerDashboard.creatorDashboard.invalidate();
+    },
+  });
+  const follow = trpc.social.followCreator.useMutation({
+    onSuccess: () => {
+      void utils.social.dashboard.invalidate();
+      void utils.partnerDashboard.creatorDashboard.invalidate();
+    },
+  });
+  const unfollow = trpc.social.unfollowCreator.useMutation({
+    onSuccess: () => {
+      void utils.social.dashboard.invalidate();
+      void utils.partnerDashboard.creatorDashboard.invalidate();
+    },
+  });
+  const paidSub = trpc.social.subscribePaidChannel.useMutation({
+    onSuccess: () => {
+      void utils.social.dashboard.invalidate();
+      void utils.partnerDashboard.creatorDashboard.invalidate();
+    },
+  });
+  const cancelPaid = trpc.social.cancelPaidChannel.useMutation({
+    onSuccess: () => {
+      void utils.social.dashboard.invalidate();
+      void utils.partnerDashboard.creatorDashboard.invalidate();
+    },
   });
   const rideAlong = trpc.social.setRideAlong.useMutation({
     onSuccess: () => void utils.social.dashboard.invalidate(),
@@ -209,10 +237,10 @@ export function SocialHubPanel() {
 
         {tab === "creators" ? (
           <>
-            <Text style={[styles.title, { color: colors.foreground }]}>Subscribe to creators</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>Follow or subscribe</Text>
             <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
-              Follow content creators, get notified about live classes, and optionally ride along with
-              their AI sessions.
+              Follow for free, or paid-subscribe to their channel. Only you can unfollow or cancel.
+              The creator cannot change these counts.
             </Text>
             <TextInput
               value={creatorUserId}
@@ -229,6 +257,20 @@ export function SocialHubPanel() {
               style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
             />
             <Pressable
+              disabled={!creatorUserId.trim() || follow.isPending}
+              onPress={() => follow.mutate({ creatorUserId: creatorUserId.trim() })}
+              style={[styles.btn, { backgroundColor: colors.primary }]}
+            >
+              <Text style={styles.btnText}>Follow (free)</Text>
+            </Pressable>
+            <Pressable
+              disabled={!creatorUserId.trim() || paidSub.isPending}
+              onPress={() => paidSub.mutate({ creatorUserId: creatorUserId.trim() })}
+              style={[styles.btn, { backgroundColor: colors.primary }]}
+            >
+              <Text style={styles.btnText}>Paid subscribe to channel</Text>
+            </Pressable>
+            <Pressable
               disabled={!creatorUserId.trim() || !creatorName.trim() || subscribe.isPending}
               onPress={() =>
                 subscribe.mutate({
@@ -239,7 +281,7 @@ export function SocialHubPanel() {
               }
               style={[styles.btn, { backgroundColor: colors.primary }]}
             >
-              <Text style={styles.btnText}>Subscribe</Text>
+              <Text style={styles.btnText}>Follow + class notifications</Text>
             </Pressable>
 
             <Text style={[styles.title, { color: colors.foreground }]}>Your subscriptions</Text>
@@ -260,10 +302,27 @@ export function SocialHubPanel() {
                     />
                   </View>
                   <Pressable
-                    onPress={() => unsubscribe.mutate({ creatorUserId: s.creatorUserId })}
+                    onPress={() => paidSub.mutate({ creatorUserId: s.creatorUserId })}
                     style={{ marginTop: 8 }}
                   >
-                    <Text style={{ color: colors.muted, fontSize: 12 }}>Unsubscribe</Text>
+                    <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
+                      Paid subscribe to this channel
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => cancelPaid.mutate({ creatorUserId: s.creatorUserId })}
+                    style={{ marginTop: 6 }}
+                  >
+                    <Text style={{ color: colors.muted, fontSize: 12 }}>Cancel paid subscription</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      void unfollow.mutate({ creatorUserId: s.creatorUserId });
+                      unsubscribe.mutate({ creatorUserId: s.creatorUserId });
+                    }}
+                    style={{ marginTop: 6 }}
+                  >
+                    <Text style={{ color: colors.muted, fontSize: 12 }}>Unfollow / unsubscribe</Text>
                   </Pressable>
                 </View>
               ))
