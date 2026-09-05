@@ -43,6 +43,7 @@ describe("founding audience payout wiring", () => {
       creatorUserId: "fa-tier2",
       followerCount: 1000,
       paidSubscriberCount: 1000,
+      at: IN_WINDOW,
     });
 
     const duringDeal = new Date(IN_WINDOW.getTime() + 20 * 24 * 60 * 60 * 1000);
@@ -58,7 +59,7 @@ describe("founding audience payout wiring", () => {
       expect(dash.audience.paidSubscriberCount).toBe(1000);
       expect(dash.foundingAudience?.waitingOnLaunchAdvantage).toBe(true);
       expect(dash.foundingAudience?.launchBand).toBe(2);
-      expect(dash.foundingAudienceRule).toMatch(/first, second, or third hundred/i);
+      expect(dash.foundingAudienceRule).toMatch(/full year of 50%/i);
     }
   });
 
@@ -74,6 +75,7 @@ describe("founding audience payout wiring", () => {
       creatorUserId: "fa-tier1",
       followerCount: 1000,
       paidSubscriberCount: 1000,
+      at: IN_WINDOW,
     });
     const dash = getCreatorDashboard("fa-tier1");
     expect(dash.enrolled).toBe(true);
@@ -102,6 +104,7 @@ describe("founding audience payout wiring", () => {
       creatorUserId: "fa-paid",
       followerCount: 1000,
       paidSubscriberCount: 1000,
+      at: IN_WINDOW,
     });
     completeUpholdConnection({
       userId: "fa-paid",
@@ -132,8 +135,31 @@ describe("founding audience payout wiring", () => {
       creatorUserId: "fa-late",
       followerCount: 1000,
       paidSubscriberCount: 1000,
+      at: AFTER_WINDOW,
     });
     expect(getCreatorSaleShare("fa-late", AFTER_WINDOW)).toBe(0.85);
+  });
+
+  it("does not let the same 1,000 people count as both followers and paid subscribers", () => {
+    enrollContentCreator({
+      userId: "fa-overlap",
+      userEmail: "overlap@test.com",
+      displayName: "Overlap",
+      enrolledAt: IN_WINDOW,
+      launchDate: LAUNCH,
+    });
+    grantAudienceRelationshipsForTests({
+      creatorUserId: "fa-overlap",
+      followerCount: 0,
+      paidSubscriberCount: 1000,
+      at: IN_WINDOW,
+    });
+    const dash = getCreatorDashboard("fa-overlap");
+    expect(dash.enrolled).toBe(true);
+    if (dash.enrolled) {
+      expect(dash.audience.qualifying.uniquePeopleCount).toBe(1000);
+      expect(dash.foundingAudience?.meetsAudience).toBe(false);
+    }
   });
 
   it("lets the owner see every creator and live counts; only the fan can lower a count", () => {

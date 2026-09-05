@@ -187,9 +187,16 @@ export function LandingPromoBanner() {
 
       <Text style={styles.footerNote}>
         Tier is assigned automatically by signup order during the {LAUNCH_SIGNUP_WINDOW_DAYS}-day window.
-        No coupon needed — your slot is your promotion. Bring 1,000 followers and 1,000 paid
-        subscribers: 50% off for a year starts only after your first, second, or third-hundred deal ends.
+        No coupon needed — your slot is your promotion. Bring 2,000 different people in these 30 days
+        (1,000 followers + 1,000 paid subscribers): a full year of 50% off. If you are in the first
+        300, that year starts after your launch deal ends. After 30 days, new creators get regular
+        85/15.
       </Text>
+      <Pressable onPress={() => router.push("/e-manual")}>
+        <Text style={styles.footerNote}>
+          Free e-manual for every new member — tap here to read and print it.
+        </Text>
+      </Pressable>
     </LinearGradient>
   );
 }

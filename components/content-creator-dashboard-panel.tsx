@@ -158,7 +158,7 @@ export function ContentCreatorDashboardPanel() {
               "📣 Share to Facebook & social",
               "✨ ContentMate AI for promo copy",
               "⚡ 85% on classes & merch · 100% of tips (fan pays the card fee)",
-              "🎯 1,000 followers + 1,000 paid subs during beta or the first 30 days: 50% off for a year after any first/second/third-hundred deal ends",
+              "🎯 2,000 different people in the 30-day launch (1,000 followers + 1,000 paid subs): a full year of 50% off after your launch deal",
             ].map((item) => (
               <Text key={item} style={{ color: colors.foreground, fontSize: 13 }}>
                 {item}
@@ -351,6 +351,13 @@ export function ContentCreatorDashboardPanel() {
                   </Text>
                   <Text style={{ color: colors.foreground, fontSize: 13, lineHeight: 19, fontWeight: "600" }}>
                     {dash.data.foundingAudience.summary}
+                  </Text>
+                  <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+                    Launch offer progress:{" "}
+                    {(dash.data.audience?.qualifying?.freeFollowerCount ?? 0).toLocaleString()} / 1,000
+                    followers · {(dash.data.audience?.qualifying?.paidSubscriberCount ?? 0).toLocaleString()}{" "}
+                    / 1,000 paid · {(dash.data.audience?.qualifying?.uniquePeopleCount ?? 0).toLocaleString()}{" "}
+                    / 2,000 different people
                   </Text>
                 </>
               ) : null}

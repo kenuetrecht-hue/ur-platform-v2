@@ -6,6 +6,7 @@ import { ActivityIndicator, View } from "react-native";
 import { trpc } from "@/lib/trpc";
 import { ConductAgreementGate } from "@/components/conduct-agreement-gate";
 import { WorldReviewHoldGate } from "@/components/world-review-hold-gate";
+import { shouldGiveJoinEmanual } from "@/lib/join-emanual-handoff";
 
 function isAuthRoute(segments: string[]): boolean {
   const root = segments[0];
@@ -21,6 +22,10 @@ function isDownloadRoute(segments: string[]): boolean {
   return segments[0] === "download";
 }
 
+function isEmanualRoute(segments: string[]): boolean {
+  return segments[0] === "e-manual";
+}
+
 function isAgeVerifyRoute(segments: string[]): boolean {
   return segments[0] === "age-verify";
 }
@@ -30,7 +35,8 @@ function isPublicRoute(segments: string[]): boolean {
     isAuthRoute(segments) ||
     isPublicMarketing(segments) ||
     isAgeVerifyRoute(segments) ||
-    isDownloadRoute(segments)
+    isDownloadRoute(segments) ||
+    isEmanualRoute(segments)
   );
 }
 
@@ -96,12 +102,23 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    if (isAuthenticated && kycVerified && shouldGiveJoinEmanual() && !isEmanualRoute(segments)) {
+      router.replace("/e-manual?joined=1");
+      return;
+    }
+
     if (isAuthenticated && kycVerified && inAgeVerify) {
       router.replace(canAccessAdminDashboard ? "/(tabs)/admin" : "/(tabs)");
       return;
     }
 
-    if (isAuthenticated && kycVerified && inPublicMarketing && !inDownload) {
+    if (
+      isAuthenticated &&
+      kycVerified &&
+      inPublicMarketing &&
+      !inDownload &&
+      !isEmanualRoute(segments)
+    ) {
       router.replace(canAccessAdminDashboard ? "/(tabs)/admin" : "/(tabs)");
     }
   }, [

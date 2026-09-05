@@ -1,10 +1,12 @@
 /**
- * Beta / first-30-days audience bonus — 50% off the platform fee for one year.
+ * 30-day launch audience bonus — a full year of 50% off the platform fee.
  *
- * Creators who join during beta or the 30-day launch window and bring
- * 1,000 followers plus 1,000 paid subscribers get 50% off UR's 15% fee
- * for 365 days. If they are in the first, second, or third hundred,
- * that year does not start until their launch-tier advantage ends.
+ * During beta / the 30-day window, a creator who brings 1,000 followers and
+ * 1,000 paid subscribers — different people, 2,000 unique — gets 50% off UR's
+ * 15% fee for 365 days. If they are in the first 300, that year starts only
+ * after their launch-tier deal ends (first 100: after 6 months; second 100:
+ * after 90 days; third 100: after 30 days). After slot 300, the year starts
+ * right away. After the 30 days, new creators get regular 85/15.
  */
 
 import {
@@ -17,16 +19,17 @@ import {
 
 export const FOUNDING_AUDIENCE_FOLLOWERS_REQUIRED = 1000;
 export const FOUNDING_AUDIENCE_PAID_SUBSCRIBERS_REQUIRED = 1000;
+export const FOUNDING_AUDIENCE_UNIQUE_PEOPLE_REQUIRED = 2000;
 export const FOUNDING_AUDIENCE_YEAR_DAYS = 365;
 export const FOUNDING_AUDIENCE_FEE_DISCOUNT_PERCENT = 50;
 
 export type LaunchHundredBand = LaunchPromotionTierId | null;
 
 export const FOUNDING_AUDIENCE_YEAR_RULE =
-  "Join during beta or the first 30 days and bring 1,000 followers plus 1,000 paid subscribers to your channel: 50% off the platform fee for one year. If you are in the first, second, or third hundred, that year starts only after your launch-tier advantage ends.";
+  "During the 30-day launch, bring 1,000 followers and 1,000 paid subscribers — different people, 2,000 unique — and get a full year of 50% off the platform fee. If you are in the first 300, that year starts only after your launch-tier deal ends. After slot 300, the year starts right away. After the 30 days, new creators get regular 85/15.";
 
 export const FOUNDING_AUDIENCE_YEAR_RULE_SHORT =
-  "1,000 followers + 1,000 paid subs → 50% off for a year after any first/second/third-hundred launch deal ends.";
+  "2,000 different people in 30 days (1,000 followers + 1,000 paid subs) → a full year of 50% off. First 300: that year starts after your launch deal ends.";
 
 export function hoursToMs(hours: number): number {
   return hours * 60 * 60 * 1000;
@@ -67,13 +70,24 @@ export function launchAdvantageEndsAt(params: {
   return new Date(params.enrolledAt.getTime() + daysToMs(days));
 }
 
+export function foundingAudienceYearEndsAt(params: {
+  enrolledAt: Date;
+  launchSlot?: number | null;
+}): Date {
+  const yearStart = launchAdvantageEndsAt(params);
+  return new Date(yearStart.getTime() + daysToMs(FOUNDING_AUDIENCE_YEAR_DAYS));
+}
+
 export function meetsFoundingAudienceThresholds(params: {
   broughtFollowerCount: number;
   paidChannelSubscriberCount: number;
 }): boolean {
+  const freeFollowers = params.broughtFollowerCount;
+  const paid = params.paidChannelSubscriberCount;
   return (
-    params.broughtFollowerCount >= FOUNDING_AUDIENCE_FOLLOWERS_REQUIRED &&
-    params.paidChannelSubscriberCount >= FOUNDING_AUDIENCE_PAID_SUBSCRIBERS_REQUIRED
+    freeFollowers >= FOUNDING_AUDIENCE_FOLLOWERS_REQUIRED &&
+    paid >= FOUNDING_AUDIENCE_PAID_SUBSCRIBERS_REQUIRED &&
+    freeFollowers + paid >= FOUNDING_AUDIENCE_UNIQUE_PEOPLE_REQUIRED
   );
 }
 
@@ -98,6 +112,7 @@ export type FoundingAudienceYearStatus = {
   active: boolean;
   waitingOnLaunchAdvantage: boolean;
   waitingOnVerification: boolean;
+  uniquePeopleCount: number;
   platformFeePercent: number;
   creatorKeepPercent: number;
   summary: string;
@@ -117,9 +132,12 @@ export function resolveFoundingAudienceYear(params: {
     enrolledAt: params.enrolledAt,
     launchDate: params.launchDate,
   });
+  const freeFollowers = params.broughtFollowerCount ?? 0;
+  const paid = params.paidChannelSubscriberCount ?? 0;
+  const uniquePeopleCount = freeFollowers + paid;
   const meetsAudience = meetsFoundingAudienceThresholds({
-    broughtFollowerCount: params.broughtFollowerCount ?? 0,
-    paidChannelSubscriberCount: params.paidChannelSubscriberCount ?? 0,
+    broughtFollowerCount: freeFollowers,
+    paidChannelSubscriberCount: paid,
   });
   const verified = params.verified === true;
   const launchBand = launchHundredBandFromSlot(params.launchSlot);
@@ -128,22 +146,28 @@ export function resolveFoundingAudienceYear(params: {
     launchSlot: params.launchSlot,
   });
   const yearStart = advantageEnd;
-  const yearEnd = new Date(yearStart.getTime() + daysToMs(FOUNDING_AUDIENCE_YEAR_DAYS));
+  const yearEnd = foundingAudienceYearEndsAt({
+    enrolledAt: params.enrolledAt,
+    launchSlot: params.launchSlot,
+  });
   const waitingOnLaunchAdvantage = now.getTime() < advantageEnd.getTime();
   const waitingOnVerification = !verified || !meetsAudience;
   const eligible = joinedInWindow && meetsAudience && verified;
-  const active = eligible && !waitingOnLaunchAdvantage && now.getTime() <= yearEnd.getTime();
+  const active =
+    eligible && !waitingOnLaunchAdvantage && now.getTime() <= yearEnd.getTime();
   const feePercent = active
     ? discountedPlatformFeePercent(FOUNDING_AUDIENCE_FEE_DISCOUNT_PERCENT)
     : PLATFORM_FEE_PERCENT;
 
   let summary: string;
   if (!joinedInWindow) {
-    summary = "This year-long 50% offer is only for creators who join during beta or the first 30 days.";
+    summary =
+      "The 30-day launch is over. New creators get regular everyday service (85/15).";
   } else if (!meetsAudience) {
-    summary = `Bring ${FOUNDING_AUDIENCE_FOLLOWERS_REQUIRED.toLocaleString()} followers and ${FOUNDING_AUDIENCE_PAID_SUBSCRIBERS_REQUIRED.toLocaleString()} paid subscribers. The year of 50% off starts after any first/second/third-hundred launch deal ends.`;
+    summary = `Bring ${FOUNDING_AUDIENCE_FOLLOWERS_REQUIRED.toLocaleString()} followers and ${FOUNDING_AUDIENCE_PAID_SUBSCRIBERS_REQUIRED.toLocaleString()} paid subscribers — different people, ${FOUNDING_AUDIENCE_UNIQUE_PEOPLE_REQUIRED.toLocaleString()} unique — during these 30 days. You have ${uniquePeopleCount.toLocaleString()} so far. That unlocks a full year of 50% off after any first/second/third-hundred deal ends.`;
   } else if (!verified) {
-    summary = "Audience numbers are in. UR still needs to confirm them before the year of 50% off starts.";
+    summary =
+      "Audience numbers are in. UR still needs to confirm them before the year of 50% starts.";
   } else if (waitingOnLaunchAdvantage) {
     const bandLabel =
       launchBand === 1
@@ -153,11 +177,11 @@ export function resolveFoundingAudienceYear(params: {
           : launchBand === 3
             ? "third hundred"
             : "launch";
-    summary = `You qualify. The year of 50% off starts after your ${bandLabel} launch advantage ends on ${advantageEnd.toISOString().slice(0, 10)}.`;
+    summary = `You qualify with ${FOUNDING_AUDIENCE_UNIQUE_PEOPLE_REQUIRED.toLocaleString()} different people. Your full year of 50% off starts after your ${bandLabel} launch deal ends on ${advantageEnd.toISOString().slice(0, 10)}.`;
   } else if (active) {
-    summary = `50% off the ${PLATFORM_FEE_PERCENT}% platform fee is on through ${yearEnd.toISOString().slice(0, 10)} (you keep ${100 - feePercent}%).`;
+    summary = `Your year of 50% off the ${PLATFORM_FEE_PERCENT}% platform fee is on through ${yearEnd.toISOString().slice(0, 10)} (you keep ${100 - feePercent}%).`;
   } else {
-    summary = "The year of 50% off has ended. Standard 85/15 applies.";
+    summary = "Your year of 50% off has ended. Standard 85/15 applies.";
   }
 
   return {
@@ -171,6 +195,7 @@ export function resolveFoundingAudienceYear(params: {
     active,
     waitingOnLaunchAdvantage: eligible && waitingOnLaunchAdvantage,
     waitingOnVerification: joinedInWindow && waitingOnVerification,
+    uniquePeopleCount,
     platformFeePercent: feePercent,
     creatorKeepPercent: 100 - feePercent,
     summary,

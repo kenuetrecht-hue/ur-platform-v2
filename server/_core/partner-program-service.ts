@@ -39,6 +39,7 @@ import { getLaunchDate } from "../../lib/launch-promotion-config";
 import {
   getCreatorAudienceCounts,
   getCreatorAudienceLedger,
+  getQualifyingFoundingAudienceCounts,
   restoreCreatorAudienceFromPersistence,
   _resetCreatorAudienceForTests,
 } from "./creator-audience-service";
@@ -292,14 +293,15 @@ export function getContentCreatorProfile(userId: string): ContentCreatorProfile 
 }
 
 function liveAudienceOnProfile(profile: ContentCreatorProfile): ContentCreatorProfile {
-  const audience = getCreatorAudienceCounts(profile.userId);
+  const live = getCreatorAudienceCounts(profile.userId);
+  const qualifying = getQualifyingFoundingAudienceCounts(profile.userId);
   const meets =
-    audience.followerCount >= FOUNDING_AUDIENCE_FOLLOWERS_REQUIRED &&
-    audience.paidSubscriberCount >= FOUNDING_AUDIENCE_PAID_SUBSCRIBERS_REQUIRED;
+    qualifying.freeFollowerCount >= FOUNDING_AUDIENCE_FOLLOWERS_REQUIRED &&
+    qualifying.paidSubscriberCount >= FOUNDING_AUDIENCE_PAID_SUBSCRIBERS_REQUIRED;
   return {
     ...profile,
-    broughtFollowerCount: audience.followerCount,
-    paidChannelSubscriberCount: audience.paidSubscriberCount,
+    broughtFollowerCount: live.followerCount,
+    paidChannelSubscriberCount: live.paidSubscriberCount,
     foundingAudienceVerified: meets,
   };
 }
@@ -310,15 +312,15 @@ export function getFoundingAudienceStatus(
 ): FoundingAudienceYearStatus | null {
   const profile = creators.get(userId);
   if (!profile) return null;
-  const audience = getCreatorAudienceCounts(userId);
+  const qualifying = getQualifyingFoundingAudienceCounts(userId);
   const meets =
-    audience.followerCount >= FOUNDING_AUDIENCE_FOLLOWERS_REQUIRED &&
-    audience.paidSubscriberCount >= FOUNDING_AUDIENCE_PAID_SUBSCRIBERS_REQUIRED;
+    qualifying.freeFollowerCount >= FOUNDING_AUDIENCE_FOLLOWERS_REQUIRED &&
+    qualifying.paidSubscriberCount >= FOUNDING_AUDIENCE_PAID_SUBSCRIBERS_REQUIRED;
   return resolveFoundingAudienceYear({
     enrolledAt: new Date(profile.enrolledAt),
     launchSlot: profile.launchSlot,
-    broughtFollowerCount: audience.followerCount,
-    paidChannelSubscriberCount: audience.paidSubscriberCount,
+    broughtFollowerCount: qualifying.freeFollowerCount,
+    paidChannelSubscriberCount: qualifying.paidSubscriberCount,
     verified: meets,
     now,
   });

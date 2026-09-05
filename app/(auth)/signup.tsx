@@ -15,6 +15,7 @@ import { PrimaryActionButton } from "@/components/primary-action-button";
 import { WebLoginSubmit } from "@/components/web-login-submit";
 import { showUserMessage } from "@/lib/show-user-message";
 import { explainAuthFailure } from "@/lib/auth-network-error";
+import { markGiveJoinEmanual } from "@/lib/join-emanual-handoff";
 
 const ROLES: { id: UserRole; label: string; desc: string }[] = [
   { id: "creator", label: "Content creator", desc: "Host paid live classes · 85% instant payouts" },
@@ -130,17 +131,18 @@ export default function SignUpScreen() {
           /* enrollment can be completed from dashboard */
         }
       }
+      markGiveJoinEmanual();
       if (result.needsEmailConfirmation) {
         const msg =
-          "Account created. Confirm your email in the inbox, then sign in. In the Supabase dashboard you can turn off Confirm email for local testing.";
+          "Account created. Confirm your email in the inbox, then sign in. You will receive the free join e-manual after you sign in. In the Supabase dashboard you can turn off Confirm email for local testing.";
         setFormError(msg);
         setStatusLine(null);
         showUserMessage("Confirm your email", msg);
         router.replace("/login");
         return;
       }
-      setStatusLine("Success — opening the app…");
-      router.replace("/(tabs)");
+      setStatusLine("Success — opening your free e-manual…");
+      router.replace("/e-manual?joined=1");
     } catch (err) {
       const msg = explainAuthFailure(err);
       setFormError(msg);
@@ -173,6 +175,9 @@ export default function SignUpScreen() {
             </Link>
             <Link href="/download" style={{ color: colors.primary, fontSize: 13, fontWeight: "700" }}>
               Download the app from this website
+            </Link>
+            <Link href="/e-manual" style={{ color: colors.primary, fontSize: 13, fontWeight: "700" }}>
+              Free join e-manual (print and sell your own)
             </Link>
             <Text
               style={{
@@ -235,6 +240,7 @@ export default function SignUpScreen() {
                 }}
               >
                 {LAUNCH_PROMOTION_SUBLINE}
+                {"\n\n"}Every new member receives a free step-by-step e-manual after they join — how to print it and sell their own on this website.
               </Text>
             )}
           </View>

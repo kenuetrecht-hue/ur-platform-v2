@@ -10,6 +10,7 @@ import {
   persistCreatorFollow,
   persistPaidChannelSub,
 } from "./creator-audience-persistence";
+import { getLaunchWindowEnd } from "../../lib/launch-promotion-config";
 
 export type CreatorFollow = {
   followerUserId: string;
@@ -26,6 +27,14 @@ export type CreatorPaidSubscription = {
 export type CreatorAudienceCounts = {
   followerCount: number;
   paidSubscriberCount: number;
+  freeFollowerCount: number;
+  uniquePeopleCount: number;
+};
+
+export type QualifyingFoundingAudienceCounts = {
+  freeFollowerCount: number;
+  paidSubscriberCount: number;
+  uniquePeopleCount: number;
 };
 
 const follows = new Map<string, CreatorFollow>();
@@ -154,18 +163,47 @@ export function listCreatorPaidSubscribers(creatorUserId: string): CreatorPaidSu
 }
 
 export function getCreatorAudienceCounts(creatorUserId: string): CreatorAudienceCounts {
+  const followers = listCreatorFollowers(creatorUserId);
+  const paid = listCreatorPaidSubscribers(creatorUserId);
+  const paidIds = new Set(paid.map((s) => s.subscriberUserId));
+  const freeFollowerCount = followers.filter((f) => !paidIds.has(f.followerUserId)).length;
   return {
-    followerCount: listCreatorFollowers(creatorUserId).length,
-    paidSubscriberCount: listCreatorPaidSubscribers(creatorUserId).length,
+    followerCount: followers.length,
+    paidSubscriberCount: paid.length,
+    freeFollowerCount,
+    uniquePeopleCount: freeFollowerCount + paid.length,
+  };
+}
+
+/** Offer counts: in-window follows/subs, and a paid person never also counts as a free follower. */
+export function getQualifyingFoundingAudienceCounts(
+  creatorUserId: string,
+  windowEnd = getLaunchWindowEnd(),
+): QualifyingFoundingAudienceCounts {
+  const cutoff = windowEnd.getTime();
+  const paidIds = new Set(
+    listCreatorPaidSubscribers(creatorUserId)
+      .filter((s) => Date.parse(s.subscribedAt) <= cutoff)
+      .map((s) => s.subscriberUserId),
+  );
+  const freeFollowerCount = listCreatorFollowers(creatorUserId).filter(
+    (f) => Date.parse(f.followedAt) <= cutoff && !paidIds.has(f.followerUserId),
+  ).length;
+  return {
+    freeFollowerCount,
+    paidSubscriberCount: paidIds.size,
+    uniquePeopleCount: freeFollowerCount + paidIds.size,
   };
 }
 
 export function getCreatorAudienceLedger(creatorUserId: string) {
   const followers = listCreatorFollowers(creatorUserId);
   const paidSubscribers = listCreatorPaidSubscribers(creatorUserId);
+  const live = getCreatorAudienceCounts(creatorUserId);
+  const qualifying = getQualifyingFoundingAudienceCounts(creatorUserId);
   return {
-    followerCount: followers.length,
-    paidSubscriberCount: paidSubscribers.length,
+    ...live,
+    qualifying,
     followers: followers.map((f) => ({
       userId: f.followerUserId,
       followedAt: f.followedAt,
@@ -194,11 +232,12 @@ export function grantAudienceRelationshipsForTests(params: {
   creatorUserId: string;
   followerCount: number;
   paidSubscriberCount: number;
+  at?: Date;
 }): CreatorAudienceCounts {
   persistAudience = false;
   const followers = Math.max(0, Math.floor(params.followerCount));
   const paid = Math.max(0, Math.floor(params.paidSubscriberCount));
-  const now = new Date().toISOString();
+  const now = (params.at ?? new Date()).toISOString();
   for (let i = 0; i < followers; i++) {
     const followerUserId = `${params.creatorUserId}-fan-${i}`;
     follows.set(followKey(followerUserId, params.creatorUserId), {

@@ -32,6 +32,27 @@ export default function HomeScreen() {
       >
         <HomeLaunchPromoBanner />
 
+        <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
+          <AppPressable
+            onPress={() => router.push("/e-manual")}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 14,
+              padding: 16,
+              borderWidth: 1.5,
+              borderColor: colors.primary,
+              gap: 4,
+            }}
+          >
+            <Text pointerEvents="none" style={{ fontSize: 16, fontWeight: "800", color: colors.foreground }}>
+              📘 Your free join e-manual
+            </Text>
+            <Text pointerEvents="none" style={{ fontSize: 13, color: colors.muted, lineHeight: 18 }}>
+              Every member gets this. Print it, write your own with Author Muse, and sell it from your shop.
+            </Text>
+          </AppPressable>
+        </View>
+
         {canAccessAdminDashboard ? (
           <Link href={ADMIN_TAB_HREF} asChild>
             <AppPressable
@@ -154,6 +175,10 @@ export default function HomeScreen() {
                       pathname: "/ais",
                       params: { group: "platform", ai: "ai-coder-001", surface: "build" },
                     }),
+                },
+                {
+                  label: "Join e-manual",
+                  onPress: () => router.push("/e-manual"),
                 },
                 {
                   label: "Author Muse · Books",

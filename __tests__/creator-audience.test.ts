@@ -4,6 +4,7 @@ import {
   followCreatorChannel,
   getCreatorAudienceCounts,
   getCreatorAudienceLedger,
+  getQualifyingFoundingAudienceCounts,
   startPaidChannelSubscription,
   unfollowCreatorChannel,
   _resetCreatorAudienceForTests,
@@ -22,6 +23,8 @@ describe("creator audience ledger", () => {
     expect(getCreatorAudienceCounts("creator-1")).toEqual({
       followerCount: 2,
       paidSubscriberCount: 1,
+      freeFollowerCount: 1,
+      uniquePeopleCount: 2,
     });
   });
 
@@ -48,6 +51,8 @@ describe("creator audience ledger", () => {
     expect(getCreatorAudienceCounts("creator-1")).toEqual({
       followerCount: 0,
       paidSubscriberCount: 0,
+      freeFollowerCount: 0,
+      uniquePeopleCount: 0,
     });
   });
 
@@ -57,6 +62,22 @@ describe("creator audience ledger", () => {
     const ledger = getCreatorAudienceLedger("creator-1");
     expect(ledger.followers.map((f) => f.userId).sort()).toEqual(["fan-a", "fan-b"]);
     expect(ledger.paidSubscribers.map((s) => s.userId)).toEqual(["fan-b"]);
+  });
+
+  it("counts a paid subscriber as a different person from a free follower", () => {
+    followCreatorChannel({ followerUserId: "fan-free", creatorUserId: "creator-1" });
+    startPaidChannelSubscription({ subscriberUserId: "fan-paid", creatorUserId: "creator-1" });
+    const live = getCreatorAudienceCounts("creator-1");
+    expect(live.freeFollowerCount).toBe(1);
+    expect(live.paidSubscriberCount).toBe(1);
+    expect(live.uniquePeopleCount).toBe(2);
+    const qualifying = getQualifyingFoundingAudienceCounts(
+      "creator-1",
+      new Date("2099-01-01T00:00:00.000Z"),
+    );
+    expect(qualifying.freeFollowerCount).toBe(1);
+    expect(qualifying.paidSubscriberCount).toBe(1);
+    expect(qualifying.uniquePeopleCount).toBe(2);
   });
 
   it("blocks following yourself", () => {

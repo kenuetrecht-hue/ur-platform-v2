@@ -7,6 +7,10 @@ import { getPlatformPublicOrigin } from "@/lib/platform-urls";
 
 const FAQ = [
   {
+    q: "Where is the free e-manual I got when I joined?",
+    a: "Every new member receives the UR Platform e-manual. Open Home and tap Your free join e-manual, or go to /e-manual. Use Print / Save as PDF. It shows the exact taps to write your own e-manual with Author Muse and list it for sale on your shop.",
+  },
+  {
     q: "How do I earn loyalty points?",
     a: "First sign-in: 500 LP welcome bonus plus your daily streak LP (100 + 10 × streak day — day 1 = 110 LP, day 30 = 400 LP). Sign in back-to-back every day to grow the bonus. Complete a 30-day streak and buy any AI plan during that run to unlock a free 1-day AI subscription. You can also earn points from posts, joining creators, and subscriptions — redeem in Profile.",
   },

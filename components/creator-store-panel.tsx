@@ -21,6 +21,7 @@ export function CreatorStorePanel() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("19.99");
   const [imageUrl, setImageUrl] = useState("");
+  const [listingKind, setListingKind] = useState<"emanual" | "merch">("emanual");
 
   const addProduct = trpc.commerce.addProduct.useMutation({
     onSuccess: () => {
@@ -86,6 +87,32 @@ export function CreatorStorePanel() {
       </Pressable>
 
       <Text style={{ color: colors.foreground, fontWeight: "800" }}>Add product</Text>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <Pressable
+          onPress={() => setListingKind("emanual")}
+          style={[
+            styles.chip,
+            {
+              borderColor: listingKind === "emanual" ? colors.primary : colors.border,
+              backgroundColor: listingKind === "emanual" ? `${colors.primary}18` : colors.background,
+            },
+          ]}
+        >
+          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>E-manual</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setListingKind("merch")}
+          style={[
+            styles.chip,
+            {
+              borderColor: listingKind === "merch" ? colors.primary : colors.border,
+              backgroundColor: listingKind === "merch" ? `${colors.primary}18` : colors.background,
+            },
+          ]}
+        >
+          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>Merch</Text>
+        </Pressable>
+      </View>
       <TextInput
         value={title}
         onChangeText={setTitle}
@@ -130,7 +157,7 @@ export function CreatorStorePanel() {
             priceCents: Math.round(parseFloat(price || "0") * 100),
             imageUrl: imageUrl.trim() || undefined,
             sourceType: "creator_merch",
-            category: "Merch",
+            category: listingKind === "emanual" ? "E-manual" : "Merch",
           })
         }
         style={[styles.btn, { backgroundColor: colors.primary }]}
@@ -190,4 +217,5 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 14 },
   btn: { borderRadius: 10, padding: 14, alignItems: "center" },
   btnText: { color: "#fff", fontWeight: "700" },
+  chip: { borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8 },
 });
