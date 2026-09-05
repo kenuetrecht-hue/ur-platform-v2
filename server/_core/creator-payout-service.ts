@@ -27,7 +27,7 @@ function launchTierCreatorShare(now: Date, enrolledAt: Date, launchSlot: number 
   return (100 - feePercent) / 100;
 }
 
-/** Sale split for one creator — launch-tier first, then the year-long 50% audience offer. */
+/** Sale split for one creator — launch-tier first, then the year-long 50%/60% audience offer. */
 export function getCreatorSaleShare(userId: string, now = new Date()): number {
   const profile = getContentCreatorProfile(userId);
   if (!profile) return CREATOR_PAYOUT_SHARE;

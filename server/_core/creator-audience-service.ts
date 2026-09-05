@@ -10,6 +10,12 @@ import {
   persistCreatorFollow,
   persistPaidChannelSub,
 } from "./creator-audience-persistence";
+import {
+  FOUNDING_AUDIENCE_BOOST_FOLLOWERS_REQUIRED,
+  FOUNDING_AUDIENCE_BOOST_PAID_SUBSCRIBERS_REQUIRED,
+  FOUNDING_AUDIENCE_FOLLOWERS_REQUIRED,
+  FOUNDING_AUDIENCE_PAID_SUBSCRIBERS_REQUIRED,
+} from "../../lib/founding-audience-year-discount";
 import { getLaunchWindowEnd } from "../../lib/launch-promotion-config";
 
 export type CreatorFollow = {
@@ -35,7 +41,24 @@ export type QualifyingFoundingAudienceCounts = {
   freeFollowerCount: number;
   paidSubscriberCount: number;
   uniquePeopleCount: number;
+  twoThousandReachedAt: string | null;
+  fourThousandReachedAt: string | null;
 };
+
+function nthTimestamp(dates: number[], n: number): number | null {
+  if (n < 1 || dates.length < n) return null;
+  const sorted = [...dates].sort((a, b) => a - b);
+  return sorted[n - 1]!;
+}
+
+function laterMs(a: number | null, b: number | null): number | null {
+  if (a == null || b == null) return null;
+  return Math.max(a, b);
+}
+
+function msToIso(ms: number | null): string | null {
+  return ms == null ? null : new Date(ms).toISOString();
+}
 
 const follows = new Map<string, CreatorFollow>();
 const paidSubs = new Map<string, CreatorPaidSubscription>();
@@ -181,18 +204,31 @@ export function getQualifyingFoundingAudienceCounts(
   windowEnd = getLaunchWindowEnd(),
 ): QualifyingFoundingAudienceCounts {
   const cutoff = windowEnd.getTime();
-  const paidIds = new Set(
-    listCreatorPaidSubscribers(creatorUserId)
-      .filter((s) => Date.parse(s.subscribedAt) <= cutoff)
-      .map((s) => s.subscriberUserId),
+  const inWindowPaid = listCreatorPaidSubscribers(creatorUserId).filter(
+    (s) => Date.parse(s.subscribedAt) <= cutoff,
   );
-  const freeFollowerCount = listCreatorFollowers(creatorUserId).filter(
+  const paidIds = new Set(inWindowPaid.map((s) => s.subscriberUserId));
+  const inWindowFree = listCreatorFollowers(creatorUserId).filter(
     (f) => Date.parse(f.followedAt) <= cutoff && !paidIds.has(f.followerUserId),
-  ).length;
+  );
+  const freeTimes = inWindowFree.map((f) => Date.parse(f.followedAt));
+  const paidTimes = inWindowPaid.map((s) => Date.parse(s.subscribedAt));
   return {
-    freeFollowerCount,
+    freeFollowerCount: inWindowFree.length,
     paidSubscriberCount: paidIds.size,
-    uniquePeopleCount: freeFollowerCount + paidIds.size,
+    uniquePeopleCount: inWindowFree.length + paidIds.size,
+    twoThousandReachedAt: msToIso(
+      laterMs(
+        nthTimestamp(freeTimes, FOUNDING_AUDIENCE_FOLLOWERS_REQUIRED),
+        nthTimestamp(paidTimes, FOUNDING_AUDIENCE_PAID_SUBSCRIBERS_REQUIRED),
+      ),
+    ),
+    fourThousandReachedAt: msToIso(
+      laterMs(
+        nthTimestamp(freeTimes, FOUNDING_AUDIENCE_BOOST_FOLLOWERS_REQUIRED),
+        nthTimestamp(paidTimes, FOUNDING_AUDIENCE_BOOST_PAID_SUBSCRIBERS_REQUIRED),
+      ),
+    ),
   };
 }
 
@@ -233,13 +269,17 @@ export function grantAudienceRelationshipsForTests(params: {
   followerCount: number;
   paidSubscriberCount: number;
   at?: Date;
+  startFollowerIndex?: number;
+  startPaidIndex?: number;
 }): CreatorAudienceCounts {
   persistAudience = false;
   const followers = Math.max(0, Math.floor(params.followerCount));
   const paid = Math.max(0, Math.floor(params.paidSubscriberCount));
+  const followerStart = Math.max(0, Math.floor(params.startFollowerIndex ?? 0));
+  const paidStart = Math.max(0, Math.floor(params.startPaidIndex ?? 0));
   const now = (params.at ?? new Date()).toISOString();
   for (let i = 0; i < followers; i++) {
-    const followerUserId = `${params.creatorUserId}-fan-${i}`;
+    const followerUserId = `${params.creatorUserId}-fan-${followerStart + i}`;
     follows.set(followKey(followerUserId, params.creatorUserId), {
       followerUserId,
       creatorUserId: params.creatorUserId,
@@ -247,7 +287,7 @@ export function grantAudienceRelationshipsForTests(params: {
     });
   }
   for (let i = 0; i < paid; i++) {
-    const subscriberUserId = `${params.creatorUserId}-paid-${i}`;
+    const subscriberUserId = `${params.creatorUserId}-paid-${paidStart + i}`;
     follows.set(followKey(subscriberUserId, params.creatorUserId), {
       followerUserId: subscriberUserId,
       creatorUserId: params.creatorUserId,

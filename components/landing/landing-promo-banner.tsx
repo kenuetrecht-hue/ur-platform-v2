@@ -188,9 +188,11 @@ export function LandingPromoBanner() {
       <Text style={styles.footerNote}>
         Tier is assigned automatically by signup order during the {LAUNCH_SIGNUP_WINDOW_DAYS}-day window.
         No coupon needed — your slot is your promotion. Bring 2,000 different people in these 30 days
-        (1,000 followers + 1,000 paid subscribers): a full year of 50% off. If you are in the first
-        300, that year starts after your launch deal ends. After 30 days, new creators get regular
-        85/15.
+        (1,000 followers + 1,000 paid subscribers): a full year of 50% off. Bring 4,000 (2,000
+        followers + 2,000 paid subscribers) in those same 30 days and that year is 60% off instead.
+        If you are in the first 300, the year starts after your launch deal ends. After slot 300, 50%
+        starts when you hit 2,000; 4,000 in 30 days upgrades the rest of that year to 60%. After 30
+        days, new creators get regular 85/15.
       </Text>
       <Pressable onPress={() => router.push("/e-manual")}>
         <Text style={styles.footerNote}>

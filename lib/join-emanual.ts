@@ -113,6 +113,6 @@ export const JOIN_EMANUAL_STEPS: JoinEmanualStep[] = [
 export const JOIN_EMANUAL_MONEY_NOTES = [
   "Content creator is the money role for selling your own e-manuals and classes.",
   "Affiliate is a different path: you earn $5 after a referred creator’s free 24 hours and five later sales (launch joiners).",
-  "During the 30-day launch, 2,000 different people (1,000 followers + 1,000 paid subscribers) unlocks a full year of 50% off the platform fee after any first/second/third-hundred deal.",
+  "During the 30-day launch, 2,000 different people (1,000 followers + 1,000 paid subscribers) unlocks a full year of 50% off the platform fee after any first/second/third-hundred deal. 4,000 different people (2,000 followers + 2,000 paid) in those same 30 days makes that year 60% off instead. After slot 300, 50% starts the moment you hit 2,000; hitting 4,000 in the window upgrades the rest of that year to 60%.",
   "After the 30-day launch, new creators get regular 85/15.",
 ];

@@ -31,12 +31,18 @@ export function AiSessionProgrammingPanel() {
 
   const [videoAiId, setVideoAiId] = useState("");
   const [videoTopic, setVideoTopic] = useState("");
+  const [hourLessonId, setHourLessonId] = useState("electrician-beginner");
+  const [hourStart, setHourStart] = useState(() =>
+    new Date(Date.now() + 13 * 60 * 60 * 1000).toISOString(),
+  );
+  const [hourRate, setHourRate] = useState("0.20");
 
   const programs = trpc.aiLiveSessions.listPrograms.useQuery();
   const sessions = trpc.aiLiveSessions.listAllSessions.useQuery();
   const stats = trpc.aiLiveSessions.ownerStats.useQuery();
   const videoStatus = trpc.aiLiveSessions.videoGenStatus.useQuery();
   const creatorVideos = trpc.aiLiveSessions.listCreatorVideos.useQuery(undefined);
+  const hourLessons = trpc.aiLiveSessions.listHourLessons.useQuery();
 
   const publishReplay = trpc.aiLiveSessions.publishReplay.useMutation({
     onSuccess: () => {
@@ -71,6 +77,15 @@ export function AiSessionProgrammingPanel() {
       void utils.aiLiveSessions.listCreatorVideos.invalidate();
     },
   });
+  const publishHour = trpc.aiLiveSessions.publishHourLesson.useMutation({
+    onSuccess: () => {
+      void utils.aiLiveSessions.listAllSessions.invalidate();
+      void utils.aiLiveSessions.listPrograms.invalidate();
+      void utils.aiLiveSessions.listCreatorVideos.invalidate();
+      void utils.aiLiveSessions.listUpcoming.invalidate();
+      void utils.aiLiveSessions.ownerStats.invalidate();
+    },
+  });
 
   const enabledPrograms = programs.data?.filter((p) => p.enabled) ?? [];
 
@@ -88,6 +103,126 @@ export function AiSessionProgrammingPanel() {
           <Text style={{ color: colors.foreground, fontSize: 12, marginTop: 4 }}>
             {stats.data.upcoming} upcoming · {stats.data.totalAttendees} tickets sold · est. $
             {(stats.data.estimatedRevenueCents / 100).toFixed(2)} revenue
+          </Text>
+        ) : null}
+      </View>
+
+      <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface, marginHorizontal: 16 }]}>
+        <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 15 }}>
+          ⏳ Hourglass lessons — AIs generate the video and host the hour
+        </Text>
+        <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 6 }}>
+          Electrician, HVAC, welding, and plumbing can each assemble a beginner lesson video and
+          host it for 60 minutes. People pay by the minute to sit in (floor $0.20/min). The AI stays
+          for the full hour. Teaching only — not a license class.
+        </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8, marginTop: 10 }}
+        >
+          {(hourLessons.data ?? []).map((lesson) => (
+            <Pressable
+              key={lesson.id}
+              onPress={() => setHourLessonId(lesson.id)}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: hourLessonId === lesson.id ? colors.primary : colors.background,
+                  borderColor: hourLessonId === lesson.id ? colors.primary : colors.border,
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  color: hourLessonId === lesson.id ? "#fff" : colors.foreground,
+                  fontWeight: "700",
+                  fontSize: 12,
+                }}
+              >
+                {lesson.title}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+        <Text style={{ color: colors.muted, fontSize: 11, marginTop: 10 }}>
+          Rate per minute for this hourglass:
+        </Text>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
+          {["0.20", "1.00", "2.00", "5.00"].map((rate) => (
+            <Pressable
+              key={rate}
+              onPress={() => setHourRate(rate)}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: hourRate === rate ? colors.primary : colors.background,
+                  borderColor: hourRate === rate ? colors.primary : colors.border,
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  color: hourRate === rate ? "#fff" : colors.foreground,
+                  fontWeight: "700",
+                  fontSize: 11,
+                }}
+              >
+                ${rate}/min
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={{ color: colors.muted, fontSize: 11, marginTop: 10, lineHeight: 16 }}>
+          Start at least 12 hours from now so people can buy a seat.
+        </Text>
+        <TextInput
+          value={hourStart}
+          onChangeText={setHourStart}
+          placeholder="Start time ISO"
+          placeholderTextColor={colors.muted}
+          maxLength={40}
+          style={[styles.input, { borderColor: colors.border, color: colors.foreground, marginTop: 8 }]}
+        />
+        <Pressable
+          disabled={!hourLessonId || !hourStart || publishHour.isPending}
+          onPress={() => {
+            const selected = hourLessons.data?.find((lesson) => lesson.id === hourLessonId);
+            if (!selected) return;
+            const cents = Math.max(20, Math.round(parseFloat(hourRate) * 100) || 20);
+            publishHour.mutate({
+              creatorAiId: selected.creatorAiId,
+              catalogId: selected.id,
+              startsAt: hourStart.trim(),
+              priceCentsPerMinute: cents,
+            });
+          }}
+          style={[
+            styles.primaryBtn,
+            {
+              backgroundColor: colors.primary,
+              opacity: !hourLessonId || !hourStart ? 0.5 : 1,
+              marginTop: 10,
+            },
+          ]}
+        >
+          {publishHour.isPending ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.primaryBtnText}>Generate video and host the hour</Text>
+          )}
+        </Pressable>
+        {publishHour.isSuccess ? (
+          <Text style={{ color: "#059669", fontSize: 12, marginTop: 8 }}>
+            {publishHour.data.session.creatorName} is booked for{" "}
+            {new Date(publishHour.data.session.startsAt).toLocaleString()} at $
+            {(publishHour.data.session.priceCentsPerMinute / 100).toFixed(2)}/min ($
+            {(publishHour.data.session.priceCents / 100).toFixed(2)} for the hour).
+          </Text>
+        ) : null}
+        {publishHour.error ? (
+          <Text style={{ color: "#c0392b", fontSize: 12, marginTop: 8 }}>
+            {publishHour.error.message}
           </Text>
         ) : null}
       </View>
@@ -207,6 +342,7 @@ export function AiSessionProgrammingPanel() {
               {s.creatorName} · {new Date(s.startsAt).toLocaleString()} · {s.durationMinutes} min ·
               ${(s.priceCentsPerMinute / 100).toFixed(2)}/min · ${(s.priceCents / 100).toFixed(2)} ticket
               · {s.attendeeCount.toLocaleString()}/{s.maxAttendees.toLocaleString()} sold · {s.status}
+              {s.hasGeneratedLesson ? " · AI lesson video ready" : ""}
             </Text>
             {s.status === "scheduled" || s.status === "live" ? (
               <View style={{ flexDirection: "row", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
@@ -253,7 +389,7 @@ export function AiSessionProgrammingPanel() {
         <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 15 }}>🎬 AI follower videos</Text>
         <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 6 }}>
           {videoStatus.data?.message ??
-            "Once the platform earns enough revenue, each AI can auto-generate short promo videos to attract followers."}
+            "Hourglass lesson videos are available now. Short promo clips unlock after platform revenue."}
         </Text>
         {videoStatus.data?.unlocked ? (
           <View style={{ gap: 8, marginTop: 10 }}>

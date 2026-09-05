@@ -46,6 +46,7 @@ export const LAUNCH_PROMOTION_TIERS: LaunchPromotionTier[] = [
       "2 lifetime drawing entries",
       "1 free weekly ticket for life",
       "Bring 2,000 different people in these 30 days (1,000 followers + 1,000 paid subscribers): a full year of 50% off after these 6 months",
+      "Bring 4,000 different people in these 30 days (2,000 followers + 2,000 paid subscribers): that year is 60% off instead",
     ],
   },
   {
@@ -62,6 +63,7 @@ export const LAUNCH_PROMOTION_TIERS: LaunchPromotionTier[] = [
       "0% platform fee your first 24 hours (Genesis Clock)",
       "Affiliate $5 only after this free 24 hours, then 5 later sales",
       "Bring 2,000 different people in these 30 days (1,000 followers + 1,000 paid subscribers): a full year of 50% off after these 90 days",
+      "Bring 4,000 different people in these 30 days (2,000 followers + 2,000 paid subscribers): that year is 60% off instead",
     ],
   },
   {
@@ -78,13 +80,14 @@ export const LAUNCH_PROMOTION_TIERS: LaunchPromotionTier[] = [
       "0% platform fee your first 24 hours (Genesis Clock)",
       "Affiliate $5 only after this free 24 hours, then 5 later sales",
       "Bring 2,000 different people in these 30 days (1,000 followers + 1,000 paid subscribers): a full year of 50% off after these 30 days",
+      "Bring 4,000 different people in these 30 days (2,000 followers + 2,000 paid subscribers): that year is 60% off instead",
     ],
   },
 ];
 
 export const LAUNCH_PROMOTION_HEADLINE = "30-day creator launch";
 export const LAUNCH_PROMOTION_SUBLINE =
-  `First ${LAUNCH_CREATOR_SLOTS} creators lock in a discounted platform fee. After these 30 days, new creators get regular 85/15. During the window, bring 2,000 different people (1,000 followers + 1,000 paid subscribers) for a full year of 50% off — that year starts after your launch deal if you are in the first 300, or right away after slot 300.`;
+  `First ${LAUNCH_CREATOR_SLOTS} creators lock in a discounted platform fee. After these 30 days, new creators get regular 85/15. During the window, bring 2,000 different people (1,000 followers + 1,000 paid subscribers) for a full year of 50% off, or 4,000 (2,000 + 2,000) for 60% off that year — the year starts after your launch deal if you are in the first 300, or the moment you hit 2,000 after slot 300.`;
 
 /** Default go-live anchor — override with EXPO_PUBLIC_LAUNCH_DATE or LAUNCH_DATE in .env */
 const DEFAULT_LAUNCH_DATE_ISO = "2026-08-12T05:00:00.000Z";

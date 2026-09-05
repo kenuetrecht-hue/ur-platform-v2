@@ -482,6 +482,7 @@ describe("AI creator video generation", () => {
     });
     expect(job.status).toBe("ready");
     expect(job.shareCaption).toContain("follow");
+    expect(job.purpose).toBe("promo");
     delete process.env.PLATFORM_VIDEO_GEN_MIN_REVENUE_CENTS;
   });
 });

@@ -323,6 +323,9 @@ export function getFoundingAudienceStatus(
     paidChannelSubscriberCount: qualifying.paidSubscriberCount,
     verified: meets,
     now,
+    twoThousandReachedAt: qualifying.twoThousandReachedAt
+      ? new Date(qualifying.twoThousandReachedAt)
+      : null,
   });
 }
 

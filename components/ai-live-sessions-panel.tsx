@@ -294,8 +294,11 @@ function LiveSessionCard({
                     : "GATHERING"}
         </Text>
         <Text style={{ color: colors.muted, fontSize: 11 }}>
-          {s.durationMinutes} min · {s.registeredCount ?? s.attendeeCount} registered
+          {s.hourglass ? "Hourglass · " : ""}
+          {s.durationMinutes} min · ${(s.priceCentsPerMinute / 100).toFixed(2)}/min ·{" "}
+          {s.registeredCount ?? s.attendeeCount} registered
           {(s.minAttendeesToStart ?? 1) > 1 ? ` · need ${s.minAttendeesToStart}` : ""}
+          {s.hasGeneratedLesson ? " · AI lesson video" : ""}
         </Text>
       </View>
       <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>{s.title}</Text>

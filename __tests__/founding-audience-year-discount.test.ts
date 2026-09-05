@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  FOUNDING_AUDIENCE_BOOST_FEE_DISCOUNT_PERCENT,
   FOUNDING_AUDIENCE_FEE_DISCOUNT_PERCENT,
   foundingAudienceCreatorSaleShare,
   foundingAudienceYearEndsAt,
   launchAdvantageEndsAt,
   launchHundredBandFromSlot,
+  meetsFoundingAudienceBoostThresholds,
   meetsFoundingAudienceThresholds,
   resolveFoundingAudienceYear,
 } from "../lib/founding-audience-year-discount";
@@ -44,6 +46,35 @@ describe("founding audience year discount", () => {
         paidChannelSubscriberCount: 1000,
       }),
     ).toBe(true);
+  });
+
+  it("requires 2,000 followers and 2,000 paid subscribers as 4,000 different people for 60%", () => {
+    expect(
+      meetsFoundingAudienceBoostThresholds({
+        broughtFollowerCount: 1999,
+        paidChannelSubscriberCount: 2000,
+      }),
+    ).toBe(false);
+    expect(
+      meetsFoundingAudienceBoostThresholds({
+        broughtFollowerCount: 4000,
+        paidChannelSubscriberCount: 0,
+      }),
+    ).toBe(false);
+    expect(
+      meetsFoundingAudienceBoostThresholds({
+        broughtFollowerCount: 1000,
+        paidChannelSubscriberCount: 1000,
+      }),
+    ).toBe(false);
+    expect(
+      meetsFoundingAudienceBoostThresholds({
+        broughtFollowerCount: 2000,
+        paidChannelSubscriberCount: 2000,
+      }),
+    ).toBe(true);
+    expect(FOUNDING_AUDIENCE_BOOST_FEE_DISCOUNT_PERCENT).toBe(60);
+    expect(foundingAudienceCreatorSaleShare(60)).toBe(0.94);
   });
 
   it("does not start the year until a first-hundred launch deal ends", () => {
@@ -116,6 +147,93 @@ describe("founding audience year discount", () => {
     expect(status.yearStartsAt).toBe(enrolledAt.toISOString());
     expect(status.yearEndsAt).toBe(
       foundingAudienceYearEndsAt({ enrolledAt, launchSlot: 301 }).toISOString(),
+    );
+    expect(status.feeDiscountPercent).toBe(50);
+    expect(status.meetsBoostAudience).toBe(false);
+  });
+
+  it("starts the after-300 year at the moment they hit 2,000, then upgrades to 60% without restarting", () => {
+    const enrolledAt = IN_WINDOW;
+    const hitTwoThousand = new Date(enrolledAt.getTime() + 5 * 24 * 60 * 60 * 1000);
+    const hitFourThousand = new Date(enrolledAt.getTime() + 15 * 24 * 60 * 60 * 1000);
+    const yearEnd = foundingAudienceYearEndsAt({
+      enrolledAt,
+      launchSlot: 301,
+      twoThousandReachedAt: hitTwoThousand,
+    });
+
+    const atTwoK = resolveFoundingAudienceYear({
+      enrolledAt,
+      launchSlot: 301,
+      broughtFollowerCount: 1000,
+      paidChannelSubscriberCount: 1000,
+      verified: true,
+      launchDate: LAUNCH,
+      now: hitTwoThousand,
+      twoThousandReachedAt: hitTwoThousand,
+    });
+    expect(atTwoK.active).toBe(true);
+    expect(atTwoK.feeDiscountPercent).toBe(50);
+    expect(atTwoK.platformFeePercent).toBe(7.5);
+    expect(atTwoK.yearStartsAt).toBe(hitTwoThousand.toISOString());
+    expect(atTwoK.yearEndsAt).toBe(yearEnd.toISOString());
+
+    const atFourK = resolveFoundingAudienceYear({
+      enrolledAt,
+      launchSlot: 301,
+      broughtFollowerCount: 2000,
+      paidChannelSubscriberCount: 2000,
+      verified: true,
+      launchDate: LAUNCH,
+      now: hitFourThousand,
+      twoThousandReachedAt: hitTwoThousand,
+    });
+    expect(atFourK.active).toBe(true);
+    expect(atFourK.meetsBoostAudience).toBe(true);
+    expect(atFourK.feeDiscountPercent).toBe(60);
+    expect(atFourK.platformFeePercent).toBe(6);
+    expect(atFourK.creatorKeepPercent).toBe(94);
+    expect(atFourK.yearStartsAt).toBe(hitTwoThousand.toISOString());
+    expect(atFourK.yearEndsAt).toBe(yearEnd.toISOString());
+  });
+
+  it("gives the first 300 a full year of 60% after the launch deal if they hit 4,000 in 30 days", () => {
+    const enrolledAt = IN_WINDOW;
+    const duringDeal = new Date(enrolledAt.getTime() + 10 * 24 * 60 * 60 * 1000);
+    const afterDeal = new Date(launchAdvantageEndsAt({ enrolledAt, launchSlot: 12 }).getTime() + 1);
+
+    const waiting = resolveFoundingAudienceYear({
+      enrolledAt,
+      launchSlot: 12,
+      broughtFollowerCount: 2000,
+      paidChannelSubscriberCount: 2000,
+      verified: true,
+      launchDate: LAUNCH,
+      now: duringDeal,
+    });
+    expect(waiting.active).toBe(false);
+    expect(waiting.waitingOnLaunchAdvantage).toBe(true);
+    expect(waiting.meetsBoostAudience).toBe(true);
+    expect(waiting.summary).toMatch(/60%/);
+
+    const live = resolveFoundingAudienceYear({
+      enrolledAt,
+      launchSlot: 12,
+      broughtFollowerCount: 2000,
+      paidChannelSubscriberCount: 2000,
+      verified: true,
+      launchDate: LAUNCH,
+      now: afterDeal,
+    });
+    expect(live.active).toBe(true);
+    expect(live.feeDiscountPercent).toBe(60);
+    expect(live.platformFeePercent).toBe(6);
+    expect(live.creatorKeepPercent).toBe(94);
+    expect(live.yearStartsAt).toBe(
+      launchAdvantageEndsAt({ enrolledAt, launchSlot: 12 }).toISOString(),
+    );
+    expect(live.yearEndsAt).toBe(
+      foundingAudienceYearEndsAt({ enrolledAt, launchSlot: 12 }).toISOString(),
     );
   });
 

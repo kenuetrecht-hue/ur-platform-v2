@@ -123,6 +123,75 @@ describe("founding audience payout wiring", () => {
     expect(tx?.platformFeeCents).toBe(2000 - Math.round(2000 * 0.925));
   });
 
+  it("after slot 300 starts 50% when they hit 2,000 and switches to 60% if they hit 4,000 in 30 days", () => {
+    _setNextLaunchSlotForTests(301);
+    enrollContentCreator({
+      userId: "fa-after300",
+      userEmail: "after300@test.com",
+      displayName: "After Three Hundred",
+      enrolledAt: IN_WINDOW,
+      launchDate: LAUNCH,
+    });
+    const hitTwoThousand = new Date(IN_WINDOW.getTime() + 5 * 24 * 60 * 60 * 1000);
+    const hitFourThousand = new Date(IN_WINDOW.getTime() + 15 * 24 * 60 * 60 * 1000);
+    grantAudienceRelationshipsForTests({
+      creatorUserId: "fa-after300",
+      followerCount: 1000,
+      paidSubscriberCount: 1000,
+      at: hitTwoThousand,
+    });
+
+    expect(getCreatorSaleShare("fa-after300", hitTwoThousand)).toBeCloseTo(0.925, 5);
+    const atTwoK = getCreatorDashboard("fa-after300");
+    expect(atTwoK.enrolled).toBe(true);
+    if (atTwoK.enrolled) {
+      expect(atTwoK.foundingAudience?.active).toBe(true);
+      expect(atTwoK.foundingAudience?.feeDiscountPercent).toBe(50);
+      expect(atTwoK.foundingAudience?.yearStartsAt).toBe(hitTwoThousand.toISOString());
+    }
+
+    grantAudienceRelationshipsForTests({
+      creatorUserId: "fa-after300",
+      followerCount: 1000,
+      paidSubscriberCount: 1000,
+      at: hitFourThousand,
+      startFollowerIndex: 1000,
+      startPaidIndex: 1000,
+    });
+
+    expect(getCreatorSaleShare("fa-after300", hitFourThousand)).toBeCloseTo(0.94, 5);
+    const atFourK = getCreatorDashboard("fa-after300");
+    expect(atFourK.enrolled).toBe(true);
+    if (atFourK.enrolled) {
+      expect(atFourK.foundingAudience?.meetsBoostAudience).toBe(true);
+      expect(atFourK.foundingAudience?.feeDiscountPercent).toBe(60);
+      expect(atFourK.foundingAudience?.yearStartsAt).toBe(hitTwoThousand.toISOString());
+      expect(atFourK.audience.qualifying.fourThousandReachedAt).toBe(hitFourThousand.toISOString());
+    }
+  });
+
+  it("gives first-300 creators 60% for the year after the launch deal if they hit 4,000 in 30 days", () => {
+    enrollContentCreator({
+      userId: "fa-tier1-boost",
+      userEmail: "tier1boost@test.com",
+      displayName: "First Hundred Boost",
+      enrolledAt: IN_WINDOW,
+      launchDate: LAUNCH,
+    });
+    grantAudienceRelationshipsForTests({
+      creatorUserId: "fa-tier1-boost",
+      followerCount: 2000,
+      paidSubscriberCount: 2000,
+      at: IN_WINDOW,
+    });
+    const duringDeal = new Date(IN_WINDOW.getTime() + 10 * 24 * 60 * 60 * 1000);
+    const afterDeal = new Date(
+      launchAdvantageEndsAt({ enrolledAt: IN_WINDOW, launchSlot: 1 }).getTime() + 1,
+    );
+    expect(getCreatorSaleShare("fa-tier1-boost", duringDeal)).toBeCloseTo(0.925, 5);
+    expect(getCreatorSaleShare("fa-tier1-boost", afterDeal)).toBeCloseTo(0.94, 5);
+  });
+
   it("does not apply the year offer after the 30-day window even with a live audience", () => {
     enrollContentCreator({
       userId: "fa-late",

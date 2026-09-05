@@ -84,6 +84,8 @@ export type AiLiveSession = {
   roomCode: string;
   attendeeCount: number;
   createdAt: string;
+  /** Generated hourglass lesson video the AI assembled for this class. */
+  lessonVideoId?: string;
 };
 
 export type SessionEntitlement = {
@@ -399,6 +401,7 @@ export function scheduleLiveSession(params: {
   minAttendeesToStart?: number;
   pricingTier?: LiveClassPricingTier;
   hostUserId?: string;
+  lessonVideoId?: string;
 }): AiLiveSession {
   const program = getAiSessionProgram(params.creatorAiId);
   if (!program.enabled) {
@@ -471,8 +474,22 @@ export function scheduleLiveSession(params: {
     attendeeCount: 0,
     createdAt: new Date().toISOString(),
     hostUserId: params.hostUserId,
+    lessonVideoId: params.lessonVideoId,
   };
   sessions.set(id, session);
+  return session;
+}
+
+export function attachLessonVideoToLiveSession(
+  sessionId: string,
+  lessonVideoId: string,
+): AiLiveSession {
+  const session = sessions.get(sessionId);
+  if (!session) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Live session not found." });
+  }
+  session.lessonVideoId = lessonVideoId;
+  sessions.set(sessionId, session);
   return session;
 }
 

@@ -36,10 +36,16 @@ import {
 } from "../_core/ai-live-session-service";
 import { assertSectionEnabledForRequest } from "../_core/platform-section-guard";
 import {
+  getCreatorVideo,
   getVideoGenerationStatus,
   listCreatorVideos,
   requestCreatorVideo,
 } from "../_core/ai-creator-video-service";
+import {
+  generateHourLessonVideo,
+  listPublishableHourLessons,
+  publishHourLessonHourglass,
+} from "../_core/ai-hour-lesson-service";
 import { buildClassReplayPurchaseSummary, buildLiveClassPurchaseSummary } from "../../lib/pricing-disclosures";
 import {
   confirmReplayPayment,
@@ -124,6 +130,10 @@ function mapPublicSession(s: NonNullable<ReturnType<typeof getLiveSession>>) {
     spotsLeft: Math.max(0, s.maxAttendees - enrollment.registeredCount),
     status: s.status,
     commitment,
+    lessonVideoId: s.lessonVideoId ?? null,
+    hourglass: s.committedDurationMinutes === 60,
+    hasGeneratedLesson: Boolean(s.lessonVideoId),
+    lessonTitle: s.lessonVideoId ? getCreatorVideo(s.lessonVideoId)?.title ?? null : null,
   };
 }
 
@@ -388,6 +398,7 @@ export const aiLiveSessionRouter = router({
         minAttendeesToStart: z.number().int().min(1).max(10_000).optional(),
         pricingTier: z.enum(["standard", "group_appointment"]).optional(),
         priceCentsPerMinute: z.number().int().min(1).optional(),
+        lessonVideoId: z.string().uuid().optional(),
       }),
     )
     .mutation(({ input }) => scheduleLiveSession(input)),
@@ -556,4 +567,30 @@ export const aiLiveSessionRouter = router({
       }),
     )
     .mutation(({ input }) => requestCreatorVideo(input)),
+
+  listHourLessons: adminPermissionProcedure("manage_ai_sessions").query(() =>
+    listPublishableHourLessons(),
+  ),
+
+  generateHourLesson: adminPermissionProcedure("manage_ai_sessions")
+    .input(
+      z.object({
+        creatorAiId: z.string().min(2).max(64).trim(),
+        catalogId: z.string().min(4).max(64).trim().optional(),
+        topic: z.string().min(4).max(300).trim().optional(),
+      }),
+    )
+    .mutation(({ input }) => generateHourLessonVideo(input)),
+
+  publishHourLesson: adminPermissionProcedure("manage_ai_sessions")
+    .input(
+      z.object({
+        creatorAiId: z.string().min(2).max(64).trim(),
+        startsAt: z.string().min(10).max(40).trim(),
+        catalogId: z.string().min(4).max(64).trim().optional(),
+        topic: z.string().min(4).max(300).trim().optional(),
+        priceCentsPerMinute: z.number().int().min(CREATOR_MIN_PRICE_CENTS_PER_MINUTE).max(100_000).optional(),
+      }),
+    )
+    .mutation(({ input }) => publishHourLessonHourglass(input)),
 });

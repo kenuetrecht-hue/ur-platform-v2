@@ -158,7 +158,7 @@ export function ContentCreatorDashboardPanel() {
               "📣 Share to Facebook & social",
               "✨ ContentMate AI for promo copy",
               "⚡ 85% on classes & merch · 100% of tips (fan pays the card fee)",
-              "🎯 2,000 different people in the 30-day launch (1,000 followers + 1,000 paid subs): a full year of 50% off after your launch deal",
+              "🎯 2,000 different people in the 30-day launch (1,000 followers + 1,000 paid subs): a full year of 50% off after your launch deal. 4,000 (2,000 + 2,000) in those 30 days: 60% off that year",
             ].map((item) => (
               <Text key={item} style={{ color: colors.foreground, fontSize: 13 }}>
                 {item}
@@ -353,11 +353,17 @@ export function ContentCreatorDashboardPanel() {
                     {dash.data.foundingAudience.summary}
                   </Text>
                   <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
-                    Launch offer progress:{" "}
+                    50% year (2,000 people):{" "}
                     {(dash.data.audience?.qualifying?.freeFollowerCount ?? 0).toLocaleString()} / 1,000
                     followers · {(dash.data.audience?.qualifying?.paidSubscriberCount ?? 0).toLocaleString()}{" "}
-                    / 1,000 paid · {(dash.data.audience?.qualifying?.uniquePeopleCount ?? 0).toLocaleString()}{" "}
-                    / 2,000 different people
+                    / 1,000 paid
+                  </Text>
+                  <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+                    60% year (4,000 people):{" "}
+                    {(dash.data.audience?.qualifying?.freeFollowerCount ?? 0).toLocaleString()} / 2,000
+                    followers · {(dash.data.audience?.qualifying?.paidSubscriberCount ?? 0).toLocaleString()}{" "}
+                    / 2,000 paid · {(dash.data.audience?.qualifying?.uniquePeopleCount ?? 0).toLocaleString()}{" "}
+                    / 4,000 different people
                   </Text>
                 </>
               ) : null}

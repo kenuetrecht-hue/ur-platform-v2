@@ -5,6 +5,7 @@ import {
   getCreatorAudienceCounts,
   getCreatorAudienceLedger,
   getQualifyingFoundingAudienceCounts,
+  grantAudienceRelationshipsForTests,
   startPaidChannelSubscription,
   unfollowCreatorChannel,
   _resetCreatorAudienceForTests,
@@ -78,6 +79,37 @@ describe("creator audience ledger", () => {
     expect(qualifying.freeFollowerCount).toBe(1);
     expect(qualifying.paidSubscriberCount).toBe(1);
     expect(qualifying.uniquePeopleCount).toBe(2);
+    expect(qualifying.twoThousandReachedAt).toBeNull();
+    expect(qualifying.fourThousandReachedAt).toBeNull();
+  });
+
+  it("records when the 2,000 and 4,000 founding-audience milestones are reached", () => {
+    const firstWave = new Date("2026-08-15T12:00:00.000Z");
+    const secondWave = new Date("2026-08-25T12:00:00.000Z");
+    grantAudienceRelationshipsForTests({
+      creatorUserId: "creator-1",
+      followerCount: 1000,
+      paidSubscriberCount: 1000,
+      at: firstWave,
+    });
+    expect(getQualifyingFoundingAudienceCounts("creator-1", new Date("2099-01-01T00:00:00.000Z"))).toMatchObject({
+      uniquePeopleCount: 2000,
+      twoThousandReachedAt: firstWave.toISOString(),
+      fourThousandReachedAt: null,
+    });
+    grantAudienceRelationshipsForTests({
+      creatorUserId: "creator-1",
+      followerCount: 1000,
+      paidSubscriberCount: 1000,
+      at: secondWave,
+      startFollowerIndex: 1000,
+      startPaidIndex: 1000,
+    });
+    expect(getQualifyingFoundingAudienceCounts("creator-1", new Date("2099-01-01T00:00:00.000Z"))).toMatchObject({
+      uniquePeopleCount: 4000,
+      twoThousandReachedAt: firstWave.toISOString(),
+      fourThousandReachedAt: secondWave.toISOString(),
+    });
   });
 
   it("blocks following yourself", () => {
