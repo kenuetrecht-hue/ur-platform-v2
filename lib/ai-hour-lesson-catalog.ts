@@ -5,6 +5,14 @@
 
 export const HOURGLASS_LESSON_MINUTES = 60;
 
+/** Trade AIs that ship ready to host a beginner hourglass. */
+export const HOURGLASS_READY_AI_IDS = [
+  "ai-electrician-001",
+  "ai-hvac-001",
+  "ai-welder-001",
+  "ai-plumber-001",
+] as const;
+
 export type HourLessonSegment = {
   minuteStart: number;
   minuteEnd: number;

@@ -5,6 +5,11 @@
 import { TRPCError } from "@trpc/server";
 import { getCreatorAi, ALL_CREATOR_AI_IDS } from "./ai-creator-registry";
 import { isOwnerOnlyPlatformAi } from "./platform-ops-ai";
+import {
+  HOURGLASS_READY_AI_IDS,
+  listHourglassLessonsForAi,
+  type HourLessonSegment,
+} from "../../lib/ai-hour-lesson-catalog";
 
 /** Content creator floor: $0.20 per minute — they may charge more. */
 export const CREATOR_MIN_PRICE_CENTS_PER_MINUTE = 20;
@@ -96,22 +101,33 @@ function defaultHostScript(creatorName: string, category: string, duration: Allo
   ].join("\n");
 }
 
+function isHourglassReadyAi(creatorAiId: string): boolean {
+  return (HOURGLASS_READY_AI_IDS as readonly string[]).includes(creatorAiId);
+}
+
 function buildDefault(creatorAiId: string): AiSessionProgram {
   const creator = getCreatorAi(creatorAiId);
   if (!creator) {
     throw new TRPCError({ code: "NOT_FOUND", message: "AI specialist not found." });
   }
+  const hourReady = isHourglassReadyAi(creatorAiId);
+  const catalog = listHourglassLessonsForAi(creatorAiId)[0];
   return {
     creatorAiId,
     creatorName: creator.name,
-    enabled: false,
+    enabled: hourReady,
     durationMinutes: DEFAULT_DURATION,
     priceCentsPerMinute: DEFAULT_PRICE_CENTS_PER_MINUTE,
     maxAttendees: DEFAULT_MAX,
     allowOvertime: true,
-    defaultTitle: `Live with ${creator.name} — 1 Hour Class`,
+    defaultTitle: hourReady && catalog
+      ? catalog.title
+      : `Live with ${creator.name} — 1 Hour Class`,
     hostScript: defaultHostScript(creator.name, creator.category, DEFAULT_DURATION),
-    sessionDescription: `Join ${creator.name} for a committed ${durationLabel(DEFAULT_DURATION)} class. ${creator.mission}`,
+    sessionDescription:
+      hourReady && catalog
+        ? `${catalog.description} ${catalog.safetyNote}`
+        : `Join ${creator.name} for a committed ${durationLabel(DEFAULT_DURATION)} class. ${creator.mission}`,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -219,11 +235,18 @@ export function buildSessionHostSystemPrompt(
   creatorAiId: string,
   sessionTitle: string,
   committedDurationMinutes?: AllowedSessionDuration,
+  lesson?: { segments?: HourLessonSegment[]; safetyNote?: string } | null,
 ): string {
   const program = getAiSessionProgram(creatorAiId);
   const creator = getCreatorAi(creatorAiId);
   const committed = committedDurationMinutes ?? program.durationMinutes;
   const ticketCents = computeSessionTicketCents(committed, program.priceCentsPerMinute);
+  const timeline = (lesson?.segments ?? [])
+    .map(
+      (segment) =>
+        `${segment.minuteStart}–${segment.minuteEnd} min: ${segment.title}. ${segment.talkingPoints.join(" ")}`,
+    )
+    .join("\n");
   return [
     program.hostScript,
     "",
@@ -235,6 +258,8 @@ export function buildSessionHostSystemPrompt(
     `Room capacity: up to ${program.maxAttendees.toLocaleString()} attendees`,
     `Ticket: $${(ticketCents / 100).toFixed(2)} ($${(program.priceCentsPerMinute / 100).toFixed(2)}/min)`,
     creator ? `Mission: ${creator.mission}` : "",
+    lesson?.safetyNote ? `Safety: ${lesson.safetyNote}` : "",
+    timeline ? `Generated hourglass lesson timeline:\n${timeline}` : "",
     "You are in LIVE CLASS HOST mode. Honor the full committed duration.",
   ]
     .filter(Boolean)

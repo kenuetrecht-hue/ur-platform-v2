@@ -131,6 +131,8 @@ export function publishHourLessonHourglass(params: {
     priceCentsPerMinute,
     maxAttendees: params.maxAttendees,
     lessonVideoId: video.id,
+    lessonSafetyNote: lesson.safetyNote,
+    lessonSegments: lesson.segments,
   });
 
   attachVideoToSession(video.id, session.id);

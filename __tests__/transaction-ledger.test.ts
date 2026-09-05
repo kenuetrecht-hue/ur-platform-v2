@@ -59,6 +59,7 @@ describe("Transaction ledger", () => {
       userEmail: "cr@test.com",
       displayName: "Creator",
       referralCode: aff.customSlug,
+      enrolledAt: new Date(Date.now() - 26 * 60 * 60 * 1000),
     });
     for (let i = 0; i < 5; i++) {
       recordCreatorTransaction({

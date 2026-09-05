@@ -12,8 +12,8 @@ import {
   requestCreatorVideo,
   _resetCreatorVideosForTests,
 } from "../server/_core/ai-creator-video-service";
-import { getAiSessionProgram } from "../server/_core/ai-session-programming";
-import { getLiveSession } from "../server/_core/ai-live-session-service";
+import { getAiSessionProgram, listAiSessionPrograms } from "../server/_core/ai-session-programming";
+import { getLiveSession, getSessionJoinAccess } from "../server/_core/ai-live-session-service";
 
 function futureStart(hoursFromNow = 14): string {
   return new Date(Date.now() + hoursFromNow * 60 * 60 * 1000).toISOString();
@@ -23,6 +23,28 @@ describe("AI hourglass lesson videos", () => {
   beforeEach(() => {
     _resetCreatorVideosForTests();
     delete process.env.PLATFORM_VIDEO_GEN_MIN_REVENUE_CENTS;
+  });
+
+  it("enables electrician, HVAC, welding, and plumbing to host hourglasses by default", () => {
+    for (const id of [
+      "ai-electrician-001",
+      "ai-hvac-001",
+      "ai-welder-001",
+      "ai-plumber-001",
+    ]) {
+      const program = getAiSessionProgram(id);
+      expect(program.enabled).toBe(true);
+      expect(program.durationMinutes).toBe(60);
+    }
+    const ready = listAiSessionPrograms({ enabledOnly: true }).map((p) => p.creatorAiId);
+    expect(ready).toEqual(
+      expect.arrayContaining([
+        "ai-electrician-001",
+        "ai-hvac-001",
+        "ai-welder-001",
+        "ai-plumber-001",
+      ]),
+    );
   });
 
   it("lists beginner electrician, HVAC, welding, and plumbing hours", () => {
@@ -82,6 +104,15 @@ describe("AI hourglass lesson videos", () => {
     expect(stored?.lessonVideoId).toBe(published.video.id);
     expect(getAiSessionProgram("ai-hvac-001").enabled).toBe(true);
     expect(getAiSessionProgram("ai-hvac-001").hostScript).toMatch(/hourglass/i);
+    expect(published.session.lessonSegments?.length).toBeGreaterThanOrEqual(5);
+
+    const join = getSessionJoinAccess({
+      sessionId: published.session.id,
+      userId: "owner",
+      isPlatformOwner: true,
+    });
+    expect(join.hostPrompt).toMatch(/Generated hourglass lesson timeline/i);
+    expect(join.hostPrompt).toMatch(/refrigeration cycle/i);
   });
 
   it("lets welding and plumbing AIs host custom beginner hours", () => {

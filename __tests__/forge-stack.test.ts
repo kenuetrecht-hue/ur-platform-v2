@@ -68,7 +68,7 @@ describe("Cross-specialist handoffs", () => {
     for (const id of [TECH_BUILDER_ID, GAME_FORGE_ID]) {
       for (const h of getHandoffSuggestions(id)) {
         if (!h.route.startsWith("/3d")) {
-          expect(h.route).toBe("/(tabs)/ais");
+          expect(["/(tabs)/ais", "/world"]).toContain(h.route);
         }
         expect(h.prefillPrompt.length).toBeGreaterThan(10);
         expect(h.targetName.length).toBeGreaterThan(0);

@@ -86,6 +86,13 @@ export type AiLiveSession = {
   createdAt: string;
   /** Generated hourglass lesson video the AI assembled for this class. */
   lessonVideoId?: string;
+  lessonSafetyNote?: string;
+  lessonSegments?: Array<{
+    minuteStart: number;
+    minuteEnd: number;
+    title: string;
+    talkingPoints: string[];
+  }>;
 };
 
 export type SessionEntitlement = {
@@ -402,6 +409,8 @@ export function scheduleLiveSession(params: {
   pricingTier?: LiveClassPricingTier;
   hostUserId?: string;
   lessonVideoId?: string;
+  lessonSafetyNote?: string;
+  lessonSegments?: AiLiveSession["lessonSegments"];
 }): AiLiveSession {
   const program = getAiSessionProgram(params.creatorAiId);
   if (!program.enabled) {
@@ -475,6 +484,8 @@ export function scheduleLiveSession(params: {
     createdAt: new Date().toISOString(),
     hostUserId: params.hostUserId,
     lessonVideoId: params.lessonVideoId,
+    lessonSafetyNote: params.lessonSafetyNote,
+    lessonSegments: params.lessonSegments,
   };
   sessions.set(id, session);
   return session;
@@ -1001,6 +1012,10 @@ export function getSessionJoinAccess(params: {
     session.creatorAiId,
     session.title,
     session.committedDurationMinutes,
+    {
+      segments: session.lessonSegments,
+      safetyNote: session.lessonSafetyNote,
+    },
   );
   const commitment = getSessionCommitmentSummary({
     startsAt: session.startsAt,
