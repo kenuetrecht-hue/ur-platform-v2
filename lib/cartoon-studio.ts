@@ -5,6 +5,13 @@
  */
 
 import type { CartoonStudioTierId } from "./cartoon-studio-pricing";
+import {
+  settingColors,
+  shirtColor,
+  type CartoonSelfHairId,
+  type CartoonSelfSettingId,
+  type CartoonSelfShirtId,
+} from "./cartoon-self";
 
 export const CARTOON_STUDIO_HREF = "/cartoon-studio" as const;
 
@@ -84,8 +91,19 @@ export type CartoonProject = {
   complimentary: boolean;
   renderStatus: "ready" | "complete";
   engineNote: string;
+  fromFootage: boolean;
+  characterName: string | null;
+  characterLook: CartoonCharacterLook | null;
+  publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type CartoonCharacterLook = {
+  name: string;
+  hair: CartoonSelfHairId;
+  shirt: CartoonSelfShirtId;
+  setting: CartoonSelfSettingId;
 };
 
 export function isCartoonStyleId(value: string): value is CartoonStyleId {
@@ -109,6 +127,10 @@ export function publicCartoonProject(project: CartoonProject) {
     complimentary: project.complimentary,
     renderStatus: project.renderStatus,
     engineNote: project.engineNote,
+    fromFootage: project.fromFootage,
+    characterName: project.characterName,
+    characterLook: project.characterLook,
+    publishedAt: project.publishedAt,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
   };
@@ -152,14 +174,17 @@ export function buildCartoonFrameSvg(params: {
   order: number;
   cinematic?: boolean;
   tier?: CartoonStudioTierId;
+  character?: CartoonCharacterLook;
 }): string {
   const tier = params.tier ?? (params.cinematic ? "cinema" : "draft");
   const hue = hashHue(`${params.style}:${params.title}:${params.order}`);
-  const [sky, ground] = STYLE_SKIES[params.style];
-  const body = `hsl(${hue} 70% 48%)`;
+  const place = params.character ? settingColors(params.character.setting) : null;
+  const [sky, ground] = place ? [place.sky, place.ground] : STYLE_SKIES[params.style];
+  const body = params.character ? shirtColor(params.character.shirt) : `hsl(${hue} 70% 48%)`;
   const accent = `hsl(${(hue + 40) % 360} 80% 56%)`;
   const title = escapeXml(params.title.slice(0, 48));
   const line = escapeXml(params.narration.slice(0, 90));
+  const who = params.character ? escapeXml(params.character.name.slice(0, 28)) : "";
   const film = tier !== "draft";
   const drift = film ? 20 + (params.order % 4) * (tier === "premiere" ? 22 : 14) : 0;
   const x = 180 + (params.order % 3) * 40 + drift;
@@ -169,6 +194,20 @@ export function buildCartoonFrameSvg(params: {
       ? `<rect width="1280" height="${bar}" fill="#000"/><rect y="${720 - bar}" width="1280" height="${bar}" fill="#000"/>`
       : "";
   const mark = TIER_MARK[tier];
+  const hair = params.character?.hair ?? "short";
+  const hairSvg =
+    hair === "bald"
+      ? ""
+      : hair === "hat"
+        ? `<rect x="${x + 42}" y="268" width="76" height="28" rx="8" fill="#2e7d32"/>`
+        : hair === "long"
+          ? `<ellipse cx="${x + 80}" cy="300" rx="70" ry="42" fill="#5d4037"/><rect x="${x + 28}" y="310" width="22" height="70" rx="10" fill="#5d4037"/><rect x="${x + 110}" y="310" width="22" height="70" rx="10" fill="#5d4037"/>`
+          : hair === "curly"
+            ? `<circle cx="${x + 48}" cy="286" r="22" fill="#4e342e"/><circle cx="${x + 80}" cy="274" r="24" fill="#4e342e"/><circle cx="${x + 112}" cy="286" r="22" fill="#4e342e"/>`
+            : `<ellipse cx="${x + 80}" cy="292" rx="58" ry="28" fill="#5d4037"/>`;
+  const nameTag = who
+    ? `<text x="80" y="650" fill="#111827" font-size="20" font-family="Verdana, sans-serif" font-weight="700">Cartoon Me · ${who}</text>`
+    : "";
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
   <defs>
@@ -181,6 +220,7 @@ export function buildCartoonFrameSvg(params: {
   <ellipse cx="980" cy="140" rx="90" ry="54" fill="#fff8" />
   <ellipse cx="1040" cy="140" rx="70" ry="44" fill="#fff6" />
   <path d="M0 520 C 220 460, 420 580, 640 520 C 860 460, 1060 580, 1280 500 L 1280 720 L 0 720 Z" fill="${accent}"/>
+  ${hairSvg}
   <circle cx="${x + 80}" cy="330" r="62" fill="#ffe0bd"/>
   <circle cx="${x + 58}" cy="318" r="7" fill="#222"/>
   <circle cx="${x + 102}" cy="318" r="7" fill="#222"/>
@@ -193,6 +233,7 @@ export function buildCartoonFrameSvg(params: {
   <rect x="70" y="40" width="1140" height="86" rx="18" fill="#111827cc"/>
   <text x="640" y="78" text-anchor="middle" fill="#fff" font-size="32" font-family="Verdana, sans-serif" font-weight="700">${title}</text>
   <text x="640" y="112" text-anchor="middle" fill="#fde68a" font-size="20" font-family="Verdana, sans-serif">${line}</text>
+  ${nameTag}
   <text x="80" y="680" fill="#111827" font-size="22" font-family="Verdana, sans-serif" font-weight="700">UR Cartoon Studio · ${mark} · ${params.style}</text>
   ${letterbox}
 </svg>`;

@@ -53,6 +53,7 @@ import {
   getCreatorPromoPayload,
   getClassSharePayload,
 } from "../_core/creator-dashboard-service";
+import { getMyFairShowAnalytics } from "../_core/fair-show-service";
 import {
   listAffiliatePosts,
   markPostPosted,
@@ -165,7 +166,7 @@ export const partnerDashboardRouter = router({
     const link = getUserLink(userId);
     const tx = listAllTransactions({ userId, limit: 20 });
     const payout = getCreatorPayoutDashboard(userId);
-    if (!dash.enrolled) return { ...dash, link, recentTransactions: [], payout, analytics: null, promo: null };
+    if (!dash.enrolled) return { ...dash, link, recentTransactions: [], payout, analytics: null, promo: null, watch: null };
     return {
       ...dash,
       link,
@@ -173,6 +174,7 @@ export const partnerDashboardRouter = router({
       payout,
       analytics: getCreatorAnalytics(userId),
       promo: getCreatorPromoPayload(userId),
+      watch: getMyFairShowAnalytics(userId),
     };
   }),
 

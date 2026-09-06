@@ -17,6 +17,13 @@ import {
   AGE_KYC_REQUIRED_MESSAGE,
   type AgeKycDocumentType,
 } from "@/lib/age-kyc-policy";
+import {
+  AGE_VERIFY_PHOTO_HINTS,
+  AGE_VERIFY_TITLE,
+  AGE_VERIFY_WHAT_TO_DO,
+  AGE_VERIFY_WHY,
+  signupPrivacyBlock,
+} from "@/lib/signup-step-copy";
 import { pickAgeKycPhoto, type AgeKycPickedPhoto } from "@/lib/age-kyc-photo-picker";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { TurnstileWidget } from "@/components/turnstile-widget";
@@ -129,10 +136,14 @@ export default function AgeVerifyScreen() {
           <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 24 }}>
             {AGE_KYC_MIN_AGE}+ identity check
           </Text>
-          <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 21 }}>
-            {AGE_KYC_REQUIRED_MESSAGE} This is required because AI chat, social features, and
-            payments can be addictive for minors.
-          </Text>
+          <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>{AGE_VERIFY_TITLE}</Text>
+          <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 21 }}>{AGE_VERIFY_WHAT_TO_DO}</Text>
+          {AGE_VERIFY_WHY.map((line) => (
+            <Text key={line.slice(0, 40)} style={{ color: colors.muted, fontSize: 14, lineHeight: 21 }}>
+              {line}
+            </Text>
+          ))}
+          <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 20 }}>{signupPrivacyBlock()}</Text>
 
           {verified ? (
             <View
@@ -176,19 +187,19 @@ export default function AgeVerifyScreen() {
 
               <PhotoSlot
                 title="ID front"
-                hint="Photo page with your face and date of birth."
+                hint={AGE_VERIFY_PHOTO_HINTS.front}
                 photo={idFront}
                 onPick={() => void pick("front")}
               />
               <PhotoSlot
                 title="ID back"
-                hint="Barcode, magnetic stripe, or passport MRZ page."
+                hint={AGE_VERIFY_PHOTO_HINTS.back}
                 photo={idBack}
                 onPick={() => void pick("back")}
               />
               <PhotoSlot
                 title="Selfie"
-                hint="Your face, live — not a photo of the ID."
+                hint={AGE_VERIFY_PHOTO_HINTS.selfie}
                 photo={selfie}
                 onPick={() => void pick("selfie")}
               />

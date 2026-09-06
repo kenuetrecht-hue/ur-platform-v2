@@ -16,13 +16,18 @@ import {
   createCartoonVideo,
   deleteCartoonVideo,
   listCartoonVideos,
+  listPublishedCartoons,
+  publishCartoonToCreatorPage,
   updateCartoonTimeline,
   _resetCartoonStudioForTests,
 } from "../server/_core/cartoon-studio-service";
+import { saveCartoonSelf, _resetCartoonSelfForTests } from "../server/_core/cartoon-self-service";
+import { CARTOON_SELF_RULE } from "../lib/cartoon-self";
 
 describe("UR Cartoon Studio", () => {
   beforeEach(() => {
     _resetCartoonStudioForTests();
+    _resetCartoonSelfForTests();
   });
 
   it("ships four cartoon looks", () => {
@@ -151,6 +156,56 @@ describe("UR Cartoon Studio", () => {
         edits: project.scenes.map((scene) => ({ sceneId: scene.id, durationSeconds: 12 })),
       }),
     ).toThrow(/prepaid/i);
+  });
+
+  it("turns the owner's own footage notes into a Cartoon Me video they can host", async () => {
+    expect(CARTOON_SELF_RULE.toLowerCase()).toContain("own likeness");
+    saveCartoonSelf({
+      userId: "owner-creator-1",
+      isPlatformOwner: true,
+      displayName: "Kenneth",
+      lookNotes: "Short hair, navy work shirt, I film in the yard.",
+      setting: "yard",
+      hair: "short",
+      shirt: "navy",
+      attestedOwnLikeness: true,
+    });
+    const project = await createCartoonVideo({
+      userId: "owner-creator-1",
+      isPlatformOwner: true,
+      idea: "Lesson from the yard.",
+      style: "educational",
+      footageNotes:
+        "I was in the yard showing how to check a breaker. First I pointed at the panel. Then I showed the safe off position.",
+      useCartoonSelf: true,
+    });
+    expect(project.fromFootage).toBe(true);
+    expect(project.characterName).toBe("Kenneth");
+    expect(project.scenes[0]?.frameSvg).toContain("Cartoon Me");
+    expect(project.scenes[0]?.frameSvg).toContain("Kenneth");
+
+    const hosted = publishCartoonToCreatorPage({
+      userId: "owner-creator-1",
+      userEmail: "owner@test.com",
+      displayName: "Kenneth",
+      projectId: project.id,
+      isPlatformOwner: true,
+    });
+    expect(hosted.publishedAt).toBeTruthy();
+    expect(listPublishedCartoons("owner-creator-1")).toHaveLength(1);
+  });
+
+  it("will not build a Cartoon Me job without a saved stand-in", async () => {
+    await expect(
+      createCartoonVideo({
+        userId: "shy-user-1",
+        isPlatformOwner: false,
+        idea: "A yard lesson about breakers.",
+        style: "classic",
+        quote: quoteCartoonStudio("draft", 8),
+        useCartoonSelf: true,
+      }),
+    ).rejects.toThrow(/Cartoon Me/i);
   });
 });
 

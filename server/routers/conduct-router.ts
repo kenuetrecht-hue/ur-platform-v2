@@ -24,6 +24,12 @@ import {
   ownerClearWorldReview,
   ownerDiscontinueWorldUser,
 } from "../_core/world-monitor-service";
+import {
+  acknowledgeSecurityIncidentNotice,
+  getActiveSecurityNoticeForMember,
+  listSecurityIncidentNotices,
+  publishSecurityIncidentNotice,
+} from "../_core/security-incident-notice-service";
 
 const channelSchema = z.enum([
   "ai_chat",
@@ -102,6 +108,36 @@ export const conductRouter = router({
       signatures: listConductAcceptancesForOwner(80),
       worldRedFlags: listWorldRedFlagsForOwner(80),
     })),
+
+  securityNotice: secureProcedure("auth").query(({ ctx }) =>
+    getActiveSecurityNoticeForMember(String(ctx.user.id)),
+  ),
+
+  acknowledgeSecurityNotice: secureProcedure("auth")
+    .input(z.object({ noticeId: z.string().uuid(), acknowledged: z.literal(true) }))
+    .mutation(({ ctx, input }) =>
+      acknowledgeSecurityIncidentNotice({
+        userId: String(ctx.user.id),
+        noticeId: input.noticeId,
+      }),
+    ),
+
+  publishSecurityNotice: ownerProcedure
+    .input(
+      z.object({
+        title: z.string().trim().min(8).max(120),
+        body: z.string().trim().min(20).max(2000),
+      }),
+    )
+    .mutation(({ ctx, input }) =>
+      publishSecurityIncidentNotice({
+        ownerUserId: String(ctx.user.id),
+        title: input.title,
+        body: input.body,
+      }),
+    ),
+
+  listSecurityNotices: ownerProcedure.query(() => listSecurityIncidentNotices()),
 
   resolveWorldHold: ownerProcedure
     .input(

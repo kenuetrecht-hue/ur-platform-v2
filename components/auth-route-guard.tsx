@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { trpc } from "@/lib/trpc";
 import { ConductAgreementGate } from "@/components/conduct-agreement-gate";
+import { SecurityIncidentGate } from "@/components/security-incident-gate";
 import { WorldReviewHoldGate } from "@/components/world-review-hold-gate";
 import { shouldGiveJoinEmanual } from "@/lib/join-emanual-handoff";
 
@@ -62,6 +63,12 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     retry: 1,
     staleTime: 8_000,
     refetchInterval: 8_000,
+  });
+  const securityQuery = trpc.conduct.securityNotice.useQuery(undefined, {
+    enabled: clientReady && isAuthenticated && kycQuery.data?.verified === true,
+    retry: 1,
+    staleTime: 8_000,
+    refetchInterval: 15_000,
   });
 
   useEffect(() => {
@@ -168,6 +175,10 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
 
   if (inProduct && conductQuery.data?.required === true && conductQuery.data?.accepted === false) {
     return <ConductAgreementGate />;
+  }
+
+  if (inProduct && securityQuery.data?.required === true) {
+    return <SecurityIncidentGate />;
   }
 
   if (inProduct && conductQuery.data?.reviewHold) {

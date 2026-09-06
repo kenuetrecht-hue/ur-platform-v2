@@ -31,6 +31,7 @@ import { CreatorSocialShareBar, CreatorPromoCard } from "@/components/creator-so
 import { CreatorContentMatePanel } from "@/components/creator-contentmate-panel";
 import { CreatorContentProtectionPanel } from "@/components/creator-content-protection-panel";
 import { MuxVideoUploader } from "@/components/mux-video-uploader";
+import { CartoonCreatorPricingPanel } from "@/components/cartoon-creator-pricing-panel";
 import { FOUNDING_AUDIENCE_YEAR_RULE } from "@/lib/founding-audience-year-discount";
 import { CREATOR_AUDIENCE_FOLLOW_RULE } from "@/lib/creator-audience-policy";
 
@@ -97,6 +98,7 @@ export function ContentCreatorDashboardPanel() {
   const [replayMuxUploadId, setReplayMuxUploadId] = useState<string | undefined>();
 
   const dash = trpc.partnerDashboard.creatorDashboard.useQuery();
+  const hostedCartoons = trpc.cartoonStudio.published.useQuery();
   const ais = trpc.partnerDashboard.listAvailableAis.useQuery(undefined, {
     enabled: dash.data?.enrolled === true,
   });
@@ -153,11 +155,11 @@ export function ContentCreatorDashboardPanel() {
           </Text>
           <View style={{ gap: 6, marginVertical: 8 }}>
             {[
-              "📊 Earnings & analytics dashboard",
+              "📊 Earnings, stay-on-video, and Fair Show tracker",
               "🎬 Schedule 15–60 min live classes",
               "📣 Share to Facebook & social",
               "✨ ContentMate AI for promo copy",
-              "🎬 Cartoon Studio on website and app — pay first for Draft or Cinema. No refunds.",
+              "🎬 Cartoon Studio — film your lesson, host a Cartoon Me stand-in. Pay first. No refunds.",
               "⚡ 85% on classes & merch · 100% of tips (fan pays the card fee)",
               "🎯 2,000 different people in the 30-day launch (1,000 followers + 1,000 paid subs): a full year of 50% off after your launch deal. 4,000 (2,000 + 2,000) in those 30 days: 60% off that year",
             ].map((item) => (
@@ -305,6 +307,47 @@ export function ContentCreatorDashboardPanel() {
                 />
               </View>
             ) : null}
+            {dash.data.watch ? (
+              <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 15 }}>
+                  Fair Show — who stayed
+                </Text>
+                <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
+                  {dash.data.watch.laneHint}
+                </Text>
+                <View style={styles.statGrid}>
+                  <StatCard
+                    label="Unique viewers"
+                    value={String(dash.data.watch.uniqueViewers)}
+                    sub="People who started a video"
+                  />
+                  <StatCard
+                    label="Real views"
+                    value={String(dash.data.watch.qualifyingViews)}
+                    sub="Counted after 3 seconds"
+                  />
+                  <StatCard
+                    label="Avg. finished"
+                    value={`${Math.round(dash.data.watch.averageCompletion * 100)}%`}
+                    sub="Stay-on-video, not vanity opens"
+                  />
+                  <StatCard
+                    label="Paid after watch"
+                    value={String(dash.data.watch.paidActions)}
+                    sub={`$${(dash.data.watch.paidCents / 100).toFixed(2)} tickets & tips`}
+                  />
+                </View>
+                {dash.data.watch.videos.slice(0, 6).map((video) => (
+                  <View key={video.contentId} style={{ paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
+                    <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>{video.title}</Text>
+                    <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+                      {video.why} · left at 25% {video.dropOff.p25} · 50% {video.dropOff.p50} · finished{" "}
+                      {video.dropOff.p100}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
             <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
               <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 15 }}>
                 Your audience
@@ -376,9 +419,35 @@ export function ContentCreatorDashboardPanel() {
                 Administration is for platform owner only.
               </Text>
               <Pressable onPress={() => router.push("/cartoon-studio")} style={{ marginTop: 8 }}>
-                <Text style={{ color: colors.primary, fontWeight: "800" }}>Open Cartoon Studio →</Text>
+                <Text style={{ color: colors.primary, fontWeight: "800" }}>
+                  Open Cartoon Studio — film a lesson, host Cartoon Me →
+                </Text>
               </Pressable>
             </View>
+            <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+              <CartoonCreatorPricingPanel />
+            </View>
+            {(hostedCartoons.data ?? []).length > 0 ? (
+              <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                <Text style={{ color: colors.foreground, fontWeight: "800" }}>Hosted cartoon videos</Text>
+                <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18, marginBottom: 8 }}>
+                  These are the cartoon stand-in videos on your creator page. The audience sees Cartoon Me, not your real camera face.
+                </Text>
+                {hostedCartoons.data!.map((project) => (
+                  <Pressable
+                    key={project.id}
+                    onPress={() => router.push("/cartoon-studio")}
+                    style={{ paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border }}
+                  >
+                    <Text style={{ color: colors.foreground, fontWeight: "700" }}>{project.title}</Text>
+                    <Text style={{ color: colors.muted, fontSize: 12 }}>
+                      {project.characterName ? `Cartoon Me · ${project.characterName} · ` : ""}
+                      {project.tier} · {project.totalSeconds}s
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
             <Text style={{ color: colors.foreground, fontWeight: "700" }}>Recent transactions</Text>
             <TransactionHistoryList transactions={recentTransactions} />
           </>

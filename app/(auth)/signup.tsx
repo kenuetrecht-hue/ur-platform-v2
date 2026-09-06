@@ -9,6 +9,8 @@ import { LAUNCH_PROMOTION_SUBLINE } from "@/lib/launch-promotion-config";
 import { AFFILIATE_REFERRAL_PAYOUT_RULE } from "@/lib/affiliate-referral-payout-policy";
 import { CREATOR_CONTENT_PROTECTION_NOTICE } from "@/lib/creator-content-protection-copy";
 import { TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
+import { SIGNUP_FIELDS, SIGNUP_PAGE_WHY, signupPrivacyBlock } from "@/lib/signup-step-copy";
+import { SignupStepExplain } from "@/components/signup-step-explain";
 import { saveLandingDemoAttributionId } from "@/lib/landing-demo-attribution-storage";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { PrimaryActionButton } from "@/components/primary-action-button";
@@ -191,6 +193,9 @@ export default function SignUpScreen() {
             <Text style={{ fontSize: 16, color: colors.muted }}>
               Create your account
             </Text>
+            <Text style={{ fontSize: 13, color: colors.muted, textAlign: "center", lineHeight: 19 }}>
+              {SIGNUP_PAGE_WHY}
+            </Text>
             {params.membership === "active" ? (
               <Text
                 style={{
@@ -257,6 +262,7 @@ export default function SignUpScreen() {
               >
                 Name
               </Text>
+              <SignupStepExplain doThis={SIGNUP_FIELDS[0].doThis} why={SIGNUP_FIELDS[0].why} />
               <TextInput
                 value={name}
                 onChangeText={setName}
@@ -299,6 +305,7 @@ export default function SignUpScreen() {
               >
                 Email
               </Text>
+              <SignupStepExplain doThis={SIGNUP_FIELDS[1].doThis} why={SIGNUP_FIELDS[1].why} />
               <TextInput
                 value={email}
                 onChangeText={setEmail}
@@ -331,6 +338,7 @@ export default function SignUpScreen() {
               >
                 Password
               </Text>
+              <SignupStepExplain doThis={SIGNUP_FIELDS[2].doThis} why={SIGNUP_FIELDS[2].why} />
               <TextInput
                 value={password}
                 onChangeText={setPassword}
@@ -362,6 +370,7 @@ export default function SignUpScreen() {
                 >
                   Referral code (optional)
                 </Text>
+                <SignupStepExplain doThis={SIGNUP_FIELDS[3].doThis} why={SIGNUP_FIELDS[3].why} />
                 <TextInput
                   value={referralCode}
                   onChangeText={setReferralCode}
@@ -398,6 +407,7 @@ export default function SignUpScreen() {
               >
                 I am a…
               </Text>
+              <SignupStepExplain doThis={SIGNUP_FIELDS[4].doThis} why={SIGNUP_FIELDS[4].why} />
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                 {ROLES.map((r) => (
                   <Pressable
@@ -444,6 +454,23 @@ export default function SignUpScreen() {
                 </Text>
               ) : null}
             </View>
+          </View>
+
+          <View
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+              borderRadius: 12,
+              padding: 12,
+              gap: 8,
+            }}
+          >
+            <SignupStepExplain doThis={SIGNUP_FIELDS[5].doThis} why={SIGNUP_FIELDS[5].why} />
+            <SignupStepExplain doThis={SIGNUP_FIELDS[6].doThis} why={SIGNUP_FIELDS[6].why} />
+            <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
+              {signupPrivacyBlock()}
+            </Text>
           </View>
 
           <Pressable

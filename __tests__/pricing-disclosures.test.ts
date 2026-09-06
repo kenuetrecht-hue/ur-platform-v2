@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  buildCartoonCreatorPurchaseSummary,
   buildCartoonStudioPurchaseSummary,
   buildSubscriptionPurchaseSummary,
   buildTalkPurchaseSummary,
@@ -102,6 +103,13 @@ describe("pricing-disclosures", () => {
     expect(summary.importantNotes.some((note) => /web browser/i.test(note))).toBe(true);
     expect(msg).toContain("Service:");
     expect(msg).toContain("Stripe fee:");
+  });
+
+  it("cartoon creator platform receipt lists $3.99-fan cover, tax, Stripe, and no refunds", () => {
+    const summary = buildCartoonCreatorPurchaseSummary({ planId: "channel", stateCode: "FL" });
+    expect(summary.pricing.subtotalDisplay).toContain("$49.99");
+    expect(summary.youReceive.some((line) => line.label === "Covered by $3.99 fans")).toBe(true);
+    expect(summary.importantNotes.some((note) => /no return policy/i.test(note))).toBe(true);
   });
 
   it("formats receipt message for confirmation", () => {

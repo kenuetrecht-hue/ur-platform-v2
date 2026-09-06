@@ -5,6 +5,7 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { SOCIAL_POST_DISCLOSURE } from "@/lib/platform-disclosure-copy";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
+import { useAuth } from "@/lib/auth-context";
 import { BillingStatePicker } from "@/components/billing-state-picker";
 import { calculateCustomerCheckout } from "@/lib/stripe-checkout-pricing";
 import type { UsStateCode } from "@/lib/us-state-taxes";
@@ -80,9 +81,11 @@ export function PlatformShopPanel() {
   const colors = useColors();
   const router = useRouter();
   const { isPlatformOwner } = usePlatformOwner();
+  const { isAuthenticated } = useAuth();
   const utils = trpc.useUtils();
   const [billingState, setBillingState] = useState<UsStateCode | null>(null);
   const shop = trpc.commerce.platformShop.useQuery();
+  const markets = trpc.commerce.trendingMarkets.useQuery(undefined, { enabled: isAuthenticated });
   const creatorShops = trpc.commerce.listCreatorShops.useQuery();
   const purchase = trpc.commerce.simulatePurchase.useMutation({
     onSuccess: () => void utils.commerce.platformShop.invalidate(),
@@ -113,6 +116,22 @@ export function PlatformShopPanel() {
           dropship, and partner picks.
         </Text>
       </View>
+
+      {(markets.data?.markets ?? []).length > 0 ? (
+        <View style={[styles.banner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 14 }}>
+            Markets we are stocking
+          </Text>
+          <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16, marginBottom: 6 }}>
+            Live category signals — we do not invent products. Owner lists real SKUs after a search.
+          </Text>
+          {markets.data!.markets.map((market) => (
+            <Text key={market.id} style={{ color: colors.muted, fontSize: 12 }}>
+              {market.inStock ? "In stock" : "Need to stock"} · {market.label} — {market.shopNeed}
+            </Text>
+          ))}
+        </View>
+      ) : null}
 
       <Pressable
         onPress={() =>

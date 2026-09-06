@@ -17,6 +17,7 @@ import { BillingStatePicker } from "@/components/billing-state-picker";
 import { NoRefundPurchaseAck } from "@/components/no-refund-purchase-ack";
 import { PaymentChannelNotice } from "@/components/payment-channel-notice";
 import { PurchaseSummaryCard } from "@/components/purchase-summary-card";
+import { CartoonCreatorPricingPanel } from "@/components/cartoon-creator-pricing-panel";
 import { useColors } from "@/hooks/use-colors";
 import { useBillingState } from "@/hooks/use-billing-state";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
@@ -40,6 +41,19 @@ import {
   type CartoonStudioTierId,
 } from "@/lib/cartoon-studio-pricing";
 import { buildCartoonStudioPurchaseSummary } from "@/lib/pricing-disclosures";
+import {
+  CARTOON_FOOTAGE_MAX,
+  CARTOON_SELF_ATTESTATION,
+  CARTOON_SELF_HAIR,
+  CARTOON_SELF_LOOK_MAX,
+  CARTOON_SELF_RULE,
+  CARTOON_SELF_SETTINGS,
+  CARTOON_SELF_SHIRTS,
+  CARTOON_SELF_TITLE,
+  type CartoonSelfHairId,
+  type CartoonSelfSettingId,
+  type CartoonSelfShirtId,
+} from "@/lib/cartoon-self";
 
 export default function CartoonStudioScreen() {
   const colors = useColors();
@@ -56,7 +70,16 @@ export default function CartoonStudioScreen() {
   const [seconds, setSeconds] = useState(8);
   const [acceptedNoRefund, setAcceptedNoRefund] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [selfName, setSelfName] = useState("Kenneth");
+  const [lookNotes, setLookNotes] = useState("Short hair, work shirt, filming in the yard.");
+  const [setting, setSetting] = useState<CartoonSelfSettingId>("yard");
+  const [hair, setHair] = useState<CartoonSelfHairId>("short");
+  const [shirt, setShirt] = useState<CartoonSelfShirtId>("navy");
+  const [attestedSelf, setAttestedSelf] = useState(false);
+  const [footageNotes, setFootageNotes] = useState("");
+  const [useCartoonSelf, setUseCartoonSelf] = useState(true);
 
+  const selfQuery = trpc.cartoonStudio.self.useQuery();
   const list = trpc.cartoonStudio.list.useQuery();
   const purchase = trpc.cartoonStudio.purchaseAndCreate.useMutation({
     onSuccess: (result) => {
@@ -74,6 +97,17 @@ export default function CartoonStudioScreen() {
   const updateTimeline = trpc.cartoonStudio.updateTimeline.useMutation({
     onSuccess: () => {
       void utils.cartoonStudio.list.invalidate();
+    },
+  });
+  const saveSelf = trpc.cartoonStudio.saveSelf.useMutation({
+    onSuccess: () => {
+      void utils.cartoonStudio.self.invalidate();
+    },
+  });
+  const publish = trpc.cartoonStudio.publish.useMutation({
+    onSuccess: () => {
+      void utils.cartoonStudio.list.invalidate();
+      void utils.cartoonStudio.published.invalidate();
     },
   });
   const remove = trpc.cartoonStudio.delete.useMutation({
@@ -98,6 +132,7 @@ export default function CartoonStudioScreen() {
   );
   const active = list.data?.find((project) => project.id === activeId) ?? list.data?.[0] ?? null;
   const mustUseWeb = clientPlatform === "native" && !isPlatformOwner;
+  const hasLesson = idea.trim().length >= 8 || footageNotes.trim().length >= 8;
 
   return (
     <ScreenContainer className="bg-background">
@@ -123,6 +158,10 @@ export default function CartoonStudioScreen() {
               {CARTOON_STUDIO_NO_REFUND_POLICY}
             </Text>
             <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>{CARTOON_STUDIO_RULE}</Text>
+          </View>
+
+          <View style={[styles.billBox, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+            <CartoonCreatorPricingPanel />
           </View>
 
           <Text style={{ color: colors.foreground, fontWeight: "800" }}>1. Pick a plan — cheap to 4K</Text>
@@ -219,13 +258,148 @@ export default function CartoonStudioScreen() {
             {CARTOON_STYLES.find((item) => item.id === style)?.hint}
           </Text>
 
-          <Text style={{ color: colors.foreground, fontWeight: "800" }}>4. Idea or script</Text>
+          <View style={[styles.billBox, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+            <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>{CARTOON_SELF_TITLE}</Text>
+            <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>{CARTOON_SELF_RULE}</Text>
+            {selfQuery.data?.profile ? (
+              <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>
+                Saved stand-in: {selfQuery.data.profile.displayName} · {selfQuery.data.profile.setting} ·{" "}
+                {selfQuery.data.profile.hair}
+              </Text>
+            ) : (
+              <Text style={{ color: colors.muted, fontSize: 13 }}>
+                Save Cartoon Me once. Then every lesson can use that same little character on your creator page.
+              </Text>
+            )}
+            <TextInput
+              value={selfName}
+              onChangeText={setSelfName}
+              maxLength={40}
+              placeholder="Your first name on the cartoon"
+              placeholderTextColor={colors.muted}
+              style={[styles.input, { borderColor: colors.border, color: colors.foreground, minHeight: 44 }]}
+            />
+            <TextInput
+              value={lookNotes}
+              onChangeText={setLookNotes}
+              maxLength={CARTOON_SELF_LOOK_MAX}
+              multiline
+              placeholder="Short hair, navy work shirt, I film in the yard…"
+              placeholderTextColor={colors.muted}
+              style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface, minHeight: 72 }]}
+            />
+            <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>Where you film</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {CARTOON_SELF_SETTINGS.map((item) => (
+                <Pressable
+                  key={item.id}
+                  onPress={() => setSetting(item.id)}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: setting === item.id ? colors.primary : colors.surface,
+                      borderColor: setting === item.id ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: setting === item.id ? "#fff" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
+                    {item.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {CARTOON_SELF_HAIR.map((item) => (
+                <Pressable
+                  key={item.id}
+                  onPress={() => setHair(item.id)}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: hair === item.id ? colors.primary : colors.surface,
+                      borderColor: hair === item.id ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: hair === item.id ? "#fff" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
+                    {item.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {CARTOON_SELF_SHIRTS.map((item) => (
+                <Pressable
+                  key={item.id}
+                  onPress={() => setShirt(item.id)}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: shirt === item.id ? colors.primary : colors.surface,
+                      borderColor: shirt === item.id ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: shirt === item.id ? "#fff" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
+                    {item.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <Pressable onPress={() => setAttestedSelf((value) => !value)}>
+              <Text style={{ color: colors.foreground, fontSize: 13, lineHeight: 19 }}>
+                {attestedSelf ? "☑" : "☐"} {CARTOON_SELF_ATTESTATION}
+              </Text>
+            </Pressable>
+            <Pressable
+              disabled={saveSelf.isPending || !attestedSelf}
+              onPress={() =>
+                saveSelf.mutate({
+                  displayName: selfName.trim(),
+                  lookNotes: lookNotes.trim(),
+                  setting,
+                  hair,
+                  shirt,
+                  attestedOwnLikeness: true,
+                })
+              }
+              style={[styles.primary, { backgroundColor: colors.primary, opacity: attestedSelf ? 1 : 0.5 }]}
+            >
+              {saveSelf.isPending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.primaryText}>Save Cartoon Me</Text>
+              )}
+            </Pressable>
+            {saveSelf.error ? (
+              <Text style={{ color: "#c0392b", fontSize: 13 }}>{saveSelf.error.message}</Text>
+            ) : null}
+          </View>
+
+          <Text style={{ color: colors.foreground, fontWeight: "800" }}>4. Your yard footage — or type the lesson</Text>
+          <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
+            Camera shy is fine. Film the lesson for yourself, then paste what you said. The audience sees Cartoon Me, not your real face.
+          </Text>
+          <TextInput
+            value={footageNotes}
+            onChangeText={setFootageNotes}
+            maxLength={CARTOON_FOOTAGE_MAX}
+            multiline
+            placeholder="I was in the yard showing how to check a breaker. First I pointed at the panel…"
+            placeholderTextColor={colors.muted}
+            style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
+          />
+          <Pressable onPress={() => setUseCartoonSelf((value) => !value)}>
+            <Text style={{ color: colors.primary, fontWeight: "700" }}>
+              {useCartoonSelf ? "☑ Use Cartoon Me in this video" : "☐ Use Cartoon Me in this video"}
+            </Text>
+          </Pressable>
           <TextInput
             value={idea}
             onChangeText={setIdea}
             maxLength={CARTOON_IDEA_MAX}
             multiline
-            placeholder="A plumber cartoon teaches why a trap holds water…"
+            placeholder="Or type a lesson if you did not film yet…"
             placeholderTextColor={colors.muted}
             style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
           />
@@ -253,7 +427,7 @@ export default function CartoonStudioScreen() {
             <Pressable
               disabled={
                 purchase.isPending ||
-                idea.trim().length < 8 ||
+                !hasLesson ||
                 !hasState ||
                 !acceptedNoRefund ||
                 !isAuthenticated
@@ -261,13 +435,15 @@ export default function CartoonStudioScreen() {
               onPress={() => {
                 if (!stateCode || !acceptedNoRefund) return;
                 purchase.mutate({
-                  idea: idea.trim(),
+                  idea: idea.trim() || footageNotes.trim(),
                   style,
                   tierId,
                   seconds,
                   stateCode,
                   clientPlatform,
                   acceptedNoRefund: true,
+                  footageNotes: footageNotes.trim() || undefined,
+                  useCartoonSelf,
                 });
               }}
               style={[
@@ -275,7 +451,7 @@ export default function CartoonStudioScreen() {
                 {
                   backgroundColor: colors.primary,
                   opacity:
-                    purchase.isPending || idea.trim().length < 8 || !hasState || !acceptedNoRefund || !isAuthenticated
+                    purchase.isPending || !hasLesson || !hasState || !acceptedNoRefund || !isAuthenticated
                       ? 0.5
                       : 1,
                 },
@@ -305,8 +481,17 @@ export default function CartoonStudioScreen() {
 
           {isPlatformOwner ? (
             <Pressable
-              disabled={complimentary.isPending || idea.trim().length < 8}
-              onPress={() => complimentary.mutate({ idea: idea.trim(), style, tierId, seconds })}
+              disabled={complimentary.isPending || !hasLesson}
+              onPress={() =>
+                complimentary.mutate({
+                  idea: idea.trim() || footageNotes.trim(),
+                  style,
+                  tierId,
+                  seconds,
+                  footageNotes: footageNotes.trim() || undefined,
+                  useCartoonSelf,
+                })
+              }
             >
               <Text style={{ color: colors.primary, fontWeight: "700" }}>
                 Owner complimentary build (no card)
@@ -323,6 +508,12 @@ export default function CartoonStudioScreen() {
                 {active.billedSeconds}s · used {active.totalSeconds}s
               </Text>
               <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>{active.engineNote}</Text>
+              {active.characterName ? (
+                <Text style={{ color: colors.primary, fontWeight: "700" }}>
+                  Cartoon Me: {active.characterName}
+                  {active.fromFootage ? " · built from your footage notes" : ""}
+                </Text>
+              ) : null}
               <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>{active.script}</Text>
               <CartoonStudioPlayer project={active} />
               <CartoonStudioEditor
@@ -333,6 +524,26 @@ export default function CartoonStudioScreen() {
               {updateTimeline.error ? (
                 <Text style={{ color: "#c0392b", fontSize: 13 }}>{updateTimeline.error.message}</Text>
               ) : null}
+              <Pressable
+                onPress={() => publish.mutate({ projectId: active.id })}
+                style={[styles.primary, { backgroundColor: "#059669" }]}
+              >
+                {publish.isPending ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.primaryText}>
+                    {active.publishedAt
+                      ? "Already on your creator page"
+                      : "Host this cartoon on my creator page"}
+                  </Text>
+                )}
+              </Pressable>
+              {publish.error ? (
+                <Text style={{ color: "#c0392b", fontSize: 13 }}>{publish.error.message}</Text>
+              ) : null}
+              <Pressable onPress={() => router.push("/creator-dashboard")}>
+                <Text style={{ color: colors.primary, fontWeight: "700" }}>Open my creator page →</Text>
+              </Pressable>
               <Pressable onPress={() => remove.mutate({ projectId: active.id })}>
                 <Text style={{ color: "#c0392b", fontWeight: "700" }}>Delete this cartoon</Text>
               </Pressable>

@@ -72,6 +72,14 @@ import {
   quoteCartoonStudio,
   type CartoonStudioTierId,
 } from "./cartoon-studio-pricing";
+import {
+  CARTOON_CREATOR_BILLING_NOTES,
+  CARTOON_CREATOR_NO_REFUND_POLICY,
+  CARTOON_CREATOR_PLAN_DAYS,
+  getCartoonCreatorPlan,
+  quoteCartoonCreatorPlan,
+  type CartoonCreatorPlanId,
+} from "./cartoon-creator-pricing";
 
 export type PurchaseSummaryLine = {
   label: string;
@@ -82,7 +90,7 @@ export type PurchaseSummaryLine = {
 export type PurchasePricing = ReturnType<typeof calculateCustomerCheckout>;
 
 export type PurchaseSummary = {
-  productType: "ai_subscription" | "ai_talk" | "workspace_3d" | "workspace_3d_addon" | "live_class" | "class_replay" | "usage_credit" | "cartoon_studio";
+  productType: "ai_subscription" | "ai_talk" | "workspace_3d" | "workspace_3d_addon" | "live_class" | "class_replay" | "usage_credit" | "cartoon_studio" | "cartoon_creator";
   title: string;
   /** Itemized price — subtotal + tax + Stripe fee = total */
   pricing: PurchasePricing;
@@ -648,6 +656,50 @@ export function buildCartoonStudioPurchaseSummary(params: {
     ],
     aiDisclosure:
       "Cartoon Studio uses AI to write a storyboard. Output can be wrong, silly, or not what you imagined. You pay first and accept the result. This is not human professional advice.",
+    billingEntity: BILLING_ENTITY,
+  };
+}
+
+export function buildCartoonCreatorPurchaseSummary(params: {
+  planId: CartoonCreatorPlanId;
+  stateCode?: UsStateCode | null;
+}): PurchaseSummary {
+  const quote = quoteCartoonCreatorPlan(params.planId);
+  const plan = getCartoonCreatorPlan(params.planId);
+  const { pricing, youPay, priceBreakdown } = buildPricingBlock(
+    quote.subtotalCents,
+    params.stateCode,
+    `${CARTOON_CREATOR_PLAN_DAYS} days prepaid`,
+  );
+  const channel = getRequiredPaymentChannel(quote.subtotalCents);
+  return {
+    productType: "cartoon_creator",
+    title: `${plan.label} — ${CARTOON_CREATOR_PLAN_DAYS} days`,
+    pricing,
+    youPay,
+    priceBreakdown,
+    youReceive: [
+      { label: "Plan", value: `${plan.label} (${plan.badge})` },
+      { label: "Cartoon Me live minutes", value: `${quote.liveMinutes.toLocaleString()} minutes` },
+      { label: "Covered by $3.99 fans", value: `About ${plan.fansToCover} paying fans` },
+      { label: "Used for", value: plan.usedFor },
+      { label: "What you get", value: plan.youGet.join(" · ") },
+    ],
+    notIncluded: [
+      "A live Hollywood / Veo restyle of every camera frame",
+      "Prepaid Draft / Lite / Mid / Cinema / Premiere clip renders — those are a separate checkout",
+      "Refunds or unused-minute cash back after 30 days",
+    ],
+    importantNotes: [
+      ...CARTOON_CREATOR_BILLING_NOTES,
+      `Difference: ${plan.difference}`,
+      `What this cost is for: ${plan.costExplained}`,
+      CARTOON_CREATOR_NO_REFUND_POLICY,
+      `Checkout: ${getPaymentChannelLabel(channel)}. ${PAYMENT_CHANNEL_POLICY_SUMMARY}`,
+      ...stateTaxNotes(params.stateCode ?? null, pricing),
+    ],
+    aiDisclosure:
+      "Cartoon Me is a cartoon stand-in. It is not your real face, not a photoreal clone, and not human professional advice. You pay first and accept the result.",
     billingEntity: BILLING_ENTITY,
   };
 }

@@ -1,9 +1,12 @@
 import { useEffect, useRef } from "react";
 import { muxHlsUrl } from "@/lib/mux-video-engine";
+import { useFairShowWatch } from "@/hooks/use-fair-show-watch";
+import { FAIR_SHOW_RULES, type FairShowContentKind } from "@/lib/fair-show";
 
 type Props = {
   playbackId: string;
   token?: string;
+  watch?: { contentId: string; kind: FairShowContentKind; durationSeconds: number };
 };
 
 type HlsLike = {
@@ -30,9 +33,10 @@ function loadHlsConstructor(): Promise<HlsCtor | null> {
   });
 }
 
-export function MuxVideoPlayer({ playbackId, token }: Props) {
+export function MuxVideoPlayer({ playbackId, token, watch }: Props) {
   const ref = useRef<HTMLVideoElement>(null);
   const src = muxHlsUrl(playbackId, token);
+  const { pulse } = useFairShowWatch(watch ?? null);
 
   useEffect(() => {
     const video = ref.current;
@@ -56,11 +60,19 @@ export function MuxVideoPlayer({ playbackId, token }: Props) {
     };
 
     void attach();
+    const onTime = () => {
+      if (!watch || !video) return;
+      pulse(Math.round(video.currentTime), video.ended || video.currentTime >= video.duration - 1);
+    };
+    video.addEventListener("timeupdate", onTime);
+    video.addEventListener("ended", onTime);
     return () => {
       cancelled = true;
       hls?.destroy();
+      video.removeEventListener("timeupdate", onTime);
+      video.removeEventListener("ended", onTime);
     };
-  }, [src]);
+  }, [src, watch, pulse]);
 
   return (
     <video

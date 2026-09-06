@@ -3,6 +3,7 @@ import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { CONDUCT_CHECKBOX_LABEL } from "@/lib/platform-terms-of-use";
+import { CONDUCT_PAGE_WHY } from "@/lib/signup-step-copy";
 
 /** Blocks the product until the member signs the current conduct rules. */
 export function ConductAgreementGate() {
@@ -28,6 +29,7 @@ export function ConductAgreementGate() {
         <Text style={[styles.body, { color: colors.foreground }]}>
           {status.data?.purpose ?? "We are here to have fun, to learn, to educate each other, and to be friendly."}
         </Text>
+        <Text style={[styles.body, { color: colors.muted }]}>{CONDUCT_PAGE_WHY}</Text>
         {bullets.map((bullet) => (
           <Text key={bullet.slice(0, 48)} style={[styles.bullet, { color: colors.muted }]}>
             • {bullet}

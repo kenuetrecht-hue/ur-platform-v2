@@ -83,7 +83,7 @@ const NAMESPACE_USER_LIMITS: Record<ApiNamespace, number> = {
   workspace3d: 40,
   usageCredits: 40,
   jobsite: 80,
-  video: 40,
+  video: 300,
   default: 500,
 };
 

@@ -13,10 +13,18 @@ import {
   fallbackCartoonStoryboard,
   isCartoonStyleId,
   type CartoonMusicMood,
+  type CartoonCharacterLook,
   type CartoonProject,
   type CartoonScene,
   type CartoonStyleId,
 } from "../../lib/cartoon-studio";
+import { buildFootageIdea, CARTOON_FOOTAGE_MAX } from "../../lib/cartoon-self";
+import { getCartoonSelf } from "./cartoon-self-service";
+import {
+  enrollContentCreator,
+  getContentCreatorProfile,
+} from "./partner-program-service";
+import { assertCanHostCartoon } from "./cartoon-creator-entitlement-service";
 import {
   quoteCartoonStudio,
   type CartoonStudioQuote,
@@ -34,11 +42,13 @@ import {
 } from "./multilingual-prompts";
 
 const projects = new Map<string, CartoonProject>();
+const published = new Map<string, string[]>();
 const MAX_PROJECTS_PER_USER = 20;
 const MUSIC_MOODS = new Set<CartoonMusicMood>(["none", "upbeat", "calm", "lesson"]);
 
 export function _resetCartoonStudioForTests(): void {
   projects.clear();
+  published.clear();
 }
 
 function listUserProjects(userId: string): CartoonProject[] {
@@ -70,6 +80,7 @@ function attachFrames(
   scenes: Array<Partial<CartoonScene> & { narration?: string; title?: string; durationSeconds?: number }>,
   tier: CartoonStudioTierId,
   billedSeconds: number,
+  character?: CartoonCharacterLook,
 ): CartoonScene[] {
   const built = scenes.slice(0, CARTOON_MAX_SCENES).map((scene, index) => {
     const order = index + 1;
@@ -87,7 +98,7 @@ function attachFrames(
       caption,
       durationSeconds: Math.min(12, Math.max(3, Math.round(scene.durationSeconds || 5))),
       visualPrompt: sanitizeUserText(scene.visualPrompt || narration, 220),
-      frameSvg: buildCartoonFrameSvg({ title, narration, style, order, tier }),
+      frameSvg: buildCartoonFrameSvg({ title, narration, style, order, tier, character }),
       voiceEnabled: scene.voiceEnabled !== false,
       musicMood,
       musicVolume: Math.min(100, Math.max(0, Math.round(scene.musicVolume ?? 40))),
@@ -101,6 +112,7 @@ function attachFrames(
       style,
       order: scene.order,
       tier,
+      character,
     }),
   }));
 }
@@ -209,11 +221,34 @@ export async function createCartoonVideo(params: {
   style: CartoonStyleId;
   quote?: CartoonStudioQuote;
   complimentary?: boolean;
+  footageNotes?: string;
+  useCartoonSelf?: boolean;
 }): Promise<CartoonProject> {
   assertUserCanUseAi(params.userId, params.isPlatformOwner);
-  const idea = sanitizeUserText(params.idea, 2000);
+  let idea = sanitizeUserText(params.idea, 2000);
+  const footageNotes = params.footageNotes ? sanitizeUserText(params.footageNotes, CARTOON_FOOTAGE_MAX) : "";
+  const self = params.useCartoonSelf || footageNotes ? getCartoonSelf(params.userId) : null;
+  if ((params.useCartoonSelf || footageNotes) && !self) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Save Cartoon Me first — your cartoon stand-in — then we can turn your yard footage into a hosted cartoon.",
+    });
+  }
+  if (self && footageNotes.length >= 8) {
+    idea = buildFootageIdea({
+      characterName: self.displayName,
+      lookNotes: self.lookNotes,
+      setting: self.setting,
+      footageNotes,
+    });
+  } else if (self && idea.length >= 8) {
+    idea = `${self.displayName} as a cartoon stand-in. Look: ${self.lookNotes}. Lesson: ${idea}`.slice(0, 2000);
+  }
   if (idea.length < 8) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Tell the studio what the cartoon is about." });
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Tell the studio the lesson, or paste what you said in your footage.",
+    });
   }
   if (!isCartoonStyleId(params.style)) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Pick a cartoon style." });
@@ -234,8 +269,11 @@ export async function createCartoonVideo(params: {
     });
   }
 
+  const character: CartoonCharacterLook | undefined = self
+    ? { name: self.displayName, hair: self.hair, shirt: self.shirt, setting: self.setting }
+    : undefined;
   const draft = await draftStoryboard({ idea, style: params.style });
-  const scenes = attachFrames(params.style, draft.scenes, quote.tierId, quote.billedSeconds);
+  const scenes = attachFrames(params.style, draft.scenes, quote.tierId, quote.billedSeconds, character);
   const totalSeconds = Math.min(
     quote.billedSeconds,
     scenes.reduce((sum, scene) => sum + scene.durationSeconds, 0),
@@ -256,6 +294,10 @@ export async function createCartoonVideo(params: {
     complimentary: Boolean(params.isPlatformOwner && params.complimentary !== false && !params.quote),
     renderStatus: "complete",
     engineNote: engineNoteFor(quote.tierId),
+    fromFootage: footageNotes.length >= 8,
+    characterName: self?.displayName ?? null,
+    characterLook: character ?? null,
+    publishedAt: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -328,6 +370,7 @@ export function updateCartoonTimeline(params: {
         style: project.style,
         order: current.order,
         tier: project.tier,
+        character: project.characterLook ?? undefined,
       }),
     };
   }
@@ -368,5 +411,60 @@ export function deleteCartoonVideo(userId: string, projectId: string): { ok: tru
     throw new TRPCError({ code: "NOT_FOUND", message: "Cartoon not found." });
   }
   projects.delete(projectId);
+  const ids = published.get(userId) ?? [];
+  published.set(
+    userId,
+    ids.filter((id) => id !== projectId),
+  );
   return { ok: true };
+}
+
+export function publishCartoonToCreatorPage(params: {
+  userId: string;
+  userEmail: string;
+  displayName: string;
+  projectId: string;
+  isPlatformOwner?: boolean;
+}): CartoonProject {
+  const project = getCartoonVideo(params.userId, params.projectId);
+  if (!project.paid) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Pay first. Then you can host the cartoon on your creator page." });
+  }
+  assertCanHostCartoon({ userId: params.userId, isPlatformOwner: params.isPlatformOwner });
+  if (!getContentCreatorProfile(params.userId)) {
+    enrollContentCreator({
+      userId: params.userId,
+      userEmail: params.userEmail,
+      displayName: params.displayName,
+    });
+  }
+  const updated: CartoonProject = {
+    ...project,
+    publishedAt: project.publishedAt ?? new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  projects.set(updated.id, updated);
+  const ids = published.get(params.userId) ?? [];
+  if (!ids.includes(updated.id)) {
+    published.set(params.userId, [updated.id, ...ids]);
+  }
+  return updated;
+}
+
+export function listPublishedCartoons(userId: string): CartoonProject[] {
+  return (published.get(userId) ?? [])
+    .map((id) => projects.get(id))
+    .filter((project): project is CartoonProject => Boolean(project && project.userId === userId));
+}
+
+export function getPublishedCartoon(projectId: string): CartoonProject | null {
+  const project = projects.get(projectId);
+  if (!project?.publishedAt) return null;
+  return project;
+}
+
+export function listAllPublishedCartoons(): CartoonProject[] {
+  return [...projects.values()]
+    .filter((project) => Boolean(project.publishedAt))
+    .sort((a, b) => Date.parse(b.publishedAt ?? b.createdAt) - Date.parse(a.publishedAt ?? a.createdAt));
 }

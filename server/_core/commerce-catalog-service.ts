@@ -18,6 +18,7 @@ import {
 } from "./commerce-affiliate-compliance";
 import { submitFulfillmentOrder, type FulfillmentProvider } from "./commerce-fulfillment-adapters";
 import { calculateCustomerCheckout } from "../../lib/stripe-checkout-pricing";
+import { TREND_MARKET_QUERIES } from "../../lib/commerce-trend-markets";
 
 export const STORE_MANAGER_AI_ID = "store-manager";
 
@@ -468,15 +469,7 @@ export function getStoreAnalytics(storeId: string): StoreAnalytics {
 }
 
 export function getTrendingMarketCategories(): string[] {
-  return [
-    "Creator desk accessories",
-    "Portable lighting",
-    "Wireless audio",
-    "Custom apparel & POD",
-    "Hydration & wellness",
-    "Phone mounts & tripods",
-    "Stream deck alternatives",
-  ];
+  return TREND_MARKET_QUERIES.slice(0, 8).map((market) => market.label);
 }
 
 export type CatalogRotationResult = {

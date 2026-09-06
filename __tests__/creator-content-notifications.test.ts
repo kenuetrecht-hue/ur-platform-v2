@@ -186,7 +186,7 @@ describe("WebSocket Notifications Service", () => {
       );
       expect(notification.type).toBe("stream");
       expect(notification.title).toContain("now live");
-      expect(notification.actionUrl).toContain("trending-content");
+      expect(notification.actionUrl).toContain("fair-show");
     });
 
     it("should send engagement notification", () => {

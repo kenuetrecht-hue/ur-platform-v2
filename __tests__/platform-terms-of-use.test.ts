@@ -49,6 +49,7 @@ describe("platform-terms-of-use", () => {
     expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("no refunds");
     expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("18");
     expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("timestamped");
+    expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("does not sell");
   });
 
   it("names Indiana as the home state and governing law", () => {

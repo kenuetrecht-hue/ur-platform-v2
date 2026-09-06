@@ -6,6 +6,7 @@ import { TabScreenHeader } from "@/components/tab-screen-header";
 import { PromotionalBanner } from "@/components/promotional-banner";
 import { consolidatedNavigation } from "@/lib/consolidated-navigation";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { FairShowFeedPanel } from "@/components/fair-show-feed-panel";
 
 const DISCOVER_ICONS: Record<string, string> = {
   creators: "👥",
@@ -34,8 +35,10 @@ export default function DiscoverScreen() {
         <TabScreenHeader
           icon="🧭"
           title="Discover"
-          subtitle="Find creators, trending content, and all AI specialists."
+          subtitle="Fair Show first — then creators, shop, and AI specialists."
         />
+
+        <FairShowFeedPanel />
 
         <View style={{ paddingHorizontal: 16, marginBottom: 12, gap: 10 }}>
           <Pressable
@@ -91,8 +94,15 @@ export default function DiscoverScreen() {
             <Pressable
               key={item.id}
               onPress={() => {
-                if (item.id === "marketplace") {
+                if (item.id === "marketplace" || item.id === "affiliates") {
                   router.push("/shop");
+                } else if (
+                  item.id === "trending-content" ||
+                  item.id === "trending-creators" ||
+                  item.id === "categories" ||
+                  item.id === "creators"
+                ) {
+                  router.push("/discover/fair-show");
                 } else {
                   router.push("/ais");
                 }

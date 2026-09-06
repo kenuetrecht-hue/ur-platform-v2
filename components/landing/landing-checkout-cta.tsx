@@ -133,9 +133,10 @@ export function LandingCheckoutCta() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <Text style={styles.note}>
-          Adults 18+ only. Sign in, photograph ID front and back plus a matching selfie, then
-          purchase. Sales tax and Stripe’s 2.9% + $0.30 are added to your card — not taken from UR
-          or from a creator. AI output is educational and entertainment only.
+          Adults 18+ only. Sign in, photograph ID front and back plus a matching selfie (fraud
+          protection — UR does not keep the pictures), then purchase. Sales tax and Stripe’s 2.9% +
+          $0.30 are added to your card — not taken from UR or from a creator. AI output is educational
+          and entertainment only.
         </Text>
           </>
         ) : (

@@ -34,6 +34,12 @@ import {
 import { getContentCreatorProfile } from "../_core/partner-program-service";
 import { sanitizeUserText } from "../_core/input-sanitize";
 import { affiliateNetworkFromUrl, OWNER_DIGITAL_KINDS } from "../../lib/affiliate-link-policy";
+import {
+  formatTrendSignalsForStoreManager,
+  getTrendMarketSignals,
+  listPublicTrendingMarkets,
+  refreshTrendMarketSignals,
+} from "../_core/commerce-trend-signals-service";
 
 export const commerceRouter = router({
   /** Provider readiness — add API keys in .env when you sign up with each company. */
@@ -149,10 +155,13 @@ export const commerceRouter = router({
     }),
 
   storeManagerContext: secureProcedure("commerce").query(({ ctx }) =>
-    buildStoreManagerContext({
-      userId: String(ctx.user.id),
-      isPlatformOwner: ctx.isPlatformOwner,
-    }),
+    [
+      buildStoreManagerContext({
+        userId: String(ctx.user.id),
+        isPlatformOwner: ctx.isPlatformOwner,
+      }),
+      formatTrendSignalsForStoreManager(),
+    ].join("\n\n"),
   ),
 
   addProduct: secureProcedure("commerce")
@@ -301,4 +310,14 @@ export const commerceRouter = router({
     }),
 
   storeManagerAiId: publicProcedure.query(() => ({ creatorId: STORE_MANAGER_AI_ID })),
+
+  trendingMarkets: secureProcedure("commerce").query(() => ({
+    markets: listPublicTrendingMarkets(),
+  })),
+
+  trendSignals: ownerProcedure.query(() => getTrendMarketSignals()),
+
+  refreshTrendSignals: ownerProcedure.mutation(({ ctx }) =>
+    refreshTrendMarketSignals({ ownerUserId: String(ctx.user.id) }),
+  ),
 });

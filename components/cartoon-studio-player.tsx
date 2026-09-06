@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import type { PublicCartoonProject } from "@/lib/cartoon-studio";
+import { useFairShowWatch } from "@/hooks/use-fair-show-watch";
 
 type Props = {
   project: PublicCartoonProject;
@@ -12,18 +13,30 @@ export function CartoonStudioPlayer({ project }: Props) {
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const scene = project.scenes[index] ?? project.scenes[0];
+  const watchedSeconds = useMemo(
+    () => project.scenes.slice(0, index).reduce((sum, item) => sum + item.durationSeconds, 0),
+    [project.scenes, index],
+  );
+  const { pulse } = useFairShowWatch({
+    contentId: project.id,
+    kind: "cartoon",
+    durationSeconds: project.totalSeconds,
+  });
 
   useEffect(() => {
     if (!playing || !scene) return;
     const timer = setTimeout(() => {
+      const nextWatched = watchedSeconds + scene.durationSeconds;
       if (index + 1 < project.scenes.length) {
+        pulse(nextWatched);
         setIndex(index + 1);
       } else {
+        pulse(nextWatched, true);
         setPlaying(false);
       }
     }, scene.durationSeconds * 1000);
     return () => clearTimeout(timer);
-  }, [playing, index, scene, project.scenes.length]);
+  }, [playing, index, scene, project.scenes.length, watchedSeconds, pulse]);
 
   if (!scene) return null;
 

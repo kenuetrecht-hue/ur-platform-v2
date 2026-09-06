@@ -8,6 +8,9 @@ import { OwnerCommandCenterPanel } from "@/components/owner-command-center-panel
 import { PlatformConductReviewPanel } from "@/components/platform-conduct-review-panel";
 import { PlatformOpsConsole } from "@/components/platform-ops-console";
 import { CommerceOpsPanel } from "@/components/commerce-ops-panel";
+import { CommerceTrendOpsPanel } from "@/components/commerce-trend-ops-panel";
+import { FairShowOwnerPanel } from "@/components/fair-show-owner-panel";
+import { SecurityNoticeOpsPanel } from "@/components/security-notice-ops-panel";
 import { FoundingAudienceReviewPanel } from "@/components/founding-audience-review-panel";
 import { LandingDemoConversionStatsPanel } from "@/components/landing-demo-conversion-stats-panel";
 import { AdminDashboard } from "@/components/admin-dashboard";
@@ -187,6 +190,9 @@ export default function OwnerOpsScreen() {
             {isPlatformOwner ? <OwnerCommandCenterPanel /> : null}
             {isPlatformOwner ? <PlatformConductReviewPanel /> : null}
             {isPlatformOwner ? <FoundingAudienceReviewPanel /> : null}
+            {isPlatformOwner ? <FairShowOwnerPanel /> : null}
+            {isPlatformOwner ? <SecurityNoticeOpsPanel /> : null}
+            {isPlatformOwner ? <CommerceTrendOpsPanel /> : null}
             {isPlatformOwner ? <CommerceOpsPanel /> : null}
             {isPlatformOwner ? <LandingDemoConversionStatsPanel /> : null}
           </ScrollView>

@@ -84,13 +84,13 @@ export class ConsolidatedNavigationService {
       icon: "compass.fill",
       route: "/discover",
       subMenu: [
-        { id: "creators", label: "All Creators", route: "/discover/creators" },
-        { id: "trending-creators", label: "Trending Creators", route: "/discover/trending-creators" },
-        { id: "categories", label: "By Category", route: "/discover/categories" },
-        { id: "marketplace", label: "Marketplace", route: "/discover/marketplace" },
-        { id: "search", label: "Search", route: "/discover/search" },
-        { id: "trending-content", label: "Trending Content", route: "/discover/trending-content" },
-        { id: "affiliates", label: "Affiliate Products", route: "/discover/affiliates" },
+        { id: "creators", label: "All Creators", route: "/discover/fair-show" },
+        { id: "trending-creators", label: "Trending Creators", route: "/discover/fair-show" },
+        { id: "categories", label: "By Category", route: "/discover/fair-show" },
+        { id: "marketplace", label: "Marketplace", route: "/shop" },
+        { id: "search", label: "Search", route: "/ais" },
+        { id: "trending-content", label: "Fair Show", route: "/discover/fair-show" },
+        { id: "affiliates", label: "Affiliate Products", route: "/shop" },
       ],
     });
 

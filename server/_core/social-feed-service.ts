@@ -520,3 +520,10 @@ export function getFeedStats(userId: string): {
     friendCount: listFriends(userId).length,
   };
 }
+
+export function listDiscoverableVideoPosts(limit = 80): FeedPost[] {
+  return [...posts.values()]
+    .filter((post) => post.visibility === "public" && (post.kind === "video" || Boolean(post.videoUrl)))
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    .slice(0, limit);
+}

@@ -84,6 +84,7 @@ import {
   canUseStoreManagerAi,
   buildStoreManagerContext,
 } from "./commerce-catalog-service";
+import { formatTrendSignalsForStoreManager } from "./commerce-trend-signals-service";
 import { getAffiliateProfile } from "./partner-program-service";
 import {
   BLUEPRINT_READER_AI_ID,
@@ -429,7 +430,7 @@ export async function handleCreatorAiChat(params: {
           basePrompt += `\n\n${buildStoreManagerContext({
             userId,
             isPlatformOwner: params.ctx.isPlatformOwner,
-          })}`;
+          })}\n\n${formatTrendSignalsForStoreManager()}`;
         }
         if (params.creatorId === BLUEPRINT_READER_AI_ID) {
           basePrompt += `\n\n${buildBlueprintReaderContextForChat(userId)}`;

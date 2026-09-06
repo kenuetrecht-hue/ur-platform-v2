@@ -17,6 +17,8 @@ import { WebLoginSubmit } from "@/components/web-login-submit";
 import { useLoginScreen } from "@/hooks/use-login-screen";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { TurnstileWidget } from "@/components/turnstile-widget";
+import { LOGIN_FIELDS, LOGIN_PAGE_WHY } from "@/lib/signup-step-copy";
+import { SignupStepExplain } from "@/components/signup-step-explain";
 
 /** Same login on website and native app — web uses a DOM submit button so clicks register. */
 export default function LoginScreen() {
@@ -81,8 +83,11 @@ export default function LoginScreen() {
               Download the app from this website
             </Link>
             <Text style={[styles.title, { color: colors.foreground }]}>UR Platform</Text>
-            <Text style={{ fontSize: 16, color: colors.muted, marginBottom: 24 }}>
+            <Text style={{ fontSize: 16, color: colors.muted, marginBottom: 8 }}>
               Sign in to your account
+            </Text>
+            <Text style={{ fontSize: 13, color: colors.muted, lineHeight: 19, marginBottom: 24 }}>
+              {LOGIN_PAGE_WHY}
             </Text>
 
             {serviceHint ? (
@@ -116,6 +121,7 @@ export default function LoginScreen() {
             ) : null}
 
             <Text style={[styles.label, { color: colors.foreground }]}>Email</Text>
+            <SignupStepExplain doThis={LOGIN_FIELDS[0].doThis} why={LOGIN_FIELDS[0].why} />
             <TextInput
               ref={emailRef}
               value={email}
@@ -133,6 +139,7 @@ export default function LoginScreen() {
             />
 
             <Text style={[styles.label, { color: colors.foreground, marginTop: 16 }]}>Password</Text>
+            <SignupStepExplain doThis={LOGIN_FIELDS[1].doThis} why={LOGIN_FIELDS[1].why} />
             <TextInput
               ref={passwordRef}
               value={password}

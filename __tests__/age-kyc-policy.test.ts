@@ -31,5 +31,7 @@ describe("age-kyc terms", () => {
     expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "age-kyc")).toBe(true);
     expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("18");
     expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("selfie");
+    expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("fraud");
+    expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("does not keep the id pictures");
   });
 });

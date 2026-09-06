@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { cartoonFrameDataUri, type PublicCartoonProject } from "@/lib/cartoon-studio";
+import { useFairShowWatch } from "@/hooks/use-fair-show-watch";
 
 type Props = {
   project: PublicCartoonProject;
@@ -15,18 +16,30 @@ export function CartoonStudioPlayer({ project }: Props) {
   const [exportError, setExportError] = useState<string | null>(null);
   const scene = project.scenes[index] ?? project.scenes[0];
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const watchedSeconds = useMemo(
+    () => project.scenes.slice(0, index).reduce((sum, item) => sum + item.durationSeconds, 0),
+    [project.scenes, index],
+  );
+  const { pulse } = useFairShowWatch({
+    contentId: project.id,
+    kind: "cartoon",
+    durationSeconds: project.totalSeconds,
+  });
 
   useEffect(() => {
     if (!playing || !scene) return;
     const timer = window.setTimeout(() => {
+      const nextWatched = watchedSeconds + scene.durationSeconds;
       if (index + 1 < project.scenes.length) {
+        pulse(nextWatched);
         setIndex(index + 1);
       } else {
+        pulse(nextWatched, true);
         setPlaying(false);
       }
     }, scene.durationSeconds * 1000);
     return () => window.clearTimeout(timer);
-  }, [playing, index, scene, project.scenes.length]);
+  }, [playing, index, scene, project.scenes.length, watchedSeconds, pulse]);
 
   const exportWebm = async () => {
     setExportError(null);

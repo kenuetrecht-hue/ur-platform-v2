@@ -140,7 +140,7 @@ class WebSocketNotificationService {
       body: `Watch: ${streamTitle}`,
       data: { creatorName, streamTitle },
       read: false,
-      actionUrl: `/discover/trending-content`,
+      actionUrl: `/discover/fair-show`,
     });
   }
 

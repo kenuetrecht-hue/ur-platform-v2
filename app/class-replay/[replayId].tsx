@@ -80,7 +80,19 @@ export default function ClassReplayScreen() {
                 You can watch · {watch.data.accessReason === "live_ticket" ? "included with your live ticket" : "pay-per-view"}
               </Text>
               {watch.data.playback?.playbackId ? (
-                <MuxVideoPlayer playbackId={watch.data.playback.playbackId} token={watch.data.playback.token} />
+                <MuxVideoPlayer
+                  playbackId={watch.data.playback.playbackId}
+                  token={watch.data.playback.token}
+                  watch={
+                    publicReplay.data
+                      ? {
+                          contentId: publicReplay.data.id,
+                          kind: "class_replay",
+                          durationSeconds: publicReplay.data.durationMinutes * 60,
+                        }
+                      : undefined
+                  }
+                />
               ) : watch.data.videoUrl ? (
                 <Pressable
                   onPress={() => void Linking.openURL(watch.data.videoUrl!)}

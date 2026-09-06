@@ -47,7 +47,8 @@ export const JOIN_EMANUAL_STEPS: JoinEmanualStep[] = [
     title: "Finish the 18+ ID check",
     clicks: [
       "After you sign in, the site opens Age verify.",
-      "Upload your ID front, ID back, and a selfie as the page asks.",
+      "Photograph your ID front, ID back, and a live selfie as the page asks. This keeps fraud off the site and locks your creator name so your content stays yours.",
+      "UR does not keep the ID pictures. A third-party checker (Google AI) looks at them only to confirm you are 18+ and that the selfie is you.",
       "When it passes, you are in. UR Platform then hands you this e-manual automatically — it is the welcome gift for every new member.",
     ],
   },
