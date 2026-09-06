@@ -157,6 +157,7 @@ export function ContentCreatorDashboardPanel() {
               "🎬 Schedule 15–60 min live classes",
               "📣 Share to Facebook & social",
               "✨ ContentMate AI for promo copy",
+              "🎬 Cartoon Studio on website and app — pay first for Draft or Cinema. No refunds.",
               "⚡ 85% on classes & merch · 100% of tips (fan pays the card fee)",
               "🎯 2,000 different people in the 30-day launch (1,000 followers + 1,000 paid subs): a full year of 50% off after your launch deal. 4,000 (2,000 + 2,000) in those 30 days: 60% off that year",
             ].map((item) => (
@@ -374,6 +375,9 @@ export function ContentCreatorDashboardPanel() {
                 Schedule classes, promote on Facebook, and let ContentMate write your captions.
                 Administration is for platform owner only.
               </Text>
+              <Pressable onPress={() => router.push("/cartoon-studio")} style={{ marginTop: 8 }}>
+                <Text style={{ color: colors.primary, fontWeight: "800" }}>Open Cartoon Studio →</Text>
+              </Pressable>
             </View>
             <Text style={{ color: colors.foreground, fontWeight: "700" }}>Recent transactions</Text>
             <TransactionHistoryList transactions={recentTransactions} />

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  buildCartoonStudioPurchaseSummary,
   buildSubscriptionPurchaseSummary,
   buildTalkPurchaseSummary,
   buildUsageCreditPurchaseSummary,
@@ -85,6 +86,22 @@ describe("pricing-disclosures", () => {
     expect(summary.youReceive.some((l) => l.value.includes("1000 minutes"))).toBe(true);
     expect(summary.importantNotes.some((n) => n.toLowerCase().includes("1,000 minutes"))).toBe(true);
     expect(summary.importantNotes.some((n) => n.toLowerCase().includes("web browser"))).toBe(true);
+  });
+
+  it("cartoon studio receipt lists cheap vs expensive, tax, Stripe, and no refunds", () => {
+    const summary = buildCartoonStudioPurchaseSummary({
+      tierId: "draft",
+      seconds: 8,
+      stateCode: "FL",
+    });
+    const msg = formatPurchaseReceiptMessage(summary);
+    expect(summary.pricing.subtotalDisplay).toContain("$2.00");
+    expect(summary.youReceive.some((line) => line.label === "Plan")).toBe(true);
+    expect(summary.importantNotes.some((note) => /Five prepaid plans/i.test(note))).toBe(true);
+    expect(summary.importantNotes.some((note) => /no return policy/i.test(note))).toBe(true);
+    expect(summary.importantNotes.some((note) => /web browser/i.test(note))).toBe(true);
+    expect(msg).toContain("Service:");
+    expect(msg).toContain("Stripe fee:");
   });
 
   it("formats receipt message for confirmation", () => {

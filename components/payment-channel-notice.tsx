@@ -5,6 +5,7 @@ import {
   PAYMENT_CHANNEL_POLICY_SUMMARY,
   AI_SUBSCRIPTION_PRICING_SUMMARY,
   AI_TALK_PRICING_SUMMARY,
+  CARTOON_STUDIO_CHANNEL_SUMMARY,
 } from "@/lib/payment-channel-policy";
 import { DEV_SIMULATED_COMMERCE_NOTICE } from "@/lib/dev-commerce-mode";
 
@@ -41,6 +42,7 @@ export function PaymentChannelNotice({ compact = false, showDevCommerce = __DEV_
         <>
           <Text style={[styles.priceLine, { color: colors.muted }]}>{AI_SUBSCRIPTION_PRICING_SUMMARY}</Text>
           <Text style={[styles.priceLine, { color: colors.muted }]}>{AI_TALK_PRICING_SUMMARY}</Text>
+          <Text style={[styles.priceLine, { color: colors.muted }]}>{CARTOON_STUDIO_CHANNEL_SUMMARY}</Text>
         </>
       ) : null}
     </View>

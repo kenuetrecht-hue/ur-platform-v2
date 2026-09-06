@@ -62,7 +62,7 @@ describe("Partner program — affiliate & creator dashboards", () => {
     if (dash.enrolled) {
       expect(dash.profile.totalBonusesPaidCents).toBe(0);
       expect(dash.referrals[0]?.qualifyingTransactionCount).toBe(0);
-      expect(dash.referrals[0]?.payoutStatus).toMatch(/24 free hours/i);
+      expect(dash.referrals[0]?.payoutStatus).toMatch(/free 24 hours/i);
     }
   });
 

@@ -65,6 +65,13 @@ import {
   TERMS_CHECKOUT_ACKNOWLEDGMENT,
   TERMS_BILLING_ENTITY,
 } from "./platform-terms-of-use";
+import {
+  CARTOON_STUDIO_BILLING_NOTES,
+  CARTOON_STUDIO_NO_REFUND_POLICY,
+  getCartoonStudioTier,
+  quoteCartoonStudio,
+  type CartoonStudioTierId,
+} from "./cartoon-studio-pricing";
 
 export type PurchaseSummaryLine = {
   label: string;
@@ -75,7 +82,7 @@ export type PurchaseSummaryLine = {
 export type PurchasePricing = ReturnType<typeof calculateCustomerCheckout>;
 
 export type PurchaseSummary = {
-  productType: "ai_subscription" | "ai_talk" | "workspace_3d" | "workspace_3d_addon" | "live_class" | "class_replay" | "usage_credit";
+  productType: "ai_subscription" | "ai_talk" | "workspace_3d" | "workspace_3d_addon" | "live_class" | "class_replay" | "usage_credit" | "cartoon_studio";
   title: string;
   /** Itemized price — subtotal + tax + Stripe fee = total */
   pricing: PurchasePricing;
@@ -591,6 +598,56 @@ export function buildClassReplayPurchaseSummary(params: {
     ],
     importantNotes: [...CLASS_REPLAY_PURCHASE_RULES, ...stateTaxNotes(params.stateCode ?? null, pricing)],
     aiDisclosure: AI_DISCLOSURE,
+    billingEntity: BILLING_ENTITY,
+  };
+}
+
+export function buildCartoonStudioPurchaseSummary(params: {
+  tierId: CartoonStudioTierId;
+  seconds: number;
+  stateCode?: UsStateCode | null;
+}): PurchaseSummary {
+  const quote = quoteCartoonStudio(params.tierId, params.seconds);
+  const tier = getCartoonStudioTier(params.tierId);
+  const { pricing, youPay, priceBreakdown } = buildPricingBlock(
+    quote.subtotalCents,
+    params.stateCode,
+    `${quote.billedSeconds} seconds prepaid`,
+  );
+  const channel = getRequiredPaymentChannel(quote.subtotalCents);
+  return {
+    productType: "cartoon_studio",
+    title: `${tier.label} — ${quote.billedSeconds} seconds`,
+    pricing,
+    youPay,
+    priceBreakdown,
+    youReceive: [
+      { label: "Plan", value: `${tier.label} (${tier.badge})` },
+      { label: "Prepaid length", value: `${quote.billedSeconds} seconds` },
+      { label: "Rate", value: quote.rateDisplay },
+      { label: "Service subtotal", value: quote.subtotalDisplay },
+      { label: "Used for", value: tier.usedFor },
+      { label: "What you get", value: tier.youGet.join(" · ") },
+    ],
+    notIncluded: [
+      params.tierId === "draft"
+        ? "Film-engine seconds — buy Lite, Mid, Cinema, or Premiere if you want motion film"
+        : params.tierId === "premiere"
+          ? "A Hollywood movie, unlimited length, or a second 4K render without paying again"
+          : "A higher engine on this receipt — buy the next plan up if you want sharper film",
+      "Refunds, replacements, or a redo because you dislike the result",
+      "A 5-minute Hollywood movie or a ToonBee twin",
+    ],
+    importantNotes: [
+      ...CARTOON_STUDIO_BILLING_NOTES,
+      `Difference: ${tier.difference}`,
+      `What this cost is for: ${tier.costExplained}`,
+      CARTOON_STUDIO_NO_REFUND_POLICY,
+      `Checkout: ${getPaymentChannelLabel(channel)}. ${PAYMENT_CHANNEL_POLICY_SUMMARY}`,
+      ...stateTaxNotes(params.stateCode ?? null, pricing),
+    ],
+    aiDisclosure:
+      "Cartoon Studio uses AI to write a storyboard. Output can be wrong, silly, or not what you imagined. You pay first and accept the result. This is not human professional advice.",
     billingEntity: BILLING_ENTITY,
   };
 }

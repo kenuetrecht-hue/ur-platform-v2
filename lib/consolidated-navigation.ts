@@ -66,6 +66,7 @@ export class ConsolidatedNavigationService {
       route: "/create",
       subMenu: [
         { id: "video", label: "New Video", icon: "film", route: "/create/video" },
+        { id: "cartoon", label: "Cartoon video", icon: "film", route: "/cartoon-studio" },
         { id: "audio", label: "New Audio", icon: "waveform.circle", route: "/create/audio" },
         { id: "image", label: "New Image", icon: "photo", route: "/create/image" },
         { id: "text", label: "New Text", icon: "doc.text", route: "/create/text" },
