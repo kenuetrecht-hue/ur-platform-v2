@@ -3,6 +3,7 @@ import { secureProcedure, router, TRPCError } from "../_core/trpc";
 import { assertAiEntitled } from "../_core/access-entitlements";
 import { assertSectionEnabledForRequest } from "../_core/platform-section-guard";
 import {
+  createSandboxProject,
   deleteSandboxFile,
   getSandboxProject,
   getSandboxStatus,

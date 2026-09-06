@@ -79,6 +79,34 @@ export function printCurrentDocument(): { ok: boolean; detail: string } {
   return { ok: true, detail: "Print dialog opened — pick your printer." };
 }
 
+/** Open sanitized HTML in a print dialog so the user can Save as PDF. */
+export function printHtmlDocument(html: string): { ok: boolean; detail: string } {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return { ok: false, detail: "Open this page in a browser to print or save as PDF." };
+  }
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.position = "fixed";
+  frame.style.right = "0";
+  frame.style.bottom = "0";
+  frame.style.width = "0";
+  frame.style.height = "0";
+  frame.style.border = "0";
+  document.body.appendChild(frame);
+  const doc = frame.contentDocument;
+  if (!doc) {
+    frame.remove();
+    return { ok: false, detail: "Could not open a print frame." };
+  }
+  doc.open();
+  doc.write(html);
+  doc.close();
+  frame.contentWindow?.focus();
+  frame.contentWindow?.print();
+  setTimeout(() => frame.remove(), 2000);
+  return { ok: true, detail: "Print dialog opened — pick your printer or Save as PDF." };
+}
+
 export type XrSupport = {
   immersiveVr: boolean;
   immersiveAr: boolean;

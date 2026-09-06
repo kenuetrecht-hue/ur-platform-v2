@@ -17,7 +17,7 @@ import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync";
 import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 
-type LanguageMode = "chat" | "translate" | "learn";
+type LanguageMode = "chat" | "translate" | "learn" | "drill";
 
 interface ChatMessage {
   id?: string;
@@ -214,10 +214,15 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
     void sendMessage(`Start a ${learnLevel} lesson in ${language} with essential travel phrases.`);
   };
 
+  const [drillExpected, setDrillExpected] = useState("Buenos días, ¿cómo está usted?");
+  const [drillHeard, setDrillHeard] = useState("");
+  const scoreSpoken = trpc.specialistTools.scoreSpokenDrill.useMutation();
+
   const modePlaceholder: Record<LanguageMode, string> = {
     chat: "Ask in any language — I'll understand and respond...",
     translate: "Type text to translate (any language)...",
     learn: "Ask for a lesson, practice, or conversation drill...",
+    drill: "Type or dictate what you said...",
   };
 
   return (
@@ -242,7 +247,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
         </View>
 
         <View style={styles.modeRow}>
-          {(["chat", "translate", "learn"] as LanguageMode[]).map((m) => (
+          {(["chat", "translate", "learn", "drill"] as LanguageMode[]).map((m) => (
             <TouchableOpacity
               key={m}
               onPress={() => setMode(m)}
@@ -257,7 +262,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
                   mode === m && styles.modeChipTextActive,
                 ]}
               >
-                {m === "chat" ? "Chat" : m === "translate" ? "Translate" : "Learn"}
+                {m === "chat" ? "Chat" : m === "translate" ? "Translate" : m === "learn" ? "Learn" : "Drill"}
               </Text>
             </TouchableOpacity>
           ))}
@@ -417,6 +422,83 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
         </View>
       ) : null}
 
+      {mode === "drill" ? (
+        <View
+          style={[
+            styles.inputArea,
+            {
+              borderTopColor: colors.border,
+              backgroundColor: colors.surface,
+              paddingBottom: overlap.dockPaddingBottom,
+              gap: 8,
+            },
+          ]}
+        >
+          <Text style={[styles.inputHint, { color: colors.muted }]}>
+            Practice score from the words you type or dictate — not a medical speech diagnosis.
+          </Text>
+          <TextInput
+            style={[
+              styles.textInput,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+                color: colors.foreground,
+                minHeight: 44,
+              },
+            ]}
+            placeholder="Target phrase"
+            placeholderTextColor={colors.muted}
+            value={drillExpected}
+            onChangeText={setDrillExpected}
+            maxLength={400}
+            editable={canChat}
+          />
+          <TextInput
+            style={[
+              styles.textInput,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+                color: colors.foreground,
+                minHeight: 44,
+              },
+            ]}
+            placeholder={modePlaceholder.drill}
+            placeholderTextColor={colors.muted}
+            value={drillHeard}
+            onChangeText={setDrillHeard}
+            maxLength={400}
+            editable={canChat}
+          />
+          <TouchableOpacity
+            onPress={() =>
+              scoreSpoken.mutate({
+                expected: drillExpected.trim(),
+                transcript: drillHeard.trim(),
+              })
+            }
+            disabled={!canChat || scoreSpoken.isPending || !drillExpected.trim() || !drillHeard.trim()}
+            style={[
+              styles.sendButton,
+              {
+                backgroundColor: "#0d9488",
+                alignSelf: "flex-end",
+                opacity:
+                  !canChat || scoreSpoken.isPending || !drillExpected.trim() || !drillHeard.trim() ? 0.5 : 1,
+              },
+            ]}
+          >
+            <Text style={styles.sendButtonText}>Score</Text>
+          </TouchableOpacity>
+          {scoreSpoken.data ? (
+            <Text style={[styles.inputHint, { color: colors.foreground }]}>
+              {scoreSpoken.data.score}/100 · missed {scoreSpoken.data.missed.join(", ") || "none"} ·{" "}
+              {scoreSpoken.data.note}
+            </Text>
+          ) : null}
+        </View>
+      ) : (
       <View
         style={[
           styles.inputArea,
@@ -466,6 +548,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
             : "Subscribe to LinguaMate above to start translating and learning."}
         </Text>
       </View>
+      )}
     </KeyboardAvoidingView>
   );
 }

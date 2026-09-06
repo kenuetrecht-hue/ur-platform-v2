@@ -28,7 +28,10 @@ import { AiSpecialistPricingPanel } from "@/components/ai-specialist-pricing-pan
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 
-type SurfaceMode = "chat" | "learn" | "build" | "live" | "pricing";
+import { SpecialistJobToolsPanel } from "@/components/specialist-job-tools-panel";
+import { hasSpecialistJobTools } from "@/lib/specialist-job-tools";
+
+type SurfaceMode = "chat" | "learn" | "build" | "live" | "pricing" | "tools";
 type LearnLevel = "beginner" | "intermediate" | "advanced";
 type LearnMode = "lesson" | "practice" | "certification" | "on_the_job";
 
@@ -151,9 +154,12 @@ export function AiCreatorPanel({
           learnLabel={isForge ? forgeLearnLabel(creatorId) : "Learn the trade"}
           showBuild={isForge}
           showLive={showLiveTab}
+          showTools={hasSpecialistJobTools(creatorId)}
         />
       ) : null}
-      {surface === "pricing" ? (
+      {surface === "tools" && hasSpecialistJobTools(creatorId) ? (
+        <SpecialistJobToolsPanel creatorId={creatorId} creatorName={creatorName} />
+      ) : surface === "pricing" ? (
         <AiSpecialistPricingPanel
           creatorId={creatorId}
           creatorName={creatorName}
@@ -218,6 +224,7 @@ function SurfaceToggle({
   learnLabel,
   showBuild = false,
   showLive = false,
+  showTools = false,
   chatOnlyWithPricing = false,
 }: {
   surface: SurfaceMode;
@@ -226,6 +233,7 @@ function SurfaceToggle({
   learnLabel: string;
   showBuild?: boolean;
   showLive?: boolean;
+  showTools?: boolean;
   /** LinguaMate — chat + pricing only */
   chatOnlyWithPricing?: boolean;
 }) {
@@ -237,6 +245,7 @@ function SurfaceToggle({
     tabs.push({ id: "learn", label: `📚 ${learnLabel}` });
     if (showLive) tabs.push({ id: "live", label: "🎥 Live" });
     if (showBuild) tabs.push({ id: "build", label: "🏗️ Build" });
+    if (showTools) tabs.push({ id: "tools", label: "🧰 Tools" });
     tabs.push({ id: "pricing", label: "💳 Pricing" });
   }
 

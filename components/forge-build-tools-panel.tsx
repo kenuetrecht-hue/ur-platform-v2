@@ -123,7 +123,31 @@ export function ForgeBuildToolsPanel({
   const [ghOwner, setGhOwner] = useState("");
   const [ghRepo, setGhRepo] = useState("");
   const [ghToken, setGhToken] = useState("");
+  const [publicRepoUrl, setPublicRepoUrl] = useState("");
+  const [importNote, setImportNote] = useState<string | null>(null);
+  const [loopNote, setLoopNote] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+
+  const importPublicGithub = trpc.specialistTools.importPublicGithub.useMutation({
+    onSuccess: (r) => {
+      setImportNote(
+        `Imported ${r.imported.length} public files from ${r.owner}/${r.repo}. Read-only — nothing was pushed.`,
+      );
+      void utils.coderSandbox.listProjects.invalidate();
+      void utils.gameDevSandbox.listProjects.invalidate();
+      onRefreshProjects?.();
+    },
+    onError: (e) => setImportNote(e.message),
+  });
+  const runTestLoop = trpc.specialistTools.runTestLoop.useMutation({
+    onSuccess: (r) => {
+      const issues = "issues" in r.test ? r.test.issues : [];
+      setLoopNote(
+        `${r.test.success ? "Tests passed" : "Tests found issues"} · ${r.fileCount} files. ${issues.slice(0, 4).join(" · ")}`,
+      );
+    },
+    onError: (e) => setLoopNote(e.message),
+  });
 
   if (!projectId) {
     return (
@@ -691,6 +715,48 @@ export function ForgeBuildToolsPanel({
               {githubPull.isPending ? "Pulling…" : "Pull files from GitHub"}
             </Text>
           </Pressable>
+        ) : null}
+        <Text style={{ color: colors.muted, fontSize: 11, marginTop: 12, lineHeight: 16 }}>
+          Public import (read-only). Paste https://github.com/owner/repo — no tokens, no push.
+        </Text>
+        <TextInput
+          value={publicRepoUrl}
+          onChangeText={setPublicRepoUrl}
+          placeholder="https://github.com/owner/repo"
+          placeholderTextColor={colors.muted}
+          autoCapitalize="none"
+          maxLength={300}
+          style={[styles.input, { color: colors.foreground, borderColor: colors.border, marginTop: 6 }]}
+        />
+        <Pressable
+          onPress={() =>
+            importPublicGithub.mutate({
+              creatorId,
+              projectId,
+              repoUrl: publicRepoUrl.trim(),
+            })
+          }
+          disabled={importPublicGithub.isPending || !publicRepoUrl.trim()}
+          style={[styles.btn, { backgroundColor: colors.primary, marginTop: 8 }]}
+        >
+          <Text style={styles.btnText}>
+            {importPublicGithub.isPending ? "Importing…" : "Import public repo"}
+          </Text>
+        </Pressable>
+        {importNote ? (
+          <Text style={{ color: colors.muted, fontSize: 11, marginTop: 6 }}>{importNote}</Text>
+        ) : null}
+        <Pressable
+          onPress={() => runTestLoop.mutate({ creatorId, projectId })}
+          disabled={runTestLoop.isPending}
+          style={[styles.btn, { borderColor: colors.primary, borderWidth: 1, marginTop: 8 }]}
+        >
+          <Text style={{ color: colors.primary, fontWeight: "700", textAlign: "center" }}>
+            {runTestLoop.isPending ? "Testing…" : "Run sandbox test loop"}
+          </Text>
+        </Pressable>
+        {loopNote ? (
+          <Text style={{ color: colors.muted, fontSize: 11, marginTop: 6 }}>{loopNote}</Text>
         ) : null}
       </View>
 

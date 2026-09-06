@@ -94,6 +94,11 @@ import {
   getOwnerBusinessTeachingModules,
   isOwnerBusinessTeachingCreator,
 } from "./owner-business-teaching-curriculum";
+import {
+  buildTradeTeachingPromptAddition,
+  getTradeTeachingModules,
+  isTradeTeachingCreator,
+} from "./trade-teaching-curriculum";
 
 export type LearningLevel = "beginner" | "intermediate" | "advanced";
 
@@ -301,6 +306,9 @@ export function getCurriculumForCreator(def: CreatorAiDefinition): LearningModul
   if (isOwnerBusinessTeachingCreator(def.id)) {
     return getOwnerBusinessTeachingModules();
   }
+  if (isTradeTeachingCreator(def.id)) {
+    return getTradeTeachingModules(def.id);
+  }
 
   const fromCategory = CATEGORY_MODULES[def.category] ?? DEFAULT_MODULES;
   const fromScope = def.inScope.slice(0, 4).map((title) => ({
@@ -365,6 +373,7 @@ ${isCulinaryTeachingCreator(def.id) ? `\n\n${buildCulinaryTeachingPromptAddition
 ${isReadingTeachingCreator(def.id) ? `\n\n${buildReadingTeachingPromptAddition(level, mode, topic)}` : ""}
 ${isMathTeachingCreator(def.id) ? `\n\n${buildMathTeachingPromptAddition(level, mode, topic)}` : ""}
 ${isOwnerBusinessTeachingCreator(def.id) ? `\n\n${buildOwnerBusinessTeachingPromptAddition(level, mode, topic)}` : ""}
+${isTradeTeachingCreator(def.id) ? `\n\n${buildTradeTeachingPromptAddition(def.id, level, mode, topic)}` : ""}
 
 Rules:
 - Educational and recreational purposes only — not licensed professional advice.

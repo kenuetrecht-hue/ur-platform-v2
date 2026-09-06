@@ -45,6 +45,7 @@ import { cartoonStudioRouter } from "./routers/cartoon-studio-router";
 import { fairShowRouter } from "./routers/fair-show-router";
 import { ageKycRouter } from "./routers/age-kyc-router";
 import { conductRouter } from "./routers/conduct-router";
+import { specialistToolsRouter } from "./routers/specialist-tools-router";
 import { destroyAllSessionsForUser } from "./_core/forge-session-manager";
 import { getAgeKycPublicStatus } from "./_core/age-kyc-service";
 import { isSupabaseAuthReachable } from "./supabase-auth";
@@ -259,6 +260,7 @@ export const appRouter = router({
   fairShow: fairShowRouter,
   ageKyc: ageKycRouter,
   conduct: conductRouter,
+  specialistTools: specialistToolsRouter,
 });
 
 export type AppRouter = typeof appRouter;
