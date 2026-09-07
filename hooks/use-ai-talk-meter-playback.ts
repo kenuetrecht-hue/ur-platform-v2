@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { METER_HEARTBEAT_INTERVAL_MS } from "@/lib/ai-metering-policy";
 import { isMeteringConnected, useNetworkConnectivity } from "@/hooks/use-network-connectivity";
+import { stopExclusiveAudio } from "@/lib/exclusive-audio-player";
 
 type PlayMeteredAudioParams = {
   meterSessionId: string;
@@ -79,6 +80,14 @@ export function useAiTalkMeterPlayback() {
         return;
       }
 
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+        audioRef.current = null;
+      }
+      stopExclusiveAudio();
+      stopHeartbeat();
+
       sessionRef.current = meterSessionId;
       wasConnectedRef.current = isMeteringConnected(connectivity);
 
@@ -137,8 +146,19 @@ export function useAiTalkMeterPlayback() {
 
   useEffect(() => () => stopHeartbeat(), [stopHeartbeat]);
 
+  const stopPlayback = useCallback(() => {
+    stopHeartbeat();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    stopExclusiveAudio();
+  }, [stopHeartbeat]);
+
   return {
     playMeteredAudio,
+    stopPlayback,
     connectivity,
   };
 }

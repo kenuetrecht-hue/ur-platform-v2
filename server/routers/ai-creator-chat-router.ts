@@ -14,7 +14,11 @@ import { isOwnerOnlyPlatformAi, canChatOwnerOpsAi, canChatBusinessSteward, canCh
 import { getAdminAccessForUser } from "../_core/admin-access-service";
 import { assertAiEntitled } from "../_core/access-entitlements";
 import { secureProcedure, securePublicProcedure, router, TRPCError } from "../_core/trpc";
-import { ElevenLabsVoiceService, AI_PERSONA_VOICES } from "../elevenlabs-integration";
+import {
+  ElevenLabsVoiceService,
+  AI_PERSONA_VOICES,
+  resolveCreatorVoicePersona,
+} from "../elevenlabs-integration";
 import { getHandoffSuggestions, buildHandoffMessage } from "../_core/ai-handoff-service";
 import {
   consumePremiumMinute,
@@ -40,12 +44,6 @@ import { assertUserCanUseAi } from "../_core/ai-guardrails";
 import { assertNoAiTakeoverInMessage } from "../_core/ai-control";
 import { assertAndConsumeCredit } from "../_core/usage-credits-service";
 
-const CREATOR_VOICE_PERSONA: Record<string, keyof typeof AI_PERSONA_VOICES> = {
-  "ai-coder-001": "TECH_BUILDER",
-  "ai-game-dev-001": "GAME_FORGE",
-  contentmate: "GAME_FORGE",
-  "affiliate-associate": "COMPLIANCE_DOCTOR",
-};
 
 const chatHistorySchema = z.array(
   z.object({
@@ -472,13 +470,7 @@ export const aiCreatorChatRouter = router({
         }
       }
 
-      const personaKey = CREATOR_VOICE_PERSONA[input.creatorId];
-      if (!personaKey) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Voice is not available for this specialist yet.",
-        });
-      }
+      const personaKey = resolveCreatorVoicePersona(input.creatorId);
 
       const apiKey = process.env.ELEVENLABS_API_KEY;
       if (!apiKey) {
@@ -490,44 +482,54 @@ export const aiCreatorChatRouter = router({
 
       const voiceConfig = AI_PERSONA_VOICES[personaKey];
       const service = new ElevenLabsVoiceService(apiKey);
-      const response = await service.synthesizeVoice({
-        text: input.text.slice(0, 5000),
-        voiceId: voiceConfig.voiceId,
-        stability: voiceConfig.stability,
-        similarityBoost: voiceConfig.similarityBoost,
-      });
-
-      let meterSessionId: string | null = null;
-      let millisecondsRemaining: number | null = null;
-      if (
-        !ctx.isPlatformOwner &&
-        input.creatorId !== AFFILIATE_ASSOCIATE_ID &&
-        input.creatorId !== "contentmate"
-      ) {
-        const durationMs = secondsToBillingMs(response.duration);
-        const session = startMeterSession({
-          userId,
-          creatorId: input.creatorId,
-          kind: "voice_playback",
-          maxBillableMs: durationMs,
-          source: "client_playback",
+      try {
+        const response = await service.synthesizeVoice({
+          text: input.text.slice(0, 5000),
+          voiceId: voiceConfig.voiceId,
+          stability: voiceConfig.stability,
+          similarityBoost: voiceConfig.similarityBoost,
         });
-        meterSessionId = session.id;
-        millisecondsRemaining = getTalkMillisecondsRemaining(userId);
-      }
 
-      return {
-        success: true as const,
-        audioUrl: response.audioUrl,
-        audioBase64: response.audioBase64,
-        duration: response.duration,
-        durationMs: secondsToBillingMs(response.duration),
-        persona: voiceConfig.name,
-        meterSessionId,
-        millisecondsRemaining,
-        meteringNote:
-          "Talk time bills only while connected and playing. Disconnect pauses billing; reconnect resumes your exact balance.",
-      };
+        let meterSessionId: string | null = null;
+        let millisecondsRemaining: number | null = null;
+        if (
+          !ctx.isPlatformOwner &&
+          input.creatorId !== AFFILIATE_ASSOCIATE_ID &&
+          input.creatorId !== "contentmate"
+        ) {
+          const durationMs = secondsToBillingMs(response.duration);
+          const session = startMeterSession({
+            userId,
+            creatorId: input.creatorId,
+            kind: "voice_playback",
+            maxBillableMs: durationMs,
+            source: "client_playback",
+          });
+          meterSessionId = session.id;
+          millisecondsRemaining = getTalkMillisecondsRemaining(userId);
+        }
+
+        return {
+          success: true as const,
+          audioUrl: response.audioUrl,
+          audioBase64: response.audioBase64,
+          duration: response.duration,
+          durationMs: secondsToBillingMs(response.duration),
+          persona: voiceConfig.name,
+          meterSessionId,
+          millisecondsRemaining,
+          useDeviceVoice: false as const,
+          meteringNote:
+            "Talk time bills only while connected and playing. Disconnect pauses billing; reconnect resumes your exact balance.",
+        };
+      } catch (error) {
+        const raw = error instanceof Error ? error.message : "Voice unavailable";
+        return {
+          success: false as const,
+          error: raw,
+          useDeviceVoice: true as const,
+        };
+      }
     }),
 
   getHandoffs: securePublicProcedure("aiCreators")

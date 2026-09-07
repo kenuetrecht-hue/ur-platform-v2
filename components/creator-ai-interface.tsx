@@ -39,6 +39,9 @@ import { AiChatSearchCitations } from "@/components/ai-chat-search-citations";
 import { AiChatMessageMedia } from "@/components/ai-chat-message-media";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { ThanksStampsWall } from "@/components/thanks-stamps-wall";
+import { BUSINESS_STEWARD_AI_ID } from "@/lib/owner-platform-ops-catalog";
+import { playExclusiveAudio, stopExclusiveAudio, unlockWebAudio } from "@/lib/exclusive-audio-player";
+import { pickChatAttachments, type PickedChatAttachment } from "@/lib/chat-attachment-picker";
 
 interface ChatMessage {
   role: "user" | "ai";
@@ -91,6 +94,7 @@ export function CreatorAIInterface({
   const scrollViewRef = useRef<ScrollView>(null);
   const messageSeq = useRef(0);
   const loadingRef = useRef(false);
+  const speakReplyRef = useRef<(text: string) => void>(() => undefined);
   const { isAuthenticated } = useAuth();
 
   const applySyncedMessages = useCallback(
@@ -139,6 +143,7 @@ export function CreatorAIInterface({
   const [hiveMode, setHiveMode] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
   const [awaitingPitchConsent, setAwaitingPitchConsent] = useState(false);
+  const isStewardDesk = creatorId === BUSINESS_STEWARD_AI_ID;
   const [showExtras, setShowExtras] = useState(false);
   const [showTalkTopUp, setShowTalkTopUp] = useState(false);
   const [apiReachable, setApiReachable] = useState<boolean | null>(null);
@@ -236,7 +241,7 @@ export function CreatorAIInterface({
   const assertVideo = trpc.aiCreators.assertVideoTalkAccess.useMutation();
   const [videoActive, setVideoActive] = useState(false);
   const [videoMeterSessionId, setVideoMeterSessionId] = useState<string | null>(null);
-  const { playMeteredAudio } = useAiTalkMeterPlayback();
+  const { playMeteredAudio, stopPlayback } = useAiTalkMeterPlayback();
   const meterConnectivity = useNetworkConnectivity();
   const meterHeartbeat = trpc.aiTalk.meterHeartbeat.useMutation();
   const meterFinalize = trpc.aiTalk.meterFinalize.useMutation();
@@ -250,7 +255,7 @@ export function CreatorAIInterface({
   const ownerTalkIncluded = isPlatformOwner || talkStatus.data?.ownerComplimentary === true;
   const hasTalkTime = ownerTalkIncluded || talkStatus.data?.hasTalkAccess === true || talkMinutes > 0;
   const talkLowBalance = ownerTalkIncluded ? false : (talkStatus.data?.lowBalance ?? isTalkTimeLowBalance(talkMsLeft));
-  const supportsVoice = isForgeSpecialist(creatorId) || isAssociateAi || hasTalkTime;
+  const supportsVoice = true;
   const forgeEmbedded = embedded && isForgeSpecialist(creatorId);
   const showVoiceHiveControls = !embedded || forgeEmbedded;
   const hasPaidVoice =
@@ -283,7 +288,7 @@ export function CreatorAIInterface({
     }, 100);
   }, []);
 
-  const CHAT_TIMEOUT_MS = 45_000;
+  const CHAT_TIMEOUT_MS = 90_000;
 
   const supportsPhotoAnalysis = Boolean(hiveProfile.data?.capabilities.photoAnalysis);
   const supportsImageGen = Boolean(hiveProfile.data?.capabilities.imageGeneration);
@@ -302,7 +307,13 @@ export function CreatorAIInterface({
 
       loadingRef.current = true;
       setLoading(true);
-      setSendStatus("Sending…");
+      unlockWebAudio();
+      const thinkingNote =
+        userMessage.length > 80 || hiveMode || attachmentsToSend.length > 0
+          ? `Heard you. Working on that bigger request now — this can take a minute. I'll speak the answer when it's ready.`
+          : `Heard you. Thinking… I'll speak the answer when it's ready.`;
+      setSendStatus(thinkingNote);
+      setVoiceStatus("Heard you — thinking. Hear plays the answer when it's ready.");
       const clearedInput = rawText === inputText;
       if (clearedInput) {
         setInputText("");
@@ -405,6 +416,12 @@ export function CreatorAIInterface({
         setAwaitingPitchConsent(Boolean(result.pitchConsentRequest));
         setSendStatus(null);
         void refetchChatThread();
+        if (ownerTalkIncluded || hasTalkTime) {
+          setVoiceStatus("Reply ready — speaking it now.");
+          speakReplyRef.current(replyText);
+        } else {
+          setVoiceStatus("Reply ready — tap Hear to play it.");
+        }
       } catch (error) {
         const errText = formatChatError(error);
         setMessages((prev) => [...prev, makeMessage("ai", errText)]);
@@ -492,9 +509,9 @@ export function CreatorAIInterface({
     supportsImageGen,
   ]);
 
-  const speakLastReply = useCallback(async () => {
-    const lastAi = [...messages].reverse().find((m) => m.role === "ai");
-    if (!lastAi?.text || voiceMutation.isPending) return;
+  const speakReplyText = useCallback(async (rawText: string) => {
+    const spoken = rawText.replace(/\s+/g, " ").trim().slice(0, 1200);
+    if (!spoken || voiceMutation.isPending) return;
 
     if (isAssociateAi && !hasPaidVoice) {
       try {
@@ -510,36 +527,66 @@ export function CreatorAIInterface({
       return;
     }
 
-    setVoiceStatus(null);
+    stopPlayback();
+    stopExclusiveAudio();
+    setVoiceStatus("Starting one voice…");
     try {
       const result = await voiceMutation.mutateAsync({
         creatorId,
-        text: lastAi.text.slice(0, 3000),
+        text: spoken,
       });
-      if (result.success) {
-        if (result.meterSessionId && result.audioUrl?.startsWith("data:")) {
-          setVoiceStatus(`🔊 ${result.persona} — playing (metered to the ms)`);
-          await playMeteredAudio({
-            meterSessionId: result.meterSessionId,
-            audioUrl: result.audioUrl,
-            durationMs: result.durationMs ?? Math.round(result.duration * 1000),
-            onStatus: setVoiceStatus,
-          });
-        } else if (typeof window !== "undefined" && result.audioUrl?.startsWith("data:")) {
-          const audio = new window.Audio(result.audioUrl);
-          void audio.play();
-          setVoiceStatus(`🔊 ${result.persona} — ${Math.round(result.duration)}s audio ready`);
-        } else if (Platform.OS !== "web") {
-          await speakText(lastAi.text);
-          setVoiceStatus(`🔊 ${result.persona} — native voice`);
+      const studioUrl =
+        result.success
+          ? result.audioUrl ||
+            (result.audioBase64 ? `data:audio/mpeg;base64,${result.audioBase64}` : "")
+          : "";
+      if (result.success && studioUrl) {
+        try {
+          setVoiceStatus(`🔊 ${result.persona} — playing`);
+          if (result.meterSessionId) {
+            await playMeteredAudio({
+              meterSessionId: result.meterSessionId,
+              audioUrl: studioUrl,
+              durationMs: result.durationMs ?? Math.round(result.duration * 1000),
+              onStatus: setVoiceStatus,
+            });
+          } else {
+            await playExclusiveAudio(studioUrl);
+            setVoiceStatus("Playback finished.");
+          }
+          return;
+        } catch (playError) {
+          if (playError instanceof Error && /abort/i.test(playError.message)) {
+            setVoiceStatus("Stopped.");
+            return;
+          }
         }
-      } else {
-        setVoiceStatus(result.error ?? "Voice unavailable");
       }
+      setVoiceStatus(
+        result.success
+          ? "Studio clip would not play — using this device's voice."
+          : (result.error ?? "Using this device's voice."),
+      );
+      await speakText(spoken);
+      setVoiceStatus("Playback finished (device voice).");
     } catch (error) {
-      setVoiceStatus(error instanceof Error ? error.message : "Voice failed");
+      const raw = error instanceof Error ? error.message : "Voice failed";
+      if (/abort/i.test(raw)) {
+        setVoiceStatus("Stopped.");
+        return;
+      }
+      setVoiceStatus(raw);
     }
-  }, [buyAffiliateVoice, creatorId, hasPaidVoice, hasTalkTime, isAssociateAi, messages, playMeteredAudio, voiceMutation]);
+  }, [buyAffiliateVoice, creatorId, hasPaidVoice, hasTalkTime, isAssociateAi, playMeteredAudio, stopPlayback, voiceMutation]);
+
+  speakReplyRef.current = (text: string) => {
+    void speakReplyText(text);
+  };
+
+  const speakLastReply = useCallback(() => {
+    const lastAi = [...messages].reverse().find((m) => m.role === "ai");
+    if (lastAi?.text) void speakReplyText(lastAi.text);
+  }, [messages, speakReplyText]);
 
   useEffect(() => {
     if (!videoActive || !videoMeterSessionId) return;
@@ -596,8 +643,8 @@ export function CreatorAIInterface({
   return (
     <KeyboardAvoidingView
       style={[styles.root, embedded && styles.rootEmbedded]}
-      behavior={embedded && Platform.OS === "ios" ? overlap.keyboardBehavior : undefined}
-      keyboardVerticalOffset={embedded && Platform.OS === "ios" ? overlap.keyboardVerticalOffset : 0}
+      behavior={Platform.OS === "ios" ? overlap.keyboardBehavior : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? overlap.keyboardVerticalOffset : 0}
     >
       <View style={styles.column}>
       {!hideHeader ? (
@@ -641,7 +688,9 @@ export function CreatorAIInterface({
         </Text>
       </View>
 
-      <ThanksStampsWall targetType="ai" targetId={creatorId} targetName={creatorName} compact />
+      {isStewardDesk ? null : (
+        <ThanksStampsWall targetType="ai" targetId={creatorId} targetName={creatorName} compact />
+      )}
 
       {!embedded && apiReachable === false ? (
         <View
@@ -682,7 +731,7 @@ export function CreatorAIInterface({
           },
         ]}
       >
-        {!embedded && hiveProfile.data ? (
+        {!embedded && !isStewardDesk && hiveProfile.data ? (
           <View style={[styles.hiveInfo, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={{ color: colors.muted, fontSize: 11 }}>
               Hive: {hiveProfile.data.hivePeers.length} peers ·{" "}
@@ -694,8 +743,12 @@ export function CreatorAIInterface({
           </View>
         ) : null}
 
-        <UsageAllowanceBanner creatorId={creatorId} creatorName={creatorName} />
-        <UsageTrackerDashboard creatorId={creatorId} compact />
+        {isStewardDesk ? null : (
+          <>
+            <UsageAllowanceBanner creatorId={creatorId} creatorName={creatorName} />
+            <UsageTrackerDashboard creatorId={creatorId} compact />
+          </>
+        )}
 
         <ScrollView
           ref={scrollViewRef}
@@ -739,7 +792,9 @@ export function CreatorAIInterface({
           {loading ? (
             <View style={styles.typingRow}>
               <ActivityIndicator color={colors.primary} />
-              <Text style={{ color: colors.muted, fontSize: 13 }}>Waiting for reply…</Text>
+              <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "700", flex: 1 }}>
+                Heard you — thinking through this now. I'll speak the answer when it's ready.
+              </Text>
             </View>
           ) : null}
         </ScrollView>
@@ -754,180 +809,6 @@ export function CreatorAIInterface({
             },
           ]}
         >
-          {showVoiceHiveControls && !isAssociateAi && talkLowBalance ? (
-            <AiTalkLowBalanceNotice
-              millisecondsRemaining={talkMsLeft}
-              onReUp={() => {
-                setShowTalkTopUp(true);
-                setShowExtras(true);
-              }}
-            />
-          ) : null}
-          {showVoiceHiveControls && showTalkTopUp ? (
-            <AiTalkTimePanel creatorName={creatorName} showPurchase />
-          ) : null}
-
-          {showVoiceHiveControls ? (
-            <Pressable
-              onPress={() => setShowExtras((v) => !v)}
-              style={[styles.extrasToggle, { borderColor: colors.border, backgroundColor: colors.surface }]}
-              hitSlop={4}
-            >
-              <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "600" }}>
-                {showExtras ? "Hide voice, hive & extras" : "Voice, hive & extras"}
-              </Text>
-            </Pressable>
-          ) : null}
-
-          {showVoiceHiveControls && showExtras ? (
-        <>
-          {!isAssociateAi ? (
-            <Pressable
-              onPress={() => setHiveMode((v) => !v)}
-              style={[
-                styles.hiveToggle,
-                { borderColor: colors.border, backgroundColor: hiveMode ? colors.primary : colors.surface },
-              ]}
-            >
-              <Text style={{ color: hiveMode ? "#fff" : colors.foreground, fontSize: 12, fontWeight: "600" }}>
-                {hiveMode ? "🐝 Hive mode ON" : "🐝 Hive mode — consult peer specialists"}
-              </Text>
-            </Pressable>
-          ) : null}
-
-          {supportsVoice ? (
-            <Pressable
-              onPress={() => void speakLastReply()}
-              disabled={voiceMutation.isPending || loading || buyAffiliateVoice.isPending}
-              style={[styles.hiveToggle, { borderColor: colors.border, backgroundColor: colors.surface, marginTop: 0 }]}
-            >
-              <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>
-                {voiceMutation.isPending || buyAffiliateVoice.isPending
-                  ? "🎙️ Synthesizing voice…"
-                  : isAssociateAi
-                    ? hasPaidVoice
-                      ? "🎙️ Hear Associate AI"
-                      : `🎙️ Voice pack $${premium.data?.affiliateVoicePriceUsd ?? "2.99"}`
-                    : hasTalkTime
-                      ? ownerTalkIncluded
-                        ? "🎙️ Voice — included (owner)"
-                        : `🎙️ Voice — ${talkMinutes} min left${talkLowBalance ? " · last 5 min, re-up now" : ""}${talkLoseBy ? ` · ${talkLoseBy}` : " · use within 30 days or it is lost"}`
-                      : "🎙️ Voice — buy talk time"}
-              </Text>
-              {voiceStatus ? (
-                <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>{voiceStatus}</Text>
-              ) : null}
-            </Pressable>
-          ) : null}
-
-          {!isAssociateAi ? (
-            <Pressable
-              onPress={() => void (videoActive ? stopVideoTalk() : startVideoTalk())}
-              disabled={assertVideo.isPending || buyVideo.isPending}
-              style={[
-                styles.hiveToggle,
-                {
-                  borderColor: colors.border,
-                  backgroundColor: videoActive ? colors.primary : colors.surface,
-                  marginTop: 0,
-                },
-              ]}
-            >
-              <Text style={{ color: videoActive ? "#fff" : colors.foreground, fontSize: 12, fontWeight: "600" }}>
-                {videoActive ? "📹 Video talk ON" : ownerTalkIncluded ? "📹 Video talk — included (owner)" : "📹 Video talk"}
-              </Text>
-            </Pressable>
-          ) : null}
-
-          {handoffs.data?.suggestions.length ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 52, marginVertical: 4 }}>
-              <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 8 }}>
-                {handoffs.data.suggestions.map((h) => (
-                  <Pressable
-                    key={h.targetCreatorId}
-                    onPress={() => {
-                      if (h.route.startsWith("/3d")) {
-                        router.push("/3d-workspace" as never);
-                      } else {
-                        router.push({
-                          pathname: "/(tabs)/ais",
-                          params: { ai: h.targetCreatorId, prompt: h.prefillPrompt },
-                        } as never);
-                      }
-                    }}
-                    style={{
-                      borderRadius: 16,
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      backgroundColor: colors.surface,
-                    }}
-                  >
-                    <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700" }}>
-                      → {h.targetName}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </ScrollView>
-          ) : null}
-        </>
-          ) : null}
-
-          {awaitingPitchConsent ? (
-            <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 4, paddingBottom: 6 }}>
-              <Pressable
-                onPress={() => {
-                  setAwaitingPitchConsent(false);
-                  void sendChatMessage("yes");
-                }}
-                style={[styles.pitchBtn, { backgroundColor: colors.primary }]}
-              >
-                <Text style={{ color: "#fff", fontWeight: "700" }}>Yes — show offer</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  setAwaitingPitchConsent(false);
-                  void sendChatMessage("no");
-                }}
-                style={[styles.pitchBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
-              >
-                <Text style={{ color: colors.foreground, fontWeight: "700" }}>No thanks</Text>
-              </Pressable>
-            </View>
-          ) : null}
-
-          {sendStatus ? (
-            <View
-              style={[
-                styles.sendStatus,
-                {
-                  backgroundColor: loading ? `${colors.primary}18` : `${colors.error}18`,
-                  borderColor: loading ? colors.primary : colors.error,
-                },
-              ]}
-            >
-              {loading ? <ActivityIndicator size="small" color={colors.primary} /> : null}
-              <Text
-                style={{
-                  flex: 1,
-                  color: loading ? colors.primary : colors.error,
-                  fontSize: 12,
-                  lineHeight: 16,
-                }}
-              >
-                {sendStatus}
-              </Text>
-            </View>
-          ) : null}
-
-          {embedded && apiReachable === false ? (
-            <Text style={{ color: colors.error, fontSize: 11, paddingHorizontal: 4, paddingBottom: 6 }}>
-              API offline — run pnpm dev on your PC
-            </Text>
-          ) : null}
-
           {pendingAttachments.length > 0 ? (
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 4, paddingBottom: 6 }}>
               {pendingAttachments.map((att, i) => (
@@ -962,50 +843,6 @@ export function CreatorAIInterface({
             </View>
           ) : null}
 
-          {supportsImageGen && showImageGen ? (
-            <View style={{ paddingHorizontal: 4, paddingBottom: 6, gap: 6 }}>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    color: colors.foreground,
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                    minHeight: 44,
-                  },
-                ]}
-                placeholder="Describe the image to generate…"
-                placeholderTextColor={colors.muted}
-                value={imageGenPrompt}
-                onChangeText={setImageGenPrompt}
-                maxLength={2000}
-              />
-              <Pressable
-                onPress={() => void generateImageFromPrompt()}
-                disabled={loading || imageGenMutation.isPending}
-                style={[styles.hiveToggle, { borderColor: colors.border, backgroundColor: colors.primary, marginTop: 0 }]}
-              >
-                <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>
-                  {imageGenMutation.isPending ? "Generating…" : "🎨 Generate image (Imagen)"}
-                </Text>
-              </Pressable>
-              <UsageUpgradePanel
-                productId="images-imagen"
-                creatorId={creatorId}
-                title="Image credits & upgrades"
-              />
-            </View>
-          ) : null}
-
-          {supportsPhotoAnalysis && pendingAttachments.length > 0 ? (
-            <UsageUpgradePanel
-              productId="images-vision"
-              creatorId={creatorId}
-              title="Photo/PDF analysis credits"
-              compact={false}
-            />
-          ) : null}
-
           <View style={styles.inputRow}>
             {supportsPhotoAnalysis ? (
               <Pressable
@@ -1025,7 +862,12 @@ export function CreatorAIInterface({
               </Pressable>
             ) : null}
             <VoicePromptMicButton
-              disabled={loading}
+              labeled
+              onBeforeListen={() => {
+                stopPlayback();
+                stopExclusiveAudio();
+                setVoiceStatus("Mic on — AI voice stopped so it does not echo.");
+              }}
               onTranscript={(text, hint) => {
                 if (text) setInputText(text.slice(0, 2000));
                 setSpeechHint(hint || null);
@@ -1033,7 +875,10 @@ export function CreatorAIInterface({
             />
             {supportsImageGen ? (
               <Pressable
-                onPress={() => setShowImageGen((v) => !v)}
+                onPress={() => {
+                  setShowImageGen((v) => !v);
+                  setShowExtras(true);
+                }}
                 disabled={loading}
                 hitSlop={8}
                 style={({ pressed }) => [
@@ -1063,9 +908,18 @@ export function CreatorAIInterface({
               onChangeText={setInputText}
               multiline
               maxLength={2000}
-              editable={!loading}
+              editable
               returnKeyType="send"
               blurOnSubmit={false}
+              onFocus={() => {
+                if (Platform.OS !== "web") return;
+                requestAnimationFrame(() => {
+                  const el = typeof document !== "undefined" ? document.activeElement : null;
+                  if (el && "scrollIntoView" in el) {
+                    (el as HTMLElement).scrollIntoView({ block: "nearest", behavior: "smooth" });
+                  }
+                });
+              }}
               onSubmitEditing={() => {
                 if ((inputText.trim() || pendingAttachments.length > 0) && !loading) {
                   void sendChatMessage(inputText);
@@ -1102,6 +956,243 @@ export function CreatorAIInterface({
               Microphone hears any language and prints English when needed.
             </Text>
           )}
+
+          {loading || sendStatus ? (
+            <View
+              style={[
+                styles.sendStatus,
+                {
+                  backgroundColor: loading ? `${colors.primary}18` : `${colors.error}18`,
+                  borderColor: loading ? colors.primary : colors.error,
+                },
+              ]}
+            >
+              {loading ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+              <Text
+                style={{
+                  flex: 1,
+                  color: loading ? colors.primary : colors.error,
+                  fontSize: 13,
+                  lineHeight: 18,
+                  fontWeight: loading ? "700" : "500",
+                }}
+              >
+                {sendStatus ??
+                  "Heard you — thinking through this now. I'll speak the answer when it's ready."}
+              </Text>
+            </View>
+          ) : null}
+
+          <View style={{ paddingHorizontal: 4, paddingBottom: 6, gap: 6 }}>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Pressable
+                onPress={() => {
+                  stopPlayback();
+                  stopExclusiveAudio();
+                  setVoiceStatus("Stopped.");
+                }}
+                style={[styles.hiveToggle, { flex: 1, marginHorizontal: 0, marginBottom: 0, borderColor: colors.border, backgroundColor: colors.surface }]}
+              >
+                <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "700" }}>⏹ Stop</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  if (!hasTalkTime && !isAssociateAi && !ownerTalkIncluded) {
+                    setShowTalkTopUp(true);
+                    setShowExtras(true);
+                  }
+                  void speakLastReply();
+                }}
+                disabled={voiceMutation.isPending || buyAffiliateVoice.isPending}
+                style={[styles.hiveToggle, { flex: 2, marginHorizontal: 0, marginBottom: 0, borderColor: colors.primary, backgroundColor: colors.surface }]}
+              >
+                <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700" }}>
+                  {voiceMutation.isPending || buyAffiliateVoice.isPending
+                    ? `🎙️ ${creatorName} is speaking…`
+                    : isAssociateAi
+                      ? hasPaidVoice
+                        ? `🎙️ Hear ${creatorName}`
+                        : `🎙️ Voice pack $${premium.data?.affiliateVoicePriceUsd ?? "2.99"}`
+                      : hasTalkTime || ownerTalkIncluded
+                        ? `🎙️ Hear ${creatorName}`
+                        : "🎙️ Hear this AI — buy Talk Time"}
+                </Text>
+                {voiceStatus ? (
+                  <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>{voiceStatus}</Text>
+                ) : null}
+              </Pressable>
+            </View>
+          </View>
+
+          {awaitingPitchConsent ? (
+            <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 4, paddingBottom: 6 }}>
+              <Pressable
+                onPress={() => {
+                  setAwaitingPitchConsent(false);
+                  void sendChatMessage("yes");
+                }}
+                style={[styles.pitchBtn, { backgroundColor: colors.primary }]}
+              >
+                <Text style={{ color: "#fff", fontWeight: "700" }}>Yes — show offer</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setAwaitingPitchConsent(false);
+                  void sendChatMessage("no");
+                }}
+                style={[styles.pitchBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
+              >
+                <Text style={{ color: colors.foreground, fontWeight: "700" }}>No thanks</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {embedded && apiReachable === false ? (
+            <Text style={{ color: colors.error, fontSize: 11, paddingHorizontal: 4, paddingBottom: 6 }}>
+              API offline — run pnpm dev on your PC
+            </Text>
+          ) : null}
+
+          {showVoiceHiveControls ? (
+            <Pressable
+              onPress={() => setShowExtras((v) => !v)}
+              style={[styles.extrasToggle, { borderColor: colors.border, backgroundColor: colors.surface }]}
+              hitSlop={4}
+            >
+              <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "600" }}>
+                {showExtras ? "Hide voice, hive & extras" : "Voice, hive & extras"}
+              </Text>
+            </Pressable>
+          ) : null}
+
+          {showVoiceHiveControls && showExtras ? (
+            <>
+              {showVoiceHiveControls && !isAssociateAi && talkLowBalance ? (
+                <AiTalkLowBalanceNotice
+                  millisecondsRemaining={talkMsLeft}
+                  onReUp={() => {
+                    setShowTalkTopUp(true);
+                    setShowExtras(true);
+                  }}
+                />
+              ) : null}
+              {showTalkTopUp ? (
+                <AiTalkTimePanel creatorName={creatorName} showPurchase />
+              ) : null}
+              {!isAssociateAi ? (
+                <Pressable
+                  onPress={() => setHiveMode((v) => !v)}
+                  style={[
+                    styles.hiveToggle,
+                    { borderColor: colors.border, backgroundColor: hiveMode ? colors.primary : colors.surface },
+                  ]}
+                >
+                  <Text style={{ color: hiveMode ? "#fff" : colors.foreground, fontSize: 12, fontWeight: "600" }}>
+                    {hiveMode ? "🐝 Hive mode ON" : "🐝 Hive mode — consult peer specialists"}
+                  </Text>
+                </Pressable>
+              ) : null}
+
+              {!isAssociateAi ? (
+                <Pressable
+                  onPress={() => void (videoActive ? stopVideoTalk() : startVideoTalk())}
+                  disabled={assertVideo.isPending || buyVideo.isPending}
+                  style={[
+                    styles.hiveToggle,
+                    {
+                      borderColor: colors.border,
+                      backgroundColor: videoActive ? colors.primary : colors.surface,
+                      marginTop: 0,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: videoActive ? "#fff" : colors.foreground, fontSize: 12, fontWeight: "600" }}>
+                    {videoActive ? "📹 Video talk ON" : ownerTalkIncluded ? "📹 Video talk — included (owner)" : "📹 Video talk"}
+                  </Text>
+                </Pressable>
+              ) : null}
+
+              {handoffs.data?.suggestions.length ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 52, marginVertical: 4 }}>
+                  <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 8 }}>
+                    {handoffs.data.suggestions.map((h) => (
+                      <Pressable
+                        key={h.targetCreatorId}
+                        onPress={() => {
+                          if (h.route.startsWith("/3d")) {
+                            router.push("/3d-workspace" as never);
+                          } else if (h.route.startsWith("/music-studio")) {
+                            router.push("/music-studio" as never);
+                          } else {
+                            router.push({
+                              pathname: "/(tabs)/ais",
+                              params: { ai: h.targetCreatorId, prompt: h.prefillPrompt },
+                            } as never);
+                          }
+                        }}
+                        style={{
+                          borderRadius: 16,
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          backgroundColor: colors.surface,
+                        }}
+                      >
+                        <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700" }}>
+                          → {h.targetName}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </ScrollView>
+              ) : null}
+
+              {supportsImageGen && showImageGen ? (
+                <View style={{ paddingHorizontal: 4, paddingBottom: 6, gap: 6 }}>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        color: colors.foreground,
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                        minHeight: 44,
+                      },
+                    ]}
+                    placeholder="Describe the image to generate…"
+                    placeholderTextColor={colors.muted}
+                    value={imageGenPrompt}
+                    onChangeText={setImageGenPrompt}
+                    maxLength={2000}
+                  />
+                  <Pressable
+                    onPress={() => void generateImageFromPrompt()}
+                    disabled={loading || imageGenMutation.isPending}
+                    style={[styles.hiveToggle, { borderColor: colors.border, backgroundColor: colors.primary, marginTop: 0 }]}
+                  >
+                    <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>
+                      {imageGenMutation.isPending ? "Generating…" : "🎨 Generate image (Imagen)"}
+                    </Text>
+                  </Pressable>
+                  <UsageUpgradePanel
+                    productId="images-imagen"
+                    creatorId={creatorId}
+                    title="Image credits & upgrades"
+                  />
+                </View>
+              ) : null}
+
+              {supportsPhotoAnalysis && pendingAttachments.length > 0 ? (
+                <UsageUpgradePanel
+                  productId="images-vision"
+                  creatorId={creatorId}
+                  title="Photo/PDF analysis credits"
+                  compact={false}
+                />
+              ) : null}
+            </>
+          ) : null}
         </View>
       </View>
       </View>
@@ -1116,9 +1207,11 @@ const styles = StyleSheet.create({
   chatBody: { flex: 1, minHeight: 0, overflow: "hidden" },
   composerDock: {
     flexShrink: 0,
+    zIndex: 2,
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: 8,
     paddingHorizontal: 8,
+    backgroundColor: "transparent",
   },
   header: { paddingHorizontal: 16, paddingVertical: 12 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 10 },

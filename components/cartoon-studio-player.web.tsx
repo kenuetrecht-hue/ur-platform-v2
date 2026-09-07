@@ -6,9 +6,11 @@ import { useFairShowWatch } from "@/hooks/use-fair-show-watch";
 
 type Props = {
   project: PublicCartoonProject;
+  /** Public signup sample — no Fair Show tracking, no paid download. */
+  sample?: boolean;
 };
 
-export function CartoonStudioPlayer({ project }: Props) {
+export function CartoonStudioPlayer({ project, sample = false }: Props) {
   const colors = useColors();
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -24,7 +26,14 @@ export function CartoonStudioPlayer({ project }: Props) {
     contentId: project.id,
     kind: "cartoon",
     durationSeconds: project.totalSeconds,
+    enabled: !sample,
   });
+
+  useEffect(() => {
+    if (!sample) return;
+    setIndex(0);
+    setPlaying(true);
+  }, [sample]);
 
   useEffect(() => {
     if (!playing || !scene) return;
@@ -99,10 +108,19 @@ export function CartoonStudioPlayer({ project }: Props) {
         ref={imgRef}
         src={cartoonFrameDataUri(scene.frameSvg)}
         alt={scene.title}
-        style={{ width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 16, background: "#111" }}
+        style={{
+          width: "100%",
+          maxHeight: sample ? 560 : 420,
+          objectFit: "contain",
+          borderRadius: 16,
+          background: "#05070c",
+          boxShadow: sample ? "0 18px 40px #0008" : undefined,
+        }}
       />
       <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "700" }}>
-        Scene {scene.order} / {project.scenes.length} · {scene.durationSeconds}s · {project.totalSeconds}s of {project.billedSeconds}s paid
+        {sample
+          ? `Scene ${scene.order} / ${project.scenes.length} · free sample · ${project.totalSeconds}s`
+          : `Scene ${scene.order} / ${project.scenes.length} · ${scene.durationSeconds}s · ${project.totalSeconds}s of ${project.billedSeconds}s paid`}
       </Text>
       {scene.caption ? (
         <Text style={{ color: colors.foreground, fontSize: 13 }}>Caption: {scene.caption}</Text>
@@ -115,7 +133,9 @@ export function CartoonStudioPlayer({ project }: Props) {
           }}
           style={{ backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }}
         >
-          <Text style={{ color: "#fff", fontWeight: "700" }}>{playing ? "Playing…" : "Play cartoon"}</Text>
+          <Text style={{ color: "#fff", fontWeight: "700" }}>
+            {playing ? "Playing…" : sample ? "Play again" : "Play cartoon"}
+          </Text>
         </Pressable>
         <Pressable
           onPress={() => setIndex(Math.max(0, index - 1))}
@@ -129,15 +149,17 @@ export function CartoonStudioPlayer({ project }: Props) {
         >
           <Text style={{ color: colors.foreground, fontWeight: "700" }}>Next</Text>
         </Pressable>
-        <Pressable
-          disabled={exporting}
-          onPress={() => void exportWebm()}
-          style={{ backgroundColor: "#059669", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }}
-        >
-          <Text style={{ color: "#fff", fontWeight: "700" }}>
-            {exporting ? "Recording…" : "Download video"}
-          </Text>
-        </Pressable>
+        {sample ? null : (
+          <Pressable
+            disabled={exporting}
+            onPress={() => void exportWebm()}
+            style={{ backgroundColor: "#059669", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700" }}>
+              {exporting ? "Recording…" : "Download video"}
+            </Text>
+          </Pressable>
+        )}
       </View>
       {exportError ? (
         <Text style={{ color: "#c0392b", fontSize: 12 }}>{exportError}</Text>

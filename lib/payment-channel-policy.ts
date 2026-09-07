@@ -16,7 +16,7 @@ export const PAYMENT_CHANNEL_POLICY_HEADLINE = "How UR payments work";
 
 export const PAYMENT_CHANNEL_POLICY_SUMMARY =
   "$5 purchases — including Talk Time and social stamp packs — must be completed in the UR mobile app. All other services — including every AI " +
-  "subscription (day, week, month), $1 talk packs, the $120 / 500-minute and $200 / 1,000-minute packs, Cartoon Studio, and Cartoon Me Creator Platform — must be purchased through your web browser.";
+  "subscription (day, week, month), $1 talk packs, the $120 / 500-minute and $200 / 1,000-minute packs, Cartoon Studio, Cartoon Me Creator Platform, and UR Studio Pro (Music Studio) — must be purchased through your web browser.";
 
 export const AI_SUBSCRIPTION_PRICING_SUMMARY =
   "Platform text pass (every specialist, one at a time): $7.99/day = 35 messages · $15.99/week = 130 messages · $24.99/month = 350 messages (+ 10 web searches/day). Extra concurrent slot: $4.99/day · $9.99/week · $14.99/month.";
@@ -29,6 +29,9 @@ export const CARTOON_STUDIO_CHANNEL_SUMMARY =
 
 export const CARTOON_CREATOR_CHANNEL_SUMMARY =
   "Cartoon Me Creator Platform (web): Channel $49.99 / 12 live hours · Studio $149.99 / 40 hours · Network $399.99 / 120 hours. 30 days. Tax and Stripe on top. No refunds.";
+
+export const MUSIC_STUDIO_CHANNEL_SUMMARY =
+  "UR Studio Pro (web, not Avid Pro Tools): Session $2.99 / 1 day · Month $9.99 / 30 days · Year $79.99 / 365 days. Tax and Stripe on top. No refunds.";
 
 export function getRequiredPaymentChannel(subtotalCents: number): PaymentChannel {
   return subtotalCents === IN_APP_ONLY_SUBTOTAL_CENTS ? "in_app" : "web_browser";

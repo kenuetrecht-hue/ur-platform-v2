@@ -776,7 +776,8 @@ export function PlatformOpsConsole({
         ) : null}
         <View
           style={{
-            height: isSteward ? 560 : 420,
+            minHeight: isSteward ? 760 : 480,
+            height: isSteward ? 880 : 480,
             borderRadius: 14,
             overflow: "hidden",
             borderWidth: 1,
@@ -797,6 +798,7 @@ export function PlatformOpsConsole({
               creatorId={selectedMeta.id}
               creatorName={selectedMeta.name}
               creatorAvatar={selectedMeta.avatar}
+              hideHeader
               welcomeMessage={
                 isSteward ? stewardWelcome : isWorldDirector ? worldDirectorWelcome : opsWelcome
               }

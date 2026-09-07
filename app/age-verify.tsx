@@ -25,6 +25,7 @@ import {
   signupPrivacyBlock,
 } from "@/lib/signup-step-copy";
 import { pickAgeKycPhoto, type AgeKycPickedPhoto } from "@/lib/age-kyc-photo-picker";
+import { SignupKycCartoonSample } from "@/components/signup-kyc-cartoon-sample";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 
@@ -143,6 +144,7 @@ export default function AgeVerifyScreen() {
               {line}
             </Text>
           ))}
+          <SignupKycCartoonSample />
           <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 20 }}>{signupPrivacyBlock()}</Text>
 
           {verified ? (

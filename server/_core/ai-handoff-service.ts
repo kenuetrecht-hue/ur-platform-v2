@@ -286,9 +286,9 @@ const HANDOFF_GRAPH: Record<string, HandoffSuggestion[]> = {
     {
       targetCreatorId: "ai-musician-001",
       targetName: "Musician AI",
-      reason: "Learn chords and melody on your instrument.",
+      reason: "Open Music Studio — beats, chords, and practice on your instrument.",
       prefillPrompt: "Teach me the chord progression for my song on guitar (or piano).",
-      route: "/(tabs)/ais",
+      route: "/music-studio",
     },
     {
       targetCreatorId: "ai-poet-001",
@@ -309,9 +309,9 @@ const HANDOFF_GRAPH: Record<string, HandoffSuggestion[]> = {
     {
       targetCreatorId: "ai-songwriter-001",
       targetName: "Songwriter AI",
-      reason: "Turn your riff into a full song with lyrics.",
+      reason: "Open Music Studio — turn this beat into lyrics and a song.",
       prefillPrompt: "I have a chord progression — help me write lyrics and song structure.",
-      route: "/(tabs)/ais",
+      route: "/music-studio",
     },
     {
       targetCreatorId: "ai-poet-001",

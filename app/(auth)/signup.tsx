@@ -11,6 +11,7 @@ import { CREATOR_CONTENT_PROTECTION_NOTICE } from "@/lib/creator-content-protect
 import { TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
 import { SIGNUP_FIELDS, SIGNUP_PAGE_WHY, signupPrivacyBlock } from "@/lib/signup-step-copy";
 import { SignupStepExplain } from "@/components/signup-step-explain";
+import { SignupKycCartoonSample } from "@/components/signup-kyc-cartoon-sample";
 import { saveLandingDemoAttributionId } from "@/lib/landing-demo-attribution-storage";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { PrimaryActionButton } from "@/components/primary-action-button";
@@ -196,6 +197,7 @@ export default function SignUpScreen() {
             <Text style={{ fontSize: 13, color: colors.muted, textAlign: "center", lineHeight: 19 }}>
               {SIGNUP_PAGE_WHY}
             </Text>
+            <SignupKycCartoonSample />
             {params.membership === "active" ? (
               <Text
                 style={{

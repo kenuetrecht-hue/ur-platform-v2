@@ -16,6 +16,8 @@ import { speakText } from "@/lib/azure-tts-service";
 import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync";
 import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { useAuth } from "@/lib/auth-context";
+import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
+import { playExclusiveAudio, stopExclusiveAudio, unlockWebAudio } from "@/lib/exclusive-audio-player";
 
 interface ChatMessage {
   id?: string;
@@ -88,6 +90,8 @@ export function PersonalAIInterface({
     onSuccess: () => void premium.refetch(),
   });
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
+  const [speechHint, setSpeechHint] = useState<string | null>(null);
+  const deskName = creatorId === "platform-business-steward-ai" ? "Business Steward" : "ContentMate";
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
@@ -102,6 +106,7 @@ export function PersonalAIInterface({
 
       loadingRef.current = true;
       setLoading(true);
+      unlockWebAudio();
       const clearedInput = rawText === inputText;
       if (clearedInput) {
         setInputText("");
@@ -142,6 +147,36 @@ export function PersonalAIInterface({
 
         setMessages((prev) => [...prev, { role: "ai", text: result.reply }]);
         void refetchChatThread();
+        const spoken = result.reply.replace(/\s+/g, " ").trim().slice(0, 1200);
+        if (spoken && (premium.data?.creatorVoice || buyVoice.isSuccess)) {
+          setVoiceStatus("Reply ready — speaking it now.");
+          try {
+            if (Platform.OS === "web") {
+              const res = await voiceMutation.mutateAsync({
+                creatorId,
+                text: spoken,
+              });
+              if (res.success && res.audioUrl) {
+                try {
+                  await playExclusiveAudio(res.audioUrl);
+                } catch {
+                  await speakText(spoken);
+                }
+              } else {
+                await speakText(spoken);
+              }
+            } else {
+              await speakText(spoken);
+            }
+            setVoiceStatus("Playback finished.");
+          } catch (error) {
+            if (!(error instanceof Error && /abort/i.test(error.message))) {
+              setVoiceStatus(error instanceof Error ? error.message : "Voice failed");
+            }
+          }
+        } else {
+          setVoiceStatus("Reply ready — tap Hear to play it.");
+        }
       } catch (error) {
         const message =
           error instanceof Error
@@ -154,7 +189,7 @@ export function PersonalAIInterface({
         scrollToBottom();
       }
     },
-    [chatMutation, chatSyncConnected, creatorId, enqueueOutbox, inputText, isAuthenticated, loading, messages, scrollToBottom, refetchChatThread],
+    [buyVoice.isSuccess, chatMutation, chatSyncConnected, creatorId, enqueueOutbox, inputText, isAuthenticated, loading, messages, premium.data?.creatorVoice, refetchChatThread, scrollToBottom, voiceMutation],
   );
 
   const handleSendMessage = () => {
@@ -174,22 +209,34 @@ export function PersonalAIInterface({
       });
       return;
     }
+    stopExclusiveAudio();
     setVoiceStatus("Speaking…");
     try {
       if (Platform.OS === "web") {
         const res = await voiceMutation.mutateAsync({
-          creatorId: "contentmate",
-          text: lastAi.text,
+          creatorId,
+          text: lastAi.text.replace(/\s+/g, " ").trim().slice(0, 1200),
         });
         if (res.success && res.audioUrl) {
-          const audio = new Audio(res.audioUrl);
-          await audio.play();
+          try {
+            await playExclusiveAudio(res.audioUrl);
+          } catch {
+            await speakText(lastAi.text);
+          }
+        } else {
+          await speakText(lastAi.text);
+          setVoiceStatus(res.error ?? "Playback finished (device voice).");
+          return;
         }
       } else {
         await speakText(lastAi.text);
       }
-      setVoiceStatus(null);
+      setVoiceStatus("Playback finished.");
     } catch (e) {
+      if (e instanceof Error && /abort/i.test(e.message)) {
+        setVoiceStatus("Stopped.");
+        return;
+      }
       setVoiceStatus(e instanceof Error ? e.message : "Voice failed");
     }
   };
@@ -264,6 +311,9 @@ export function PersonalAIInterface({
               ]}
             >
               <ActivityIndicator color={colors.primary} />
+              <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700", marginTop: 8 }}>
+                Heard you — thinking. I'll speak the answer when it's ready.
+              </Text>
             </View>
           </View>
         ) : null}
@@ -311,7 +361,25 @@ export function PersonalAIInterface({
           },
         ]}
       >
+        <Text style={[styles.inputHint, { color: colors.muted }]}>
+          Text or tap Talk (🎤). After a reply, tap Hear so this AI talks back.
+        </Text>
+        {speechHint ? (
+          <Text style={[styles.inputHint, { color: colors.muted }]}>{speechHint}</Text>
+        ) : null}
         <View style={styles.inputRow}>
+          <VoicePromptMicButton
+            labeled
+            disabled={loading}
+            onBeforeListen={() => {
+              stopExclusiveAudio();
+              setVoiceStatus("Mic on — AI voice stopped so it does not echo.");
+            }}
+            onTranscript={(text, hint) => {
+              if (text) setInputText(text.slice(0, 2000));
+              setSpeechHint(hint || null);
+            }}
+          />
           <TextInput
             style={[
               styles.textInput,
@@ -356,8 +424,8 @@ export function PersonalAIInterface({
             {buyVoice.isPending || voiceMutation.isPending
               ? "…"
               : hasVoice
-                ? "🎙️ Hear ContentMate (voice pack active)"
-                : `🎙️ Pay $${premium.data?.creatorVoicePriceUsd ?? "2.99"} — speak with ContentMate`}
+                ? `🎙️ Hear ${deskName}`
+                : `🎙️ Pay $${premium.data?.creatorVoicePriceUsd ?? "2.99"} — hear ${deskName}`}
           </Text>
         </Pressable>
         {voiceStatus ? (

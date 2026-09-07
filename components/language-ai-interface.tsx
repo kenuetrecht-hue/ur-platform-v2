@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   KeyboardAvoidingView,
+  Pressable,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
@@ -16,6 +17,9 @@ import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync";
 import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
+import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
+import { playExclusiveAudio, stopExclusiveAudio } from "@/lib/exclusive-audio-player";
+import { speakText } from "@/lib/azure-tts-service";
 
 type LanguageMode = "chat" | "translate" | "learn" | "drill";
 
@@ -67,6 +71,8 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
     },
   ]);
   const [inputText, setInputText] = useState("");
+  const [speechHint, setSpeechHint] = useState<string | null>(null);
+  const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const loadingRef = useRef(false);
@@ -100,6 +106,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
   const chatMutation = trpc.aiLanguage.chat.useMutation();
   const translateMutation = trpc.aiLanguage.translate.useMutation();
   const teachMutation = trpc.aiLanguage.teach.useMutation();
+  const voiceMutation = trpc.aiCreators.synthesizeVoice.useMutation();
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
@@ -388,6 +395,9 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
               ]}
             >
               <ActivityIndicator color="#0d9488" />
+              <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700", marginTop: 8 }}>
+                Heard you — thinking. I'll speak the answer when it's ready.
+              </Text>
             </View>
           </View>
         ) : null}
@@ -509,7 +519,74 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
           },
         ]}
       >
+        <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 17, marginBottom: 6 }}>
+          Text or tap Talk (🎤). After a reply, tap Hear so LinguaMate talks back.
+        </Text>
+        <Pressable
+          onPress={async () => {
+            const lastAi = [...messages].reverse().find((m) => m.role === "ai");
+            if (!lastAi) return;
+            stopExclusiveAudio();
+            setVoiceStatus("Speaking…");
+            try {
+              const res = await voiceMutation.mutateAsync({
+                creatorId: "linguamate",
+                text: lastAi.text.replace(/\s+/g, " ").trim().slice(0, 1200),
+              });
+              if (res.success && res.audioUrl) {
+                try {
+                  await playExclusiveAudio(res.audioUrl);
+                } catch {
+                  await speakText(lastAi.text);
+                }
+              } else {
+                await speakText(lastAi.text);
+                setVoiceStatus(res.error ?? "Playback finished (device voice).");
+                return;
+              }
+              setVoiceStatus("Playback finished.");
+            } catch (error) {
+              if (error instanceof Error && /abort/i.test(error.message)) {
+                setVoiceStatus("Stopped.");
+                return;
+              }
+              setVoiceStatus(error instanceof Error ? error.message : "Voice failed");
+            }
+          }}
+          disabled={voiceMutation.isPending || loading || !canChat}
+          style={{
+            borderWidth: 1,
+            borderColor: colors.primary,
+            borderRadius: 10,
+            paddingVertical: 10,
+            paddingHorizontal: 12,
+            marginBottom: 8,
+            backgroundColor: colors.background,
+          }}
+        >
+          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
+            {voiceMutation.isPending ? "🎙️ LinguaMate is speaking…" : "🎙️ Hear LinguaMate"}
+          </Text>
+        </Pressable>
+        {voiceStatus ? (
+          <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 6 }}>{voiceStatus}</Text>
+        ) : null}
+        {speechHint ? (
+          <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 6 }}>{speechHint}</Text>
+        ) : null}
         <View style={styles.inputRow}>
+          <VoicePromptMicButton
+            labeled
+            disabled={loading || !canChat}
+            onBeforeListen={() => {
+              stopExclusiveAudio();
+              setVoiceStatus("Mic on — AI voice stopped so it does not echo.");
+            }}
+            onTranscript={(text, hint) => {
+              if (text) setInputText(text.slice(0, 4000));
+              setSpeechHint(hint || null);
+            }}
+          />
           <TextInput
             style={[
               styles.textInput,

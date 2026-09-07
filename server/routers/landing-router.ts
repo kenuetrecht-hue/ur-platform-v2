@@ -49,7 +49,7 @@ const DEMO_VOICE_PERSONA: Partial<Record<string, keyof typeof AI_PERSONA_VOICES>
   "ai-coder-001": "TECH_BUILDER",
   "ai-marina-mechanic-001": "PLUMBING_FOREMAN",
   contentmate: "GAME_FORGE",
-  linguamate: "TECH_BUILDER",
+  linguamate: "LINGUA",
   "ai-wellness-001": "COMPLIANCE_DOCTOR",
   "ai-3d-specialist": "TECH_BUILDER",
   "ai-culinary-001": "TECH_BUILDER",

@@ -7,9 +7,17 @@ import { createVoicePromptSession } from "@/lib/record-voice-prompt";
 type Props = {
   onTranscript: (text: string, hint: string) => void;
   disabled?: boolean;
+  labeled?: boolean;
+  /** Stop AI playback before the mic opens so it does not hear itself. */
+  onBeforeListen?: () => void;
 };
 
-export function VoicePromptMicButton({ onTranscript, disabled }: Props) {
+export function VoicePromptMicButton({
+  onTranscript,
+  disabled,
+  labeled = false,
+  onBeforeListen,
+}: Props) {
   const colors = useColors();
   const [listening, setListening] = useState(false);
   const sessionRef = useRef<ReturnType<typeof createVoicePromptSession> | null>(null);
@@ -35,6 +43,7 @@ export function VoicePromptMicButton({ onTranscript, disabled }: Props) {
       return;
     }
     try {
+      onBeforeListen?.();
       const session = createVoicePromptSession();
       sessionRef.current = session;
       setListening(true);
@@ -51,23 +60,33 @@ export function VoicePromptMicButton({ onTranscript, disabled }: Props) {
     <Pressable
       onPress={() => void toggle()}
       disabled={disabled || transcribe.isPending}
-      accessibilityLabel={listening ? "Stop microphone" : "Speak any language"}
+      accessibilityLabel={listening ? "Stop talking" : "Talk — speak any language"}
       hitSlop={8}
       style={{
-        width: 40,
+        minWidth: labeled ? 72 : 40,
         height: 40,
+        paddingHorizontal: labeled ? 8 : 0,
         borderRadius: 10,
         borderWidth: 1,
         borderColor: listening ? "#dc2626" : colors.border,
         backgroundColor: listening ? "#dc2626" : colors.surface,
         alignItems: "center",
         justifyContent: "center",
+        flexDirection: "row",
+        gap: 4,
       }}
     >
       {transcribe.isPending ? (
         <ActivityIndicator color={listening ? "#fff" : colors.primary} size="small" />
       ) : (
-        <Text style={{ fontSize: 18 }}>{listening ? "■" : "🎤"}</Text>
+        <>
+          <Text style={{ fontSize: 18 }}>{listening ? "■" : "🎤"}</Text>
+          {labeled ? (
+            <Text style={{ color: listening ? "#fff" : colors.foreground, fontSize: 11, fontWeight: "800" }}>
+              {listening ? "Stop" : "Talk"}
+            </Text>
+          ) : null}
+        </>
       )}
     </Pressable>
   );

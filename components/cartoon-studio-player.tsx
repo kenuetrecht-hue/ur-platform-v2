@@ -6,9 +6,11 @@ import { useFairShowWatch } from "@/hooks/use-fair-show-watch";
 
 type Props = {
   project: PublicCartoonProject;
+  /** Public signup sample — no Fair Show tracking. */
+  sample?: boolean;
 };
 
-export function CartoonStudioPlayer({ project }: Props) {
+export function CartoonStudioPlayer({ project, sample = false }: Props) {
   const colors = useColors();
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -21,7 +23,14 @@ export function CartoonStudioPlayer({ project }: Props) {
     contentId: project.id,
     kind: "cartoon",
     durationSeconds: project.totalSeconds,
+    enabled: !sample,
   });
+
+  useEffect(() => {
+    if (!sample) return;
+    setIndex(0);
+    setPlaying(true);
+  }, [sample]);
 
   useEffect(() => {
     if (!playing || !scene) return;
@@ -74,7 +83,9 @@ export function CartoonStudioPlayer({ project }: Props) {
           }}
           style={{ backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }}
         >
-          <Text style={{ color: "#fff", fontWeight: "700" }}>{playing ? "Playing…" : "Play cartoon"}</Text>
+          <Text style={{ color: "#fff", fontWeight: "700" }}>
+            {playing ? "Playing…" : sample ? "Play again" : "Play cartoon"}
+          </Text>
         </Pressable>
         <Pressable
           onPress={() => setIndex(Math.max(0, index - 1))}

@@ -423,6 +423,11 @@ export function ContentCreatorDashboardPanel() {
                   Open Cartoon Studio — film a lesson, host Cartoon Me →
                 </Text>
               </Pressable>
+              <Pressable onPress={() => router.push("/music-studio")} style={{ marginTop: 6 }}>
+                <Text style={{ color: colors.primary, fontWeight: "800" }}>
+                  Open Music Studio — beats, lyrics, Musician + Songwriter →
+                </Text>
+              </Pressable>
             </View>
             <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
               <CartoonCreatorPricingPanel />

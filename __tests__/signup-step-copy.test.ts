@@ -18,6 +18,7 @@ import {
 } from "../lib/signup-step-copy";
 import { PLATFORM_TERMS_SECTIONS, TERMS_SIGNUP_ACKNOWLEDGMENT } from "../lib/platform-terms-of-use";
 import { JOIN_EMANUAL_STEPS } from "../lib/join-emanual";
+import { SIGNUP_KYC_CARTOON_BLURB, SIGNUP_KYC_CARTOON_SAMPLE } from "../lib/signup-kyc-cartoon-sample";
 
 function haystack(): string {
   return [
@@ -41,6 +42,8 @@ function haystack(): string {
     TERMS_SIGNUP_ACKNOWLEDGMENT,
     PLATFORM_TERMS_SECTIONS.find((section) => section.id === "age-kyc")?.bullets.join(" ") ?? "",
     JOIN_EMANUAL_STEPS.find((step) => step.number === 3)?.clicks.join(" ") ?? "",
+    SIGNUP_KYC_CARTOON_BLURB,
+    SIGNUP_KYC_CARTOON_SAMPLE.script,
   ]
     .join("\n")
     .toLowerCase();

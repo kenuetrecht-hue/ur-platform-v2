@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-nativ
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { createVoicePromptSession } from "@/lib/record-voice-prompt";
+import { stopExclusiveAudio } from "@/lib/exclusive-audio-player";
 
 type Props = {
   value: string;
@@ -54,6 +55,7 @@ export function VoicePromptField({
       return;
     }
     try {
+      stopExclusiveAudio();
       setHint("Listening… tap the microphone again when you finish.");
       const session = createVoicePromptSession();
       sessionRef.current = session;

@@ -135,6 +135,32 @@ export default function HomeScreen() {
 
         <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
           <AppPressable
+            onPress={() => router.push("/music-studio")}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 14,
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 14,
+              borderWidth: 1.5,
+              borderColor: colors.primary,
+              marginBottom: 12,
+            }}
+          >
+            <Text pointerEvents="none" style={{ fontSize: 28 }}>
+              🎚️
+            </Text>
+            <View pointerEvents="none" style={{ flex: 1, gap: 2 }}>
+              <Text style={{ fontSize: 17, fontWeight: "800", color: colors.foreground }}>
+                Music Studio
+              </Text>
+              <Text style={{ fontSize: 13, color: colors.muted, lineHeight: 18 }}>
+                Make beats, share a collab code, write lyrics. Musician and Songwriter sit at the desk.
+              </Text>
+            </View>
+          </AppPressable>
+          <AppPressable
             onPress={() => router.push("/cartoon-studio")}
             style={{
               backgroundColor: colors.surface,
@@ -191,6 +217,10 @@ export default function HomeScreen() {
                 {
                   label: "Cartoon Studio",
                   onPress: () => router.push("/cartoon-studio"),
+                },
+                {
+                  label: "Music Studio",
+                  onPress: () => router.push("/music-studio"),
                 },
                 {
                   label: "ContentMate",

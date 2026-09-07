@@ -16,6 +16,7 @@ export const PLATFORM_SECTION_IDS = [
   "voice_talk",
   "jobsite",
   "ur_world",
+  "music_studio",
 ] as const;
 
 export type PlatformSectionId = (typeof PLATFORM_SECTION_IDS)[number];
@@ -100,6 +101,12 @@ export const PLATFORM_SECTION_CATALOG: PlatformSectionMeta[] = [
     description: "Walkable Civic Plaza, garden and benches, specialist desks, Talk Time in the city",
     routes: ["/world"],
   },
+  {
+    id: "music_studio",
+    label: "Music Studio",
+    description: "Beat grid, lyrics pad, and Musician / Songwriter desks",
+    routes: ["/music-studio"],
+  },
 ];
 
 export function isPlatformSectionId(value: string): value is PlatformSectionId {
@@ -127,6 +134,7 @@ export function inferSectionFromOpsText(text: string): PlatformSectionId | null 
   if (/jobsite|job site|clock in|geofence|heavy equipment|yard inventory/.test(lower)) {
     return "jobsite";
   }
+  if (/music studio|beat studio|music-studio|make beats/.test(lower)) return "music_studio";
   return null;
 }
 

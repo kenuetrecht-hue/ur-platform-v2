@@ -80,6 +80,13 @@ import {
   quoteCartoonCreatorPlan,
   type CartoonCreatorPlanId,
 } from "./cartoon-creator-pricing";
+import {
+  getMusicStudioPlan,
+  MUSIC_STUDIO_BILLING_NOTES,
+  MUSIC_STUDIO_NO_REFUND_POLICY,
+  quoteMusicStudio,
+  type MusicStudioPlanId,
+} from "./music-studio-pricing";
 
 export type PurchaseSummaryLine = {
   label: string;
@@ -90,7 +97,7 @@ export type PurchaseSummaryLine = {
 export type PurchasePricing = ReturnType<typeof calculateCustomerCheckout>;
 
 export type PurchaseSummary = {
-  productType: "ai_subscription" | "ai_talk" | "workspace_3d" | "workspace_3d_addon" | "live_class" | "class_replay" | "usage_credit" | "cartoon_studio" | "cartoon_creator";
+  productType: "ai_subscription" | "ai_talk" | "workspace_3d" | "workspace_3d_addon" | "live_class" | "class_replay" | "usage_credit" | "cartoon_studio" | "cartoon_creator" | "music_studio";
   title: string;
   /** Itemized price — subtotal + tax + Stripe fee = total */
   pricing: PurchasePricing;
@@ -700,6 +707,49 @@ export function buildCartoonCreatorPurchaseSummary(params: {
     ],
     aiDisclosure:
       "Cartoon Me is a cartoon stand-in. It is not your real face, not a photoreal clone, and not human professional advice. You pay first and accept the result.",
+    billingEntity: BILLING_ENTITY,
+  };
+}
+
+export function buildMusicStudioPurchaseSummary(params: {
+  planId: MusicStudioPlanId;
+  stateCode?: UsStateCode | null;
+}): PurchaseSummary {
+  const quote = quoteMusicStudio(params.planId);
+  const plan = getMusicStudioPlan(params.planId);
+  const { pricing, youPay, priceBreakdown } = buildPricingBlock(
+    quote.subtotalCents,
+    params.stateCode,
+    `${plan.days} day${plan.days === 1 ? "" : "s"} prepaid`,
+  );
+  const channel = getRequiredPaymentChannel(quote.subtotalCents);
+  return {
+    productType: "music_studio",
+    title: `${plan.label} — ${plan.days} day${plan.days === 1 ? "" : "s"}`,
+    pricing,
+    youPay,
+    priceBreakdown,
+    youReceive: [
+      { label: "Plan", value: `${plan.label} (${plan.badge})` },
+      { label: "Service subtotal", value: quote.subtotalDisplay },
+      { label: "WAV exports", value: String(plan.exports) },
+      { label: "Vocal takes", value: String(plan.vocalTakes) },
+      { label: "What you get", value: plan.youGet.join(" · ") },
+    ],
+    notIncluded: [
+      "A license to Avid Pro Tools, Ableton Live, Logic Pro, or FL Studio",
+      "Suno/Udio generated hit songs from a text prompt",
+      "Refunds because you wanted a different mix",
+    ],
+    importantNotes: [
+      ...MUSIC_STUDIO_BILLING_NOTES,
+      `What this cost is for: ${plan.costExplained}`,
+      MUSIC_STUDIO_NO_REFUND_POLICY,
+      `Checkout: ${getPaymentChannelLabel(channel)}. ${PAYMENT_CHANNEL_POLICY_SUMMARY}`,
+      ...stateTaxNotes(params.stateCode ?? null, pricing),
+    ],
+    aiDisclosure:
+      "Musician and Songwriter are AI coaches in the same room. UR Studio Pro is our mixer/export desk, not Avid Pro Tools. AI lyrics and coaching can be wrong.",
     billingEntity: BILLING_ENTITY,
   };
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ScrollView, View, Text, Pressable, Modal } from "react-native";
+import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
@@ -11,6 +12,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 
 const CREATE_ICONS: Record<string, string> = {
   video: "🎬",
+  music: "🎚️",
   audio: "🎵",
   image: "🖼️",
   text: "📝",
@@ -22,6 +24,7 @@ const CREATE_ICONS: Record<string, string> = {
 
 export default function CreateScreen() {
   const colors = useColors();
+  const router = useRouter();
   const [showAIChat, setShowAIChat] = useState(false);
   const [showVoiceChat, setShowVoiceChat] = useState(false);
   const createTab = consolidatedNavigation.getTab("create");
@@ -83,6 +86,7 @@ export default function CreateScreen() {
               key={item.id}
               onPress={() => {
                 if (item.id === "ai") setShowAIChat(true);
+                else if (item.route) router.push(item.route as never);
               }}
               style={{
                 backgroundColor: colors.surface,
