@@ -9,6 +9,9 @@ import {
   clampMixerPan,
   clampMixerVolume,
   clampMusicBpm,
+  clampCrossfade,
+  clampCueStep,
+  emptyDeckBPattern,
   emptyMusicFx,
   emptyMusicMixer,
   emptyMusicPattern,
@@ -110,6 +113,10 @@ export function createMusicProject(input: {
     kit: "hiphop",
     key: "C",
     pattern: emptyMusicPattern(),
+    patternB: emptyDeckBPattern(),
+    crossfade: 50,
+    cueStepA: 0,
+    cueStepB: 0,
     mixer: emptyMusicMixer(),
     fx: emptyMusicFx(),
     bars: 2,
@@ -133,6 +140,10 @@ export function saveMusicProject(input: {
   kit?: string;
   key?: string;
   pattern?: MusicPattern;
+  patternB?: MusicPattern;
+  crossfade?: number;
+  cueStepA?: number;
+  cueStepB?: number;
   mixer?: MusicMixer;
   fx?: MusicFx;
   bars?: 1 | 2 | 4;
@@ -154,6 +165,18 @@ export function saveMusicProject(input: {
   }
   if (input.pattern) {
     project.pattern = normalizePattern(input.pattern);
+  }
+  if (input.patternB) {
+    project.patternB = normalizePattern(input.patternB);
+  }
+  if (input.crossfade !== undefined) {
+    project.crossfade = clampCrossfade(input.crossfade);
+  }
+  if (input.cueStepA !== undefined) {
+    project.cueStepA = clampCueStep(input.cueStepA);
+  }
+  if (input.cueStepB !== undefined) {
+    project.cueStepB = clampCueStep(input.cueStepB);
   }
   if (input.mixer) {
     const mixer = emptyMusicMixer();

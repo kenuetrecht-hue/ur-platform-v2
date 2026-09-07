@@ -1,8 +1,14 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import {
+  clampCrossfade,
+  clampCueStep,
   clampMusicBpm,
   countActiveHits,
+  crossfadeGains,
+  emptyDeckBPattern,
   emptyMusicPattern,
+  isMetronomeAccent,
+  isMetronomeClick,
   suggestChordProgressions,
   toggleMusicStep,
 } from "../lib/music-studio";
@@ -22,6 +28,14 @@ import {
   _resetMusicStudioEntitlementsForTests,
 } from "../server/_core/music-studio-entitlement-service";
 import { quoteMusicStudio, MUSIC_STUDIO_PLANS } from "../lib/music-studio-pricing";
+import {
+  BLUETOOTH_PAIR_HELP,
+  MUSIC_USER_STARTS_REMINDER,
+  buildMusicLeadSheetHtml,
+  buildMusicMidiFile,
+  musicHookupsLater,
+  musicHookupsNow,
+} from "../lib/music-studio-hookups";
 import { IN_APP_ONLY_SUBTOTAL_CENTS } from "../lib/payment-channel-policy";
 import { RESOURCE_NOT_FOUND } from "../server/_core/input-sanitize";
 
@@ -109,5 +123,77 @@ describe("music studio", () => {
     expect(saved.mixer.lead.mute).toBe(true);
     expect(saved.bars).toBe(4);
     expect(saved.pattern.lead.length).toBe(32);
+  });
+
+  it("mixes two decks with an equal-power crossfader and a metronome grid", () => {
+    expect(clampCrossfade(-20)).toBe(0);
+    expect(clampCrossfade(140)).toBe(100);
+    expect(crossfadeGains(0).a).toBeCloseTo(1);
+    expect(crossfadeGains(0).b).toBeCloseTo(0);
+    expect(crossfadeGains(100).a).toBeCloseTo(0);
+    expect(crossfadeGains(100).b).toBeCloseTo(1);
+    expect(isMetronomeClick(0)).toBe(true);
+    expect(isMetronomeClick(1)).toBe(false);
+    expect(isMetronomeAccent(0)).toBe(true);
+    expect(isMetronomeAccent(4)).toBe(false);
+    expect(clampCueStep(-3)).toBe(0);
+    expect(clampCueStep(99)).toBe(31);
+  });
+
+  it("saves deck B, crossfade, and cue points", () => {
+    const created = createMusicProject({ userId: "owner-1", title: "Booth" });
+    expect(created.patternB.hat[0]).toBe(true);
+    expect(created.crossfade).toBe(50);
+    const saved = saveMusicProject({
+      userId: "owner-1",
+      projectId: created.id,
+      patternB: emptyDeckBPattern(),
+      crossfade: 75,
+      cueStepA: 4,
+      cueStepB: 8,
+    });
+    expect(saved.crossfade).toBe(75);
+    expect(saved.cueStepA).toBe(4);
+    expect(saved.cueStepB).toBe(8);
+  });
+
+  it("offers print, MIDI, USB deck, audio in, and Bluetooth OS help without scanning strangers", () => {
+    expect(musicHookupsNow().map((h) => h.id)).toEqual(
+      expect.arrayContaining([
+        "speakers",
+        "print_chart",
+        "midi_file",
+        "midi_port",
+        "headphones_os",
+        "audio_in",
+        "usb_deck",
+      ]),
+    );
+    expect(musicHookupsLater()).toEqual([]);
+    expect(MUSIC_USER_STARTS_REMINDER).toMatch(/You open it/i);
+    expect(BLUETOOTH_PAIR_HELP).toMatch(/never scans/i);
+  });
+
+  it("builds a printable lead sheet that escapes user text", () => {
+    const html = buildMusicLeadSheetHtml({
+      title: "Porch <script>jam</script>",
+      bpm: 96,
+      key: "G",
+      kit: "hiphop",
+      lyrics: "Meet me <on> the porch",
+    });
+    expect(html).toContain("96 BPM");
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).not.toContain("<script>jam");
+    expect(html).toContain("Meet me &lt;on&gt;");
+  });
+
+  it("encodes the beat grid as a Standard MIDI file", () => {
+    const midi = buildMusicMidiFile(emptyMusicPattern(), 110);
+    const header = String.fromCharCode(...midi.slice(0, 4));
+    const track = String.fromCharCode(...midi.slice(14, 18));
+    expect(header).toBe("MThd");
+    expect(track).toBe("MTrk");
+    expect(midi.length).toBeGreaterThan(40);
   });
 });

@@ -16,7 +16,10 @@ import {
   MUSIC_LYRICS_MAX,
   MUSIC_NOTES_MAX,
   MUSIC_TITLE_MAX,
+  clampCrossfade,
+  clampCueStep,
   clampMusicBpm,
+  emptyDeckBPattern,
   emptyMusicFx,
   emptyMusicMixer,
   emptyMusicPattern,
@@ -24,6 +27,7 @@ import {
   toggleMusicStep,
   visibleMusicSteps,
   visibleMusicTracks,
+  type MusicDeckId,
   type MusicFx,
   type MusicKeyId,
   type MusicKitId,
@@ -33,10 +37,14 @@ import {
 } from "@/lib/music-studio";
 import {
   canPlayMusicStudio,
+  cueMusicStudio,
   playMusicStudioPattern,
   stopMusicStudioPlayback,
+  updateMusicStudioLive,
 } from "@/lib/music-studio-playback";
 import { MusicStudioProPanel } from "@/components/music-studio-pro-panel";
+import { MusicStudioBooth } from "@/components/music-studio-booth";
+import { MusicStudioHookups } from "@/components/music-studio-hookups";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 
 type Props = {
@@ -78,6 +86,12 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
   const [kit, setKit] = useState<MusicKitId>("hiphop");
   const [key, setKey] = useState<MusicKeyId>("C");
   const [pattern, setPattern] = useState<MusicPattern>(emptyMusicPattern);
+  const [patternB, setPatternB] = useState<MusicPattern>(emptyDeckBPattern);
+  const [crossfade, setCrossfade] = useState(50);
+  const [cueStepA, setCueStepA] = useState(0);
+  const [cueStepB, setCueStepB] = useState(0);
+  const [editDeck, setEditDeck] = useState<MusicDeckId>("a");
+  const [metronome, setMetronome] = useState(false);
   const [mixer, setMixer] = useState<MusicMixer>(emptyMusicMixer);
   const [fx, setFx] = useState<MusicFx>(emptyMusicFx);
   const [lyrics, setLyrics] = useState("");
@@ -98,6 +112,10 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
       setKit(project.kit);
       setKey(project.key);
       setPattern(project.pattern);
+      setPatternB(project.patternB ?? emptyDeckBPattern());
+      setCrossfade(project.crossfade ?? 50);
+      setCueStepA(project.cueStepA ?? 0);
+      setCueStepB(project.cueStepB ?? 0);
       setMixer(project.mixer ?? emptyMusicMixer());
       setFx(project.fx ?? emptyMusicFx());
       setLyrics(project.lyrics);
@@ -115,6 +133,19 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
 
   useEffect(() => () => stopMusicStudioPlayback(), []);
 
+  useEffect(() => {
+    updateMusicStudioLive({
+      pattern,
+      patternB,
+      mixer,
+      fx,
+      bpm,
+      kit,
+      crossfade,
+      metronome,
+    });
+  }, [bpm, crossfade, fx, kit, metronome, mixer, pattern, patternB]);
+
   const persist = useCallback(() => {
     if (!isAuthenticated) {
       setStatus("Sign in to save or share a beat.");
@@ -131,12 +162,34 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
       kit,
       key,
       pattern,
+      patternB,
+      crossfade,
+      cueStepA,
+      cueStepB,
       mixer,
       fx,
       lyrics,
       notes,
     });
-  }, [bpm, create, fx, isAuthenticated, kit, key, lyrics, mixer, notes, pattern, projectId, save, title]);
+  }, [
+    bpm,
+    create,
+    crossfade,
+    cueStepA,
+    cueStepB,
+    fx,
+    isAuthenticated,
+    kit,
+    key,
+    lyrics,
+    mixer,
+    notes,
+    pattern,
+    patternB,
+    projectId,
+    save,
+    title,
+  ]);
 
   const togglePlay = useCallback(() => {
     if (playing) {
@@ -147,11 +200,14 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
     }
     const started = playMusicStudioPattern({
       pattern,
+      patternB,
       bpm,
       kit,
       mixer,
       fx,
       steps,
+      crossfade,
+      metronome,
       onStep: setPlayStep,
     });
     if (!started) {
@@ -160,7 +216,41 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
     }
     setPlaying(true);
     setStatus(null);
-  }, [bpm, fx, kit, mixer, pattern, playing, steps]);
+  }, [bpm, crossfade, fx, kit, metronome, mixer, pattern, patternB, playing, steps]);
+
+  const fireCue = useCallback(
+    (deck: MusicDeckId) => {
+      const started = cueMusicStudio({
+        pattern,
+        patternB,
+        bpm,
+        kit,
+        mixer,
+        fx,
+        steps,
+        cueStep: deck === "b" ? cueStepB : cueStepA,
+        deck,
+        onStep: setPlayStep,
+      });
+      if (!started) {
+        setStatus("Cue is on the website / PWA.");
+      }
+    },
+    [bpm, cueStepA, cueStepB, fx, kit, mixer, pattern, patternB, steps],
+  );
+
+  const changeCrossfade = useCallback((value: number) => {
+    const next = clampCrossfade(value);
+    setCrossfade(next);
+    updateMusicStudioLive({ crossfade: next });
+  }, []);
+
+  const toggleMetronome = useCallback(() => {
+    setMetronome((on) => {
+      updateMusicStudioLive({ metronome: !on });
+      return !on;
+    });
+  }, []);
 
   if (!isAuthenticated) {
     return (
@@ -197,10 +287,32 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
           style={[styles.chip, { borderColor: colors.primary, backgroundColor: colors.surface }]}
         >
           <Text style={{ color: colors.foreground, fontWeight: "700" }}>
-            {playing ? "Stop" : canPlayMusicStudio() ? "Play beat" : "Play (web)"}
+            {playing ? "Stop" : canPlayMusicStudio() ? "Play mix" : "Play (web)"}
           </Text>
         </Pressable>
       </View>
+
+      <MusicStudioBooth
+        title={title}
+        bpm={bpm}
+        playing={playing}
+        metronome={metronome}
+        crossfade={crossfade}
+        editDeck={editDeck}
+        onToggleMetronome={toggleMetronome}
+        onCrossfade={changeCrossfade}
+        onEditDeck={setEditDeck}
+        onCue={fireCue}
+        onCopyAToB={() => {
+          setPatternB(pattern);
+          updateMusicStudioLive({ patternB: pattern });
+        }}
+        onSetCueHere={(deck) => {
+          const here = clampCueStep(playStep >= 0 ? playStep : 0);
+          if (deck === "b") setCueStepB(here);
+          else setCueStepA(here);
+        }}
+      />
 
       <TextInput
         value={title}
@@ -278,18 +390,32 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
             </Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, flex: 1 }}>
               {Array.from({ length: steps }, (_, step) => {
-                const on = pattern[track][step];
+                const activePattern = editDeck === "b" ? patternB : pattern;
+                const on = activePattern[track][step];
                 const current = playStep === step;
+                const cueHere = (editDeck === "b" ? cueStepB : cueStepA) === step;
                 return (
                   <Pressable
                     key={`${track}-${step}`}
-                    onPress={() => setPattern((prev) => toggleMusicStep(prev, track, step))}
+                    onPress={() => {
+                      if (editDeck === "b") {
+                        setPatternB((prev) => toggleMusicStep(prev, track, step));
+                        updateMusicStudioLive({
+                          patternB: toggleMusicStep(patternB, track, step),
+                        });
+                      } else {
+                        setPattern((prev) => toggleMusicStep(prev, track, step));
+                        updateMusicStudioLive({
+                          pattern: toggleMusicStep(pattern, track, step),
+                        });
+                      }
+                    }}
                     style={{
                       width: 18,
                       height: 22,
                       borderRadius: 4,
                       borderWidth: 1,
-                      borderColor: current ? colors.primary : colors.border,
+                      borderColor: current ? colors.primary : cueHere ? "#c9a227" : colors.border,
                       backgroundColor: on ? colors.primary : colors.surface,
                     }}
                   />
@@ -363,6 +489,15 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
           ))}
         </View>
       ) : null}
+
+      <MusicStudioHookups
+        title={title}
+        bpm={bpm}
+        keyName={key}
+        kit={kit}
+        lyrics={lyrics}
+        pattern={pattern}
+      />
 
       <MusicStudioProPanel
         title={title}

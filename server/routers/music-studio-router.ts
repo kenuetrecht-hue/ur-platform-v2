@@ -226,6 +226,10 @@ export const musicStudioRouter = router({
         kit: z.enum(MUSIC_KITS).optional(),
         key: z.enum(MUSIC_KEYS).optional(),
         pattern: patternSchema.optional(),
+        patternB: patternSchema.optional(),
+        crossfade: z.number().min(0).max(100).optional(),
+        cueStepA: z.number().int().min(0).max(MUSIC_STEPS - 1).optional(),
+        cueStepB: z.number().int().min(0).max(MUSIC_STEPS - 1).optional(),
         mixer: mixerSchema.optional(),
         fx: z
           .object({
@@ -250,6 +254,10 @@ export const musicStudioRouter = router({
           kit: input.kit,
           key: input.key,
           pattern: input.pattern,
+          patternB: input.patternB,
+          crossfade: input.crossfade,
+          cueStepA: input.cueStepA,
+          cueStepB: input.cueStepB,
           mixer: input.mixer,
           fx: input.fx,
           bars: input.bars,

@@ -6,7 +6,7 @@
 export const MUSIC_STUDIO_HREF = "/music-studio" as const;
 export const MUSIC_STUDIO_TITLE = "Music Studio";
 export const MUSIC_STUDIO_RULE =
-  "UR Music Studio is our own web/app room: beat grid, lyrics, Musician + Songwriter, and optional UR Studio Pro (mixer, extra tracks, effects, WAV export, vocal take). It is not Avid Pro Tools, Ableton, or a Suno hit-song generator.";
+  "UR Music Studio is our own web/app room: two decks, cue, metronome, beat grid, lyrics, Musician + Songwriter, and optional UR Studio Pro. Hookups are files and OS dialogs you start (print, MIDI, WAV, USB deck, your audio interface) — not Avid Pro Tools, Ableton, Serato, or a Suno hit-song generator.";
 
 export const MUSIC_TRACKS_FREE = ["kick", "snare", "hat", "bass"] as const;
 export const MUSIC_TRACKS = ["kick", "snare", "hat", "bass", "clap", "perc", "pad", "lead"] as const;
@@ -24,6 +24,7 @@ export const MUSIC_BPM_MAX = 180;
 export type MusicTrackId = (typeof MUSIC_TRACKS)[number];
 export type MusicKitId = (typeof MUSIC_KITS)[number];
 export type MusicKeyId = (typeof MUSIC_KEYS)[number];
+export type MusicDeckId = "a" | "b";
 export type MusicPattern = Record<MusicTrackId, boolean[]>;
 
 export type MusicMixerChannel = {
@@ -49,6 +50,10 @@ export type MusicProject = {
   kit: MusicKitId;
   key: MusicKeyId;
   pattern: MusicPattern;
+  patternB: MusicPattern;
+  crossfade: number;
+  cueStepA: number;
+  cueStepB: number;
   mixer: MusicMixer;
   fx: MusicFx;
   bars: 1 | 2 | 4;
@@ -96,6 +101,47 @@ export function emptyMusicPattern(): MusicPattern {
     pad: Array.from({ length: MUSIC_STEPS }, (_, i) => i % 8 === 0),
     lead: Array.from({ length: MUSIC_STEPS }, (_, i) => i === 8 || i === 24),
   };
+}
+
+/** Complementary loop for deck B so the booth has two parts out of the box. */
+export function emptyDeckBPattern(): MusicPattern {
+  return {
+    kick: Array.from({ length: MUSIC_STEPS }, (_, i) => i % 8 === 4),
+    snare: Array.from({ length: MUSIC_STEPS }, (_, i) => i % 8 === 0),
+    hat: Array.from({ length: MUSIC_STEPS }, () => true),
+    bass: Array.from({ length: MUSIC_STEPS }, (_, i) => i % 16 === 8),
+    clap: Array.from({ length: MUSIC_STEPS }, (_, i) => i % 4 === 2),
+    perc: Array.from({ length: MUSIC_STEPS }, (_, i) => i % 8 === 6),
+    pad: Array.from({ length: MUSIC_STEPS }, (_, i) => i % 16 === 0),
+    lead: Array.from({ length: MUSIC_STEPS }, (_, i) => i === 12 || i === 28),
+  };
+}
+
+export function clampCrossfade(value: number): number {
+  if (!Number.isFinite(value)) return 50;
+  return Math.min(100, Math.max(0, Math.round(value)));
+}
+
+export function clampCueStep(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(MUSIC_STEPS - 1, Math.max(0, Math.round(value)));
+}
+
+/** Equal-power A/B mix. 0 = deck A, 100 = deck B. */
+export function crossfadeGains(crossfade: number): { a: number; b: number } {
+  const t = clampCrossfade(crossfade) / 100;
+  return {
+    a: Math.cos((t * Math.PI) / 2),
+    b: Math.sin((t * Math.PI) / 2),
+  };
+}
+
+export function isMetronomeClick(step: number): boolean {
+  return step % 4 === 0;
+}
+
+export function isMetronomeAccent(step: number): boolean {
+  return step % 16 === 0;
 }
 
 export function clampMixerVolume(value: number): number {

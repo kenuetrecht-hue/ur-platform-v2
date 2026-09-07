@@ -54,7 +54,7 @@ export default function MusicStudioScreen() {
             <TabScreenHeader
               icon="🎚️"
               title={MUSIC_STUDIO_TITLE}
-              subtitle="Beats, lyrics, and the Musician + Songwriter you already have."
+              subtitle="Two decks, cue, metronome, and hookups you start — plus Musician + Songwriter."
             />
             <View style={{ paddingHorizontal: 16, gap: 14 }}>
               <Pressable onPress={() => router.back()}>

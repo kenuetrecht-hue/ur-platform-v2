@@ -5,8 +5,12 @@
 
 import { Platform } from "react-native";
 import {
+  clampCueStep,
+  crossfadeGains,
   emptyMusicFx,
   emptyMusicMixer,
+  isMetronomeAccent,
+  isMetronomeClick,
   MUSIC_STEPS,
   MUSIC_TRACKS,
   type MusicFx,
@@ -16,19 +20,25 @@ import {
   type MusicTrackId,
 } from "./music-studio";
 
-type PlayOpts = {
+export type MusicPlayOpts = {
   pattern: MusicPattern;
+  patternB?: MusicPattern;
   bpm: number;
   kit: MusicKitId;
   mixer?: MusicMixer;
   fx?: MusicFx;
   steps?: number;
+  crossfade?: number;
+  metronome?: boolean;
+  startStep?: number;
   onStep?: (step: number) => void;
 };
 
 let ctx: AudioContext | null = null;
 let timer: ReturnType<typeof setInterval> | null = null;
+let cueTimer: ReturnType<typeof setInterval> | null = null;
 let stepIndex = 0;
+let liveOpts: MusicPlayOpts | null = null;
 
 const KIT_TONE: Record<MusicKitId, Record<MusicTrackId, number>> = {
   hiphop: { kick: 58, snare: 180, hat: 7200, bass: 49, clap: 420, perc: 240, pad: 196, lead: 392 },
@@ -61,7 +71,9 @@ function hit(
   kit: MusicKitId,
   mixer: MusicMixer,
   fx: MusicFx,
+  deckGain = 1,
 ): void {
+  if (deckGain <= 0.02) return;
   if (!channelAudible(track, mixer)) return;
   const ch = mixer[track];
   const now = ac.currentTime;
@@ -92,15 +104,48 @@ function hit(
           : "sine";
   const decay =
     track === "hat" ? 0.08 : track === "snare" || track === "clap" ? 0.14 : track === "pad" ? 0.45 : 0.22;
-  const vol = ((ch.volume ?? 80) / 100) * (track === "hat" ? 0.08 : 0.2) * (1 + fx.reverb / 400);
+  const vol = ((ch.volume ?? 80) / 100) * (track === "hat" ? 0.08 : 0.2) * (1 + fx.reverb / 400) * deckGain;
   gain.gain.setValueAtTime(vol, now);
   gain.gain.exponentialRampToValueAtTime(0.001, now + decay + fx.delay / 400);
   osc.start(now);
   osc.stop(now + decay + fx.delay / 500);
 }
 
+function clickMetronome(ac: AudioContext, accent: boolean): void {
+  const now = ac.currentTime;
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.type = "square";
+  osc.frequency.value = accent ? 1400 : 880;
+  osc.connect(gain);
+  gain.connect(ac.destination);
+  gain.gain.setValueAtTime(accent ? 0.09 : 0.05, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+  osc.start(now);
+  osc.stop(now + 0.05);
+}
+
+function playStepHits(ac: AudioContext, opts: MusicPlayOpts, step: number, deckGainA: number, deckGainB: number): void {
+  const mixer = opts.mixer ?? emptyMusicMixer();
+  const fx = opts.fx ?? emptyMusicFx();
+  for (const track of MUSIC_TRACKS) {
+    if (opts.pattern[track]?.[step]) hit(ac, track, opts.kit, mixer, fx, deckGainA);
+    if (opts.patternB?.[track]?.[step]) hit(ac, track, opts.kit, mixer, fx, deckGainB);
+  }
+  if (opts.metronome && isMetronomeClick(step)) {
+    clickMetronome(ac, isMetronomeAccent(step));
+  }
+}
+
 export function canPlayMusicStudio(): boolean {
   return Platform.OS === "web" && typeof window !== "undefined";
+}
+
+export function stopMusicStudioCue(): void {
+  if (cueTimer) {
+    clearInterval(cueTimer);
+    cueTimer = null;
+  }
 }
 
 export function stopMusicStudioPlayback(): void {
@@ -108,28 +153,70 @@ export function stopMusicStudioPlayback(): void {
     clearInterval(timer);
     timer = null;
   }
+  stopMusicStudioCue();
+  liveOpts = null;
   stepIndex = 0;
 }
 
-export function playMusicStudioPattern(opts: PlayOpts): boolean {
+export function isMusicStudioPlaying(): boolean {
+  return timer !== null;
+}
+
+export function updateMusicStudioLive(partial: Partial<MusicPlayOpts>): void {
+  if (liveOpts) Object.assign(liveOpts, partial);
+}
+
+export function playMusicStudioPattern(opts: MusicPlayOpts): boolean {
   if (!canPlayMusicStudio()) return false;
   const ac = audioContext();
   if (!ac) return false;
   stopMusicStudioPlayback();
   void ac.resume();
-  const mixer = opts.mixer ?? emptyMusicMixer();
-  const fx = opts.fx ?? emptyMusicFx();
+  liveOpts = { ...opts };
   const steps = Math.min(MUSIC_STEPS, Math.max(8, opts.steps ?? MUSIC_STEPS));
+  stepIndex = clampCueStep(opts.startStep ?? 0);
   const stepMs = 60_000 / opts.bpm / 4;
   const tick = () => {
-    opts.onStep?.(stepIndex);
-    for (const track of MUSIC_TRACKS) {
-      if (opts.pattern[track]?.[stepIndex]) hit(ac, track, opts.kit, mixer, fx);
-    }
+    const live = liveOpts;
+    if (!live) return;
+    live.onStep?.(stepIndex);
+    const gains = crossfadeGains(live.crossfade ?? 0);
+    playStepHits(ac, live, stepIndex, gains.a, gains.b);
     stepIndex = (stepIndex + 1) % steps;
   };
   tick();
   timer = setInterval(tick, stepMs);
+  return true;
+}
+
+/** Preview four steps from the cue point at full deck gain, or jump if already playing. */
+export function cueMusicStudio(opts: MusicPlayOpts & { cueStep?: number; deck?: "a" | "b" }): boolean {
+  if (!canPlayMusicStudio()) return false;
+  const ac = audioContext();
+  if (!ac) return false;
+  void ac.resume();
+  const cueStep = clampCueStep(opts.cueStep ?? 0);
+  if (timer && liveOpts) {
+    stepIndex = cueStep;
+    liveOpts.onStep?.(stepIndex);
+    return true;
+  }
+  stopMusicStudioCue();
+  const steps = Math.min(MUSIC_STEPS, Math.max(8, opts.steps ?? MUSIC_STEPS));
+  let remaining = 4;
+  let local = cueStep;
+  const stepMs = 60_000 / opts.bpm / 4;
+  const gainA = opts.deck === "b" ? 0 : 1;
+  const gainB = opts.deck === "b" ? 1 : 0;
+  const tick = () => {
+    opts.onStep?.(local);
+    playStepHits(ac, opts, local, gainA, gainB);
+    local = (local + 1) % steps;
+    remaining -= 1;
+    if (remaining <= 0) stopMusicStudioCue();
+  };
+  tick();
+  if (remaining > 0) cueTimer = setInterval(tick, stepMs);
   return true;
 }
 
@@ -142,6 +229,36 @@ const CHORD_FREQ: Record<string, number[]> = {
   A: [440.0, 554.37, 659.25],
   Bb: [233.08, 293.66, 349.23],
 };
+
+/** Vinyl scratch — short noise burst the turntable fires on drag. */
+export function scratchMusicStudio(intensity = 1): boolean {
+  if (!canPlayMusicStudio()) return false;
+  const ac = audioContext();
+  if (!ac) return false;
+  void ac.resume();
+  const now = ac.currentTime;
+  const length = Math.floor(ac.sampleRate * 0.16);
+  const buffer = ac.createBuffer(1, length, ac.sampleRate);
+  const data = buffer.getChannelData(0);
+  const level = Math.min(1.4, Math.max(0.25, Math.abs(intensity)));
+  for (let i = 0; i < length; i += 1) {
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (length * 0.35)) * 0.45 * level;
+  }
+  const src = ac.createBufferSource();
+  const filter = ac.createBiquadFilter();
+  const gain = ac.createGain();
+  src.buffer = buffer;
+  filter.type = "bandpass";
+  filter.frequency.value = 700 + level * 500;
+  filter.Q.value = 0.7;
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(ac.destination);
+  gain.gain.setValueAtTime(0.22, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+  src.start(now);
+  return true;
+}
 
 export function playMusicChord(key: string): boolean {
   const ac = audioContext();

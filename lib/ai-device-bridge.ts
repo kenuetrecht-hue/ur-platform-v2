@@ -9,7 +9,11 @@ export type DeviceLinkKind =
   | "bluetooth"
   | "wifi"
   | "xr_headset"
-  | "accessibility";
+  | "accessibility"
+  | "audio_out"
+  | "audio_in"
+  | "midi_controller"
+  | "daw_file";
 
 export type DeviceLinkStatus = "now" | "later";
 
@@ -44,6 +48,30 @@ export const DEVICE_LINKS: readonly DeviceLink[] = [
     label: "Access for everyone",
     status: "now",
     how: "Screen-reader labels, captions on talk, large type, and Reading AI phonics — not a medical diagnosis.",
+  },
+  {
+    id: "audio_out",
+    label: "Speakers & headphones",
+    status: "now",
+    how: "The beat plays through the speakers or headphones your phone or computer already picked. UR does not scan Bluetooth for strangers.",
+  },
+  {
+    id: "audio_in",
+    label: "Audio interface / mic",
+    status: "now",
+    how: "Browser getUserMedia after the user taps Allow. We list inputs they permitted, then stop the stream. Nothing is uploaded or scanned on other machines.",
+  },
+  {
+    id: "midi_controller",
+    label: "MIDI keyboards & decks",
+    status: "now",
+    how: "Web MIDI — only after you click Connect and pick your own keyboard or DJ pad. We never probe other people's gear.",
+  },
+  {
+    id: "daw_file",
+    label: "DAW / deck files",
+    status: "now",
+    how: "Download MIDI or WAV to your computer. You open it in Ableton, Logic, a USB deck, or a USB stick. Same rule as CNC: we send the file, you press Start.",
   },
   {
     id: "bluetooth",
