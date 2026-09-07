@@ -59,8 +59,8 @@ export function MusicStudioHookups({ title, bpm, keyName, kit, lyrics, pattern }
       </Text>
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        <Pressable onPress={printChart} style={[styles.chip, { borderColor: colors.primary }]}>
-          <Text style={{ color: colors.foreground, fontWeight: "700" }}>Print lead sheet</Text>
+        <Pressable onPress={printChart} style={[styles.chip, { borderColor: colors.primary, backgroundColor: colors.primary }]}>
+          <Text style={{ color: "#fff", fontWeight: "700" }}>Print lead sheet</Text>
         </Pressable>
         <Pressable onPress={saveMidi} style={[styles.chip, { borderColor: colors.border }]}>
           <Text style={{ color: colors.foreground, fontWeight: "700" }}>Download MIDI</Text>

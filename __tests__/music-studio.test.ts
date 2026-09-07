@@ -36,6 +36,12 @@ import {
   musicHookupsLater,
   musicHookupsNow,
 } from "../lib/music-studio-hookups";
+import {
+  MUSIC_STUDIO_CLASS_RULE,
+  MUSIC_STUDIO_LESSONS,
+  getMusicStudioLesson,
+  musicStudioLessonsByLevel,
+} from "../lib/music-studio-lessons";
 import { IN_APP_ONLY_SUBTOTAL_CENTS } from "../lib/payment-channel-policy";
 import { RESOURCE_NOT_FOUND } from "../server/_core/input-sanitize";
 
@@ -195,5 +201,16 @@ describe("music studio", () => {
     expect(header).toBe("MThd");
     expect(track).toBe("MTrk");
     expect(midi.length).toBeGreaterThan(40);
+  });
+
+  it("ships a studio classroom for turntables, cue, decks, beats, and songs", () => {
+    expect(MUSIC_STUDIO_CLASS_RULE).toMatch(/not a DJ-school diploma/i);
+    expect(MUSIC_STUDIO_LESSONS.map((l) => l.id)).toEqual(
+      expect.arrayContaining(["booth", "turntable", "cue-metro", "two-decks", "first-beat", "write-song", "hookups"]),
+    );
+    expect(musicStudioLessonsByLevel("beginner").length).toBeGreaterThanOrEqual(6);
+    expect(getMusicStudioLesson("turntable")?.tryNow).toMatch(/Play mix/i);
+    expect(getMusicStudioLesson("write-song")?.coach).toBe("ai-songwriter-001");
+    expect(getMusicStudioLesson("turntable")?.ask).not.toMatch(/Serato/i);
   });
 });

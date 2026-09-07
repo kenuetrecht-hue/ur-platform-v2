@@ -52,7 +52,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: "700",
+    fontWeight: "800",
+    letterSpacing: -0.3,
   },
   titleCompact: {
     fontSize: 22,
@@ -67,9 +68,9 @@ const styles = StyleSheet.create({
   },
   accentLine: {
     height: 3,
-    width: 48,
+    width: 64,
     borderRadius: 2,
     marginTop: 8,
-    opacity: 0.85,
+    opacity: 0.9,
   },
 });

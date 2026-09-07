@@ -156,7 +156,7 @@ export default function HomeScreen() {
                 Music Studio
               </Text>
               <Text style={{ fontSize: 13, color: colors.muted, lineHeight: 18 }}>
-                Make beats, share a collab code, write lyrics. Musician and Songwriter sit at the desk.
+                Two decks, a classroom, and Musician + Songwriter. Learn the booth, then make a beat.
               </Text>
             </View>
           </AppPressable>

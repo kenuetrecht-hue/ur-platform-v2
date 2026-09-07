@@ -8,9 +8,10 @@ type Props = {
   bpm: number;
   title: string;
   deckName?: string;
+  compact?: boolean;
 };
 
-export function MusicStudioTurntable({ spinning, bpm, title, deckName }: Props) {
+export function MusicStudioTurntable({ spinning, bpm, title, deckName, compact }: Props) {
   const colors = useColors();
   const spin = useRef(new Animated.Value(0)).current;
   const lastScratch = useRef(0);
@@ -60,7 +61,12 @@ export function MusicStudioTurntable({ spinning, bpm, title, deckName }: Props) 
   const label = title.trim().slice(0, 18) || "UR Studio";
 
   return (
-    <View style={[styles.booth, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+    <View
+      style={[
+        compact ? styles.compact : styles.booth,
+        compact ? null : { borderColor: colors.border, backgroundColor: colors.surface },
+      ]}
+    >
       <View style={styles.deck}>
         <View style={[styles.armBase, { backgroundColor: colors.muted }]} />
         <View
@@ -96,10 +102,19 @@ export function MusicStudioTurntable({ spinning, bpm, title, deckName }: Props) 
           </View>
         </Animated.View>
       </View>
-      <View style={{ flex: 1, gap: 4 }}>
-        <Text style={{ color: colors.foreground, fontWeight: "800" }}>{deckName || "Turntable"}</Text>
-        <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 17 }}>
-          {spinning ? `Spinning at ${bpm} BPM.` : "Hit Play mix and the platter turns."} Drag the vinyl to scratch.
+      <View style={[compact ? styles.compactCopy : { flex: 1, gap: 4 }]}>
+        <Text style={{ color: colors.foreground, fontWeight: "800", textAlign: compact ? "center" : "left" }}>
+          {deckName || "Turntable"}
+        </Text>
+        <Text
+          style={{
+            color: colors.muted,
+            fontSize: 12,
+            lineHeight: 17,
+            textAlign: compact ? "center" : "left",
+          }}
+        >
+          {spinning ? `Spinning at ${bpm} BPM.` : "Hit Play mix and the platter turns."} Drag to scratch.
         </Text>
       </View>
     </View>
@@ -107,6 +122,8 @@ export function MusicStudioTurntable({ spinning, bpm, title, deckName }: Props) 
 }
 
 const styles = StyleSheet.create({
+  compact: { alignItems: "center", gap: 8, flex: 1, minWidth: 148 },
+  compactCopy: { gap: 2, paddingHorizontal: 4 },
   booth: {
     borderWidth: 1,
     borderRadius: 14,

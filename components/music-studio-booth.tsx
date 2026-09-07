@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { MusicStudioTurntable } from "@/components/music-studio-turntable";
+import { brandHighlightSurface } from "@/lib/brand-theme";
 import type { MusicDeckId } from "@/lib/music-studio";
 
 const FADER_STOPS = [0, 25, 50, 75, 100] as const;
@@ -37,14 +38,23 @@ export function MusicStudioBooth({
   const colors = useColors();
 
   return (
-    <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-        <View style={{ flex: 1, minWidth: 220 }}>
-          <MusicStudioTurntable spinning={playing && crossfade < 90} bpm={bpm} title={`${title} A`} deckName="Deck A" />
-        </View>
-        <View style={{ flex: 1, minWidth: 220 }}>
-          <MusicStudioTurntable spinning={playing && crossfade > 10} bpm={bpm} title={`${title} B`} deckName="Deck B" />
-        </View>
+    <View style={[styles.card, brandHighlightSurface(colors)]}>
+      <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>Booth</Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+        <MusicStudioTurntable
+          compact
+          spinning={playing && crossfade < 90}
+          bpm={bpm}
+          title={`${title} A`}
+          deckName="Deck A"
+        />
+        <MusicStudioTurntable
+          compact
+          spinning={playing && crossfade > 10}
+          bpm={bpm}
+          title={`${title} B`}
+          deckName="Deck B"
+        />
       </View>
 
       <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "700" }}>
@@ -74,11 +84,11 @@ export function MusicStudioBooth({
       </View>
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        <Pressable onPress={() => onCue("a")} style={[styles.chip, { borderColor: colors.primary }]}>
-          <Text style={{ color: colors.foreground, fontWeight: "800" }}>Cue A</Text>
+        <Pressable onPress={() => onCue("a")} style={[styles.chip, { borderColor: colors.primary, backgroundColor: colors.primary }]}>
+          <Text style={{ color: "#fff", fontWeight: "800" }}>Cue A</Text>
         </Pressable>
-        <Pressable onPress={() => onCue("b")} style={[styles.chip, { borderColor: colors.primary }]}>
-          <Text style={{ color: colors.foreground, fontWeight: "800" }}>Cue B</Text>
+        <Pressable onPress={() => onCue("b")} style={[styles.chip, { borderColor: colors.primary, backgroundColor: colors.primary }]}>
+          <Text style={{ color: "#fff", fontWeight: "800" }}>Cue B</Text>
         </Pressable>
         <Pressable
           onPress={onToggleMetronome}
@@ -130,7 +140,7 @@ export function MusicStudioBooth({
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderRadius: 14, padding: 12, gap: 10 },
+  card: { borderWidth: 1, borderRadius: 18, padding: 14, gap: 12 },
   chip: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
   mini: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5 },
 });

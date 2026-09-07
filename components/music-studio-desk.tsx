@@ -284,9 +284,15 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
         </Pressable>
         <Pressable
           onPress={togglePlay}
-          style={[styles.chip, { borderColor: colors.primary, backgroundColor: colors.surface }]}
+          style={[
+            styles.chip,
+            {
+              borderColor: colors.primary,
+              backgroundColor: playing ? colors.surface : colors.primary,
+            },
+          ]}
         >
-          <Text style={{ color: colors.foreground, fontWeight: "700" }}>
+          <Text style={{ color: playing ? colors.foreground : "#fff", fontWeight: "700" }}>
             {playing ? "Stop" : canPlayMusicStudio() ? "Play mix" : "Play (web)"}
           </Text>
         </Pressable>
@@ -382,7 +388,16 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
         Chords in {key}: {chords.join("  ·  ")}
       </Text>
 
-      <View style={{ gap: 6 }}>
+      <View
+        style={{
+          gap: 6,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.surface,
+          borderRadius: 14,
+          padding: 10,
+        }}
+      >
         {tracks.map((track) => (
           <View key={track} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <Text style={{ width: 52, color: colors.muted, fontSize: 11, fontWeight: "700" }}>

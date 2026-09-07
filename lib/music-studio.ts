@@ -208,7 +208,8 @@ export function musicianCoachPrompt(project: Pick<MusicProject, "title" | "bpm" 
   return (
     `I'm in UR Music Studio on "${project.title}". ` +
     `Kit ${project.kit}, ${project.bpm} BPM, key of ${project.key}. ` +
-    `Coach me on playing this beat on my instrument and a simple practice routine.`
+    `Teach me this booth (turntables, cue, metronome, two decks, grid) and how to practice the beat on my instrument. ` +
+    `Do not pretend this is Serato, Ableton, or Pro Tools.`
   );
 }
 
@@ -219,7 +220,8 @@ export function songwriterCoachPrompt(project: Pick<MusicProject, "title" | "bpm
   return (
     `I'm in UR Music Studio on "${project.title}". ` +
     `Kit ${project.kit}, ${project.bpm} BPM, key of ${project.key}. ` +
-    `${lyricBit} Help me write or tighten the song — hook, verses, and structure.`
+    `${lyricBit} Help me write or tighten MY song — hook, verses, and structure. ` +
+    `Coach me; do not paste a famous artist's lyrics or a finished commercial hit.`
   );
 }
 

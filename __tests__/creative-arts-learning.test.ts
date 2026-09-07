@@ -31,6 +31,7 @@ describe("Creative arts learning curriculum", () => {
     const curriculum = getCurriculumForCreator(def!);
     expect(curriculum.length).toBeGreaterThanOrEqual(10);
     expect(curriculum.some((m) => /notation|scale|chord/i.test(m.title))).toBe(true);
+    expect(curriculum.some((m) => /Music Studio|turntable/i.test(m.title))).toBe(true);
   });
 
   it("provides practice exercises for musician and songwriter", () => {
