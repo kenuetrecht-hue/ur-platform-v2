@@ -3,7 +3,10 @@
  * memory, web search, peer context, domain dominance, post-chat learning.
  */
 
-import { aiUserMemoryService } from "../../lib/ai-user-memory-service";
+import {
+  aiUserMemoryService,
+  USER_SHARED_NOTEBOOK_CREATOR_ID,
+} from "../../lib/ai-user-memory-service";
 import {
   webSearchSecurityEngine,
   type SearchResult,
@@ -43,12 +46,26 @@ import {
 
 async function formatMemoryContext(userId: string, creatorId: string): Promise<string> {
   await ensureUserMemoryHydrated(userId, creatorId);
+  await ensureUserMemoryHydrated(userId, USER_SHARED_NOTEBOOK_CREATOR_ID);
   const memory = aiUserMemoryService.getUserMemoryContext(userId, creatorId);
-  const shopAssets = aiUserMemoryService.getRememberedShopAssets(userId, creatorId);
-  const learnerFacts = aiUserMemoryService.getRememberedLearnerFacts(userId, creatorId);
+  const shopAssets = uniqueStrings([
+    ...aiUserMemoryService.getRememberedShopAssets(userId, creatorId),
+    ...aiUserMemoryService.getRememberedShopAssets(userId, USER_SHARED_NOTEBOOK_CREATOR_ID),
+  ]);
+  const learnerFacts = uniqueStrings([
+    ...aiUserMemoryService.getRememberedLearnerFacts(userId, creatorId),
+    ...aiUserMemoryService.getRememberedLearnerFacts(userId, USER_SHARED_NOTEBOOK_CREATOR_ID),
+  ]);
+  const projectFacts = uniqueStrings([
+    ...aiUserMemoryService.getRememberedProjectFacts(userId, creatorId),
+    ...aiUserMemoryService.getRememberedProjectFacts(userId, USER_SHARED_NOTEBOOK_CREATOR_ID),
+  ]);
   const learnProgress = aiUserMemoryService.getLearningProgressTags(userId, creatorId);
   const hasDurableMemory =
-    shopAssets.length > 0 || learnerFacts.length > 0 || learnProgress.length > 0;
+    shopAssets.length > 0 ||
+    learnerFacts.length > 0 ||
+    learnProgress.length > 0 ||
+    projectFacts.length > 0;
   if (memory.isNewSession && memory.conversationHistory.length === 0 && !hasDurableMemory) {
     return "";
   }
@@ -57,24 +74,30 @@ async function formatMemoryContext(userId: string, creatorId: string): Promise<s
     ? memory.recentTopics.join(", ")
     : "none yet";
   const historyLines = memory.conversationHistory
-    .slice(-3)
+    .slice(-6)
     .map(
       (e) =>
-        `- User: ${e.userMessage.slice(0, 120)}… → You: ${e.aiResponse.slice(0, 120)}…`,
+        `- User: ${e.userMessage.slice(0, 160)}… → You: ${e.aiResponse.slice(0, 160)}…`,
     )
     .join("\n");
 
   return `
-## User memory context (long-term — use naturally, including Learn progress)
+## This member's memory (load every sign-in — do not restart as a stranger)
 - Recent topics: ${topics}
 - Preferred style: ${memory.preferredResponseStyle}
-- User mood (inferred): ${memory.userMood}
 - Days since last session: ${memory.daysSinceLastSession}
+${projectFacts.length ? `- This person's projects / standing notes: ${projectFacts.join("; ")}` : ""}
 ${shopAssets.length ? `- Remembered shop / jobsite / kitchen equipment: ${shopAssets.join("; ")}` : ""}
 ${learnerFacts.length ? `- Remembered learner facts (allergies, diet, skill): ${learnerFacts.join("; ")}` : ""}
 ${learnProgress.length ? `- Learn progress (continue here — do not restart from module 1): ${learnProgress.join("; ")}` : ""}
-${historyLines ? `- Recent exchanges:\n${historyLines}` : ""}
+${historyLines ? `- Recent exchanges with you:\n${historyLines}` : ""}
+
+Grounding: Only treat the lines above plus the current message as facts about this person. If a project, measurement, brand, or prior decision is not listed, say you do not have it — do not invent one.
 `.trim();
+}
+
+function uniqueStrings(items: string[]): string[] {
+  return [...new Set(items.filter(Boolean))].slice(0, 16);
 }
 
 export async function getUserMemoryPromptBlock(
@@ -246,7 +269,34 @@ export function recordHiveInteraction(params: {
     params.creatorId,
     params.userMessage,
   );
+  aiUserMemoryService.rememberProjectFactsFromMessage(
+    params.userId,
+    params.creatorId,
+    params.userMessage,
+  );
+  aiUserMemoryService.initializeUser(params.userId, USER_SHARED_NOTEBOOK_CREATOR_ID, "User");
+  aiUserMemoryService.rememberShopAssetsFromMessage(
+    params.userId,
+    USER_SHARED_NOTEBOOK_CREATOR_ID,
+    params.userMessage,
+  );
+  aiUserMemoryService.rememberLearnerFactsFromMessage(
+    params.userId,
+    USER_SHARED_NOTEBOOK_CREATOR_ID,
+    params.userMessage,
+  );
+  aiUserMemoryService.rememberProjectFactsFromMessage(
+    params.userId,
+    USER_SHARED_NOTEBOOK_CREATOR_ID,
+    params.userMessage,
+  );
   void persistUserMemoryInteraction(params);
+  void persistUserMemoryInteraction({
+    userId: params.userId,
+    creatorId: USER_SHARED_NOTEBOOK_CREATOR_ID,
+    userMessage: params.userMessage,
+    aiReply: params.aiReply,
+  });
 }
 
 function pickHivePeerIds(creatorId: string, message: string): string[] {
@@ -256,10 +306,11 @@ function pickHivePeerIds(creatorId: string, message: string): string[] {
     if (commissioned.length > 0) return [...new Set(commissioned)].slice(0, 3);
     const ranked = peers
       .map((id) => ({ id, score: scoreCreatorDomainMatch(id, message) }))
-      .filter((row) => row.score > 0)
+      .filter((row) => row.score > 0 && row.id !== "contentmate")
       .sort((a, b) => b.score - a.score)
       .map((row) => row.id);
-    return (ranked.length > 0 ? ranked : peers).slice(0, 3);
+    const fallback = peers.filter((id) => id !== "contentmate");
+    return (ranked.length > 0 ? ranked : fallback).slice(0, 3);
   }
   return peers.slice(0, 3);
 }

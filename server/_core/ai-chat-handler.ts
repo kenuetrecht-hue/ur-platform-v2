@@ -128,6 +128,14 @@ export async function handleCreatorAiChat(params: {
     status: string;
   }>;
 }> {
+  if (
+    params.ctx.isPlatformOwner &&
+    !params.ctx.landingDemo &&
+    params.creatorId === "contentmate"
+  ) {
+    params = { ...params, creatorId: BUSINESS_STEWARD_AI_ID };
+  }
+
   const stewardPriceCommand =
     params.creatorId === BUSINESS_STEWARD_AI_ID &&
     params.ctx.isPlatformOwner &&

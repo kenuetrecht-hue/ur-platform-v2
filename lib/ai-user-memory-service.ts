@@ -51,6 +51,38 @@ export function extractShopAssets(message: string): string[] {
 const DIET_PATTERN =
   /\b(vegan|vegetarian|pescatarian|gluten[- ]free|kosher|halal|keto|paleo|dairy[- ]free|nut[- ]free|shellfish[- ]free)\b/gi;
 
+/** Shared across this member's specialists — not across other people. */
+export const USER_SHARED_NOTEBOOK_CREATOR_ID = "user-shared-notebook";
+
+const TAKEOVER_LOOKING = /\b(ignore previous|you are now|system prompt|i am (the )?admin)\b/i;
+
+export function extractProjectFacts(message: string): string[] {
+  const text = message.replace(/\s+/g, " ").trim();
+  if (text.length < 8 || TAKEOVER_LOOKING.test(text)) return [];
+  const facts = new Set<string>();
+
+  const name = text.match(
+    /\b(?:my name is|i'm|i am|call me)\s+([A-Za-z][A-Za-z'-]{1,20}(?:\s+[A-Za-z][A-Za-z'-]{1,20})?)/i,
+  );
+  if (name?.[1] && !/^(a|an|the|not|just)$/i.test(name[1])) {
+    facts.add(`name:${name[1].trim().slice(0, 40)}`);
+  }
+
+  const project = text.match(
+    /\b(?:my project is|this project is|the project is|project name is|we're building|we are building|i'm building|i am building|working on(?: the)? project)\s+(.{3,80}?)(?:[.!?\n]|$)/i,
+  );
+  if (project?.[1]) {
+    facts.add(`project:${project[1].replace(/["']/g, "").trim().slice(0, 80)}`);
+  }
+
+  const remember = text.match(/\bremember (?:that|this)[:\s]+(.{4,100}?)(?:[.!?\n]|$)/i);
+  if (remember?.[1] && !TAKEOVER_LOOKING.test(remember[1])) {
+    facts.add(`note:${remember[1].trim().slice(0, 100)}`);
+  }
+
+  return [...facts].slice(0, 8);
+}
+
 export function extractLearnerFacts(message: string): string[] {
   const facts = new Set<string>();
   const diets = message.match(DIET_PATTERN) ?? [];
@@ -158,6 +190,27 @@ class AIUserMemoryService {
       .filter(Boolean);
   }
 
+  getRememberedProjectFacts(userId: string, creatorId: string): string[] {
+    const profile = this.getUserProfile(userId, creatorId);
+    if (!profile) return [];
+    return profile.preferences.contentPreferences
+      .filter((item) => item.startsWith("project:") || item.startsWith("note:") || item.startsWith("name:"))
+      .map((item) => item.replace(/^(project|note|name):/, (m) => (m.startsWith("name") ? "Name: " : m.startsWith("note") ? "Note: " : "Project: ")))
+      .filter(Boolean);
+  }
+
+  rememberProjectFactsFromMessage(userId: string, creatorId: string, message: string): void {
+    const profile = this.getUserProfile(userId, creatorId);
+    if (!profile) return;
+    const found = extractProjectFacts(message);
+    if (found.length === 0) return;
+    const existing = new Set(profile.preferences.contentPreferences);
+    for (const fact of found) {
+      existing.add(fact);
+    }
+    profile.preferences.contentPreferences = [...existing].slice(-32);
+  }
+
   rememberLearnerFactsFromMessage(userId: string, creatorId: string, message: string): void {
     const profile = this.getUserProfile(userId, creatorId);
     if (!profile) return;
@@ -201,7 +254,10 @@ class AIUserMemoryService {
       (item) =>
         item.startsWith("machine:") ||
         item.startsWith("fact:") ||
-        item.startsWith("learn:"),
+        item.startsWith("learn:") ||
+        item.startsWith("project:") ||
+        item.startsWith("note:") ||
+        item.startsWith("name:"),
     );
   }
 

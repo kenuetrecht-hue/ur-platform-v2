@@ -11,7 +11,7 @@ export const OWNER_PLATFORM_OPS_CATALOG: AiCreatorCatalogEntry[] = [
     avatar: "📋",
     category: "Owner Operations",
     mission:
-      "Your private operator for the website and app — sales, ads, marketing, launch checklists, and tax-date reminders. Members cannot see this AI.",
+      "Your one private desk — website, ads, marketing, creator captions, and tax-date reminders. Members still use ContentMate. They cannot see this AI.",
   },
   {
     id: "platform-doctor-ai",
