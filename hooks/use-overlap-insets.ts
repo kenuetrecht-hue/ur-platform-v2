@@ -5,6 +5,7 @@ import {
   LAYOUT_OVERLAP,
   androidBottomBuffer,
   bottomTabChromeHeight,
+  composerDockPadding,
   keyboardAvoidingBehavior,
   keyboardOffsetForTabScreen,
 } from "@/lib/layout-overlap";
@@ -27,15 +28,21 @@ export function useOverlapInsets(options: OverlapInsetsOptions = {}) {
   const tabBarFromNav =
     reserveTabBar && typeof tabBarFromContext === "number" ? tabBarFromContext : 0;
 
+  const expectedChrome = bottomTabChromeHeight(insets.bottom);
   const tabBarHeight = reserveTabBar
     ? tabBarFromNav > 0
-      ? tabBarFromNav
-      : bottomTabChromeHeight(insets.bottom)
+      ? Math.max(tabBarFromNav, expectedChrome)
+      : expectedChrome
     : 0;
 
   const androidBuffer = androidBottomBuffer(insets.bottom);
-  const dockPaddingBottom = LAYOUT_OVERLAP.COMPOSER_MIN_PADDING + androidBuffer;
-  const scrollPaddingBottom = LAYOUT_OVERLAP.COMPOSER_MIN_PADDING;
+  const dockPaddingBottom = composerDockPadding({
+    reserveTabBar,
+    reportedTabBarHeight: tabBarFromNav,
+    bottomSafeInset: insets.bottom,
+    androidBuffer,
+  });
+  const scrollPaddingBottom = LAYOUT_OVERLAP.COMPOSER_MIN_PADDING + LAYOUT_OVERLAP.COMPOSER_DOCK_GAP;
 
   return {
     insets,

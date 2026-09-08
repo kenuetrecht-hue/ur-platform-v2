@@ -26,8 +26,12 @@ import { NoRefundPurchaseAck } from "@/components/no-refund-purchase-ack";
 import {
   AI_TALK_EXPIRY_PURCHASE_DISCLOSURE,
   AI_TALK_EXPIRY_TRACKER_HEADLINE,
+  AI_TALK_MAX_UNUSED_MINUTES,
   AI_TALK_METERING_DISCLOSURE,
+  AI_TALK_STOCKPILE_DISCLOSURE,
+  getTalkLotExpiryDays,
 } from "@/lib/ai-talk-time-policy";
+import { buildTalkPurchaseAgreement } from "@/lib/digital-purchase-agreements";
 import { AiTalkTimeTracker } from "@/components/ai-talk-time-tracker";
 import {
   AI_METERING_PAYBACK_PROTECTION,
@@ -168,6 +172,19 @@ export function AiTalkTimePanel({
 
   }, [hasState, selectedPack, stateCode, visiblePacks]);
 
+  const selectedPackMinutes =
+    visiblePacks.find((pack) => pack.id === selectedPack)?.totalMinutes ?? 0;
+  const selectedExpiryDays = getTalkLotExpiryDays(selectedPack);
+  const wouldExceedStockpile = minutesLeft + selectedPackMinutes > AI_TALK_MAX_UNUSED_MINUTES;
+  const selectedAgreement = useMemo(
+    () =>
+      buildTalkPurchaseAgreement(
+        selectedPack,
+        visiblePacks.find((pack) => pack.id === selectedPack)?.priceCents,
+      ),
+    [selectedPack, visiblePacks],
+  );
+
 
 
   if (compact && ownerComplimentary) {
@@ -205,7 +222,7 @@ export function AiTalkTimePanel({
     return (
       <View style={[styles.balance, { borderColor: colors.primary, backgroundColor: colors.surface }]}>
         <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
-          🎙️ {timeDisplay ?? `${minutesLeft} min`} left · use within 30 days or it is lost
+          🎙️ {timeDisplay ?? `${minutesLeft} min`} left · each purchase has a use-by date or leftover time is lost
         </Text>
       </View>
     );
@@ -256,8 +273,8 @@ export function AiTalkTimePanel({
 
       <Text style={{ color: colors.muted, fontSize: 12, marginTop: 8, lineHeight: 17 }}>
 
-        Voice & video with {creatorName ?? "AI specialists"}. 25¢/min reference · $1 = 5 min · $5 = 20 min (app) · $120 = 500 min (web) · $200 = 1,000 min (web).
-        Loyalty points cost more: 250 LP = 1 min · 500 LP = 2 min. Paying cash is the better deal.
+        Voice & video with {creatorName ?? "AI specialists"}. 25¢/min reference · $1 = 5 min (use in 30 days) · $5 = 20 min app (use in 30 days) · $120 = 500 min web (use in 90 days) · $200 = 1,000 min web (use in 90 days).
+        You cannot hold more than {AI_TALK_MAX_UNUSED_MINUTES} unused minutes. Loyalty points cost more: 250 LP = 1 min · 500 LP = 2 min. Paying cash is the better deal.
         Every second of AI speech is tracked.
 
       </Text>
@@ -276,7 +293,7 @@ export function AiTalkTimePanel({
         />
       ) : hasTalk ? (
         <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13, marginTop: 10 }}>
-          Balance: {timeDisplay ?? `${minutesLeft} min`} ({msLeft.toLocaleString()} ms) remaining — use within 30 days or you lose what isn't used
+          Balance: {timeDisplay ?? `${minutesLeft} min`} ({msLeft.toLocaleString()} ms) remaining — each purchase has its own use-by date or leftover time is lost
         </Text>
       ) : null}
 
@@ -309,6 +326,7 @@ export function AiTalkTimePanel({
                   setSelectedPack(pack.id as AiTalkPackId);
 
                   setLastReceipt(null);
+                  setAcceptedNoRefund(false);
 
                 }}
 
@@ -344,7 +362,7 @@ export function AiTalkTimePanel({
 
                 <Text style={{ color: colors.muted, fontSize: 10, marginTop: 4, textAlign: "center" }}>
 
-                  {pack.totalMinutes} min total
+                  {pack.totalMinutes} min · use in {getTalkLotExpiryDays(pack.id as AiTalkPackId)} days
 
                 </Text>
 
@@ -368,14 +386,21 @@ export function AiTalkTimePanel({
 
       {selectedSummary ? <PurchaseSummaryCard summary={selectedSummary} /> : null}
 
+      {wouldExceedStockpile ? (
+        <Text style={{ color: "#c45", fontSize: 12, marginTop: 10, lineHeight: 17, fontWeight: "700" }}>
+          {AI_TALK_STOCKPILE_DISCLOSURE} You already have {minutesLeft} unused minutes. Use some down before buying more.
+        </Text>
+      ) : null}
+
       <NoRefundPurchaseAck
         checked={acceptedNoRefund}
         onToggle={() => setAcceptedNoRefund((v) => !v)}
+        agreement={selectedAgreement}
       />
 
       <Pressable
 
-        disabled={purchase.isPending || !isAuthenticated || !selectedSummary || !hasState || !acceptedNoRefund}
+        disabled={purchase.isPending || !isAuthenticated || !selectedSummary || !hasState || !acceptedNoRefund || wouldExceedStockpile}
 
         onPress={() => {
 
@@ -393,7 +418,7 @@ export function AiTalkTimePanel({
 
             backgroundColor: colors.primary,
 
-            opacity: purchase.isPending || !isAuthenticated || !hasState || !acceptedNoRefund ? 0.7 : 1,
+            opacity: purchase.isPending || !isAuthenticated || !hasState || !acceptedNoRefund || wouldExceedStockpile ? 0.7 : 1,
 
           },
 
@@ -413,13 +438,17 @@ export function AiTalkTimePanel({
 
               ? "Select your state to continue"
 
+              : wouldExceedStockpile
+
+                ? `Use some Talk Time first — ${AI_TALK_MAX_UNUSED_MINUTES} unused-minute cap`
+
               : !acceptedNoRefund
 
-                ? "Check the no-refund box to continue"
+                ? "Check the box to agree to these Talk Time rules"
 
               : isAuthenticated
 
-                ? `I understand unused time is lost after 30 days — pay ${selectedSummary?.pricing.totalDisplay ?? ""}`
+                ? `I agree — unused time is lost after ${selectedExpiryDays} days — pay ${selectedSummary?.pricing.totalDisplay ?? ""}`
 
                 : "Sign in to buy talk time"}
 

@@ -13,16 +13,24 @@ import {
   AI_TALK_EXPIRY_PURCHASE_DISCLOSURE,
   AI_TALK_EXPIRY_TRACKER_HEADLINE,
   AI_TALK_FIVE_DOLLAR_PACK_DISCLOSURE,
+  AI_TALK_ONE_DOLLAR_PACK_DISCLOSURE,
   AI_TALK_BULK_500_PACK_DISCLOSURE,
   AI_TALK_BULK_1000_PACK_DISCLOSURE,
   AI_TALK_METERING_DISCLOSURE,
+  AI_TALK_MAX_UNUSED_MINUTES,
+  AI_TALK_STOCKPILE_DISCLOSURE,
   formatTalkExpiryDate,
   formatTalkLotLoseBy,
   formatTalkTimeRemaining,
   formatTalkTimeRemainingVerbose,
+  getTalkLotExpiryDays,
   getTalkLowBalanceNotice,
   isTalkTimeLowBalance,
 } from "../../lib/ai-talk-time-policy";
+import {
+  buildTalkPurchaseAgreement,
+  serializePurchaseAgreement,
+} from "../../lib/digital-purchase-agreements";
 import {
   AI_METERING_PAYBACK_PROTECTION,
   AI_METERING_RESUME_DISCLOSURE,
@@ -72,21 +80,27 @@ export const aiTalkRouter = router({
               (input?.stateCode ?? null) as UsStateCode | null,
               live.priceCents,
             ),
+            agreement: buildTalkPurchaseAgreement(pack.id, live.priceCents),
+            expiryDays: getTalkLotExpiryDays(pack.id),
           };
         }),
       ),
       pricingNote: "Amounts on each card are the current checkout prices.",
       paymentNote: PAYMENT_CHANNEL_POLICY_SUMMARY,
       expiryDisclosure: AI_TALK_EXPIRY_PURCHASE_DISCLOSURE,
+      stockpileDisclosure: AI_TALK_STOCKPILE_DISCLOSURE,
+      unusedMinutesCap: AI_TALK_MAX_UNUSED_MINUTES,
       meteringDisclosure: AI_TALK_METERING_DISCLOSURE,
       voiceMeteringDisclosure: AI_VOICE_METERING_DISCLOSURE,
       textMeteringDisclosure: AI_TEXT_METERING_DISCLOSURE,
       resumeDisclosure: AI_METERING_RESUME_DISCLOSURE,
       paybackProtection: AI_METERING_PAYBACK_PROTECTION,
+      oneDollarDisclosure: AI_TALK_ONE_DOLLAR_PACK_DISCLOSURE,
       fiveDollarDisclosure: AI_TALK_FIVE_DOLLAR_PACK_DISCLOSURE,
       bulk500Disclosure: AI_TALK_BULK_500_PACK_DISCLOSURE,
       bulk1000Disclosure: AI_TALK_BULK_1000_PACK_DISCLOSURE,
-      bonusRule: "Every $1 = 5 talk minutes · $5 = 20 minutes (app only) · $120 = 500 minutes (web) · $200 = 1,000 minutes (web) · Use within 30 days",
+      bonusRule:
+        "Every $1 = 5 talk minutes (use in 30 days) · $5 = 20 minutes app only (use in 30 days) · $120 = 500 minutes web (use in 90 days) · $200 = 1,000 minutes web (use in 90 days) · Max 1,000 unused minutes at once",
     })),
 
   getStatus: secureProcedure("aiTalk").query(({ ctx }) => {
@@ -123,6 +137,8 @@ export const aiTalkRouter = router({
       hasTalkAccess: ownerComplimentary || talkTime.millisecondsRemaining > 0,
       activeEntitlement: status.aiTalk,
       expiryDisclosure: AI_TALK_EXPIRY_PURCHASE_DISCLOSURE,
+      stockpileDisclosure: AI_TALK_STOCKPILE_DISCLOSURE,
+      unusedMinutesCap: AI_TALK_MAX_UNUSED_MINUTES,
     };
   }),
 
@@ -152,6 +168,7 @@ export const aiTalkRouter = router({
         clientPlatform: input.clientPlatform,
       });
 
+      const agreement = buildTalkPurchaseAgreement(input.packId as AiTalkPackId, pack.priceCents);
       assertAndRecordNoRefundAck({
         userId: String(ctx.user.id),
         userEmail: ctx.user.email ?? undefined,
@@ -159,6 +176,8 @@ export const aiTalkRouter = router({
         amountCents: pack.priceCents,
         acceptedNoRefund: true,
         ipAddress: ctx.ip,
+        agreementVersion: agreement.version,
+        agreementText: serializePurchaseAgreement(agreement),
       });
 
       const entitlement = purchaseAiTalkPack({

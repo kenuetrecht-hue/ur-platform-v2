@@ -22,7 +22,9 @@ import {
   legacyMinutesRemaining,
   secondsToBillingMs,
   getSpeechUsageLog,
+  assertTalkPurchaseFitsStockpileCap,
 } from "./ai-talk-time-tracker";
+import { getTalkLotExpiryDays } from "../../lib/ai-talk-time-policy";
 
 export type PremiumMediaKind = "creator_voice" | "affiliate_voice" | "ai_video_talk" | "ai_talk";
 
@@ -192,6 +194,8 @@ export function purchaseAiTalkPack(params: {
   const pack = getAiTalkPack(params.packId);
   const priceCents = params.priceCents ?? pack.priceCents;
   const checkout = calculateCustomerCheckout(priceCents, params.billingStateCode);
+  const expiryDays = getTalkLotExpiryDays(params.packId);
+  assertTalkPurchaseFitsStockpileCap(params.userId, pack.totalMinutes);
 
   const lot = createTalkTimeLot({
     userId: params.userId,
@@ -222,7 +226,7 @@ export function purchaseAiTalkPack(params: {
     payerUserId: params.userId,
     payerEmail: params.userEmail,
     amountCents: checkout.totalCents,
-    description: `AI talk time (${pack.totalMinutes} min — expires in 30 days)`,
+    description: `AI talk time (${pack.totalMinutes} min — unused expires in ${expiryDays} days)`,
     status: "completed",
     metadata: {
       entitlementId: entitlement.id,

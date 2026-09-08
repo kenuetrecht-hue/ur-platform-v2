@@ -134,6 +134,14 @@ describe("ai-talk purchases", () => {
     expect(getTalkMillisecondsRemaining(userId)).toBe(60_000_000);
   });
 
+  it("refuses a second purchase that would stockpile past 1,000 unused minutes", () => {
+    const userId = "talk-stockpile";
+    purchaseAiTalkPack({ userId, userEmail: email, packId: "talk_200", billingStateCode: TEST_STATE });
+    expect(() =>
+      purchaseAiTalkPack({ userId, userEmail: email, packId: "talk_1", billingStateCode: TEST_STATE }),
+    ).toThrow(/stockpiled|1,000 unused minutes/);
+  });
+
   it("legacy video talk purchase uses $5 pack", () => {
     purchaseAiVideoTalkPack({ userId: "legacy-user", userEmail: "legacy@test.com", billingStateCode: TEST_STATE });
     expect(getAiTalkMinutesRemaining("legacy-user")).toBe(20);

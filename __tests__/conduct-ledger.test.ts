@@ -87,6 +87,21 @@ describe("conduct ledger", () => {
     expect(listPurchaseAcksForOwner()[0]?.sku).toBe("apparel.civic-dawn");
   });
 
+  it("stores the Talk Time rules they checked so a later dispute has a record", () => {
+    const ack = assertAndRecordNoRefundAck({
+      userId: "member-1",
+      sku: "talk.talk_5",
+      amountCents: 500,
+      acceptedNoRefund: true,
+      agreementVersion: "talk-rules-v1-2026-09-07",
+      agreementText: "I pay $5.00 for 20 minutes. I must use them within 30 days or I lose what is left. No refunds.",
+    });
+    expect(ack.agreementVersion).toBe("talk-rules-v1-2026-09-07");
+    expect(ack.agreementText).toContain("20 minutes");
+    expect(ack.agreementText).toContain("30 days");
+    expect(listPurchaseAcksForOwner()[0]?.agreementVersion).toBe("talk-rules-v1-2026-09-07");
+  });
+
   it("saves a copied, timestamped English communication for owner review", async () => {
     const row = await recordCommunicationForOwner({
       channel: "direct_message",

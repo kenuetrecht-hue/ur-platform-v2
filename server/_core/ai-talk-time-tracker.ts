@@ -1,12 +1,13 @@
 /**
  * Millisecond-precise AI talk-time ledger.
- * Each purchase creates a lot that expires 30 days after purchase (hard-coded).
+ * Small packs expire in 30 days; $120 / $200 expire in 90 days. Unused minutes cannot exceed 1,000.
  */
 
 import { randomUUID } from "crypto";
 import { TRPCError } from "@trpc/server";
 import type { AiTalkPackId } from "../../lib/ai-talk-pricing";
 import {
+  AI_TALK_MAX_UNUSED_MINUTES,
   buildTalkLotTrackerView,
   computeLotExpiresAt,
   LOYALTY_TALK_LOT_ID,
@@ -81,7 +82,7 @@ export function createTalkTimeLot(params: {
     userId: params.userId,
     packId: params.packId,
     purchasedAt: new Date(purchasedAtMs).toISOString(),
-    expiresAt: computeLotExpiresAt(purchasedAtMs),
+    expiresAt: computeLotExpiresAt(purchasedAtMs, params.packId),
     millisecondsIncluded,
     millisecondsUsed: 0,
     priceCents: params.priceCents,
@@ -117,6 +118,23 @@ export function getTalkMillisecondsRemaining(userId: string): number {
 
 export function hasTalkMillisecondsRemaining(userId: string): boolean {
   return getTalkMillisecondsRemaining(userId) > 0;
+}
+
+export function getTalkMinutesRemaining(userId: string): number {
+  return getTalkMillisecondsRemaining(userId) / 60_000;
+}
+
+export function assertTalkPurchaseFitsStockpileCap(userId: string, addMinutes: number): void {
+  const remaining = getTalkMinutesRemaining(userId);
+  const next = remaining + addMinutes;
+  if (next > AI_TALK_MAX_UNUSED_MINUTES + 0.01) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message:
+        `You already have ${Math.floor(remaining).toLocaleString("en-US")} unused Talk minutes. ` +
+        `UR will not sell more until you use some down. Cap is ${AI_TALK_MAX_UNUSED_MINUTES.toLocaleString("en-US")} unused minutes so time cannot be stockpiled.`,
+    });
+  }
 }
 
 export function getTalkTimeStatus(userId: string): {

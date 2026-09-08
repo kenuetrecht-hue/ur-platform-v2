@@ -17,6 +17,7 @@ import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync"
 import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { useAuth } from "@/lib/auth-context";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
+import { ComposerDock } from "@/components/composer-dock";
 import { playExclusiveAudio, stopExclusiveAudio, unlockWebAudio } from "@/lib/exclusive-audio-player";
 
 interface ChatMessage {
@@ -352,23 +353,16 @@ export function PersonalAIInterface({
         </View>
       ) : null}
 
-      <View
-        style={[
-          styles.inputArea,
-          {
-            borderTopColor: colors.border,
-            backgroundColor: colors.surface,
-          },
-        ]}
-      >
+      <ComposerDock>
         <Text style={[styles.inputHint, { color: colors.muted }]}>
-          Text or tap Talk (🎤). After a reply, tap Hear so this AI talks back.
+          Text or tap Talk (🎤). Mic uses your text pass. After a reply, tap Hear — that uses Talk Time.
         </Text>
         {speechHint ? (
           <Text style={[styles.inputHint, { color: colors.muted }]}>{speechHint}</Text>
         ) : null}
         <View style={styles.inputRow}>
           <VoicePromptMicButton
+            creatorId={creatorId}
             labeled
             disabled={loading}
             onBeforeListen={() => {
@@ -431,7 +425,7 @@ export function PersonalAIInterface({
         {voiceStatus ? (
           <Text style={{ color: colors.muted, fontSize: 11 }}>{voiceStatus}</Text>
         ) : null}
-      </View>
+      </ComposerDock>
     </View>
   );
 }

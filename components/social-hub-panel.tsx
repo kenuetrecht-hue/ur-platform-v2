@@ -239,8 +239,10 @@ export function SocialHubPanel() {
           <>
             <Text style={[styles.title, { color: colors.foreground }]}>Follow or subscribe</Text>
             <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
-              Follow for free, or paid-subscribe to their channel. Only you can unfollow or cancel.
-              The creator cannot change these counts.
+              Follow is free. A follower is interested in the free content but is not paying. A paid
+              subscriber pays for the creator's information — that is the creator's real income.
+              Free videos do not pay the creator; they advertise paid merch, paid subscriptions, and
+              paid classes. The creator's goal is paid subscribers. Only you can unfollow or cancel.
             </Text>
             <TextInput
               value={creatorUserId}

@@ -39,6 +39,8 @@ import {
 } from "../_core/ai-chat-persistence-service";
 import { mapServiceErrorToTrpc } from "../_core/service-errors";
 import { transcribeVoicePrompt } from "../_core/speech-to-prompt-service";
+import { assertAndConsumeAiUsage } from "../_core/ai-usage-meter";
+import { MIC_TRANSCRIBE_MESSAGE_UNITS } from "../../lib/usage-caps-catalog";
 import { notifyAiChatThreadUpdated } from "../_core/ai-chat-realtime-ws";
 import { assertUserCanUseAi } from "../_core/ai-guardrails";
 import { assertNoAiTakeoverInMessage } from "../_core/ai-control";
@@ -324,12 +326,20 @@ export const aiCreatorChatRouter = router({
   transcribeVoicePrompt: secureProcedure("aiCreators")
     .input(
       z.object({
+        creatorId: z.string().trim().min(1).max(64),
         audioBase64: z.string().min(80).max(1_000_000),
         mimeType: z.string().trim().min(3).max(80),
       }),
     )
     .mutation(async ({ input, ctx }) => {
       assertUserCanUseAi(String(ctx.user.id), ctx.isPlatformOwner);
+      assertAndConsumeAiUsage({
+        userId: String(ctx.user.id),
+        email: ctx.user.email,
+        creatorId: input.creatorId,
+        isPlatformOwner: ctx.isPlatformOwner,
+        extraMessageUnits: Math.max(0, MIC_TRANSCRIBE_MESSAGE_UNITS - 1),
+      });
       try {
         return await transcribeVoicePrompt({
           audioBase64: input.audioBase64,

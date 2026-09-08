@@ -18,6 +18,7 @@ import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync";
 import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
+import { ComposerDock } from "@/components/composer-dock";
 import { playExclusiveAudio, stopExclusiveAudio } from "@/lib/exclusive-audio-player";
 import { speakText } from "@/lib/azure-tts-service";
 
@@ -433,17 +434,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
       ) : null}
 
       {mode === "drill" ? (
-        <View
-          style={[
-            styles.inputArea,
-            {
-              borderTopColor: colors.border,
-              backgroundColor: colors.surface,
-              paddingBottom: overlap.dockPaddingBottom,
-              gap: 8,
-            },
-          ]}
-        >
+        <ComposerDock paddingBottom={overlap.dockPaddingBottom} style={{ gap: 8 }}>
           <Text style={[styles.inputHint, { color: colors.muted }]}>
             Practice score from the words you type or dictate — not a medical speech diagnosis.
           </Text>
@@ -507,20 +498,11 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
               {scoreSpoken.data.note}
             </Text>
           ) : null}
-        </View>
+        </ComposerDock>
       ) : (
-      <View
-        style={[
-          styles.inputArea,
-          {
-            borderTopColor: colors.border,
-            backgroundColor: colors.surface,
-            paddingBottom: overlap.dockPaddingBottom,
-          },
-        ]}
-      >
+      <ComposerDock paddingBottom={overlap.dockPaddingBottom}>
         <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 17, marginBottom: 6 }}>
-          Text or tap Talk (🎤). After a reply, tap Hear so LinguaMate talks back.
+          Text or tap Talk (🎤). Mic uses your text pass. After a reply, tap Hear — that uses Talk Time.
         </Text>
         <Pressable
           onPress={async () => {
@@ -576,6 +558,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
         ) : null}
         <View style={styles.inputRow}>
           <VoicePromptMicButton
+            creatorId="linguamate"
             labeled
             disabled={loading || !canChat}
             onBeforeListen={() => {
@@ -624,7 +607,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
             ? "Gemini 1.5 Flash · speaks & understands 100+ languages"
             : "Subscribe to LinguaMate above to start translating and learning."}
         </Text>
-      </View>
+      </ComposerDock>
       )}
     </KeyboardAvoidingView>
   );

@@ -9,11 +9,14 @@ import {
   _expireTalkLotsForTests,
   secondsToBillingMs,
   assertTalkTimeAvailable,
+  assertTalkPurchaseFitsStockpileCap,
 } from "../server/_core/ai-talk-time-tracker";
 import {
   AI_TALK_LOT_EXPIRY_DAYS,
+  AI_TALK_BULK_EXPIRY_DAYS,
   AI_TALK_EXPIRY_PURCHASE_DISCLOSURE,
   AI_TALK_LOW_BALANCE_MS,
+  AI_TALK_MAX_UNUSED_MINUTES,
   buildTalkLotTrackerView,
   daysUntilTalkExpiry,
   formatTalkLotLoseBy,
@@ -42,6 +45,30 @@ describe("ai-talk-time-tracker", () => {
     const expiresMs = Date.parse(lot.expiresAt);
     expect(expiresMs - purchasedAt).toBe(AI_TALK_LOT_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
     expect(lot.millisecondsIncluded).toBe(1_200_000);
+  });
+
+  it("gives $120 and $200 packs 90 days to use", () => {
+    const purchasedAt = Date.parse("2026-01-01T12:00:00.000Z");
+    const lot200 = createTalkTimeLot({
+      userId: "bulk-90",
+      packId: "talk_200",
+      priceCents: 20_000,
+      purchasedAtMs: purchasedAt,
+    });
+    const lot120 = createTalkTimeLot({
+      userId: "bulk-90b",
+      packId: "talk_120",
+      priceCents: 12_000,
+      purchasedAtMs: purchasedAt,
+    });
+    expect(Date.parse(lot200.expiresAt) - purchasedAt).toBe(AI_TALK_BULK_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+    expect(Date.parse(lot120.expiresAt) - purchasedAt).toBe(AI_TALK_BULK_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+  });
+
+  it("blocks stockpiling past 1,000 unused minutes", () => {
+    createTalkTimeLot({ userId: "cap-user", packId: "talk_200", priceCents: 20_000 });
+    expect(() => assertTalkPurchaseFitsStockpileCap("cap-user", 5)).toThrow(/1,000 unused minutes/);
+    expect(() => assertTalkPurchaseFitsStockpileCap("empty-user", AI_TALK_MAX_UNUSED_MINUTES)).not.toThrow();
   });
 
   it("deducts speech to the millisecond", () => {
@@ -95,9 +122,11 @@ describe("ai-talk-time-tracker", () => {
 });
 
 describe("talk time expiry tracker copy", () => {
-  it("states unused time is lost after 30 days", () => {
+  it("states unused time is lost after 30 or 90 days and cannot be stockpiled", () => {
     expect(AI_TALK_EXPIRY_PURCHASE_DISCLOSURE.toLowerCase()).toContain("30 days");
+    expect(AI_TALK_EXPIRY_PURCHASE_DISCLOSURE.toLowerCase()).toContain("90 days");
     expect(AI_TALK_EXPIRY_PURCHASE_DISCLOSURE.toLowerCase()).toContain("lose what isn't used");
+    expect(AI_TALK_EXPIRY_PURCHASE_DISCLOSURE.toLowerCase()).toContain("1,000 unused minutes");
   });
 
   it("counts days until a lot is lost", () => {

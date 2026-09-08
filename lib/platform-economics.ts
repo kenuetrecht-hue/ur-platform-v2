@@ -13,7 +13,7 @@
 
 import type { AiSubscriptionPlan, AiPriceTier } from "./ai-subscription-pricing";
 import { getConcurrentSlotPriceCents, getPlatformPassPriceCents } from "./ai-subscription-pricing";
-import { getMessageAllowance } from "./ai-usage-allowances";
+import { getMessageAllowance, MIC_MESSAGE_MULTIPLIER } from "./ai-usage-allowances";
 import { AI_TALK_PACKS, listAiTalkPacks, type AiTalkPackId } from "./ai-talk-pricing";
 import { calculateCustomerCheckout } from "./stripe-checkout-pricing";
 import { CREDIT_PRODUCTS, type CreditProductId } from "./usage-caps-catalog";
@@ -33,6 +33,9 @@ export const EST_COST_PER_MESSAGE: Record<AiPriceTier, number> = {
 
 /** Voice + LLM per talk minute (ElevenLabs ~$0.08 + model ~$0.02) */
 export const EST_COST_PER_TALK_MINUTE_USD = 0.1;
+
+/** Gemini audio → printed prompt (mic). Higher than a typed message. */
+export const EST_COST_PER_MIC_TRANSCRIBE_USD = 0.03;
 
 export type PlanEconomics = {
   priceCents: number;
@@ -61,6 +64,38 @@ export function getSubscriptionPlanEconomics(
   const grossMarginAtMaxUsePercent =
     priceCents > 0 ? Math.round((grossProfitAtMaxUseCents / priceCents) * 100) : 0;
 
+  return {
+    priceCents,
+    priceDisplay: `$${(priceCents / 100).toFixed(2)}`,
+    messagesIncluded,
+    maxApiCostCents,
+    customerStripeFeeCents: checkout.stripeFeeCents,
+    customerTotalCents: checkout.totalCents,
+    grossProfitAtMaxUseCents,
+    grossMarginAtMaxUsePercent,
+  };
+}
+
+/**
+ * Worst case for a desk worker who only dictates: each turn = mic print + one reply.
+ * Caps still keep Gemini under the monthly pass.
+ */
+export function getDictatedTextPassEconomics(plan: AiSubscriptionPlan): PlanEconomics {
+  const priceCents = getPlatformPassPriceCents(plan);
+  const messagesIncluded = getMessageAllowance(plan, "standard");
+  const unitsPerTurn = 1 + MIC_MESSAGE_MULTIPLIER;
+  const turns = Math.floor(messagesIncluded / unitsPerTurn);
+  const leftover = messagesIncluded - turns * unitsPerTurn;
+  const maxApiCostCents = Math.round(
+    (turns * EST_COST_PER_MIC_TRANSCRIBE_USD +
+      turns * EST_COST_PER_MESSAGE.standard +
+      leftover * EST_COST_PER_MESSAGE.standard) *
+      100,
+  );
+  const checkout = calculateCustomerCheckout(priceCents);
+  const grossProfitAtMaxUseCents = priceCents - maxApiCostCents;
+  const grossMarginAtMaxUsePercent =
+    priceCents > 0 ? Math.round((grossProfitAtMaxUseCents / priceCents) * 100) : 0;
   return {
     priceCents,
     priceDisplay: `$${(priceCents / 100).toFixed(2)}`,

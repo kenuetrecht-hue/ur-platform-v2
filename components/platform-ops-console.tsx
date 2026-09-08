@@ -702,6 +702,7 @@ export function PlatformOpsConsole({
               the draft here. Video files wait until the platform is earning; scripts are ready now.
             </Text>
             <VoicePromptField
+              creatorId="platform-business-steward-ai"
               value={assignBrief}
               onChangeText={setAssignBrief}
               disabled={sendAssign.isPending}

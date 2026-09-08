@@ -27,6 +27,7 @@ import { PurchaseUsageTracker } from "@/components/purchase-usage-tracker";
 import { UsageTrackerDashboard } from "@/components/usage-tracker-dashboard";
 import { AiHubTabRow } from "@/components/ai-hub-tab-row";
 import { NoRefundPurchaseAck } from "@/components/no-refund-purchase-ack";
+import { buildTextPassPurchaseAgreement } from "@/lib/digital-purchase-agreements";
 
 import {
   buildAiSubscriptionWebPath,
@@ -166,6 +167,15 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
     });
 
   }, [hasState, tier, tierLabel, creatorId, creatorName, selectedPlan, stateCode, plans.data?.plans]);
+
+  const selectedAgreement = useMemo(
+    () =>
+      buildTextPassPurchaseAgreement(
+        selectedPlan,
+        (plans.data?.plans ?? []).find((p) => p.plan === selectedPlan)?.priceCents,
+      ),
+    [selectedPlan, plans.data?.plans],
+  );
 
 
 
@@ -361,6 +371,7 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
           onSelect={(id) => {
             setSelectedPlan(id as AiSubscriptionPlan);
             setLastReceipt(null);
+            setAcceptedNoRefund(false);
           }}
           style={{ paddingHorizontal: 0 }}
         />
@@ -405,6 +416,7 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
                   setSelectedPlan(p.plan);
 
                   setLastReceipt(null);
+                  setAcceptedNoRefund(false);
 
                 }}
 
@@ -471,11 +483,12 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
       <NoRefundPurchaseAck
         checked={acceptedNoRefund}
         onToggle={() => setAcceptedNoRefund((v) => !v)}
+        agreement={selectedAgreement}
       />
 
       <Text style={{ color: colors.muted, fontSize: 10, lineHeight: 15, marginTop: 8 }}>
 
-        By paying you agree: AI access is non-refundable. Harassment on UR = revoked privileges, no refund. See Profile → Terms of Use.
+        This check is saved with a timestamp. Unused messages die when the pass ends. Hear is not included. Harassment on UR = revoked privileges, no refund. See Profile → Terms of Use.
 
       </Text>
 
@@ -531,13 +544,13 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
               : !acceptedNoRefund
 
-                ? "Check the no-refund box to continue"
+                ? "Check the box to agree to these text-pass rules"
 
               : isAuthenticated
 
                 ? isWebCheckout
 
-                  ? `I understand — pay ${selectedSummary?.pricing.totalDisplay ?? ""}`
+                  ? `I agree — leftover messages die when the pass ends — pay ${selectedSummary?.pricing.totalDisplay ?? ""}`
 
                   : "Continue in browser to subscribe"
 

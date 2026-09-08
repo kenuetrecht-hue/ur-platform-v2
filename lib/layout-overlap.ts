@@ -18,6 +18,8 @@ export const LAYOUT_OVERLAP = {
   /** Compact disclosure row above tab bar (2 lines + padding). */
   BOTTOM_DISCLOSURE_ABOVE_TAB_HEIGHT: 40,
   COMPOSER_MIN_PADDING: 8,
+  /** Gap so the compose card does not kiss the tab / legal strip. */
+  COMPOSER_DOCK_GAP: 10,
   /** Extra when Android reports 0 bottom inset (common on Samsung gesture nav). */
   ANDROID_NAV_BAR_BUFFER: 6,
   /** Samsung One UI often needs a hair more clearance above the tab bar. */
@@ -31,9 +33,37 @@ export function bottomDisclaimerAboveTabHeight(): number {
   return LAYOUT_OVERLAP.BOTTOM_DISCLOSURE_ABOVE_TAB_HEIGHT;
 }
 
+/** Icon row only — used to style BottomTabBar inside TabBarWithDisclosure. */
+export function tabBarIconRowHeight(bottomSafeInset: number): number {
+  return tabBarTotalHeight(bottomSafeInset);
+}
+
 /** Total bottom chrome on tab screens: disclaimer + tab bar + home-indicator inset. */
 export function bottomTabChromeHeight(bottomSafeInset: number): number {
   return bottomDisclaimerAboveTabHeight() + tabBarTotalHeight(bottomSafeInset);
+}
+
+/**
+ * Extra padding under a compose box so it stays in the page, not on the footer.
+ * Tab screens: add the legal strip only when the navigator reported the icon row alone.
+ * Stack screens: always clear the bottom legal bar.
+ */
+export function composerDockPadding(args: {
+  reserveTabBar: boolean;
+  reportedTabBarHeight: number;
+  bottomSafeInset: number;
+  androidBuffer?: number;
+}): number {
+  const visual = LAYOUT_OVERLAP.COMPOSER_MIN_PADDING + LAYOUT_OVERLAP.COMPOSER_DOCK_GAP;
+  const android = args.androidBuffer ?? androidBottomBuffer(args.bottomSafeInset);
+  if (!args.reserveTabBar) {
+    return visual + android + LAYOUT_OVERLAP.BOTTOM_DISCLOSURE_CONTENT_HEIGHT;
+  }
+  const iconRow = tabBarTotalHeight(args.bottomSafeInset);
+  const reported = args.reportedTabBarHeight;
+  const missingDisclosure =
+    reported > 0 && reported <= iconRow + 4 ? LAYOUT_OVERLAP.BOTTOM_DISCLOSURE_ABOVE_TAB_HEIGHT : 0;
+  return visual + android + missingDisclosure;
 }
 
 export function tabBarTotalHeight(bottomSafeInset: number): number {

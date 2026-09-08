@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
+import { ComposerDock } from "@/components/composer-dock";
 
 type LearnLevel = "beginner" | "intermediate" | "advanced";
 type LearnMode = "lesson" | "practice" | "certification" | "on_the_job" | "conversation";
@@ -293,9 +294,10 @@ export function TechBuilderLearnPanel({
         </Pressable>
       ) : null}
 
-      <View style={[styles.inputRow, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
+      <ComposerDock>
+        <View style={styles.inputRow}>
         <TextInput
-          style={[styles.input, { color: colors.foreground, backgroundColor: colors.surface, borderColor: colors.border }]}
+          style={[styles.input, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
           placeholder="Ask how to code something…"
           placeholderTextColor={colors.muted}
           value={inputText}
@@ -311,7 +313,8 @@ export function TechBuilderLearnPanel({
         >
           <Text style={{ color: "#fff", fontWeight: "700" }}>Learn</Text>
         </Pressable>
-      </View>
+        </View>
+      </ComposerDock>
     </View>
   );
 }
@@ -335,7 +338,7 @@ const styles = StyleSheet.create({
   userBubble: { alignSelf: "flex-end" },
   aiBubble: { alignSelf: "flex-start", borderWidth: 1 },
   completeBtn: { marginHorizontal: 12, marginBottom: 4, borderWidth: 1, borderRadius: 10, padding: 10 },
-  inputRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, padding: 10, borderTopWidth: 1 },
+  inputRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
   input: { flex: 1, borderWidth: 1, borderRadius: 12, padding: 10, maxHeight: 100, fontSize: 14 },
   sendBtn: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 },
 });

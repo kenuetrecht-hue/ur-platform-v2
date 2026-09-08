@@ -8,3 +8,6 @@ export const CREATOR_AUDIENCE_FOLLOW_RULE =
 
 export const CREATOR_AUDIENCE_FOLLOW_RULE_SHORT =
   "Creators cannot edit follower or paid-subscriber counts. Only the fan can follow, subscribe, unfollow, or cancel.";
+
+export const CREATOR_FOLLOWER_VS_SUBSCRIBER_RULE =
+  "Followers are people interested in the free content who are not paying. Paid subscribers are people who pay for the creator's information. The creator's goal is paid subscribers. Followers are interest, not income.";

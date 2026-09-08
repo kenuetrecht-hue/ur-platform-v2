@@ -3,6 +3,7 @@ import {
   getMessageAllowance,
   HIVE_MESSAGE_MULTIPLIER,
   LEARN_MESSAGE_MULTIPLIER,
+  MIC_MESSAGE_MULTIPLIER,
 } from "../lib/ai-usage-allowances";
 import {
   _clearAiSubscriptionsForTests,
@@ -114,6 +115,37 @@ describe("ai-usage-meter", () => {
         isPlatformOwner: false,
       }),
     ).not.toThrow();
+  });
+
+  it("counts mic dictation as one text-pass message", () => {
+    expect(MIC_MESSAGE_MULTIPLIER).toBe(1);
+    purchaseAiSubscription({
+      userId: "u-mic",
+      userEmail: "mic@test.com",
+      creatorId: "contentmate",
+      plan: "day",
+      billingStateCode: "FL",
+    });
+
+    assertAndConsumeAiUsage({
+      userId: "u-mic",
+      creatorId: "contentmate",
+      isPlatformOwner: false,
+      extraMessageUnits: Math.max(0, MIC_MESSAGE_MULTIPLIER - 1),
+    });
+    assertAndConsumeAiUsage({
+      userId: "u-mic",
+      creatorId: "contentmate",
+      isPlatformOwner: false,
+    });
+
+    const status = assertAndConsumeAiUsage({
+      userId: "u-mic",
+      creatorId: "contentmate",
+      isPlatformOwner: false,
+    });
+    expect(status.messagesUsed).toBe(3);
+    expect(status.messagesRemaining).toBe(32);
   });
 
   it("blocks hive concurrent consults until an extra slot is paid", () => {

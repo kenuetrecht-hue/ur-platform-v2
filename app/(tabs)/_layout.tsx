@@ -7,9 +7,7 @@ import { useColors } from "@/hooks/use-colors";
 import { HapticTab } from "@/components/haptic-tab";
 import { TabBarIcon } from "@/components/tab-bar-icon";
 import { TabBarWithDisclosure } from "@/components/tab-bar-with-disclosure";
-import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
-
-const TAB_BAR_CONTENT_HEIGHT = LAYOUT_OVERLAP.TAB_BAR_CONTENT_HEIGHT;
+import { LAYOUT_OVERLAP, tabBarIconRowHeight } from "@/lib/layout-overlap";
 
 export default function TabsLayout() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -41,13 +39,14 @@ export default function TabsLayout() {
           tabBarInactiveTintColor: colors.muted,
           sceneStyle: {
             backgroundColor: colors.background,
+            overflow: "hidden",
           },
           tabBarStyle: {
             backgroundColor: colors.surface,
             borderTopWidth: 0,
-            height: TAB_BAR_CONTENT_HEIGHT + bottomInset,
+            height: tabBarIconRowHeight(insets.bottom),
             paddingBottom: bottomInset,
-            paddingTop: 6,
+            paddingTop: LAYOUT_OVERLAP.TAB_BAR_TOP_PADDING,
             elevation: 0,
             shadowOpacity: 0,
             position: "relative",

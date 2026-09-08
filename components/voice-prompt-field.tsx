@@ -6,6 +6,7 @@ import { createVoicePromptSession } from "@/lib/record-voice-prompt";
 import { stopExclusiveAudio } from "@/lib/exclusive-audio-player";
 
 type Props = {
+  creatorId: string;
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
@@ -17,6 +18,7 @@ type Props = {
 };
 
 export function VoicePromptField({
+  creatorId,
   value,
   onChangeText,
   placeholder = "Type here, or tap the microphone and speak any language",
@@ -40,7 +42,7 @@ export function VoicePromptField({
         const clip = await sessionRef.current.stop();
         sessionRef.current = null;
         setListening(false);
-        const result = await transcribe.mutateAsync(clip);
+        const result = await transcribe.mutateAsync({ ...clip, creatorId });
         onChangeText(result.printedText.slice(0, maxLength));
         setHint(
           result.translated

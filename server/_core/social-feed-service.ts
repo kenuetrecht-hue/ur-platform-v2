@@ -24,6 +24,8 @@ import { buildPlatformPublicUrl } from "../../lib/platform-urls";
 import { CREATOR_CANONICAL_SHARE_NOTICE } from "../../lib/creator-content-protection-copy";
 import { getContentCreatorProfile } from "./partner-program-service";
 import { spendThanksStampForReaction } from "./ur-thanks-stamps-service";
+import { getVideoRating, type VideoRatingSummary } from "./video-rating-service";
+import { CREATOR_FREE_VIDEO_SHARE_NOTICE } from "../../lib/creator-free-content-policy";
 
 export type PostVisibility = "public" | "friends";
 export type PostKind = "text" | "photo" | "video" | "link";
@@ -87,6 +89,8 @@ export type FeedPostView = FeedPost & {
   recentComments: FeedComment[];
   stampReactions: FeedStampReaction[];
   authorIsCreator: boolean;
+  isFreeShareable: boolean;
+  rating: VideoRatingSummary | null;
 };
 
 const profiles = new Map<string, SocialUserProfile>();
@@ -163,6 +167,7 @@ export function buildCanonicalShareText(params: {
     credit,
     params.body.trim().slice(0, 200) || "(media post)",
     CREATOR_CANONICAL_SHARE_NOTICE,
+    CREATOR_FREE_VIDEO_SHARE_NOTICE,
     origin,
   ].join("\n");
 }
@@ -200,6 +205,11 @@ function enrichPost(post: FeedPost, viewerUserId: string): FeedPostView {
       .slice(0, 40)
       .map(({ postId: _p, userId: _u, ...rest }) => rest),
     authorIsCreator: Boolean(getContentCreatorProfile(post.authorUserId)),
+    isFreeShareable: post.visibility === "public",
+    rating:
+      post.kind === "video" || Boolean(post.videoUrl)
+        ? getVideoRating(post.id, viewerUserId)
+        : null,
   };
 }
 
@@ -341,6 +351,14 @@ export function deleteFeedPost(params: { postId: string; userId: string }): bool
   return true;
 }
 
+export function assertVideoPostForRating(postId: string): void {
+  const post = posts.get(postId);
+  if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found." });
+  if (post.kind !== "video" && !post.videoUrl) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Only videos can be star-rated." });
+  }
+}
+
 export function togglePostLike(params: { postId: string; userId: string }): { liked: boolean; likeCount: number } {
   const post = posts.get(params.postId);
   if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found." });
@@ -430,6 +448,12 @@ export function recordPostShare(postId: string): {
 } {
   const post = posts.get(postId);
   if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found." });
+  if (post.visibility !== "public") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Only public free posts can be shared. Friends-only posts stay with friends.",
+    });
+  }
   const count = (shares.get(postId) ?? 0) + 1;
   shares.set(postId, count);
   const profile = getSocialProfile(post.authorUserId);

@@ -33,6 +33,11 @@ import { brandDisclosureSurface, brandHighlightSurface, brandGradientPair, withA
 import { ContentProtectionReportSheet } from "@/components/content-protection-report-sheet";
 import { LinearGradient } from "expo-linear-gradient";
 import { CreatorTipButton } from "@/components/creator-tip-button";
+import { VideoStarRating } from "@/components/video-star-rating";
+import {
+  CREATOR_FREE_CONTENT_INCOME_RULE_SHORT,
+  CREATOR_FREE_CONTENT_POST_NOTICE,
+} from "@/lib/creator-free-content-policy";
 
 type FeedSort = "latest" | "top" | "friends";
 
@@ -83,6 +88,8 @@ function PostCard({
       fromName: string;
     }>;
     authorIsCreator?: boolean;
+    isFreeShareable?: boolean;
+    rating?: { average: number; count: number; myStars: number | null } | null;
   };
   myUserId: string;
   stamps: Array<{ instanceId: string; name: string; mark: string; colorHex: string }>;
@@ -102,6 +109,7 @@ function PostCard({
   });
   const del = trpc.social.deletePost.useMutation({ onSuccess: () => onRefresh() });
   const share = trpc.social.sharePost.useMutation({ onSuccess: () => onRefresh() });
+  const rate = trpc.social.rateVideo.useMutation({ onSuccess: () => onRefresh() });
   const stamp = trpc.social.reactWithStamp.useMutation({
     onSuccess: () => {
       setShowStamps(false);
@@ -183,16 +191,28 @@ function PostCard({
       ) : null}
 
       {post.videoUrl ? (
-        Platform.OS === "web" ? (
-          // @ts-expect-error web video
-          <video src={post.videoUrl} controls style={{ width: "100%", borderRadius: 10, maxHeight: 320 }} />
-        ) : (
-          <Pressable onPress={() => void Linking.openURL(post.videoUrl!)}>
-            <View style={[styles.videoPlaceholder, { backgroundColor: colors.background }]}>
-              <Text style={{ color: colors.primary, fontWeight: "700" }}>▶ Watch video</Text>
-            </View>
-          </Pressable>
-        )
+        <>
+          {Platform.OS === "web" ? (
+            // @ts-expect-error web video
+            <video src={post.videoUrl} controls style={{ width: "100%", borderRadius: 10, maxHeight: 320 }} />
+          ) : (
+            <Pressable onPress={() => void Linking.openURL(post.videoUrl!)}>
+              <View style={[styles.videoPlaceholder, { backgroundColor: colors.background }]}>
+                <Text style={{ color: colors.primary, fontWeight: "700" }}>▶ Watch video</Text>
+              </View>
+            </Pressable>
+          )}
+          <Text style={{ color: colors.muted, fontSize: 10, lineHeight: 14 }}>
+            {CREATOR_FREE_CONTENT_INCOME_RULE_SHORT}
+          </Text>
+          <VideoStarRating
+            average={post.rating?.average ?? 0}
+            count={post.rating?.count ?? 0}
+            myStars={post.rating?.myStars ?? null}
+            disabled={rate.isPending}
+            onRate={(stars) => rate.mutate({ postId: post.id, stars })}
+          />
+        </>
       ) : null}
 
       {post.linkUrl ? (
@@ -221,9 +241,13 @@ function PostCard({
         <Pressable onPress={() => setShowComments((v) => !v)} style={styles.actionBtn}>
           <Text style={{ color: colors.foreground, fontWeight: "600" }}>💬 {post.commentCount}</Text>
         </Pressable>
-        <Pressable onPress={() => void sharePost()} style={styles.actionBtn}>
-          <Text style={{ color: colors.foreground, fontWeight: "600" }}>↗ {post.shareCount}</Text>
-        </Pressable>
+        {post.isFreeShareable !== false ? (
+          <Pressable onPress={() => void sharePost()} style={styles.actionBtn}>
+            <Text style={{ color: colors.foreground, fontWeight: "600" }}>↗ Share {post.shareCount}</Text>
+          </Pressable>
+        ) : (
+          <Text style={{ color: colors.muted, fontSize: 11 }}>Friends-only — not shareable</Text>
+        )}
         {post.authorIsCreator && post.authorUserId !== myUserId ? (
           <CreatorTipButton creatorUserId={post.authorUserId} creatorName={post.authorName} />
         ) : null}
@@ -474,11 +498,14 @@ export function SocialFeedPanel() {
           <TextInput
             value={videoUrl}
             onChangeText={setVideoUrl}
-            placeholder="Video URL — TikTok/Reels style (optional)"
+            placeholder="Video URL — free for everyone (optional)"
             placeholderTextColor={colors.muted}
             autoCapitalize="none"
             style={[styles.urlInput, { borderColor: colors.border, color: colors.foreground }]}
           />
+          <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+            {CREATOR_FREE_CONTENT_POST_NOTICE}
+          </Text>
           <View style={styles.visibilityRow}>
             {(["original", "licensed_repost"] as const).map((mode) => {
               const active = contentRightsMode === mode;

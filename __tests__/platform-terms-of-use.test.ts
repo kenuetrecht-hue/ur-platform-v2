@@ -13,6 +13,18 @@ import {
 import { buildSubscriptionPurchaseSummary } from "../lib/pricing-disclosures";
 
 describe("platform-terms-of-use", () => {
+  it("states Talk Time clocks, leftover death, and the unused-minute cap", () => {
+    const section = PLATFORM_TERMS_SECTIONS.find((s) => s.id === "talk-and-text-passes");
+    expect(section).toBeTruthy();
+    const text = section!.bullets.join(" ").toLowerCase();
+    expect(text).toContain("30 days");
+    expect(text).toContain("90 days");
+    expect(text).toContain("1,000 unused");
+    expect(text).toContain("leftover messages are gone");
+    expect(text).toContain("check the box");
+    expect(text).toContain("timestamp");
+  });
+
   it("states no refunds on AI purchases", () => {
     expect(AI_PURCHASE_NO_REFUND_POLICY.toLowerCase()).toContain("no refunds");
     expect(AI_PURCHASE_NO_REFUND_POLICY.toLowerCase()).toContain("final");
@@ -38,6 +50,7 @@ describe("platform-terms-of-use", () => {
     expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "harassment")).toBe(true);
     expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "ai-no-refunds")).toBe(true);
     expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "creator-transactions")).toBe(true);
+    expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "talk-and-text-passes")).toBe(true);
     expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "human-conduct")).toBe(true);
     expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "community-conduct")).toBe(true);
     expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "communications-audit")).toBe(true);

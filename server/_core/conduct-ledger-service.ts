@@ -44,6 +44,10 @@ export type PurchaseNoRefundAck = {
   amountCents: number;
   acceptedAt: string;
   ipAddress?: string;
+  /** Version of the rules they checked — keep if they later dispute the sale. */
+  agreementVersion?: string;
+  /** Full rules + checkbox text shown at checkout. */
+  agreementText?: string;
 };
 
 export type CommunicationAuditRecord = {
@@ -117,6 +121,8 @@ export function assertAndRecordNoRefundAck(params: {
   amountCents: number;
   acceptedNoRefund: true;
   ipAddress?: string;
+  agreementVersion?: string;
+  agreementText?: string;
 }): PurchaseNoRefundAck {
   const record: PurchaseNoRefundAck = {
     id: randomUUID(),
@@ -126,6 +132,12 @@ export function assertAndRecordNoRefundAck(params: {
     amountCents: params.amountCents,
     acceptedAt: new Date().toISOString(),
     ipAddress: params.ipAddress,
+    agreementVersion: params.agreementVersion
+      ? sanitizeUserText(params.agreementVersion, 80)
+      : undefined,
+    agreementText: params.agreementText
+      ? sanitizeUserText(params.agreementText, 4000)
+      : undefined,
   };
   purchaseAcks.push(record);
   if (purchaseAcks.length > MAX_PURCHASE_ACKS) {

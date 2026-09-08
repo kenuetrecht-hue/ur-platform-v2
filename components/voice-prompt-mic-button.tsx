@@ -5,6 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { createVoicePromptSession } from "@/lib/record-voice-prompt";
 
 type Props = {
+  creatorId: string;
   onTranscript: (text: string, hint: string) => void;
   disabled?: boolean;
   labeled?: boolean;
@@ -13,6 +14,7 @@ type Props = {
 };
 
 export function VoicePromptMicButton({
+  creatorId,
   onTranscript,
   disabled,
   labeled = false,
@@ -30,7 +32,7 @@ export function VoicePromptMicButton({
         const clip = await sessionRef.current.stop();
         sessionRef.current = null;
         setListening(false);
-        const result = await transcribe.mutateAsync(clip);
+        const result = await transcribe.mutateAsync({ ...clip, creatorId });
         const hint = result.translated
           ? `Heard ${result.language} — printed in English`
           : `Heard ${result.language}`;

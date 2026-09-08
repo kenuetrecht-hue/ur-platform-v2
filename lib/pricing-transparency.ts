@@ -195,7 +195,7 @@ export function getPlatformPricingCatalog(): PlainProductPricing[] {
 export const TEXT_SUB_PLAIN_SUMMARY = {
   includedWithText: [
     `${TEXT_SUB_INCLUDED_WEB_SEARCHES_PER_DAY} web searches per day (while text plan is active)`,
-    "Normal chat = 1 message · Learn/chapter = 5 messages · Hive consult = 3 messages",
+    "Normal chat = 1 message · Mic dictation = 1 message · Learn/chapter = 5 messages · Hive consult = 3 messages",
     "Photo/PDF upload = 2 messages each OR buy vision upload credits",
   ],
   soldSeparately: [

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   getConcurrentSlotEconomics,
   getCreditPlanEconomics,
+  getDictatedTextPassEconomics,
   getSubscriptionPlanEconomics,
   getTalkPackEconomics,
   listTalkPackEconomics,
@@ -54,6 +55,12 @@ describe("platform-economics", () => {
     expect(getSubscriptionPlanEconomics("ai-wellness-001", "week", "standard").grossMarginAtMaxUsePercent).toBeGreaterThanOrEqual(65);
     expect(getSubscriptionPlanEconomics("linguamate", "month", "premium").grossMarginAtMaxUsePercent).toBeGreaterThanOrEqual(65);
     expect(getSubscriptionPlanEconomics("ai-coder-001", "month", "professional").grossMarginAtMaxUsePercent).toBeGreaterThanOrEqual(65);
+  });
+
+  it("monthly pass stays profitable when a desk worker only dictates then sends", () => {
+    const econ = getDictatedTextPassEconomics("month");
+    expect(econ.grossMarginAtMaxUsePercent).toBeGreaterThanOrEqual(65);
+    expect(econ.grossProfitAtMaxUseCents).toBeGreaterThan(0);
   });
 
   it("monthly pass stays profitable even if every message is professional-tier compute", () => {

@@ -108,6 +108,18 @@ export const PLATFORM_TERMS_SECTIONS: TermsSection[] = [
     ],
   },
   {
+    id: "talk-and-text-passes",
+    title: "Text pass and Talk Time — what you buy, how long it lasts",
+    bullets: [
+      "Text pass ($7.99 / 24 hours, $15.99 / 7 days, $24.99 / 30 days): you pay for a set number of text messages with every UR specialist, one AI at a time. Typed chat = 1 message. Microphone print = 1 message. Send after the mic = 1 more. Learn = 5. Hive = 3. Photo = 2. Hear (the AI speaking back) is not included.",
+      "When the text pass ends, leftover messages are gone. When the messages are used up, chat stops until you buy another pass. No rollover. No refunds.",
+      "Talk Time is Hear / video only — the AI speaking back to you. $1 = 5 minutes (use within 30 days). $5 = 20 minutes, app only (use within 30 days). $120 = 500 minutes, web (use within 90 days). $200 = 1,000 minutes, web (use within 90 days). Unused minutes from that purchase are forfeited when the clock ends.",
+      "You cannot hold more than 1,000 unused Talk minutes at one time. UR will not sell more Talk Time until you use some down. This is to prevent stockpiling unused minutes against a later bill.",
+      "The Talk microphone that prints your words uses the text pass, not Talk Time minutes. Minutes run only while you are connected and the AI is speaking.",
+      "You must check the box at checkout agreeing to these rules. That check is saved with the full rule text, a version number, and a timestamp.",
+    ],
+  },
+  {
     id: "creator-transactions",
     title: "Content creator purchases — creator responsibility",
     bullets: [

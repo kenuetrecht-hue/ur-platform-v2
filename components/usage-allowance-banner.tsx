@@ -64,7 +64,7 @@ export function UsageAllowanceBanner({ creatorId, creatorName }: Props) {
         unit="messages"
         loseByLabel={
           sub
-            ? `${sub.plan} plan · ${formatAllowanceHeadline(creatorId, sub.plan)} · Learn = 5 msgs · Hive = 3 msgs`
+            ? `${sub.plan} plan · ${formatAllowanceHeadline(creatorId, sub.plan)} · Mic = 1 msg · Learn = 5 · Hive = 3`
             : undefined
         }
         compact

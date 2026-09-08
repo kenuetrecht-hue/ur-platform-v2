@@ -33,7 +33,8 @@ import { CreatorContentProtectionPanel } from "@/components/creator-content-prot
 import { MuxVideoUploader } from "@/components/mux-video-uploader";
 import { CartoonCreatorPricingPanel } from "@/components/cartoon-creator-pricing-panel";
 import { FOUNDING_AUDIENCE_YEAR_RULE } from "@/lib/founding-audience-year-discount";
-import { CREATOR_AUDIENCE_FOLLOW_RULE } from "@/lib/creator-audience-policy";
+import { CREATOR_AUDIENCE_FOLLOW_RULE, CREATOR_FOLLOWER_VS_SUBSCRIBER_RULE } from "@/lib/creator-audience-policy";
+import { CREATOR_FREE_CONTENT_INCOME_RULE } from "@/lib/creator-free-content-policy";
 
 type Tab = "overview" | "classes" | "promote" | "store" | "ai";
 
@@ -298,12 +299,12 @@ export function ContentCreatorDashboardPanel() {
                 <StatCard
                   label="Followers"
                   value={(dash.data.audience?.followerCount ?? p.broughtFollowerCount).toLocaleString()}
-                  sub="Live count · fans follow you"
+                  sub="Interested · not paying"
                 />
                 <StatCard
                   label="Paid subscribers"
                   value={(dash.data.audience?.paidSubscriberCount ?? p.paidChannelSubscriberCount).toLocaleString()}
-                  sub="Live count · they can cancel"
+                  sub="This is your real income"
                 />
               </View>
             ) : null}
@@ -382,6 +383,12 @@ export function ContentCreatorDashboardPanel() {
               ) : (
                 <Text style={{ color: colors.muted, fontSize: 12 }}>No paid subscribers yet</Text>
               )}
+              <Text style={{ color: colors.foreground, fontSize: 12, lineHeight: 18, fontWeight: "700" }}>
+                {CREATOR_FOLLOWER_VS_SUBSCRIBER_RULE}
+              </Text>
+              <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
+                {CREATOR_FREE_CONTENT_INCOME_RULE}
+              </Text>
               <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
                 {dash.data.audienceRule ?? CREATOR_AUDIENCE_FOLLOW_RULE}
               </Text>

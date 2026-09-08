@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
@@ -31,6 +31,8 @@ export default function MusicStudioScreen() {
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const window = useWindowDimensions();
+  const chatHeight = Math.max(260, Math.min(420, window.height - 340));
   const [deskId, setDeskId] = useState<DeskId>("ai-musician-001");
   const [project, setProject] = useState<PublicMusicProject | null>(null);
   const [lessonAsk, setLessonAsk] = useState<string | null>(null);
@@ -112,7 +114,7 @@ export default function MusicStudioScreen() {
 
               <View
                 style={{
-                  height: 800,
+                  height: chatHeight,
                   borderRadius: 18,
                   overflow: "hidden",
                   borderWidth: 1,

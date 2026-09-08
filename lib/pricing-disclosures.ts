@@ -18,9 +18,11 @@ import {
 } from "./payment-channel-policy";
 import {
   AI_TALK_EXPIRY_PURCHASE_DISCLOSURE,
+  AI_TALK_MAX_UNUSED_MINUTES,
   AI_TALK_METERING_DISCLOSURE,
   computeLotExpiresAt,
   formatTalkExpiryDate,
+  getTalkLotExpiryDays,
   getTalkPackPurchaseDisclosures,
   minutesToMilliseconds,
 } from "./ai-talk-time-policy";
@@ -236,11 +238,12 @@ export function buildSubscriptionPurchaseSummary(params: {
       },
       {
         label: "Message usage",
-        value: `Normal chat = 1 msg · Learn/chapter = ${LEARN_MESSAGE_MULTIPLIER} msgs · Hive consult = ${HIVE_MESSAGE_MULTIPLIER} msgs · Photo upload = 2 msgs (or vision credits)`,
+        value: `Normal chat = 1 msg · Mic dictation = 1 msg · Learn/chapter = ${LEARN_MESSAGE_MULTIPLIER} msgs · Hive consult = ${HIVE_MESSAGE_MULTIPLIER} msgs · Photo upload = 2 msgs (or vision credits)`,
       },
       {
         label: "Access period",
-        value: `Active for ${days} day${days === 1 ? "" : "s"} from purchase`,
+        value: `Active for ${days} day${days === 1 ? "" : "s"} from purchase. Unused messages die when the pass ends. No rollover.`,
+        emphasis: true,
       },
       {
         label: "Concurrent AIs",
@@ -248,7 +251,7 @@ export function buildSubscriptionPurchaseSummary(params: {
       },
     ],
     notIncluded: [
-      "Voice & video talk (buy Talk Time separately — priced per minute)",
+      "Voice & video talk / Hear (buy Talk Time separately — priced per minute)",
       "Logo/creative images (Imagen) — separate image credit packs",
       "TechBuilder/GameForge code runs — separate run credits",
       "Book/song/script chapters — separate chapter credits",
@@ -256,13 +259,14 @@ export function buildSubscriptionPurchaseSummary(params: {
       "Talking to more than one AI at the same time (Hive / Town Hall) — buy an extra concurrent slot",
     ],
     importantNotes: [
-      "When your message allowance runs out, chat pauses until you renew or upgrade.",
+      "When your message allowance runs out, chat pauses until you buy another pass. Leftover messages are lost when the pass ends — no rollover and no refunds.",
+      "The Talk microphone that prints your words uses a text-pass message. Hear (the AI speaking back) is Talk Time, sold separately.",
       AI_TEXT_METERING_DISCLOSURE,
       AI_METERING_PAYBACK_PROTECTION,
       "AI subscriptions must be purchased through your web browser — not in the mobile app.",
       ...AI_PURCHASE_TERMS_NOTES,
       ...stateTaxNotes(params.stateCode ?? null, pricing),
-      "No auto-renew unless you choose it at checkout.",
+      "No auto-renew unless you choose it at checkout. Digital product. Final sale.",
     ],
     aiDisclosure: AI_DISCLOSURE,
     billingEntity: BILLING_ENTITY,
@@ -278,6 +282,7 @@ export function buildTalkPurchaseSummary(
   const liveCents = priceCents ?? pack.priceCents;
   const { pricing, youPay, priceBreakdown } = buildPricingBlock(liveCents, stateCode, "one-time");
   const channel = getRequiredPaymentChannel(liveCents);
+  const expiryDays = getTalkLotExpiryDays(packId);
 
   return {
     productType: "ai_talk",
@@ -287,13 +292,18 @@ export function buildTalkPurchaseSummary(
     priceBreakdown,
     youReceive: [
       {
-        label: "Talk time included",
-        value: `${pack.totalMinutes} minutes (${minutesToMilliseconds(pack.totalMinutes).toLocaleString()} ms) of AI speech`,
+        label: "You pay",
+        value: `${pricing.subtotalDisplay} for this pack (tax and card fee added at checkout)`,
+        emphasis: true,
+      },
+      {
+        label: "You get",
+        value: `${pack.totalMinutes} minutes (${minutesToMilliseconds(pack.totalMinutes).toLocaleString()} ms) of Hear / video talk — the AI speaking back. Not the text pass.`,
         emphasis: true,
       },
       {
         label: "Works with",
-        value: "Any UR AI specialist — voice read-aloud & video talk",
+        value: "Any UR AI specialist — Hear read-aloud & video talk",
       },
       {
         label: "Metering",
@@ -301,18 +311,24 @@ export function buildTalkPurchaseSummary(
       },
       {
         label: "Must use within",
-        value: `30 days of purchase — use by ${formatTalkExpiryDate(computeLotExpiresAt(Date.now()))} or you lose what isn't used`,
+        value: `${expiryDays} days of purchase — use by ${formatTalkExpiryDate(computeLotExpiresAt(Date.now(), packId))} or you lose what isn't used`,
         emphasis: true,
       },
       {
-        label: "If unused after 30 days",
+        label: `If unused after ${expiryDays} days`,
         value: "Unused minutes are forfeited automatically. No rollover. No refunds. Each purchase has its own use-by date.",
+        emphasis: true,
+      },
+      {
+        label: "Unused-minute cap",
+        value: `You cannot hold more than ${AI_TALK_MAX_UNUSED_MINUTES} unused minutes at one time. Buy again only after you use some down.`,
         emphasis: true,
       },
     ],
     notIncluded: [
-      "Text chat subscription (buy a specialist plan separately)",
+      "Text chat / the Talk microphone that prints your words (that uses the text pass)",
       "Rollover — expired minutes are forfeited. You lose what isn't used.",
+      "The right to stockpile unused minutes above the 1,000-minute cap",
     ],
     importantNotes: [
       ...getTalkPackPurchaseDisclosures(packId),
@@ -324,7 +340,7 @@ export function buildTalkPurchaseSummary(
       `Checkout via ${getPaymentChannelLabel(channel)}.`,
       PAYMENT_CHANNEL_POLICY_SUMMARY,
       ...stateTaxNotes(stateCode ?? null, pricing),
-      "Each new purchase starts its own 30-day expiry window.",
+      `$1 and $5 Talk Time expire in 30 days. $120 and $200 Talk Time expire in 90 days. Each purchase starts its own clock.`,
     ],
     aiDisclosure: AI_DISCLOSURE,
     billingEntity: BILLING_ENTITY,

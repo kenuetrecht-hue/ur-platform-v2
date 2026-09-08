@@ -19,6 +19,7 @@ import { speakText } from "@/lib/azure-tts-service";
 import { useRouter } from "expo-router";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
+import { ComposerDock } from "@/components/composer-dock";
 import { useAiTalkMeterPlayback } from "@/hooks/use-ai-talk-meter-playback";
 import { useNetworkConnectivity, isMeteringConnected } from "@/hooks/use-network-connectivity";
 import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync";
@@ -799,16 +800,7 @@ export function CreatorAIInterface({
           ) : null}
         </ScrollView>
 
-        <View
-          style={[
-            styles.composerDock,
-            {
-              borderTopColor: colors.border,
-              backgroundColor: colors.background,
-              paddingBottom: overlap.dockPaddingBottom,
-            },
-          ]}
-        >
+        <ComposerDock paddingBottom={overlap.dockPaddingBottom}>
           {pendingAttachments.length > 0 ? (
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 4, paddingBottom: 6 }}>
               {pendingAttachments.map((att, i) => (
@@ -862,6 +854,7 @@ export function CreatorAIInterface({
               </Pressable>
             ) : null}
             <VoicePromptMicButton
+              creatorId={creatorId}
               labeled
               onBeforeListen={() => {
                 stopPlayback();
@@ -953,7 +946,7 @@ export function CreatorAIInterface({
             <Text style={{ color: colors.muted, fontSize: 11, paddingTop: 6 }}>{speechHint}</Text>
           ) : (
             <Text style={{ color: colors.muted, fontSize: 11, paddingTop: 6 }}>
-              Microphone hears any language and prints English when needed.
+              Talk (mic) uses your text pass — 1 message to print, 1 to send. Hear uses Talk Time, not the $24.99 pass.
             </Text>
           )}
 
@@ -1193,7 +1186,7 @@ export function CreatorAIInterface({
               ) : null}
             </>
           ) : null}
-        </View>
+        </ComposerDock>
       </View>
       </View>
     </KeyboardAvoidingView>
@@ -1205,14 +1198,6 @@ const styles = StyleSheet.create({
   rootEmbedded: { width: "100%" },
   column: { flex: 1, minHeight: 0, overflow: "hidden" },
   chatBody: { flex: 1, minHeight: 0, overflow: "hidden" },
-  composerDock: {
-    flexShrink: 0,
-    zIndex: 2,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingTop: 8,
-    paddingHorizontal: 8,
-    backgroundColor: "transparent",
-  },
   header: { paddingHorizontal: 16, paddingVertical: 12 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   headerAvatar: { fontSize: 22 },

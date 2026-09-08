@@ -8,6 +8,7 @@ import {
   HIVE_MESSAGE_UNITS,
   LEARN_MODE_MESSAGE_UNITS,
   MESSAGE_ALLOWANCE_BY_TIER,
+  MIC_TRANSCRIBE_MESSAGE_UNITS,
 } from "./usage-caps-catalog";
 
 /** Hive mode consults multiple specialists — counts as 3 messages */
@@ -15,6 +16,9 @@ export const HIVE_MESSAGE_MULTIPLIER = HIVE_MESSAGE_UNITS;
 
 /** Learn mode / long-form chapters — counts as 5 messages */
 export const LEARN_MESSAGE_MULTIPLIER = LEARN_MODE_MESSAGE_UNITS;
+
+/** Speak-into-mic (print a prompt) — counts as 1 message. Hear-the-AI is Talk Time. */
+export const MIC_MESSAGE_MULTIPLIER = MIC_TRANSCRIBE_MESSAGE_UNITS;
 
 /** Base message allowances per plan (standard tier) — owner-approved caps */
 export const AI_MESSAGE_ALLOWANCE: Record<AiSubscriptionPlan, number> =
@@ -61,6 +65,6 @@ export function getUsageAllowanceQuote(
     hiveConsultsApprox: Math.floor(messagesIncluded / HIVE_MESSAGE_MULTIPLIER),
     learnChaptersApprox: Math.floor(messagesIncluded / LEARN_MESSAGE_MULTIPLIER),
     webSearchesIncludedPerDay: 10,
-    fairUseNote: `${messagesIncluded} messages · hive uses 3 each · learn/chapters use 5 each · 10 web searches/day included.`,
+    fairUseNote: `${messagesIncluded} messages · mic dictation uses 1 · hive uses 3 · learn/chapters use 5 · 10 web searches/day included.`,
   };
 }

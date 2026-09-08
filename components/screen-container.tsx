@@ -54,14 +54,17 @@ export function ScreenContainer({
         "bg-background",
         containerClassName
       )}
+      style={{ flex: 1, minHeight: 0, overflow: "hidden" }}
       {...props}
     >
       <SafeAreaView
         edges={edges}
         className={cn("flex-1", safeAreaClassName)}
-        style={style}
+        style={[{ flex: 1, minHeight: 0 }, style]}
       >
-        <View className={cn("flex-1", className)}>{children}</View>
+        <View style={{ flex: 1, minHeight: 0 }} className={cn("flex-1", className)}>
+          {children}
+        </View>
       </SafeAreaView>
     </View>
   );

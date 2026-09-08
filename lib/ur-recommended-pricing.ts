@@ -29,9 +29,9 @@ export const UR_RECOMMENDED_PRICING: RecommendedProductPricing[] = [
       day: { usd: 7.99, cap: "35 messages / 24h" },
       week: { usd: 15.99, cap: "130 messages / 7d" },
       month: { usd: 24.99, cap: "350 messages (~12/day)" },
-      other: "Hive consult = 3 msgs · Learn mode = 5 msgs · Photo upload = 2 msgs",
+      other: "Mic dictation = 1 msg · Hive consult = 3 msgs · Learn mode = 5 msgs · Photo upload = 2 msgs",
     },
-    notes: "Platform text pass — every specialist, one at a time. Voice talk is sold separately.",
+    notes: "Platform text pass — every specialist, one at a time. Mic-to-text uses the pass. Hear/Talk Time is sold separately.",
   },
   {
     id: "text-professional",

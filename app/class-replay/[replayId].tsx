@@ -9,6 +9,8 @@ import { BillingStatePicker } from "@/components/billing-state-picker";
 import { PurchaseSummaryCard } from "@/components/purchase-summary-card";
 import { buildClassReplayPurchaseSummary } from "@/lib/pricing-disclosures";
 import { MuxVideoPlayer } from "@/components/mux-video-player";
+import { VideoStarRating } from "@/components/video-star-rating";
+import { CREATOR_PAID_VIDEO_NO_SHARE } from "@/lib/creator-free-content-policy";
 
 export default function ClassReplayScreen() {
   const colors = useColors();
@@ -25,6 +27,14 @@ export default function ClassReplayScreen() {
   const confirm = trpc.aiLiveSessions.confirmReplayPayment.useMutation({
     onSuccess: () => void utils.aiLiveSessions.watchReplay.invalidate(),
   });
+  const replayRating = trpc.fairShow.rateVideo.useMutation({
+    onSuccess: () => void utils.fairShow.getRating.invalidate({ contentId: id }),
+  });
+  const existingRating = trpc.fairShow.getRating.useQuery(
+    { contentId: id },
+    { enabled: Boolean(id) && isAuthenticated },
+  );
+  const ratingView = replayRating.data ?? existingRating.data;
 
   const summary =
     publicReplay.data && publicReplay.data.priceCents > 0
@@ -107,6 +117,20 @@ export default function ClassReplayScreen() {
                     : "No Mux recording yet — the saved class archive is below."}
                 </Text>
               )}
+              <VideoStarRating
+                average={ratingView?.average ?? 0}
+                count={ratingView?.count ?? 0}
+                myStars={ratingView?.myStars ?? null}
+                disabled={replayRating.isPending}
+                onRate={(stars) =>
+                  replayRating.mutate({ contentId: id, kind: "class_replay", stars })
+                }
+              />
+              {(publicReplay.data?.priceCents ?? 0) > 0 ? (
+                <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+                  {CREATOR_PAID_VIDEO_NO_SHARE}
+                </Text>
+              ) : null}
               {(watch.data.chapters ?? []).map((chapter, index) => (
                 <View
                   key={`${chapter.label}-${index}`}

@@ -27,6 +27,7 @@ import { AiLiveSessionsPanel } from "@/components/ai-live-sessions-panel";
 import { AiSpecialistPricingPanel } from "@/components/ai-specialist-pricing-panel";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
+import { ComposerDock } from "@/components/composer-dock";
 
 import { SpecialistJobToolsPanel } from "@/components/specialist-job-tools-panel";
 import { hasSpecialistJobTools } from "@/lib/specialist-job-tools";
@@ -211,7 +212,16 @@ export function AiCreatorPanel({
           }}
         />
       ) : (
-        <AiLearnSurface creatorId={creatorId} creatorName={creatorName} creatorAvatar={creatorAvatar} />
+        <AiLearnSurface
+          creatorId={creatorId}
+          creatorName={creatorName}
+          creatorAvatar={creatorAvatar}
+          overlapOptions={{
+            headerChromeHeight:
+              (overlapHeaderHeight ?? LAYOUT_OVERLAP.AIS_TAB_CHROME_HEIGHT) + 48,
+            reserveTabBar: true,
+          }}
+        />
       )}
     </View>
   );
@@ -386,6 +396,7 @@ export function AiLearnSurface({
 
   const pct = profile.data?.percentComplete ?? 0;
   const selfPacedSteps = curriculum.data?.selfPacedPaths?.[level] ?? [];
+  const modules = curriculum.data?.modules ?? [];
 
   return (
     <KeyboardAvoidingView
@@ -393,145 +404,148 @@ export function AiLearnSurface({
       behavior={overlap.keyboardBehavior}
       keyboardVerticalOffset={overlap.keyboardVerticalOffset}
     >
-      <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
-        <View style={[styles.progressFill, { width: `${pct}%`, backgroundColor: colors.primary }]} />
-      </View>
-      <Text style={{ color: colors.muted, fontSize: 11, paddingHorizontal: 12, paddingTop: 4 }}>
-        Progress: {pct}% · {profile.data?.modulesCompleted ?? 0}/
-        {profile.data?.totalModules ?? "?"} modules
-      </Text>
-      {curriculum.data?.tagline ? (
-        <Text style={{ color: colors.foreground, fontSize: 12, paddingHorizontal: 12, paddingTop: 6, lineHeight: 18 }}>
-          {curriculum.data.tagline}
+      <View style={styles.learnColumn}>
+        <View style={styles.learnChrome}>
+        <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
+          <View style={[styles.progressFill, { width: `${pct}%`, backgroundColor: colors.primary }]} />
+        </View>
+        <Text style={{ color: colors.muted, fontSize: 11, paddingHorizontal: 12, paddingTop: 4 }} numberOfLines={2}>
+          {pct}% · {profile.data?.modulesCompleted ?? 0}/{profile.data?.totalModules ?? "?"} modules
+          {curriculum.data?.tagline ? ` · ${curriculum.data.tagline}` : ""}
         </Text>
-      ) : null}
 
-      {selfPacedSteps.length > 0 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.moduleRow}>
-          {selfPacedSteps.map((step) => (
+        <View style={styles.chipWrap}>
+          {LEARN_LEVELS.map((lv) => (
             <Pressable
-              key={`${step.order}-${step.title}`}
+              key={lv}
               onPress={() => {
-                setActiveTopic(step.moduleTitle);
-                void sendLearnMessage(
-                  `Start self-paced step: "${step.title}" (${step.moduleTitle}). Guide me step by step.`,
-                );
+                setLevel(lv);
+                void setLevelMutation.mutateAsync({ creatorId, level: lv });
               }}
-              style={[styles.moduleCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              style={[
+                styles.chip,
+                { backgroundColor: level === lv ? colors.primary : colors.surface, borderColor: colors.border },
+              ]}
             >
-              <Text style={{ color: colors.primary, fontSize: 10, fontWeight: "700" }}>
-                Step {step.order} · {step.estimatedMinutes}m
-              </Text>
-              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }} numberOfLines={2}>
-                {step.title}
+              <Text style={{ color: level === lv ? "#fff" : colors.foreground, fontSize: 12, fontWeight: "600" }}>
+                {lv}
               </Text>
             </Pressable>
           ))}
-        </ScrollView>
-      ) : null}
+          {LEARN_MODES.map((m) => (
+            <Pressable
+              key={m.id}
+              onPress={() => setLearnMode(m.id)}
+              style={[
+                styles.chip,
+                { backgroundColor: learnMode === m.id ? colors.primary : colors.surface, borderColor: colors.border },
+              ]}
+            >
+              <Text style={{ color: learnMode === m.id ? "#fff" : colors.foreground, fontSize: 12, fontWeight: "600" }}>
+                {m.emoji} {m.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.levelScroll} contentContainerStyle={styles.chipRow}>
-        {LEARN_LEVELS.map((lv) => (
-          <Pressable
-            key={lv}
-            onPress={() => {
-              setLevel(lv);
-              void setLevelMutation.mutateAsync({ creatorId, level: lv });
-            }}
-            style={[styles.chip, { backgroundColor: level === lv ? colors.primary : colors.surface, borderColor: colors.border }]}
+        {learnMode === "practice" && practiceQuestions.data?.questions.length ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.hScroll}
+            contentContainerStyle={styles.moduleRow}
           >
-            <Text style={{ color: level === lv ? "#fff" : colors.foreground, fontSize: 12, fontWeight: "600" }}>
-              {lv}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-        {LEARN_MODES.map((m) => (
-          <Pressable
-            key={m.id}
-            onPress={() => setLearnMode(m.id)}
-            style={[styles.chip, { backgroundColor: learnMode === m.id ? colors.primary : colors.surface, borderColor: colors.border }]}
-          >
-            <Text style={{ color: learnMode === m.id ? "#fff" : colors.foreground, fontSize: 12, fontWeight: "600" }}>
-              {m.emoji} {m.label}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      {curriculum.data?.modules ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.moduleRow}>
-          {curriculum.data.modules.map((mod) => {
-            const done = profile.data?.progress.completedTopics.includes(mod.title);
-            return (
+            {practiceQuestions.data.questions.map((q) => (
               <Pressable
-                key={mod.id}
-                onPress={() => startModule(mod.title)}
-                style={[
-                  styles.moduleCard,
-                  {
-                    backgroundColor: activeTopic === mod.title ? `${colors.primary}18` : colors.surface,
-                    borderColor: done ? "#22c55e" : colors.border,
-                  },
-                ]}
+                key={q.id}
+                onPress={() => void sendLearnMessage(q.question)}
+                style={[styles.moduleCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
               >
-                <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }} numberOfLines={2}>
-                  {done ? "✓ " : ""}{mod.title}
-                </Text>
-                <Text style={{ color: colors.muted, fontSize: 10, marginTop: 4 }} numberOfLines={2}>
-                  {mod.description}
+                <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 11 }} numberOfLines={3}>
+                  {q.topic}
                 </Text>
               </Pressable>
-            );
-          })}
-        </ScrollView>
-      ) : null}
-
-      {learnMode === "practice" && practiceQuestions.data?.questions.length ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-          {practiceQuestions.data.questions.map((q) => (
+            ))}
+          </ScrollView>
+        ) : learnMode === "certification" && certPrep.data ? (
+          <View style={{ paddingHorizontal: 12, paddingBottom: 6, gap: 4 }}>
+            <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }} numberOfLines={1}>
+              {certPrep.data.title}
+            </Text>
             <Pressable
-              key={q.id}
-              onPress={() => void sendLearnMessage(q.question)}
-              style={[styles.moduleCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() =>
+                void sendLearnMessage(`Start certification prep for: ${certPrep.data!.topics[0] ?? "fundamentals"}`)
+              }
+              style={[styles.chip, { alignSelf: "flex-start", backgroundColor: colors.primary, borderColor: colors.primary }]}
             >
-              <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 11 }} numberOfLines={4}>
-                {q.topic}
-              </Text>
+              <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>Start cert prep</Text>
             </Pressable>
-          ))}
-        </ScrollView>
-      ) : null}
-
-      {learnMode === "certification" && certPrep.data ? (
-        <View style={{ paddingHorizontal: 12, paddingBottom: 6, gap: 4 }}>
-          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
-            {certPrep.data.title}
-          </Text>
-          <Text style={{ color: colors.muted, fontSize: 11 }}>
-            ~{certPrep.data.estimatedStudyHours}h study · {certPrep.data.topics.slice(0, 3).join(", ")}
-          </Text>
-          <Pressable
-            onPress={() =>
-              void sendLearnMessage(`Start certification prep for: ${certPrep.data!.topics[0] ?? "fundamentals"}`)
-            }
-            style={[styles.chip, { alignSelf: "flex-start", backgroundColor: colors.primary, borderColor: colors.primary }]}
+          </View>
+        ) : selfPacedSteps.length > 0 || modules.length > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.hScroll}
+            contentContainerStyle={styles.moduleRow}
           >
-            <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>Start cert prep</Text>
-          </Pressable>
+            {selfPacedSteps.map((step) => (
+              <Pressable
+                key={`${step.order}-${step.title}`}
+                onPress={() => {
+                  setActiveTopic(step.moduleTitle);
+                  void sendLearnMessage(
+                    `Start self-paced step: "${step.title}" (${step.moduleTitle}). Guide me step by step.`,
+                  );
+                }}
+                style={[styles.moduleCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              >
+                <Text style={{ color: colors.primary, fontSize: 10, fontWeight: "700" }}>
+                  Step {step.order} · {step.estimatedMinutes}m
+                </Text>
+                <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }} numberOfLines={2}>
+                  {step.title}
+                </Text>
+              </Pressable>
+            ))}
+            {modules.map((mod) => {
+              const done = profile.data?.progress.completedTopics.includes(mod.title);
+              return (
+                <Pressable
+                  key={mod.id}
+                  onPress={() => startModule(mod.title)}
+                  style={[
+                    styles.moduleCard,
+                    {
+                      backgroundColor: activeTopic === mod.title ? `${colors.primary}18` : colors.surface,
+                      borderColor: done ? "#22c55e" : colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }} numberOfLines={2}>
+                    {done ? "✓ " : ""}
+                    {mod.title}
+                  </Text>
+                  <Text style={{ color: colors.muted, fontSize: 10, marginTop: 2 }} numberOfLines={2}>
+                    {mod.description}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        ) : null}
         </View>
-      ) : null}
 
       <ScrollView
         ref={scrollRef}
         style={styles.learnMessages}
         contentContainerStyle={{ padding: 12, gap: 10, paddingBottom: 16 + overlap.scrollPaddingBottom }}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={[styles.learnHeader, { backgroundColor: colors.primary }]}>
           <Text style={styles.learnHeaderAvatar}>{creatorAvatar}</Text>
-          <Text style={styles.learnHeaderTitle}>{creatorName} — Learn</Text>
+          <Text style={styles.learnHeaderTitle} numberOfLines={1}>
+            {creatorName} — Learn
+          </Text>
         </View>
         {messages.map((msg, i) => (
           <View
@@ -540,7 +554,12 @@ export function AiLearnSurface({
               styles.bubble,
               msg.role === "user"
                 ? { alignSelf: "flex-end", backgroundColor: colors.primary }
-                : { alignSelf: "flex-start", backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
+                : {
+                    alignSelf: "flex-start",
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                  },
             ]}
           >
             <Text style={{ color: msg.role === "user" ? "#fff" : colors.foreground, fontSize: 14, lineHeight: 20 }}>
@@ -556,27 +575,20 @@ export function AiLearnSurface({
           onPress={() => void completeTopic.mutateAsync({ creatorId, topic: activeTopic, mode: learnMode })}
           style={[styles.completeBtn, { borderColor: "#22c55e" }]}
         >
-          <Text style={{ color: "#22c55e", fontWeight: "700", fontSize: 12 }}>
+          <Text style={{ color: "#22c55e", fontWeight: "700", fontSize: 12 }} numberOfLines={1}>
             Mark "{activeTopic}" complete
           </Text>
         </Pressable>
       ) : null}
 
-      <View
-        style={[
-          styles.inputRow,
-          {
-            borderTopColor: colors.border,
-            paddingBottom: overlap.dockPaddingBottom,
-          },
-        ]}
-      >
+      <ComposerDock paddingBottom={overlap.dockPaddingBottom}>
+        <View style={styles.inputRow}>
         <TextInput
           value={inputText}
           onChangeText={setInputText}
           placeholder="Ask for a lesson, practice quiz, or certification topic…"
           placeholderTextColor={colors.muted}
-          style={[styles.input, { color: colors.foreground, backgroundColor: colors.surface, borderColor: colors.border }]}
+          style={[styles.input, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
           multiline
           maxLength={4000}
         />
@@ -587,6 +599,8 @@ export function AiLearnSurface({
         >
           <Text style={{ color: "#fff", fontWeight: "700" }}>Send</Text>
         </TouchableOpacity>
+        </View>
+      </ComposerDock>
       </View>
     </KeyboardAvoidingView>
   );
@@ -628,21 +642,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     alignItems: "center",
   },
-  learnRoot: { flex: 1, minHeight: 0 },
+  learnRoot: { flex: 1, minHeight: 0, overflow: "hidden" },
+  learnColumn: { flex: 1, minHeight: 0, overflow: "hidden" },
+  learnChrome: { flexGrow: 0, flexShrink: 0 },
+  hScroll: { flexGrow: 0, flexShrink: 0, maxHeight: 88 },
   progressBar: { height: 4, marginHorizontal: 12, borderRadius: 2, overflow: "hidden" },
   progressFill: { height: "100%" },
-  levelScroll: { flexGrow: 0, maxHeight: 44 },
-  chipRow: { paddingHorizontal: 12, paddingVertical: 6, gap: 8 },
-  chip: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 8 },
-  moduleRow: { paddingHorizontal: 12, paddingBottom: 6, gap: 8, flexGrow: 0 },
-  moduleCard: { width: 140, borderRadius: 12, borderWidth: 1.5, padding: 10 },
-  learnMessages: { flex: 1, minHeight: 0 },
+  chipWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  chip: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 },
+  moduleRow: { paddingHorizontal: 12, paddingBottom: 8, gap: 8, flexGrow: 0, alignItems: "stretch" },
+  moduleCard: { width: 132, borderRadius: 12, borderWidth: 1.5, padding: 8 },
+  learnMessages: { flex: 1, minHeight: 120 },
   learnHeader: { borderRadius: 12, padding: 12, flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 },
   learnHeaderAvatar: { fontSize: 22 },
   learnHeaderTitle: { color: "#fff", fontWeight: "700", fontSize: 16, flex: 1 },
   bubble: { maxWidth: "92%", borderRadius: 14, padding: 12 },
-  completeBtn: { marginHorizontal: 12, marginBottom: 4, padding: 10, borderRadius: 10, borderWidth: 1, alignItems: "center" },
-  inputRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, padding: 10, borderTopWidth: 1, flexShrink: 0 },
+  completeBtn: {
+    flexShrink: 0,
+    marginHorizontal: 12,
+    marginBottom: 4,
+    padding: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  inputRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, flexShrink: 0 },
   input: { flex: 1, minHeight: 44, maxHeight: 100, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14 },
   sendBtn: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 },
 });

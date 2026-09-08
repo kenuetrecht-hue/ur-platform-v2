@@ -26,7 +26,7 @@ export default function HomeScreen() {
   return (
     <ScreenContainer className="bg-background">
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 36 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >

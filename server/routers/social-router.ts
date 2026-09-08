@@ -42,6 +42,7 @@ import {
 } from "../_core/video-call-service";
 import {
   addPostComment,
+  assertVideoPostForRating,
   createFeedPost,
   deleteFeedPost,
   getFeed,
@@ -71,6 +72,7 @@ import {
   startPaidChannelSubscription,
   unfollowCreatorChannel,
 } from "../_core/creator-audience-service";
+import { rateVideo } from "../_core/video-rating-service";
 
 const createPostInputSchema = z
   .object({
@@ -589,6 +591,24 @@ export const socialRouter = router({
     .mutation(async ({ ctx, input }) => {
       await assertUserIsAgeVerified(ctx.user.id);
       return recordPostShare(input.postId);
+    }),
+
+  rateVideo: secureProcedure("social")
+    .input(
+      z.object({
+        postId: z.string().uuid(),
+        stars: z.number().int().min(1).max(5),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await assertUserIsAgeVerified(ctx.user.id);
+      assertVideoPostForRating(input.postId);
+      return rateVideo({
+        contentId: input.postId,
+        kind: "social_video",
+        userId: socialUser(ctx),
+        stars: input.stars,
+      });
     }),
 
   // ── Social Post Assistant (AI subscription for basic users) ──

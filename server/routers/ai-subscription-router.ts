@@ -25,6 +25,10 @@ import { assertPaymentChannelAllowed, assertSimulatedPurchaseAllowed, paymentCha
 import { liveSlotCents, liveTextPassCents } from "../_core/owner-price-catalog-service";
 import { acceptedNoRefundSchema, assertAndRecordNoRefundAck } from "../_core/conduct-ledger-service";
 import { requireWorldAccess } from "./conduct-router";
+import {
+  buildTextPassPurchaseAgreement,
+  serializePurchaseAgreement,
+} from "../../lib/digital-purchase-agreements";
 
 const clientPlatformSchema = z.enum(["web", "native"]);
 
@@ -77,6 +81,7 @@ export const aiSubscriptionRouter = router({
               stateCode: (input.stateCode ?? null) as UsStateCode | null,
               priceCents,
             }),
+            agreement: buildTextPassPurchaseAgreement(p.plan, priceCents),
           };
         }),
       );
@@ -99,7 +104,7 @@ export const aiSubscriptionRouter = router({
         concurrentSlotPlans,
         plans: livePlans,
         usageNote:
-          "Day, week, or month unlocks every UR specialist — one at a time. Hive and Town Hall need an extra concurrent slot. Hive = 3 messages · Learn/chapters = 5 · 10 web searches/day included.",
+          "Day, week, or month unlocks every UR specialist — one at a time. Leftover messages die when the pass ends. Mic print = 1 message. Hear is Talk Time, sold separately. Hive and Town Hall need an extra concurrent slot. Hive = 3 messages · Learn/chapters = 5 · 10 web searches/day included.",
         pricingNote: "Amounts on each card are the current checkout prices.",
         paymentNote: "AI subscriptions must be purchased through your web browser — not in the mobile app.",
         baseNote:
@@ -172,6 +177,7 @@ export const aiSubscriptionRouter = router({
         clientPlatform: input.clientPlatform,
       });
 
+      const agreement = buildTextPassPurchaseAgreement(input.plan as AiSubscriptionPlan, priceCents);
       assertAndRecordNoRefundAck({
         userId: String(ctx.user.id),
         userEmail: email,
@@ -179,6 +185,8 @@ export const aiSubscriptionRouter = router({
         amountCents: priceCents,
         acceptedNoRefund: true,
         ipAddress: ctx.ip,
+        agreementVersion: agreement.version,
+        agreementText: serializePurchaseAgreement(agreement),
       });
 
       if (ctx.isPlatformOwner) {

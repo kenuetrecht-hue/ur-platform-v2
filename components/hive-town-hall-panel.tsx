@@ -12,6 +12,7 @@ import {
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
+import { ComposerDock } from "@/components/composer-dock";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 
 type PanelMode = "all_categories" | "category" | "recommended" | "custom";
@@ -379,16 +380,8 @@ export function HiveTownHallPanel() {
         ) : null}
       </ScrollView>
 
-      <View
-        style={[
-          styles.composer,
-          {
-            borderColor: colors.border,
-            backgroundColor: colors.surface,
-            paddingBottom: overlap.dockPaddingBottom,
-          },
-        ]}
-      >
+      <ComposerDock paddingBottom={overlap.dockPaddingBottom}>
+      <View style={styles.composer}>
         <TextInput
           value={inputText}
           onChangeText={setInputText}
@@ -411,6 +404,7 @@ export function HiveTownHallPanel() {
           <Text style={{ color: "#fff", fontWeight: "700" }}>Send</Text>
         </Pressable>
       </View>
+      </ComposerDock>
     </KeyboardAvoidingView>
   );
 }
@@ -467,9 +461,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     gap: 8,
-    borderTopWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
   },
   composerInput: { flex: 1, fontSize: 15, maxHeight: 100, paddingVertical: 8 },
   sendBtn: { borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10 },

@@ -64,6 +64,8 @@ export const TEXT_SUB_INCLUDED_WEB_SEARCHES_PER_DAY = 10;
 export const LEARN_MODE_MESSAGE_UNITS = 5;
 export const HIVE_MESSAGE_UNITS = 3;
 export const VISION_UPLOAD_MESSAGE_UNITS = 2;
+/** Mic dictation (Gemini audio → printed text). Hear/Talk Time is separate. */
+export const MIC_TRANSCRIBE_MESSAGE_UNITS = 1;
 
 export const CREDIT_PRODUCTS: Record<CreditProductId, CreditProductDef> = {
   "images-imagen": {
