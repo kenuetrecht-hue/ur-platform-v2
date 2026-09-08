@@ -89,8 +89,9 @@ export class ConsolidatedNavigationService {
         { id: "trending-creators", label: "Trending Creators", route: "/discover/fair-show" },
         { id: "categories", label: "By Category", route: "/discover/fair-show" },
         { id: "marketplace", label: "Marketplace", route: "/shop" },
-        { id: "search", label: "Search", route: "/ais" },
+        { id: "search", label: "Search UR", route: "/discover/search" },
         { id: "trending-content", label: "Fair Show", route: "/discover/fair-show" },
+        { id: "ai-board", label: "AI Free Board", route: "/discover/ai-board" },
         { id: "affiliates", label: "Affiliate Products", route: "/shop" },
       ],
     });

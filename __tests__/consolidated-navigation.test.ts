@@ -26,6 +26,14 @@ describe("Consolidated Navigation Service", () => {
       expect(homeTab?.icon).toBe("house.fill");
     });
 
+    it("should send Discover to the AI Free Board", () => {
+      const discover = navigation.getTab("discover");
+      expect(discover?.subMenu?.some((item) => item.id === "ai-board" && item.route === "/discover/ai-board")).toBe(
+        true,
+      );
+      expect(discover?.subMenu?.some((item) => item.id === "search" && item.route === "/discover/search")).toBe(true);
+    });
+
     it("should get sub-menu for tab", () => {
       const createSubMenu = navigation.getSubMenu("create");
       expect(createSubMenu.length).toBeGreaterThan(0);

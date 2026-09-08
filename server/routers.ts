@@ -44,6 +44,8 @@ import { muxVideoRouter } from "./routers/mux-video-router";
 import { cartoonStudioRouter } from "./routers/cartoon-studio-router";
 import { musicStudioRouter } from "./routers/music-studio-router";
 import { fairShowRouter } from "./routers/fair-show-router";
+import { aiFreeBoardRouter } from "./routers/ai-free-board-router";
+import { platformSearchRouter } from "./routers/platform-search-router";
 import { ageKycRouter } from "./routers/age-kyc-router";
 import { conductRouter } from "./routers/conduct-router";
 import { specialistToolsRouter } from "./routers/specialist-tools-router";
@@ -260,6 +262,8 @@ export const appRouter = router({
   cartoonStudio: cartoonStudioRouter,
   musicStudio: musicStudioRouter,
   fairShow: fairShowRouter,
+  aiFreeBoard: aiFreeBoardRouter,
+  platformSearch: platformSearchRouter,
   ageKyc: ageKycRouter,
   conduct: conductRouter,
   specialistTools: specialistToolsRouter,

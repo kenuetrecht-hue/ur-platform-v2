@@ -598,6 +598,19 @@ export function listCreatorStores(limit = 20): CommerceStore[] {
   return [...stores.values()].filter((s) => s.kind === "creator").slice(0, limit);
 }
 
+export function listAllPublicProducts(limit = 80): Array<StoreProduct & { storeName: string }> {
+  ensurePlatformStore();
+  const rows: Array<StoreProduct & { storeName: string }> = [];
+  for (const store of stores.values()) {
+    for (const product of listPublicStoreProducts(store.id)) {
+      rows.push({ ...product, storeName: store.name });
+    }
+  }
+  return rows
+    .sort((a, b) => b.orders - a.orders || b.views - a.views)
+    .slice(0, limit);
+}
+
 export function canUseStoreManagerAi(params: {
   userId: string;
   isPlatformOwner: boolean;

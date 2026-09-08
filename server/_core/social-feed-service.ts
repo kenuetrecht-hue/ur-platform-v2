@@ -545,6 +545,13 @@ export function getFeedStats(userId: string): {
   };
 }
 
+export function listPublicPostsForSearch(limit = 80): FeedPost[] {
+  return [...posts.values()]
+    .filter((post) => post.visibility === "public")
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    .slice(0, limit);
+}
+
 export function listDiscoverableVideoPosts(limit = 80): FeedPost[] {
   return [...posts.values()]
     .filter((post) => post.visibility === "public" && (post.kind === "video" || Boolean(post.videoUrl)))

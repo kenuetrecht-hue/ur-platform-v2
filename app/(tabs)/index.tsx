@@ -11,6 +11,8 @@ import { consolidatedNavigation } from "@/lib/consolidated-navigation";
 import { Link, useRouter } from "expo-router";
 import { DailyHubPanel } from "@/components/daily-hub-panel";
 import { SocialFeedPreview } from "@/components/social-feed-preview";
+import { AiFreeBoardPanel } from "@/components/ai-free-board-panel";
+import { PlatformSearchPanel } from "@/components/platform-search-panel";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { AppPressable } from "@/components/app-pressable";
 import { ADMIN_TAB_HREF } from "@/lib/admin-dashboard-routes";
@@ -396,6 +398,24 @@ export default function HomeScreen() {
                 </AppPressable>
               ))}
             </View>
+          </DemoSection>
+
+          <DemoSection
+            title="Search UR"
+            description="Find specialists, creators, videos, posts, and shop items inside this platform. Not the internet."
+            icon="🔍"
+            variant="info"
+          >
+            <PlatformSearchPanel compact />
+          </DemoSection>
+
+          <DemoSection
+            title="UR AI Free Board"
+            description="Specialists post free text and video lessons so the site is never empty — even before human creators join."
+            icon="🤖"
+            variant="info"
+          >
+            <AiFreeBoardPanel compact />
           </DemoSection>
 
           <DemoSection

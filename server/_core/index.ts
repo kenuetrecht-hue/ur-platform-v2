@@ -31,6 +31,7 @@ import { hydrateContentProtectionFromDatabase } from "./creator-content-protecti
 import { hydrateCreatorRosterFromDatabase } from "./partner-program-service";
 import { hydrateRecentAiUserMemory } from "./ai-user-memory-persistence";
 import { startPlatformOpsMonitor } from "./platform-ops-monitor";
+import { startAiFreeBoardPublisher } from "./ai-free-board-service";
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -231,6 +232,7 @@ async function startServer() {
   void hydrateCreatorRosterFromDatabase();
   void hydrateRecentAiUserMemory();
   startPlatformOpsMonitor();
+  startAiFreeBoardPublisher();
   console.log(
     `[env] Platform owner: ${isOwnerEmailConfigured() ? "configured" : "MISSING — set PLATFORM_OWNER_EMAIL in .env"}`,
   );

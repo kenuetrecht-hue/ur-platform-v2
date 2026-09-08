@@ -36,6 +36,13 @@
       "when": 1780020000000,
       "tag": "0004_ai_chat_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1788800000000,
+      "tag": "0005_content_creator_profiles",
+      "breakpoints": true
     }
   ]
 }

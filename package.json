@@ -29,6 +29,7 @@
     "db:mysql-dev": "powershell -ExecutionPolicy Bypass -File scripts/start-mysql-dev.ps1",
     "db:ensure": "node scripts/ensure-mysql-database.js",
     "db:ai-chat-sync": "node scripts/run-ai-chat-migration.js",
+    "db:creator-audience": "node scripts/apply-creator-audience-migration.js",
     "db:mysql:up": "docker compose -f docker-compose.mysql.yml up -d",
     "db:mysql:down": "docker compose -f docker-compose.mysql.yml down",
     "android": "expo run:android",

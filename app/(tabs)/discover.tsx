@@ -7,6 +7,8 @@ import { PromotionalBanner } from "@/components/promotional-banner";
 import { consolidatedNavigation } from "@/lib/consolidated-navigation";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { FairShowFeedPanel } from "@/components/fair-show-feed-panel";
+import { AiFreeBoardPanel } from "@/components/ai-free-board-panel";
+import { PlatformSearchPanel } from "@/components/platform-search-panel";
 
 const DISCOVER_ICONS: Record<string, string> = {
   creators: "👥",
@@ -15,6 +17,7 @@ const DISCOVER_ICONS: Record<string, string> = {
   marketplace: "🛍️",
   search: "🔍",
   "trending-content": "📈",
+  "ai-board": "🤖",
   affiliates: "🔗",
 };
 
@@ -35,8 +38,13 @@ export default function DiscoverScreen() {
         <TabScreenHeader
           icon="🧭"
           title="Discover"
-          subtitle="Fair Show first — then creators, shop, and AI specialists."
+          subtitle="AI Free Board stays full. Fair Show is human creator video. Then shop and specialists."
         />
+
+        <View style={{ paddingHorizontal: 16, marginBottom: 16, gap: 12 }}>
+          <PlatformSearchPanel compact />
+          <AiFreeBoardPanel compact />
+        </View>
 
         <FairShowFeedPanel />
 
@@ -96,6 +104,10 @@ export default function DiscoverScreen() {
               onPress={() => {
                 if (item.id === "marketplace" || item.id === "affiliates") {
                   router.push("/shop");
+                } else if (item.id === "search") {
+                  router.push("/discover/search");
+                } else if (item.id === "ai-board") {
+                  router.push("/discover/ai-board");
                 } else if (
                   item.id === "trending-content" ||
                   item.id === "trending-creators" ||
