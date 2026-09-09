@@ -56,6 +56,9 @@ import { buildTalkPurchaseSummary, formatPurchaseReceiptMessage } from "../../li
 import { optionalBillingStateSchema, billingStateSchema } from "../../lib/billing-state-schema";
 import type { UsStateCode } from "../../lib/us-state-taxes";
 import { assertPaymentChannelAllowed, assertSimulatedPurchaseAllowed, paymentChannelNote } from "../_core/payment-channel-guard";
+import { getCommerceMode, LIVE_CHECKOUT_UNAVAILABLE_NOTICE, isSimulatedCommerceMode } from "../../lib/dev-commerce-mode";
+import { createTalkPackCheckoutSession } from "../_core/stripe-checkout-service";
+import { mapServiceErrorToTrpc } from "../_core/service-errors";
 import { PAYMENT_CHANNEL_POLICY_SUMMARY } from "../../lib/payment-channel-policy";
 import { liveTalkPack } from "../_core/owner-price-catalog-service";
 import { acceptedNoRefundSchema, assertAndRecordNoRefundAck } from "../_core/conduct-ledger-service";
@@ -160,7 +163,6 @@ export const aiTalkRouter = router({
       }
 
       requireWorldAccess(ctx);
-      assertSimulatedPurchaseAllowed();
 
       const pack = await liveTalkPack(input.packId as AiTalkPackId);
       assertPaymentChannelAllowed({
@@ -180,6 +182,38 @@ export const aiTalkRouter = router({
         agreementText: serializePurchaseAgreement(agreement),
       });
 
+      if (!isSimulatedCommerceMode()) {
+        if (getCommerceMode() !== "live") {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: LIVE_CHECKOUT_UNAVAILABLE_NOTICE,
+          });
+        }
+        try {
+          const checkout = await createTalkPackCheckoutSession({
+            userId: String(ctx.user.id),
+            userEmail: ctx.user.email ?? "",
+            packId: input.packId as AiTalkPackId,
+            billingStateCode: input.stateCode,
+          });
+          return {
+            ok: true as const,
+            mode: "checkout" as const,
+            checkoutUrl: checkout.checkoutUrl,
+            sessionId: checkout.sessionId,
+            pack,
+            totalCents: checkout.totalCents,
+            message: "Continue in the secure Stripe checkout window. Talk minutes are added after payment confirms.",
+            paymentChannel: paymentChannelNote(pack.priceCents),
+            purchaseDisclosures: getTalkPackPurchaseDisclosures(pack.id),
+          };
+        } catch (error) {
+          mapServiceErrorToTrpc(error);
+        }
+      }
+
+      assertSimulatedPurchaseAllowed();
+
       const entitlement = purchaseAiTalkPack({
         userId: String(ctx.user.id),
         userEmail: ctx.user.email ?? "",
@@ -197,6 +231,7 @@ export const aiTalkRouter = router({
 
       return {
         ok: true as const,
+        mode: "simulated" as const,
         pack,
         minutesAdded: pack.totalMinutes,
         millisecondsAdded: pack.totalMinutes * 60_000,

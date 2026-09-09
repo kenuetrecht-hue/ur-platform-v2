@@ -22,6 +22,7 @@ import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { ComposerDock } from "@/components/composer-dock";
 import { useAiTalkMeterPlayback } from "@/hooks/use-ai-talk-meter-playback";
 import { useNetworkConnectivity, isMeteringConnected } from "@/hooks/use-network-connectivity";
+import { openExternalCheckoutUrl } from "@/lib/web-checkout";
 import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync";
 import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { useAuth } from "@/lib/auth-context";
@@ -225,13 +226,21 @@ export function CreatorAIInterface({
   const premium = trpc.aiCreators.premiumMediaStatus.useQuery();
   const talkStatus = trpc.aiTalk.getStatus.useQuery();
   const buyTalk = trpc.aiTalk.purchase.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if ("checkoutUrl" in data && data.checkoutUrl) {
+        void openExternalCheckoutUrl(data.checkoutUrl);
+        return;
+      }
       void premium.refetch();
       void talkStatus.refetch();
     },
   });
   const buyVideo = trpc.aiTalk.purchase.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if ("checkoutUrl" in data && data.checkoutUrl) {
+        void openExternalCheckoutUrl(data.checkoutUrl);
+        return;
+      }
       void premium.refetch();
       void talkStatus.refetch();
     },

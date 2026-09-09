@@ -20,7 +20,7 @@ import { useBillingState } from "@/hooks/use-billing-state";
 
 import { PaymentChannelNotice } from "@/components/payment-channel-notice";
 
-import { getClientPlatform } from "@/lib/web-checkout";
+import { getClientPlatform, openExternalCheckoutUrl } from "@/lib/web-checkout";
 import { NoRefundPurchaseAck } from "@/components/no-refund-purchase-ack";
 
 import {
@@ -119,8 +119,12 @@ export function AiTalkTimePanel({
   const purchase = trpc.aiTalk.purchase.useMutation({
 
     onSuccess: (data) => {
+      if ("checkoutUrl" in data && data.checkoutUrl) {
+        void openExternalCheckoutUrl(data.checkoutUrl);
+        return;
+      }
 
-      if (data.receipt) setLastReceipt(data.receipt);
+      if ("receipt" in data && data.receipt) setLastReceipt(data.receipt);
 
       void utils.aiTalk.getStatus.invalidate();
 

@@ -1,6 +1,9 @@
 import { Platform, Linking } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { getAppPublicBaseUrl } from "@/lib/app-handoff-url";
+import { isAllowedCheckoutUrl } from "@/lib/checkout-url-policy";
+
+export { isAllowedCheckoutUrl } from "@/lib/checkout-url-policy";
 
 export function getClientPlatform(): "web" | "native" {
   return Platform.OS === "web" ? "web" : "native";
@@ -10,6 +13,14 @@ export function getClientPlatform(): "web" | "native" {
 export async function openWebBrowserCheckout(path: string): Promise<void> {
   const base = getAppPublicBaseUrl();
   const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
+  await openExternalCheckoutUrl(url);
+}
+
+/** Open Stripe Checkout or any absolute HTTPS payment URL. */
+export async function openExternalCheckoutUrl(url: string): Promise<void> {
+  if (!isAllowedCheckoutUrl(url)) {
+    throw new Error("Checkout URL is not allowed.");
+  }
 
   if (Platform.OS === "web") {
     if (typeof window !== "undefined") {

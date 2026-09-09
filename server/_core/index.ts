@@ -18,6 +18,7 @@ import { assertServerSecretsSafe, redactSecrets } from "./secrets";
 import { getMuxEnginePublicStatus } from "./mux-video-engine";
 import { logSocialPublisherStartup } from "./social-publisher-service";
 import { registerMuxWebhook } from "./mux-webhook";
+import { registerStripeWebhook } from "./stripe-webhook";
 import { getAiHealthStatus, logGeminiStartupCheck } from "./google-ai";
 import { startForgeSessionJanitor } from "./forge-session-manager";
 import { getSharePreview } from "./forge-share-service";
@@ -25,7 +26,13 @@ import { isSupabaseConfiguredOnServer, isSupabaseAuthReachable } from "../supaba
 import { resolveSupabasePublicConfig } from "../../shared/supabase-config";
 import * as db from "../db";
 import { registerStaticWeb } from "./static-web";
-import { getCommerceMode, isSimulatedCommerceMode, DEV_SIMULATED_COMMERCE_NOTICE } from "../../lib/dev-commerce-mode";
+import {
+  getCommerceMode,
+  isSimulatedCommerceMode,
+  isStripeLiveCheckoutReady,
+  DEV_SIMULATED_COMMERCE_NOTICE,
+  LIVE_CHECKOUT_UNAVAILABLE_NOTICE,
+} from "../../lib/dev-commerce-mode";
 import { isDevAgeKycBypassEnabled } from "../../lib/dev-age-kyc-mode";
 import { hydrateContentProtectionFromDatabase } from "./creator-content-protection-service";
 import { hydrateCreatorRosterFromDatabase } from "./partner-program-service";
@@ -111,6 +118,7 @@ async function startServer() {
   app.use(strictCorsMiddleware);
 
   registerMuxWebhook(app);
+  registerStripeWebhook(app);
 
   // JSON body limit — large uploads should use dedicated storage routes
   app.use(express.json({ limit: "1mb" }));
@@ -154,7 +162,12 @@ async function startServer() {
       commerce: {
         mode: getCommerceMode(),
         simulated: isSimulatedCommerceMode(),
-        notice: isSimulatedCommerceMode() ? DEV_SIMULATED_COMMERCE_NOTICE : undefined,
+        stripeLiveReady: isStripeLiveCheckoutReady(),
+        notice: isSimulatedCommerceMode()
+          ? DEV_SIMULATED_COMMERCE_NOTICE
+          : isStripeLiveCheckoutReady()
+            ? undefined
+            : LIVE_CHECKOUT_UNAVAILABLE_NOTICE,
       },
       ai: {
         configured: ai.configured,

@@ -35,10 +35,13 @@ const SERVER_ONLY_SECRET_NAMES = [
   "CJ_DROPSHIPPING_API_KEY",
   "AMAZON_ASSOCIATE_TAG",
   "WALMART_TRACKING_ID",
+  "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
+  "STRIPE_PUBLISHABLE_KEY",
 ] as const;
 
 /** Env var prefixes that must never carry API keys or credentials. */
-const FORBIDDEN_PUBLIC_PREFIXES = ["EXPO_PUBLIC_", "VITE_"] as const;
+const FORBIDDEN_PUBLIC_PREFIXES = ["EXPO_PUBLIC_", "VITE_", "NEXT_PUBLIC_"] as const;
 
 /** Patterns that indicate a Gemini / Google AI key in a public env var. */
 const PUBLIC_KEY_PATTERNS = [
@@ -137,6 +140,31 @@ export function getWalmartTrackingId(): string {
   return readServerSecret("WALMART_TRACKING_ID");
 }
 
+export function getStripeSecretKey(): string {
+  return readServerSecret("STRIPE_SECRET_KEY");
+}
+
+export function getStripeWebhookSecret(): string {
+  return readServerSecret("STRIPE_WEBHOOK_SECRET");
+}
+
+export function getStripePublishableKey(): string {
+  return (
+    readServerSecret("STRIPE_PUBLISHABLE_KEY") ||
+    (isUnsetOrPlaceholderEnv(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() ?? "")
+      ? ""
+      : process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() ?? "")
+  );
+}
+
+export function isStripeSecretLive(): boolean {
+  return getStripeSecretKey().startsWith("sk_live_");
+}
+
+export function isStripeWebhookConfigured(): boolean {
+  return getStripeWebhookSecret().startsWith("whsec_");
+}
+
 export function isAmazonAssociatesConfigured(): boolean {
   return Boolean(getAmazonAssociateTag());
 }
@@ -178,7 +206,9 @@ export function assertServerSecretsSafe(): void {
         upper.includes("ASSOCIATE") ||
         upper.includes("TRACKING_ID") ||
         upper.includes("PRINTFUL") ||
-        upper.includes("PRINTIFY")
+        upper.includes("PRINTIFY") ||
+        upper.includes("STRIPE_SECRET") ||
+        upper.includes("WEBHOOK_SECRET")
       ) {
         throw new Error(
           `[secrets] "${key}" must not be exposed to the client. ` +
@@ -214,8 +244,11 @@ export function redactSecrets(text: string): string {
   return text
     .replace(/AQ\.[A-Za-z0-9_-]{10,}/g, "[REDACTED_GEMINI_KEY]")
     .replace(/AIza[0-9A-Za-z_-]{20,}/g, "[REDACTED_GOOGLE_KEY]")
+    .replace(/sk_live_[A-Za-z0-9]+/g, "[REDACTED_STRIPE_SECRET]")
+    .replace(/sk_test_[A-Za-z0-9]+/g, "[REDACTED_STRIPE_SECRET]")
+    .replace(/whsec_[A-Za-z0-9]+/g, "[REDACTED_STRIPE_WEBHOOK]")
     .replace(
-      /(CONTENTMATE_GEMINI_API_KEY|GEMINI_API_KEY|TURNSTILE_SECRET_KEY|MUX_TOKEN_SECRET|MUX_WEBHOOK_SECRET|MUX_SIGNING_PRIVATE_KEY|AYRSHARE_API_KEY|AYRSHARE_PROFILE_KEY|BUFFER_ACCESS_TOKEN|PRINTFUL_API_KEY|PRINTIFY_API_TOKEN|CJ_DROPSHIPPING_API_KEY|AMAZON_ASSOCIATE_TAG|WALMART_TRACKING_ID)(=|:)\s*["']?[^"'\s]+["']?/gi,
+      /(CONTENTMATE_GEMINI_API_KEY|GEMINI_API_KEY|TURNSTILE_SECRET_KEY|MUX_TOKEN_SECRET|MUX_WEBHOOK_SECRET|MUX_SIGNING_PRIVATE_KEY|AYRSHARE_API_KEY|AYRSHARE_PROFILE_KEY|BUFFER_ACCESS_TOKEN|PRINTFUL_API_KEY|PRINTIFY_API_TOKEN|CJ_DROPSHIPPING_API_KEY|AMAZON_ASSOCIATE_TAG|WALMART_TRACKING_ID|STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET)(=|:)\s*["']?[^"'\s]+["']?/gi,
       "$1$2[REDACTED]",
     );
 }

@@ -60,4 +60,11 @@ export function assertProductionOwnerSecurity(): void {
     );
     process.exit(1);
   }
+  const jwt = ENV.cookieSecret.trim();
+  if (!jwt || jwt.length < 32 || /dev-jwt|change-in-production/i.test(jwt)) {
+    console.error(
+      "[Security] FATAL: JWT_SECRET must be a unique production secret (32+ characters), not the development placeholder.",
+    );
+    process.exit(1);
+  }
 }
