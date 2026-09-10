@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -58,6 +59,20 @@ export function isOwnerEmailConfigured(): boolean {
   );
 }
 
+export function isWeakJwtSecret(jwt: string): boolean {
+  const trimmed = jwt.trim();
+  return (
+    !trimmed ||
+    trimmed.length < 32 ||
+    /dev-jwt|change-in-production|your-jwt-secret|your-super-secret/i.test(trimmed)
+  );
+}
+
+/** Manus cookie sessions need a stable secret. Supabase sign-in does not. */
+export function manusOAuthIsConfigured(oAuthServerUrl = ENV.oAuthServerUrl): boolean {
+  return Boolean(oAuthServerUrl.trim());
+}
+
 /** Fail closed in production if owner identity is not configured. */
 export function assertProductionOwnerSecurity(): void {
   if (!ENV.isProduction) return;
@@ -67,11 +82,19 @@ export function assertProductionOwnerSecurity(): void {
     );
     process.exit(1);
   }
-  const jwt = ENV.cookieSecret.trim();
-  if (!jwt || jwt.length < 32 || /dev-jwt|change-in-production/i.test(jwt)) {
+  if (!isWeakJwtSecret(ENV.cookieSecret)) return;
+
+  if (manusOAuthIsConfigured()) {
     console.error(
       "[Security] FATAL: JWT_SECRET must be a unique production secret (32+ characters), not the development placeholder.",
     );
     process.exit(1);
   }
+
+  const generated = randomBytes(48).toString("base64url");
+  ENV.cookieSecret = generated;
+  process.env.JWT_SECRET = generated;
+  console.warn(
+    "[Security] JWT_SECRET was missing. Generated a one-boot secret. Sign-in still uses Supabase. Set JWT_SECRET on Railway if you want the same secret after restart.",
+  );
 }
