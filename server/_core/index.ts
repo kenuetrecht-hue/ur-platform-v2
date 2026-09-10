@@ -23,7 +23,7 @@ import { getAiHealthStatus, logGeminiStartupCheck } from "./google-ai";
 import { startForgeSessionJanitor } from "./forge-session-manager";
 import { getSharePreview } from "./forge-share-service";
 import { isSupabaseConfiguredOnServer, isSupabaseAuthReachable } from "../supabase-auth";
-import { resolveSupabasePublicConfig } from "../../shared/supabase-config";
+import { resolveSupabasePublicConfig, supabaseUnreachableHint } from "../../shared/supabase-config";
 import * as db from "../db";
 import { registerStaticWeb } from "./static-web";
 import {
@@ -161,7 +161,7 @@ async function startServer() {
         supabaseReachable,
         hint: supabaseReachable
           ? undefined
-          : "Supabase URL does not resolve. Create a project at supabase.com/dashboard and update EXPO_PUBLIC_SUPABASE_URL.",
+          : supabaseUnreachableHint(),
       },
       commerce: {
         mode: getCommerceMode(),
@@ -269,7 +269,7 @@ async function startServer() {
     } catch {
       console.warn(
         `[auth] Supabase host does not resolve (${supa.url}). ` +
-          "Create a project at https://supabase.com/dashboard and update EXPO_PUBLIC_SUPABASE_URL in .env.",
+          supabaseUnreachableHint(),
       );
     }
   })();

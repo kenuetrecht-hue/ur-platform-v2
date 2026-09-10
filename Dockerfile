@@ -14,6 +14,16 @@ COPY package.json pnpm-lock.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
+
+# Public Supabase keys must be present at export time — Expo inlines EXPO_PUBLIC_* into the website.
+# Railway passes matching Variables as Docker build-args. Never ARG the service-role key.
+ARG EXPO_PUBLIC_SUPABASE_URL
+ARG EXPO_PUBLIC_SUPABASE_ANON_KEY
+ARG SUPABASE_URL
+ENV EXPO_PUBLIC_SUPABASE_URL=$EXPO_PUBLIC_SUPABASE_URL
+ENV EXPO_PUBLIC_SUPABASE_ANON_KEY=$EXPO_PUBLIC_SUPABASE_ANON_KEY
+ENV SUPABASE_URL=$SUPABASE_URL
+
 ENV CI=1
 ENV EXPO_NO_TELEMETRY=1
 ENV NODE_OPTIONS=--max-old-space-size=4096

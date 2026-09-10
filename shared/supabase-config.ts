@@ -17,6 +17,45 @@ function looksLikePlaceholder(url: string, key: string): boolean {
   );
 }
 
+/** True when the value is the app/Railway name, not a copied Supabase Project URL. */
+export function isInventedSupabaseProjectUrl(url: string): boolean {
+  const lower = url.trim().toLowerCase();
+  if (!lower) return false;
+  return (
+    lower.includes("railway") ||
+    lower.includes("ur-platform") ||
+    lower.includes("/login") ||
+    lower.includes("your-project")
+  );
+}
+
+/** Shown when the auth project URL does not resolve (paused, deleted, or unset). */
+export function supabaseUnreachableHint(): string {
+  const configured = (
+    process.env.EXPO_PUBLIC_SUPABASE_URL ??
+    process.env.SUPABASE_URL ??
+    ""
+  ).trim();
+  if (isInventedSupabaseProjectUrl(configured)) {
+    return (
+      "Cannot reach the sign-in service. EXPO_PUBLIC_SUPABASE_URL is still a name you typed " +
+      "(ur-platform or railway). That is not the Project URL. Open supabase.com/dashboard → " +
+      "your project → Settings → API → Copy Project URL and paste it on EXPO_PUBLIC_SUPABASE_URL. " +
+      "It looks like https:// plus a random word plus .supabase.co — not ur-platform-v2."
+    );
+  }
+  if (process.env.NODE_ENV === "production") {
+    return (
+      "Cannot reach the sign-in service. In Railway → Variables, set EXPO_PUBLIC_SUPABASE_URL " +
+      "and EXPO_PUBLIC_SUPABASE_ANON_KEY from supabase.com/dashboard (Settings → API), then Redeploy."
+    );
+  }
+  return (
+    "Cannot reach the sign-in service. Create a Supabase project at supabase.com/dashboard " +
+    "and put the Project URL and anon key in .env, then restart pnpm dev:web."
+  );
+}
+
 /** Client + server public config (URL + anon key). */
 export function resolveSupabasePublicConfig(): { url: string; anonKey: string } {
   const url = (process.env.EXPO_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? "").trim();

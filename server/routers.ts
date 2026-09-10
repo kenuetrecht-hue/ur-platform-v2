@@ -52,6 +52,7 @@ import { specialistToolsRouter } from "./routers/specialist-tools-router";
 import { destroyAllSessionsForUser } from "./_core/forge-session-manager";
 import { getAgeKycPublicStatus } from "./_core/age-kyc-service";
 import { isSupabaseAuthReachable } from "./supabase-auth";
+import { supabaseUnreachableHint } from "../shared/supabase-config";
 import { assertTurnstileToken, getTurnstileClientConfig } from "./_core/turnstile";
 import { TURNSTILE_TOKEN_MAX_LENGTH } from "../lib/turnstile";
 import { AUTH_HONEYPOT_FIELD_MAX } from "../lib/bot-abuse-policy";
@@ -68,7 +69,7 @@ export const appRouter = router({
         supabaseReachable,
         hint: supabaseReachable
           ? null
-          : "Cannot reach the sign-in service. Create a Supabase project at supabase.com/dashboard and put the Project URL and anon key in .env, then restart pnpm dev:web.",
+          : supabaseUnreachableHint(),
       };
     }),
     verifyTurnstile: securePublicProcedure("auth")
