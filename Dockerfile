@@ -1,7 +1,7 @@
 # Production image for the UR Platform API.
 # Railway detects this file and uses it instead of treating the repo as an Expo app.
 
-FROM node:20-bookworm-slim AS builder
+FROM node:22-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -19,7 +19,7 @@ ENV EXPO_NO_TELEMETRY=1
 # API bundle, then the public website. Without build:web the live URL has no pages.
 RUN pnpm run build && pnpm run build:web
 
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 

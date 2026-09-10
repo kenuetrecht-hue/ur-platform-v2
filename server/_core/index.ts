@@ -293,4 +293,7 @@ async function startServer() {
   logSocialPublisherStartup();
 }
 
-startServer().catch(console.error);
+startServer().catch((error) => {
+  console.error("[api] FATAL: server failed to start", error);
+  process.exit(1);
+});
