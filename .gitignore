@@ -70,3 +70,6 @@ dist-android-test/
 # Webdev artifacts (checkpoint zips, migrations, etc.)
 .webdev/
 .project-config.json
+
+# Nested leftover repo — not part of the live platform
+/copy-of-ur/

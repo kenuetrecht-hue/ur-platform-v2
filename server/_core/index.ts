@@ -51,7 +51,7 @@ function canBindPort(port: number): Promise<boolean> {
     tester.once("listening", () => {
       tester.close(() => resolve(true));
     });
-    tester.listen(port);
+    tester.listen(port, "0.0.0.0");
   });
 }
 
@@ -90,7 +90,7 @@ async function listenOnPort(
     };
     httpServer.once("error", onError);
     httpServer.once("listening", onListening);
-    httpServer.listen(port);
+    httpServer.listen(port, "0.0.0.0");
   });
 }
 
@@ -145,6 +145,10 @@ async function startServer() {
 
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+
+  app.get("/health", (_req, res) => {
+    res.status(200).json({ ok: true });
+  });
 
   app.get("/api/health", async (_req, res) => {
     const ai = await getAiHealthStatus();

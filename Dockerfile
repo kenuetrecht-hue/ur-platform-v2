@@ -1,52 +1,40 @@
-# Multi-stage build for production-ready Docker image
+# Production image for the UR Platform API.
+# Railway detects this file and uses it instead of treating the repo as an Expo app.
 
-# ============================================================================
-# Stage 1: Build Stage
-# ============================================================================
-FROM node:20-alpine AS builder
+FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
-# Install dependencies
-COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
+# Pin the same pnpm as package.json. Installing "latest" pnpm (11.20+)
+# fails on Railway with ERR_PNPM_PNPM_ENGINE_IDENTITY_UNVERIFIABLE
+# because it cannot verify @pnpm/exe for pnpm 9 on Alpine/musl.
+RUN npm install -g pnpm@9.12.0
 
-# Copy source code
+COPY package.json pnpm-lock.yaml .npmrc ./
+RUN pnpm install --frozen-lockfile
+
 COPY . .
-
-# Build the application
 RUN pnpm run build
 
-# ============================================================================
-# Stage 2: Runtime Stage
-# ============================================================================
-FROM node:20-alpine
+FROM node:20-bookworm-slim
 
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+RUN addgroup --system --gid 1001 nodejs \
+  && adduser --system --uid 1001 --gid 1001 nodejs
 
-# Copy built application from builder
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
 
-# Switch to non-root user
 USER nodejs
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+EXPOSE 3000
 
-# Expose port
-EXPOSE 3001
+HEALTHCHECK --interval=30s --timeout=10s --start-period=25s --retries=3 \
+  CMD node -e "const p=process.env.PORT||3000;require('http').get('http://127.0.0.1:'+p+'/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 
-# Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
-
-# Start the application
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/index.mjs"]
