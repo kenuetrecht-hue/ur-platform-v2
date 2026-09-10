@@ -8,6 +8,7 @@ import { ConductAgreementGate } from "@/components/conduct-agreement-gate";
 import { SecurityIncidentGate } from "@/components/security-incident-gate";
 import { WorldReviewHoldGate } from "@/components/world-review-hold-gate";
 import { shouldGiveJoinEmanual } from "@/lib/join-emanual-handoff";
+import { isPublicLegalRoute } from "@/lib/public-legal-routes";
 
 function isAuthRoute(segments: string[]): boolean {
   const root = segments[0];
@@ -37,7 +38,8 @@ function isPublicRoute(segments: string[]): boolean {
     isPublicMarketing(segments) ||
     isAgeVerifyRoute(segments) ||
     isDownloadRoute(segments) ||
-    isEmanualRoute(segments)
+    isEmanualRoute(segments) ||
+    isPublicLegalRoute(segments)
   );
 }
 
@@ -152,7 +154,8 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     isAuthenticated &&
     kycQuery.isLoading &&
     !isAgeVerifyRoute(segments) &&
-    !isDownloadRoute(segments)
+    !isDownloadRoute(segments) &&
+    !isPublicLegalRoute(segments)
   ) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -163,7 +166,11 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
 
   const kycVerified = kycQuery.data?.verified === true;
   const inProduct =
-    isAuthenticated && kycVerified && !isAgeVerifyRoute(segments) && !isAuthRoute(segments);
+    isAuthenticated &&
+    kycVerified &&
+    !isAgeVerifyRoute(segments) &&
+    !isAuthRoute(segments) &&
+    !isPublicLegalRoute(segments);
 
   if (inProduct && conductQuery.isLoading) {
     return (

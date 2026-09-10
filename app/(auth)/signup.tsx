@@ -496,7 +496,7 @@ export default function SignUpScreen() {
             </View>
             <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18, flex: 1 }}>
               {TERMS_SIGNUP_ACKNOWLEDGMENT}{" "}
-              <Link href="/profile/terms" style={{ color: colors.primary, fontWeight: "700" }}>
+              <Link href="/terms" style={{ color: colors.primary, fontWeight: "700" }}>
                 Read full Terms
               </Link>
             </Text>

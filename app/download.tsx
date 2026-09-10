@@ -9,6 +9,7 @@ import {
 } from "@/lib/app-download";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
 import { PLATFORM_DISCLOSURE_SHORT } from "@/lib/platform-disclosure-copy";
+import { PUBLIC_LEGAL_NAV } from "@/lib/public-legal-routes";
 
 export default function DownloadScreen() {
   return (
@@ -38,6 +39,15 @@ export default function DownloadScreen() {
                   <Text style={styles.link}>Already have an account? Sign in</Text>
                 </Pressable>
               </Link>
+              <View style={styles.legalRow}>
+                {PUBLIC_LEGAL_NAV.map((item) => (
+                  <Link key={item.href} href={item.href} asChild>
+                    <Pressable accessibilityRole="link">
+                      <Text style={styles.link}>{item.label}</Text>
+                    </Pressable>
+                  </Link>
+                ))}
+              </View>
               <Text style={styles.disclosure}>{PLATFORM_DISCLOSURE_SHORT}</Text>
             </View>
           </View>
@@ -82,6 +92,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   footer: { alignItems: "center", paddingTop: 16, gap: 16 },
+  legalRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 16 },
   link: { color: T.electric, fontWeight: "700", fontSize: 14 },
   disclosure: {
     color: T.muted,

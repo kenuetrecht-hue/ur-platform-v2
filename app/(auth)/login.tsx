@@ -189,6 +189,27 @@ export default function LoginScreen() {
                 Sign up
               </Link>
             </Text>
+            <Text style={{ color: colors.muted, fontSize: 12, textAlign: "center", marginTop: 16 }}>
+              <Link href="/terms" style={{ color: colors.primary, fontWeight: "700" }}>
+                Terms
+              </Link>
+              {" · "}
+              <Link href="/privacy" style={{ color: colors.primary, fontWeight: "700" }}>
+                Privacy
+              </Link>
+              {" · "}
+              <Link href="/refunds" style={{ color: colors.primary, fontWeight: "700" }}>
+                Refunds
+              </Link>
+              {" · "}
+              <Link href="/cancellations" style={{ color: colors.primary, fontWeight: "700" }}>
+                Cancel
+              </Link>
+              {" · "}
+              <Link href="/contact" style={{ color: colors.primary, fontWeight: "700" }}>
+                Contact
+              </Link>
+            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

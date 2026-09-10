@@ -26,6 +26,7 @@ import { LandingAiCategoryHub } from "@/components/landing/landing-ai-category-h
 import { LANDING_DEMO_CREATOR_IDS } from "@/lib/landing-demo-policy";
 import { buildCreatorSignupHref } from "@/lib/launch-promotion-config";
 import { PLATFORM_DISCLOSURE_SHORT } from "@/lib/platform-disclosure-copy";
+import { PUBLIC_LEGAL_NAV } from "@/lib/public-legal-routes";
 
 const HEADLINE =
   "The future of specialist AI is collaborative, secure, and live.";
@@ -126,6 +127,15 @@ export function TechnoFuturistExperience() {
                   <Text style={styles.link}>Already have an account? Sign in</Text>
                 </Pressable>
               </Link>
+              <View style={styles.legalRow}>
+                {PUBLIC_LEGAL_NAV.map((item) => (
+                  <Link key={item.href} href={item.href} asChild>
+                    <Pressable accessibilityRole="link">
+                      <Text style={styles.link}>{item.label}</Text>
+                    </Pressable>
+                  </Link>
+                ))}
+              </View>
               <Text style={styles.disclosure}>{PLATFORM_DISCLOSURE_SHORT}</Text>
             </View>
           </View>
@@ -218,6 +228,7 @@ const styles = StyleSheet.create({
   },
   heroCtaText: { color: "#001018", fontWeight: "800", fontSize: 15 },
   footer: { alignItems: "center", paddingTop: 8, gap: 16, width: "100%" },
+  legalRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 16 },
   disclosure: {
     color: T.muted,
     fontSize: 11,
