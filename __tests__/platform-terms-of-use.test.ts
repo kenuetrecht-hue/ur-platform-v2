@@ -9,7 +9,10 @@ import {
   TERMS_HOME_STATE,
   TERMS_BILLING_ENTITY,
   TERMS_GOVERNING_LAW,
+  TERMS_SUPPORT_EMAIL,
+  PLATFORM_OWNER_LOGIN_EMAIL,
 } from "../lib/platform-terms-of-use";
+import { resolvePlatformOwnerEmail } from "../server/_core/env";
 import { buildSubscriptionPurchaseSummary } from "../lib/pricing-disclosures";
 
 describe("platform-terms-of-use", () => {
@@ -70,6 +73,15 @@ describe("platform-terms-of-use", () => {
     expect(TERMS_HOME_STATE).toBe("Indiana");
     expect(TERMS_GOVERNING_LAW).toContain("Indiana");
     expect(PLATFORM_TERMS_SECTIONS.some((s) => s.id === "governing-law")).toBe(true);
+  });
+
+  it("uses the UR Gmail as the platform owner login when env is empty", () => {
+    expect(PLATFORM_OWNER_LOGIN_EMAIL).toBe("ken.uetrecht.ur@gmail.com");
+    expect(PLATFORM_OWNER_LOGIN_EMAIL).toBe(TERMS_SUPPORT_EMAIL);
+    expect(resolvePlatformOwnerEmail(undefined)).toBe(PLATFORM_OWNER_LOGIN_EMAIL);
+    expect(resolvePlatformOwnerEmail("")).toBe(PLATFORM_OWNER_LOGIN_EMAIL);
+    expect(resolvePlatformOwnerEmail("  ")).toBe(PLATFORM_OWNER_LOGIN_EMAIL);
+    expect(resolvePlatformOwnerEmail("other@example.com")).toBe("other@example.com");
   });
 });
 

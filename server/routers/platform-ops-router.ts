@@ -8,7 +8,7 @@ import {
   router,
   TRPCError,
 } from "../_core/trpc";
-import { isOwnerEmailConfigured } from "../_core/env";
+import { ENV, isOwnerEmailConfigured } from "../_core/env";
 import { getPlatformOwnerDisplayName } from "../_core/owner-auth";
 import {
   getAccessStatus,
@@ -106,7 +106,7 @@ export const platformOpsRouter = router({
       isAuthenticated: Boolean(ctx.user),
       ownerDisplayName: ctx.isPlatformOwner ? getPlatformOwnerDisplayName() : null,
       ownerEmailConfigured: ctx.isPlatformOwner ? isOwnerEmailConfigured() : undefined,
-      configuredOwnerEmail: ctx.isPlatformOwner ? process.env.PLATFORM_OWNER_EMAIL : undefined,
+      configuredOwnerEmail: ctx.isPlatformOwner ? ENV.platformOwnerEmail : undefined,
     };
   }),
 

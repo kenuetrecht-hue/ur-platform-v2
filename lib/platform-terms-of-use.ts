@@ -13,6 +13,8 @@ export const TERMS_HOME_STATE_CODE = "IN";
 export const TERMS_SUPPORT_EMAIL = "ken.uetrecht.ur@gmail.com";
 export const TERMS_PRIVACY_EMAIL = "ken.uetrecht.ur@gmail.com";
 export const TERMS_LEGAL_EMAIL = "ken.uetrecht.ur@gmail.com";
+/** Sign-in email that is the platform owner. Same inbox as public support. */
+export const PLATFORM_OWNER_LOGIN_EMAIL = TERMS_SUPPORT_EMAIL;
 export const TERMS_SUPPORT_PHONE = "(260) 446-2627";
 export const TERMS_SUPPORT_PHONE_TEL = "+12604462627";
 export const TERMS_BUSINESS_ADDRESS =

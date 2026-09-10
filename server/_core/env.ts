@@ -1,12 +1,19 @@
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import { PLATFORM_OWNER_LOGIN_EMAIL } from "../../lib/platform-terms-of-use";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "../..");
 
 // Always load ur-platform-v2/.env regardless of shell cwd (e.g. running from app/)
 dotenv.config({ path: path.join(projectRoot, ".env") });
+
+/** Env wins; otherwise the public UR Gmail is the owner login. */
+export function resolvePlatformOwnerEmail(raw: string | undefined): string {
+  const trimmed = raw?.trim() ?? "";
+  return trimmed || PLATFORM_OWNER_LOGIN_EMAIL;
+}
 
 export const ENV = {
   appId: process.env.VITE_APP_ID ?? "",
@@ -17,7 +24,7 @@ export const ENV = {
   /** Supabase auth user UUID for platform owner (without supabase: prefix) */
   platformOwnerSupabaseId: process.env.PLATFORM_OWNER_SUPABASE_ID ?? "",
   /** Platform owner email — only this account gets admin elevation */
-  platformOwnerEmail: process.env.PLATFORM_OWNER_EMAIL ?? "",
+  platformOwnerEmail: resolvePlatformOwnerEmail(process.env.PLATFORM_OWNER_EMAIL),
   /** Platform owner display name */
   platformOwnerName: process.env.PLATFORM_OWNER_NAME ?? "",
   isProduction: process.env.NODE_ENV === "production",
