@@ -8,6 +8,7 @@
 .cache
 data
 dist
+dist-web
 dist-web-test
 dist-android-test
 node_modules

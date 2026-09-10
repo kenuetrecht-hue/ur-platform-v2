@@ -14,7 +14,10 @@ COPY package.json pnpm-lock.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN pnpm run build
+ENV CI=1
+ENV EXPO_NO_TELEMETRY=1
+# API bundle, then the public website. Without build:web the live URL has no pages.
+RUN pnpm run build && pnpm run build:web
 
 FROM node:20-bookworm-slim
 
@@ -22,11 +25,13 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
+ENV WEB_DIST_PATH=/app/dist-web
 
 RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 --gid 1001 nodejs
 
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nodejs:nodejs /app/dist-web ./dist-web
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
 

@@ -14,7 +14,7 @@
     "start:expo": "cross-env EXPO_USE_METRO_WORKSPACE_ROOT=1 expo start --lan --port 8082",
     "expo": "cross-env EXPO_USE_METRO_WORKSPACE_ROOT=1 expo start --lan --port 8082",
     "build": "esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.mjs",
-    "build:web": "cross-env EXPO_USE_METRO_WORKSPACE_ROOT=1 expo export --platform web",
+    "build:web": "cross-env EXPO_USE_METRO_WORKSPACE_ROOT=1 expo export --platform web --output-dir dist-web",
     "build:all": "pnpm build && pnpm build:web",
     "start": "node dist/index.mjs",
     "check": "tsc --noEmit",
