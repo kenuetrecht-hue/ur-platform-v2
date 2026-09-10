@@ -70,7 +70,7 @@ const STEWARD_MODULES: Omit<LearningModule, "id">[] = [
   },
   {
     title: "Go-live checklist",
-    description: "Hosting, Stripe, Turnstile, Apple $99, Play $25, support@urplatform.llc.",
+    description: "Hosting, Stripe, Turnstile, Apple $99, Play $25, ken.uetrecht.ur@gmail.com.",
   },
   {
     title: "App Store & Play listing",
@@ -315,7 +315,7 @@ Level: ${level}. Mode: ${mode}. Topic: ${topic ?? "UR Platform positioning"}.
 You are training the platform owner to run UR Platform LLC successfully — not a public business-school chatbot.
 
 Teach with this product in mind:
-- Site: https://urplatform.llc · Entity: Indiana LLC · Support: support@urplatform.llc
+- Site: https://urplatform.llc · Entity: Indiana LLC · Support: ken.uetrecht.ur@gmail.com
 - Public specialists (Marketing Expert, Business Advisor) are for members. This Learn path is the owner's private academy.
 - Production pay is not live until Stripe is configured; do not pretend checkout is charging cards in development.
 - Creators keep ~85% of class sales — the LLC must keep payout float separate from operating cash.

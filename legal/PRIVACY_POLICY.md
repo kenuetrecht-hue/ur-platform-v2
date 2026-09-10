@@ -170,7 +170,7 @@ Some browsers include a "Do Not Track" feature. Our Platform does not currently 
 
 The Platform is for adults 18 years of age or older. We do not allow anyone under 18 to join, enter the app, or use the website product. Before entering, every user must photograph a government ID (front and back) and a live selfie so we can confirm they are 18+ and that the ID belongs to them.
 
-We do not knowingly collect personal information from children. If we become aware that a person under 18 has attempted to join, we will refuse entry and delete associated verification photos and account data. Parents or guardians who believe a minor has provided information to UR should contact us immediately at privacy@urplatform.llc.
+We do not knowingly collect personal information from children. If we become aware that a person under 18 has attempted to join, we will refuse entry and delete associated verification photos and account data. Parents or guardians who believe a minor has provided information to UR should contact us immediately at ken.uetrecht.ur@gmail.com.
 
 ## 8. International Data Transfers
 
@@ -210,7 +210,7 @@ If you are a California resident, you have the following rights under the Califo
 - **Right to Opt-Out:** Opt out of the sale or sharing of your personal information
 - **Right to Non-Discrimination:** We will not discriminate against you for exercising your CCPA rights
 
-To exercise these rights, contact us at privacy@urplatform.llc with "CCPA Request" in the subject line.
+To exercise these rights, contact us at ken.uetrecht.ur@gmail.com with "CCPA Request" in the subject line.
 
 ## 13. European Privacy Rights (GDPR)
 
@@ -224,7 +224,7 @@ If you are located in the European Union or United Kingdom, you have the followi
 - **Right to Object:** Object to processing of your data
 - **Right to Lodge a Complaint:** File a complaint with your data protection authority
 
-To exercise these rights, contact us at privacy@urplatform.llc.
+To exercise these rights, contact us at ken.uetrecht.ur@gmail.com.
 
 ## 14. Changes to This Privacy Policy
 
@@ -235,7 +235,7 @@ We may update this Privacy Policy at any time. Changes become effective upon pos
 For questions about this Privacy Policy or to exercise your privacy rights, please contact:
 
 **UR Privacy Team**  
-Email: privacy@urplatform.llc  
+Email: ken.uetrecht.ur@gmail.com  
 Website: https://urplatform.llc
 
 ---

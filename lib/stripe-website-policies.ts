@@ -3,10 +3,12 @@ import {
   AI_PURCHASE_NO_REFUND_POLICY,
   CREATOR_TRANSACTION_DISCLAIMER,
   TERMS_BILLING_ENTITY,
+  TERMS_BUSINESS_ADDRESS,
   TERMS_LEGAL_EMAIL,
   TERMS_PRIVACY_EMAIL,
   TERMS_PUBLIC_WEBSITE,
   TERMS_SUPPORT_EMAIL,
+  TERMS_SUPPORT_PHONE,
 } from "@/lib/platform-terms-of-use";
 
 /** Stripe website checklist: say USD, not only a $ sign. */
@@ -47,12 +49,13 @@ export const CANCELLATION_POLICY_BULLETS = [
 ] as const;
 
 export const CUSTOMER_SERVICE_BULLETS = [
-  `Billing, access, and account help: ${TERMS_SUPPORT_EMAIL}`,
+  `Phone: ${TERMS_SUPPORT_PHONE}`,
+  `Email: ${TERMS_SUPPORT_EMAIL}`,
   `Privacy questions: ${TERMS_PRIVACY_EMAIL}`,
   `Legal questions: ${TERMS_LEGAL_EMAIL}`,
   "After you sign in, Profile → Help has the same contact path and common answers.",
-  "We read support email on business days and aim to reply within two business days.",
-  "We do not take card numbers by email. Never send a full card number.",
+  "We read email and voicemail on business days and aim to reply within two business days.",
+  "We do not take card numbers by email or by phone. Never read a full card number to us.",
 ] as const;
 
 export const ACCEPTED_CARDS_POLICY =
@@ -117,7 +120,7 @@ export const CONTACT_SECTIONS: TermsSection[] = [
     id: "business",
     title: "Business",
     bullets: [
-      `${TERMS_BILLING_ENTITY} · Indiana, United States · ${TERMS_PUBLIC_WEBSITE}`,
+      `${TERMS_BILLING_ENTITY} · ${TERMS_BUSINESS_ADDRESS} · ${TERMS_PUBLIC_WEBSITE}`,
       WHAT_UR_SELLS_POLICY,
       PURCHASE_CURRENCY_POLICY,
     ],

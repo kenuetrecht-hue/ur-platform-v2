@@ -4,7 +4,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
 import {
   TERMS_BILLING_ENTITY,
+  TERMS_BUSINESS_ADDRESS,
   TERMS_SUPPORT_EMAIL,
+  TERMS_SUPPORT_PHONE,
 } from "@/lib/platform-terms-of-use";
 import type { TermsSection } from "@/lib/platform-terms-of-use";
 import { PUBLIC_LEGAL_NAV } from "@/lib/public-legal-routes";
@@ -48,7 +50,9 @@ export function PublicLegalScreen({ kicker, title, lede, effectiveDate, sections
               </View>
             ))}
 
-            <Text style={styles.contact}>Questions: {TERMS_SUPPORT_EMAIL}</Text>
+            <Text style={styles.contact}>
+              {TERMS_SUPPORT_EMAIL} · {TERMS_SUPPORT_PHONE} · {TERMS_BUSINESS_ADDRESS}
+            </Text>
 
             <View style={styles.links}>
               {PUBLIC_LEGAL_NAV.map((item) => (

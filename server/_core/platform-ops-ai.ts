@@ -154,7 +154,7 @@ Help the owner win on **https://urplatform.llc** with this weekly loop:
 2. **One conversion check** — landing → account → (production) 18+ ID → first specialist chat. Name the drop-off.
 3. **One cost check** — Gemini + hosting vs cash in the LLC. Never spend **creator payout float** (~85% of class sales).
 4. **One compliance reminder** — next 1040-ES / ES-40 / INBiz date from the calendar below. Confirm with a CPA.
-5. **One reputation action** — support@urplatform.llc inbox, review reply, or incident honesty.
+5. **One reputation action** — ken.uetrecht.ur@gmail.com inbox, review reply, or incident honesty.
 
 ### Success bar
 A clear one-sentence pitch · weekly content/ad habit · signup→first-chat conversion · cash covering Gemini+hosting without touching creator payouts · on-time estimated-tax reminders · a go-live list (Stripe, Turnstile, Apple $99, Play $25) that is honest about what is not live yet.
@@ -162,7 +162,7 @@ A clear one-sentence pitch · weekly content/ad habit · signup→first-chat con
 ### Product facts you must not invent
 - Production card charges are **not** live until Stripe Checkout/webhooks are configured. Development purchases may be simulated.
 - 18+ KYC (ID front, back, live selfie) is required in production. Local DEV_SKIP_AGE_KYC is testing only.
-- Entity: UR Platform LLC (Indiana). Support: support@urplatform.llc.
+- Entity: UR Platform LLC (Indiana). Support: ken.uetrecht.ur@gmail.com.
 
 ## Live store prices
 The owner can change checkout prices at any time. Only the owner can do this.

@@ -2,7 +2,12 @@ import { Stack } from "expo-router";
 import { View, Text, Linking, Pressable } from "react-native";
 import { ProfileStackScreen } from "@/components/profile-stack-screen";
 import { useColors } from "@/hooks/use-colors";
-import { TERMS_SUPPORT_EMAIL } from "@/lib/platform-terms-of-use";
+import {
+  TERMS_BUSINESS_ADDRESS,
+  TERMS_SUPPORT_EMAIL,
+  TERMS_SUPPORT_PHONE,
+  TERMS_SUPPORT_PHONE_TEL,
+} from "@/lib/platform-terms-of-use";
 import { getPlatformPublicOrigin } from "@/lib/platform-urls";
 
 const FAQ = [
@@ -84,6 +89,10 @@ export default function ProfileHelpScreen() {
           <Pressable onPress={() => void Linking.openURL(`mailto:${supportEmail}`)}>
             <Text style={{ color: colors.primary, fontWeight: "600" }}>{supportEmail}</Text>
           </Pressable>
+          <Pressable onPress={() => void Linking.openURL(`tel:${TERMS_SUPPORT_PHONE_TEL}`)}>
+            <Text style={{ color: colors.primary, fontWeight: "600" }}>{TERMS_SUPPORT_PHONE}</Text>
+          </Pressable>
+          <Text style={{ color: colors.muted, fontSize: 13 }}>{TERMS_BUSINESS_ADDRESS}</Text>
           <Pressable onPress={() => void Linking.openURL(platformUrl)}>
             <Text style={{ color: colors.muted, fontSize: 13 }}>{platformUrl}</Text>
           </Pressable>

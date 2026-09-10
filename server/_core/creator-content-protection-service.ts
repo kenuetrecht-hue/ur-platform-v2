@@ -105,7 +105,7 @@ export function registerCreatorIdentity(params: {
   if (existing?.verified && existing.normalizedName !== normalizedName) {
     throw new ContentProtectionError(
       "verified_name_locked",
-      "Your verified creator name is locked after ID verification so nobody can take it over. Email support@urplatform.llc if you need a change.",
+      "Your verified creator name is locked after ID verification so nobody can take it over. Email ken.uetrecht.ur@gmail.com if you need a change.",
     );
   }
 
@@ -392,7 +392,7 @@ export function submitProtectionReport(params: {
   } else if (bucket.count >= MAX_PROTECTION_REPORTS_PER_DAY) {
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
-      message: "Too many reports today. Email support@urplatform.llc if this is urgent.",
+      message: "Too many reports today. Email ken.uetrecht.ur@gmail.com if this is urgent.",
     });
   } else {
     bucket.count += 1;

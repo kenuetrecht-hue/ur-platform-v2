@@ -4,9 +4,11 @@ import {
   LAW_ENFORCEMENT_COOPERATION_POLICY,
   TERMS_BILLING_ENTITY,
   TERMS_EFFECTIVE_DATE,
+  TERMS_BUSINESS_ADDRESS,
   TERMS_HOME_STATE,
   TERMS_PRIVACY_EMAIL,
   TERMS_SUPPORT_EMAIL,
+  TERMS_SUPPORT_PHONE,
 } from "@/lib/platform-terms-of-use";
 import {
   AGE_VERIFY_THIRD_PARTY,
@@ -25,7 +27,8 @@ export const PLATFORM_PRIVACY_SECTIONS: TermsSection[] = [
     title: "Who we are",
     bullets: [
       `${TERMS_BILLING_ENTITY} operates UR Platform at https://urplatform.llc. We are formed in ${TERMS_HOME_STATE}.`,
-      `Questions about this policy: ${TERMS_PRIVACY_EMAIL} or ${TERMS_SUPPORT_EMAIL}.`,
+      `Business address: ${TERMS_BUSINESS_ADDRESS}.`,
+      `Questions about this policy: ${TERMS_PRIVACY_EMAIL} or ${TERMS_SUPPORT_EMAIL} · Phone: ${TERMS_SUPPORT_PHONE}.`,
     ],
   },
   {

@@ -68,12 +68,13 @@ describe("Stripe website verification copy", () => {
     expect(CANCELLATION_SECTIONS[0]?.id).toBe("cancellation");
   });
 
-  it("lists customer service emails without requiring login", () => {
-    const text = CUSTOMER_SERVICE_BULLETS.join(" ");
-    expect(text).toContain("support@urplatform.llc");
-    expect(text).toContain("privacy@urplatform.llc");
-    expect(text).toContain("legal@urplatform.llc");
-    expect(flatten(CONTACT_SECTIONS)).toContain("indiana");
+  it("lists customer service email, phone, and street address without requiring login", () => {
+    const text = flatten(CONTACT_SECTIONS);
+    expect(text).toContain("ken.uetrecht.ur@gmail.com");
+    expect(text).toContain("(260) 446-2627");
+    expect(text).toContain("145 state road 1");
+    expect(text).toContain("hamilton");
+    expect(text).toContain("46742");
   });
 
   it("states 18+ restrictions and Stripe-handled cards", () => {

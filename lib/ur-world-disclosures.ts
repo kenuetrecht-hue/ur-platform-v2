@@ -71,7 +71,7 @@ export const UR_WORLD_APPROVED_ADS = [
     id: "email",
     channel: "Email",
     copy:
-      "Subject: Visit UR World (entertainment only)\n\nUR World is a 3D space to walk, learn, and play. If you license a plot, you are buying a limited game license — not land and not an investment. City Wallet credit stays inside UR. Crypto is optional later and never required. Questions: support@urplatform.llc",
+      "Subject: Visit UR World (entertainment only)\n\nUR World is a 3D space to walk, learn, and play. If you license a plot, you are buying a limited game license — not land and not an investment. City Wallet credit stays inside UR. Crypto is optional later and never required. Questions: ken.uetrecht.ur@gmail.com",
   },
 ] as const;
 

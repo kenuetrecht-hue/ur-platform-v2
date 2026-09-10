@@ -250,7 +250,7 @@ These Terms, together with the Privacy Policy and Community Guidelines, constitu
 For questions about these Terms, please contact:
 
 **UR Support**  
-Email: support@urplatform.llc  
+Email: ken.uetrecht.ur@gmail.com  
 Website: https://urplatform.llc
 
 ---

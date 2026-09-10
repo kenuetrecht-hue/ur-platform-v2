@@ -10,9 +10,13 @@ export const TERMS_BILLING_ENTITY = "UR Platform LLC";
 /** Domestic formation state — governing law and venue. Not a 50-state foreign qualification. */
 export const TERMS_HOME_STATE = "Indiana";
 export const TERMS_HOME_STATE_CODE = "IN";
-export const TERMS_SUPPORT_EMAIL = "support@urplatform.llc";
-export const TERMS_PRIVACY_EMAIL = "privacy@urplatform.llc";
-export const TERMS_LEGAL_EMAIL = "legal@urplatform.llc";
+export const TERMS_SUPPORT_EMAIL = "ken.uetrecht.ur@gmail.com";
+export const TERMS_PRIVACY_EMAIL = "ken.uetrecht.ur@gmail.com";
+export const TERMS_LEGAL_EMAIL = "ken.uetrecht.ur@gmail.com";
+export const TERMS_SUPPORT_PHONE = "(260) 446-2627";
+export const TERMS_SUPPORT_PHONE_TEL = "+12604462627";
+export const TERMS_BUSINESS_ADDRESS =
+  "145 State Road 1, Lot 1, Hamilton, IN 46742, United States";
 export const TERMS_PUBLIC_WEBSITE = "https://urplatform.llc";
 
 export const TERMS_GOVERNING_LAW =
@@ -209,7 +213,7 @@ export const PLATFORM_TERMS_SECTIONS: TermsSection[] = [
     bullets: [
       `${TERMS_BILLING_ENTITY} is a limited liability company formed in ${TERMS_HOME_STATE}.`,
       TERMS_GOVERNING_LAW,
-      `Questions: ${TERMS_SUPPORT_EMAIL} · ${TERMS_PUBLIC_WEBSITE}`,
+      `Questions: ${TERMS_SUPPORT_EMAIL} · ${TERMS_SUPPORT_PHONE} · ${TERMS_BUSINESS_ADDRESS} · ${TERMS_PUBLIC_WEBSITE}`,
     ],
   },
   {
