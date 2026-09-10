@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveTrpcFetchUrl } from "../lib/trpc-fetch-url";
+import { resolveTrpcFetchUrl, resolveTrpcApiUrl } from "../lib/trpc-fetch-url";
 
 const API = "http://localhost:3000/api/trpc";
 
@@ -24,5 +24,22 @@ describe("resolveTrpcFetchUrl", () => {
   it("leaves a correct API url unchanged", () => {
     const good = "http://localhost:3000/api/trpc/auth.connectivity?batch=1";
     expect(resolveTrpcFetchUrl(good, API)).toBe(good);
+  });
+});
+
+describe("resolveTrpcApiUrl", () => {
+  it("uses the live page origin when the website and API share a host", () => {
+    expect(resolveTrpcApiUrl("", "https://ur-app.up.railway.app")).toBe(
+      "https://ur-app.up.railway.app/api/trpc",
+    );
+    expect(resolveTrpcApiUrl("", "https://urplatform.llc")).toBe(
+      "https://urplatform.llc/api/trpc",
+    );
+  });
+
+  it("keeps an explicit API base for the native app", () => {
+    expect(resolveTrpcApiUrl("https://urplatform.llc")).toBe(
+      "https://urplatform.llc/api/trpc",
+    );
   });
 });

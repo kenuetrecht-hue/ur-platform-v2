@@ -135,8 +135,22 @@ function parseAllowedOrigins(): Set<string> {
   return origins;
 }
 
+export function isPublicDeployOrigin(origin: string): boolean {
+  try {
+    const host = new URL(origin).hostname.toLowerCase();
+    return (
+      host === "urplatform.llc" ||
+      host === "www.urplatform.llc" ||
+      host.endsWith(".up.railway.app")
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function isAllowedBrowserOrigin(origin: string): boolean {
-  return ALLOWED_ORIGINS.has(origin.replace(/\/+$/, ""));
+  const normalized = origin.replace(/\/+$/, "");
+  return ALLOWED_ORIGINS.has(normalized) || isPublicDeployOrigin(normalized);
 }
 
 const ALLOWED_ORIGINS = parseAllowedOrigins();
@@ -330,7 +344,7 @@ export function strictCorsMiddleware(
 ): void {
   const origin = req.headers.origin;
 
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
+  if (origin && isAllowedBrowserOrigin(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
     res.setHeader("Access-Control-Allow-Credentials", "true");

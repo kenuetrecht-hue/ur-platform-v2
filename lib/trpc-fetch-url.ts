@@ -1,3 +1,12 @@
+/** Build the tRPC URL. Empty base + a page origin means same-host (website + API together). */
+export function resolveTrpcApiUrl(base: string, pageOrigin?: string): string {
+  const trimmed = base.replace(/\/$/, "");
+  if (trimmed) return `${trimmed}/api/trpc`;
+  const origin = pageOrigin?.replace(/\/$/, "");
+  if (origin) return `${origin}/api/trpc`;
+  return "http://localhost:3000/api/trpc";
+}
+
 /**
  * tRPC v11 `httpBatchLink` only accepts `string | URL`. A function is
  * coerced with `.toString()` (source code), which the browser then fetches

@@ -72,9 +72,9 @@ export function getApiBaseUrl(): string {
       return `${protocol}//${hostname}:3000`;
     }
 
-    // Production: web static bundle served from same host as API — relative URLs work.
+    // Production: website and API are the same host (Railway / urplatform.llc).
     if (port === "3000" || port === "") {
-      return "";
+      return `${protocol}//${hostname}`;
     }
 
     // Manus cloud sandbox: 8081-host → 3000-host
@@ -91,7 +91,7 @@ export function getApiBaseUrl(): string {
   if (ReactNative.Platform.OS === "web" && typeof window !== "undefined" && window.location) {
     const { protocol, hostname, port } = window.location;
     if (port === "3000" || port === "") {
-      return "";
+      return `${protocol}//${hostname}`;
     }
     if (hostname === "localhost" || hostname === "127.0.0.1") {
       return `${protocol}//${hostname}:3000`;
