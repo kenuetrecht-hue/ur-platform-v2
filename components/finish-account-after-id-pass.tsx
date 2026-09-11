@@ -20,6 +20,7 @@ import {
   loadJoinAccountDraft,
   saveJoinAccountDraft,
 } from "@/lib/join-account-draft";
+import { getStayLoggedIn, setStayLoggedIn } from "@/lib/stay-logged-in";
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -44,11 +45,12 @@ export function FinishAccountAfterIdPass() {
   const [busy, setBusy] = useState(false);
   const [picturesPassed, setPicturesPassed] = useState(() => hasAgeKycPassToken());
   const [showPassword, setShowPassword] = useState(false);
+  const [stayLoggedIn, setStayLoggedInBox] = useState(() => getStayLoggedIn());
   const enteredRef = useRef(false);
   const inFlightRef = useRef(false);
   const autoKeyRef = useRef("");
-  const draftRef = useRef({ name, email, password, acceptedTerms, turnstileToken });
-  draftRef.current = { name, email, password, acceptedTerms, turnstileToken };
+  const draftRef = useRef({ name, email, password, acceptedTerms, turnstileToken, stayLoggedIn });
+  draftRef.current = { name, email, password, acceptedTerms, turnstileToken, stayLoggedIn };
 
   useEffect(() => {
     saveJoinAccountDraft({ name, email, password, acceptedTerms });
@@ -92,6 +94,7 @@ export function FinishAccountAfterIdPass() {
     }
 
     inFlightRef.current = true;
+    setStayLoggedIn(draftRef.current.stayLoggedIn);
     setBusy(true);
     setError(null);
     setStatus("Pictures passed — signing you in…");
@@ -268,6 +271,32 @@ export function FinishAccountAfterIdPass() {
             Terms
           </Link>
           .
+        </Text>
+      </Pressable>
+      <Pressable
+        onPress={() => {
+          setStayLoggedInBox((value) => {
+            const next = !value;
+            setStayLoggedIn(next);
+            return next;
+          });
+        }}
+        style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 4 }}
+        testID="stay-logged-in"
+      >
+        <View
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 6,
+            borderWidth: 2,
+            borderColor: stayLoggedIn ? colors.primary : colors.border,
+            backgroundColor: stayLoggedIn ? colors.primary : "transparent",
+            marginTop: 2,
+          }}
+        />
+        <Text style={{ color: colors.foreground, fontSize: 14, lineHeight: 20, flex: 1 }}>
+          Stay logged in. Next time you open the app, you will already be signed in.
         </Text>
       </Pressable>
       <TapToRead title="Why we ask and what we keep" testID="join-why-tab">

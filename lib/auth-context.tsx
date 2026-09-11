@@ -11,8 +11,10 @@ import { explainAuthFailure } from "./auth-network-error";
 import {
   clearAuthStorage,
   getAccessToken,
+  getRefreshToken,
   getStoredUserJson,
   setAccessToken,
+  setRefreshToken,
   setStoredUserJson,
 } from "./auth-storage";
 
@@ -84,6 +86,9 @@ function mapSupabaseUser(user: SupabaseUser): AuthUser {
 
 async function persistSession(session: Session, user: AuthUser): Promise<void> {
   await setAccessToken(session.access_token);
+  if (session.refresh_token) {
+    await setRefreshToken(session.refresh_token);
+  }
   await setStoredUserJson(JSON.stringify(user));
 }
 
@@ -171,14 +176,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           return;
         }
 
+        const storedAccess = await withTimeout(getAccessToken(), 2_000, "Cached token read").catch(
+          () => null,
+        );
+        const storedRefresh = await withTimeout(getRefreshToken(), 2_000, "Cached refresh read").catch(
+          () => null,
+        );
+        if (storedAccess && storedRefresh) {
+          const restored = await withTimeout(
+            supabase.auth.setSession({
+              access_token: storedAccess,
+              refresh_token: storedRefresh,
+            }),
+            AUTH_SESSION_TIMEOUT_MS,
+            "Supabase session resume",
+          );
+          const resumed = restored.data.session;
+          if (resumed?.user && resumed.access_token && mounted) {
+            const authUser = mapSupabaseUser(resumed.user);
+            await persistSessionSafe(resumed, authUser);
+            dispatch({
+              type: "LOGIN_SUCCESS",
+              payload: { user: authUser, accessToken: resumed.access_token },
+            });
+            return;
+          }
+        }
+
         const cachedUserJson = await withTimeout(
           getStoredUserJson(),
           2_000,
           "Cached user read",
         ).catch(() => null);
-        const token = await withTimeout(getAccessToken(), 2_000, "Cached token read").catch(
+        const token = storedAccess ?? (await withTimeout(getAccessToken(), 2_000, "Cached token read").catch(
           () => null,
-        );
+        ));
 
         if (cachedUserJson && token && mounted) {
           const user = JSON.parse(cachedUserJson) as AuthUser;
