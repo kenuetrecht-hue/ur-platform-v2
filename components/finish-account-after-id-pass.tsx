@@ -224,10 +224,13 @@ export function FinishAccountAfterIdPass() {
         placeholderTextColor={colors.muted}
         keyboardType="email-address"
         autoCapitalize="none"
-        autoComplete="email"
+        autoComplete="username"
+        textContentType="username"
+        autoCorrect={false}
         editable={!busy}
+        nativeID="login-email"
         style={inputStyle}
-        testID="finish-account-email"
+        testID="login-email"
       />
 
       <Text style={{ color: colors.foreground, fontWeight: "600" }}>Password</Text>
@@ -238,10 +241,12 @@ export function FinishAccountAfterIdPass() {
           placeholder="At least 6 characters"
           placeholderTextColor={colors.muted}
           secureTextEntry={!showPassword}
-          autoComplete="password"
+          autoComplete="current-password"
+          textContentType="password"
           editable={!busy}
+          nativeID="login-password"
           style={inputStyle}
-          testID="finish-account-password"
+          testID="login-password"
         />
         <Pressable onPress={() => setShowPassword((value) => !value)} style={{ marginTop: 8 }}>
           <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>

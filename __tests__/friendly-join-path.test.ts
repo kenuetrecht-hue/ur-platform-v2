@@ -9,6 +9,7 @@ describe("website and app friendliness", () => {
     const home = readFileSync("components/techno-futurist-experience.tsx", "utf8");
     const signup = readFileSync("app/(auth)/signup.tsx", "utf8");
     expect(home).toContain("Join or sign in");
+    expect(home).toContain("HomepageSignIn");
     expect(home).not.toContain("Create account →");
     expect(signup).toContain('from "./login"');
     expect(SIGNUP_PAGE_TITLE).toBe("Join or sign in");

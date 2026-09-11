@@ -34,11 +34,11 @@ describe("after sign-in", () => {
     expect(hrefAfterSignIn(false)).toBe(AFTER_SIGN_IN_HREF);
   });
 
-  it("keeps name email and password on screen after the pictures pass", () => {
+  it("keeps name email and password on screen until the ID check is on the account", () => {
     expect(shouldKeepCredentialFormVisible({ hasPhotoPass: true, kycVerified: false })).toBe(true);
     expect(shouldKeepCredentialFormVisible({ hasPhotoPass: true, kycVerified: undefined })).toBe(true);
     expect(shouldKeepCredentialFormVisible({ hasPhotoPass: true, kycVerified: true })).toBe(false);
-    expect(shouldKeepCredentialFormVisible({ hasPhotoPass: false, kycVerified: false })).toBe(false);
+    expect(shouldKeepCredentialFormVisible({ hasPhotoPass: false, kycVerified: false })).toBe(true);
   });
 
   it("leaves the leftover photo page once the account is verified", () => {

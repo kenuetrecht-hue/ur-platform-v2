@@ -28,6 +28,7 @@ import { LANDING_DEMO_CREATOR_IDS } from "@/lib/landing-demo-policy";
 import { PLATFORM_DISCLOSURE_SHORT } from "@/lib/platform-disclosure-copy";
 import { PUBLIC_LEGAL_NAV } from "@/lib/public-legal-routes";
 import { TapToRead } from "@/components/tap-to-read";
+import { HomepageSignIn } from "@/components/homepage-sign-in";
 
 const HEADLINE = "Join UR. One website, one app, one sign-in.";
 
@@ -99,8 +100,9 @@ export function TechnoFuturistExperience() {
               pictures after the check.
             </TapToRead>
 
+            <HomepageSignIn />
+
             <View style={styles.heroCtaRow}>
-              <LandingSignInButton variant="hero" />
               <LandingAppDownloadLink variant="hero" />
             </View>
 

@@ -117,7 +117,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       if (shouldKeepCredentialFormVisible({ hasPhotoPass, kycVerified })) {
         return;
       }
-      router.replace(kycVerified ? AFTER_ID_PASS_HREF : AFTER_SIGN_IN_HREF);
+      router.replace(AFTER_ID_PASS_HREF);
       return;
     }
 

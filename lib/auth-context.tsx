@@ -12,7 +12,6 @@ import {
   clearAuthStorage,
   getAccessToken,
   getRefreshToken,
-  getStoredUserJson,
   setAccessToken,
   setRefreshToken,
   setStoredUserJson,
@@ -203,21 +202,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         }
 
-        const cachedUserJson = await withTimeout(
-          getStoredUserJson(),
-          2_000,
-          "Cached user read",
-        ).catch(() => null);
-        const token = storedAccess ?? (await withTimeout(getAccessToken(), 2_000, "Cached token read").catch(
-          () => null,
-        ));
-
-        if (cachedUserJson && token && mounted) {
-          const user = JSON.parse(cachedUserJson) as AuthUser;
-          dispatch({
-            type: "LOGIN_SUCCESS",
-            payload: { user, accessToken: token },
-          });
+        if (storedAccess || storedRefresh) {
+          await clearAuthStorage();
         }
       } catch (error) {
         console.error("[Auth] Session restore failed:", error);
