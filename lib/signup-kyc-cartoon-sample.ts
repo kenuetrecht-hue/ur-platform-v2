@@ -36,8 +36,8 @@ const BEATS: Array<{
     id: "hook",
     title: "Yeah… we know",
     narration:
-      "Hi — I'm Uri. I understand fully you do not want to do this. Nobody wakes up excited to photograph an ID. Sorry for the extra step. But we should. Thank you for hanging in for thirty seconds.",
-    caption: "Sorry. Thank you. Here is why.",
+      "Hi — I'm Uri. I understand fully you do not want to do this. Nobody wakes up excited to photograph an ID. Thanks for the extra step. We should still do it. Thank you for hanging in for thirty seconds.",
+    caption: "Thank you. Here is why.",
   },
   {
     id: "front",
@@ -50,7 +50,7 @@ const BEATS: Array<{
     id: "back",
     title: "The back is the 'really?' picture",
     narration:
-      "Now the BACK. Yes, we are that friend who asks you to flip the card. Sorry. The barcode, stripe, or passport code proves it is a real ID. A screenshot of the front alone is how stolen cards sneak in. That extra shot is why the grown-ups stay.",
+      "Now the BACK. Yes, we are that friend who asks you to flip the card. The barcode, stripe, or passport code proves it is a real ID. A screenshot of the front alone is how stolen cards sneak in. That extra shot is why the grown-ups stay.",
     caption: "Back = real card, not a screenshot",
   },
   {
@@ -71,7 +71,7 @@ const BEATS: Array<{
     id: "close",
     title: "Thank you — then you enter",
     narration:
-      "This cartoon is a sample of what the website can make. Sorry again for the homework. Thank you for doing it. You still take the three pictures: front, back, and selfie. Then you can enter. We owe you one.",
+      "This cartoon is a sample of what the website can make. Thank you for the extra step. You still take the three pictures: front, back, and selfie. Then we check them. After they pass, you create the account or sign in.",
     caption: "Thank you. Photos are still required.",
   },
 ];
@@ -120,7 +120,7 @@ function buildSampleFrame(beat: (typeof BEATS)[number]): string {
       ${uriFigure(560, 210, 1.15)}
       <rect x="180" y="470" width="920" height="120" rx="20" fill="#111827ee"/>
       <text x="640" y="520" text-anchor="middle" fill="#fff" font-size="36" font-family="Verdana, sans-serif" font-weight="700">I get it. You don't want to do this.</text>
-      <text x="640" y="566" text-anchor="middle" fill="#fde68a" font-size="24" font-family="Verdana, sans-serif">Sorry. But we should. Thank you.</text>
+      <text x="640" y="566" text-anchor="middle" fill="#fde68a" font-size="24" font-family="Verdana, sans-serif">Thanks. We should still do it.</text>
     `,
     front: `
       <rect width="1280" height="720" fill="#0b1220"/>

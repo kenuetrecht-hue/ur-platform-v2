@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  AFTER_ID_PASS_HREF,
   AFTER_SIGN_IN_HREF,
+  hrefAfterSignIn,
   shouldOpenAgeVerifyPage,
   shouldSendSignedOutUserToLoginFromAgeVerify,
 } from "../lib/after-sign-in";
@@ -20,5 +22,10 @@ describe("after sign-in", () => {
 
   it("does not bounce a signed-out person off the ID page", () => {
     expect(shouldSendSignedOutUserToLoginFromAgeVerify()).toBe(false);
+  });
+
+  it("opens the app after the photos already passed", () => {
+    expect(hrefAfterSignIn(true)).toBe(AFTER_ID_PASS_HREF);
+    expect(hrefAfterSignIn(false)).toBe(AFTER_SIGN_IN_HREF);
   });
 });

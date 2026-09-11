@@ -6,12 +6,16 @@ import { showUserMessage } from "@/lib/show-user-message";
 import { readWebTextInputValue } from "@/lib/read-web-input-value";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { trpc } from "@/lib/trpc";
-import { AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
+import { hrefAfterSignIn } from "@/lib/after-sign-in";
+import { clearAgeKycDraft } from "@/lib/age-kyc-draft-store";
+import { clearAgeKycPassToken, getAgeKycPassToken } from "@/lib/age-kyc-pass-store";
+import { ID_MUST_PASS_FIRST } from "@/lib/signup-step-copy";
 
 export function useLoginScreen() {
   const router = useRouter();
   const { login, error: authError, clearError, isAuthenticated } = useAuth();
   const verifyTurnstile = trpc.auth.verifyTurnstile.useMutation();
+  const claimPass = trpc.ageKyc.claimPass.useMutation();
   const turnstileConfig = trpc.auth.turnstileConfig.useQuery(undefined, { staleTime: 60_000 });
   const connectivity = trpc.auth.connectivity.useQuery(undefined, { staleTime: 15_000 });
   const emailRef = useRef<TextInput>(null);
@@ -56,6 +60,14 @@ export function useLoginScreen() {
       password.trim() || readWebTextInputValue(passwordRef, "login-password")
     ).trim();
 
+    if (!getAgeKycPassToken()) {
+      const msg = ID_MUST_PASS_FIRST;
+      setFormError(msg);
+      setStatusLine(null);
+      showUserMessage("Pictures first", msg);
+      return;
+    }
+
     if (!emailValue || !passwordValue) {
       const msg = "Please enter email and password.";
       setFormError(msg);
@@ -78,8 +90,22 @@ export function useLoginScreen() {
         action: "login",
       });
       await login(emailValue, passwordValue, turnstileToken || undefined);
-      setStatusLine("Success — opening the ID photo page…");
-      router.replace(AFTER_SIGN_IN_HREF);
+      const passToken = getAgeKycPassToken();
+      let claimed = false;
+      if (passToken) {
+        try {
+          const status = await claimPass.mutateAsync({ passToken });
+          claimed = status.verified === true;
+          if (claimed) {
+            clearAgeKycPassToken();
+            clearAgeKycDraft();
+          }
+        } catch {
+          claimed = false;
+        }
+      }
+      setStatusLine(claimed ? "Success — opening the app…" : "Success — opening the ID photo page…");
+      router.replace(hrefAfterSignIn(claimed));
     } catch (err) {
       const msg = explainAuthFailure(err);
       setFormError(msg);
@@ -88,7 +114,7 @@ export function useLoginScreen() {
     } finally {
       setSubmitting(false);
     }
-  }, [email, password, login, router, turnstileToken, turnstileConfig.data?.required, verifyTurnstile]);
+  }, [email, password, login, router, turnstileToken, turnstileConfig.data?.required, verifyTurnstile, claimPass]);
 
   const onEmailChange = (value: string) => {
     setEmail(value);

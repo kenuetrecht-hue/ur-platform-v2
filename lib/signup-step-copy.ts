@@ -6,10 +6,13 @@
 export const SIGNUP_PAGE_TITLE = "Create your account";
 
 export const SIGNUP_PAGE_WHY =
-  "This is how you join. We need a real adult account so we can keep fraud off the website and so a creator’s videos, classes, and posts stay theirs — not anyone who copies them.";
+  "This is how you join. Hear Uri, take the three pictures, and wait for them to pass. Then you can create a real adult account so we can keep fraud off the website and so a creator’s videos, classes, and posts stay theirs — not anyone who copies them.";
 
 export const LOGIN_PAGE_WHY =
-  "Sign in with the email and password you created. That is how we know it is you, not someone else using your name.";
+  "Hear Uri and take the three pictures first. After they pass the check, sign in with the email and password you created. That is how we know it is you, not someone else using your name.";
+
+export const ID_MUST_PASS_FIRST =
+  "Check the three pictures first. Create-account and sign-in only unlock after they pass.";
 
 export const SIGNUP_FIELDS = [
   {

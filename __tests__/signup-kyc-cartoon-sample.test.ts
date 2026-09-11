@@ -52,7 +52,8 @@ describe("signup KYC cartoon sample", () => {
     expect(text).toContain("one-time");
     expect(text).toContain("understand fully you do not want to do this");
     expect(text).toContain("thank you");
-    expect(text).toContain("sorry");
+    expect(text).toContain("extra step");
+    expect(text).not.toContain("sorry");
   });
 
   it("does not claim the cartoon replaces the ID check or Hollywood film", () => {

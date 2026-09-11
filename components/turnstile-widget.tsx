@@ -114,15 +114,7 @@ export function TurnstileWidget({ action, onToken }: Props) {
     );
   }
 
-  if (!required) return null;
-
-  if (!siteKey) {
-    return (
-      <Text style={{ fontSize: 12, color: "#c0392b" }}>
-        Security check is not configured (missing Turnstile site key).
-      </Text>
-    );
-  }
+  if (!required || !siteKey) return null;
 
   if (Platform.OS !== "web") {
     return (

@@ -7,6 +7,7 @@ import {
   AGE_VERIFY_WHY,
   CONDUCT_PAGE_WHY,
   DATA_NOT_SOLD,
+  ID_MUST_PASS_FIRST,
   LOGIN_FIELDS,
   LOGIN_PAGE_WHY,
   SECURITY_BREACH_PROMISE,
@@ -24,6 +25,7 @@ function haystack(): string {
   return [
     SIGNUP_PAGE_WHY,
     LOGIN_PAGE_WHY,
+    ID_MUST_PASS_FIRST,
     SIGNUP_FIELDS.map((field) => `${field.doThis} ${field.why}`).join(" "),
     LOGIN_FIELDS.map((field) => `${field.doThis} ${field.why}`).join(" "),
     AGE_VERIFY_WHAT_TO_DO,
@@ -59,6 +61,7 @@ describe("Signup and ID-check customer copy", () => {
     expect(text).toContain("photograph a government id");
     expect(text).toContain("live selfie");
     expect(text).toContain("check the box");
+    expect(text).toContain("only unlock after they pass");
   });
 
   it("says UR does not keep the ID pictures and names the third-party checker", () => {

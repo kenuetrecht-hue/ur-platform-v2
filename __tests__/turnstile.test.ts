@@ -7,6 +7,19 @@ describe("turnstile siteverify", () => {
     vi.resetModules();
   });
 
+  it("skips when production has no Turnstile keys", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "");
+    vi.stubEnv("TURNSTILE_SITE_KEY", "");
+    vi.stubEnv("EXPO_PUBLIC_TURNSTILE_SITE_KEY", "");
+    const { assertTurnstileToken, isTurnstileEnforced, getTurnstileClientConfig } = await import(
+      "../server/_core/turnstile"
+    );
+    expect(isTurnstileEnforced()).toBe(false);
+    expect(getTurnstileClientConfig()).toEqual({ required: false, siteKey: null });
+    await expect(assertTurnstileToken({ token: "", action: "login" })).resolves.toBeUndefined();
+  });
+
   it("skips verification in development when no secret is set", async () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "");
@@ -20,6 +33,7 @@ describe("turnstile siteverify", () => {
   it("rejects a missing token when a secret is configured", async () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "1x0000000000000000000000000000000AA");
+    vi.stubEnv("TURNSTILE_SITE_KEY", "1x00000000000000000000AA");
     const { assertTurnstileToken } = await import("../server/_core/turnstile");
     await expect(
       assertTurnstileToken({ token: "", action: "login" }),
@@ -29,6 +43,7 @@ describe("turnstile siteverify", () => {
   it("accepts a Cloudflare success response", async () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "1x0000000000000000000000000000000AA");
+    vi.stubEnv("TURNSTILE_SITE_KEY", "1x00000000000000000000AA");
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({
@@ -48,6 +63,7 @@ describe("turnstile siteverify", () => {
   it("rejects action mismatch", async () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "1x0000000000000000000000000000000AA");
+    vi.stubEnv("TURNSTILE_SITE_KEY", "1x00000000000000000000AA");
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({

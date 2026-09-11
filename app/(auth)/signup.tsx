@@ -9,7 +9,10 @@ import { LAUNCH_PROMOTION_SUBLINE } from "@/lib/launch-promotion-config";
 import { AFFILIATE_REFERRAL_PAYOUT_RULE } from "@/lib/affiliate-referral-payout-policy";
 import { CREATOR_CONTENT_PROTECTION_NOTICE } from "@/lib/creator-content-protection-copy";
 import { TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
-import { SIGNUP_FIELDS, SIGNUP_PAGE_WHY, signupPrivacyBlock } from "@/lib/signup-step-copy";
+import { ID_MUST_PASS_FIRST, SIGNUP_FIELDS, SIGNUP_PAGE_WHY, signupPrivacyBlock } from "@/lib/signup-step-copy";
+import { clearAgeKycDraft } from "@/lib/age-kyc-draft-store";
+import { clearAgeKycPassToken, getAgeKycPassToken, hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
+import { hrefAfterSignIn } from "@/lib/after-sign-in";
 import { SignupStepExplain } from "@/components/signup-step-explain";
 import { saveLandingDemoAttributionId } from "@/lib/landing-demo-attribution-storage";
 import { TurnstileWidget } from "@/components/turnstile-widget";
@@ -18,7 +21,6 @@ import { WebLoginSubmit } from "@/components/web-login-submit";
 import { showUserMessage } from "@/lib/show-user-message";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { markGiveJoinEmanual } from "@/lib/join-emanual-handoff";
-import { AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
 import { PostSignInAgeVerifyGate } from "@/components/go-to-id-photos";
 import { IdCheckDuringSignin } from "@/components/id-check-during-signin";
 
@@ -53,6 +55,9 @@ export default function SignUpScreen() {
   const [honeypot, setHoneypot] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [statusLine, setStatusLine] = useState<string | null>(null);
+  const [idPassed, setIdPassed] = useState(() => hasAgeKycPassToken());
+  const onIdPassed = useCallback(() => setIdPassed(true), []);
+  const onIdReset = useCallback(() => setIdPassed(false), []);
   const onTurnstileToken = useCallback((token: string) => setTurnstileToken(token), []);
   const verifyTurnstile = trpc.auth.verifyTurnstile.useMutation();
   const turnstileConfig = trpc.auth.turnstileConfig.useQuery(undefined, { staleTime: 60_000 });
@@ -62,6 +67,7 @@ export default function SignUpScreen() {
     { enabled: referralCode.trim().length >= 3 },
   );
   const completeEnrollment = trpc.partnerDashboard.completePartnerEnrollment.useMutation();
+  const claimPass = trpc.ageKyc.claimPass.useMutation();
 
   useEffect(() => {
     if (typeof params.ref === "string" && params.ref) {
@@ -80,6 +86,13 @@ export default function SignUpScreen() {
 
   const handleSignUp = async () => {
     setFormError(null);
+
+    if (!idPassed || !getAgeKycPassToken()) {
+      const msg = ID_MUST_PASS_FIRST;
+      setFormError(msg);
+      showUserMessage("Pictures first", msg);
+      return;
+    }
 
     if (!name.trim() || !email.trim() || !password.trim()) {
       const msg = "Please enter your name, email, and password.";
@@ -146,8 +159,22 @@ export default function SignUpScreen() {
         router.replace("/login");
         return;
       }
-      setStatusLine("Success — opening the ID photo page…");
-      router.replace(AFTER_SIGN_IN_HREF);
+      const passToken = getAgeKycPassToken();
+      let claimed = false;
+      if (passToken) {
+        try {
+          const status = await claimPass.mutateAsync({ passToken });
+          claimed = status.verified === true;
+          if (claimed) {
+            clearAgeKycPassToken();
+            clearAgeKycDraft();
+          }
+        } catch {
+          claimed = false;
+        }
+      }
+      setStatusLine(claimed ? "Success — opening the app…" : "Success — opening the ID photo page…");
+      router.replace(hrefAfterSignIn(claimed));
     } catch (err) {
       const msg = explainAuthFailure(err);
       setFormError(msg);
@@ -199,10 +226,21 @@ export default function SignUpScreen() {
             <Text style={{ fontSize: 13, color: colors.muted, textAlign: "center", lineHeight: 19 }}>
               {SIGNUP_PAGE_WHY}
             </Text>
-            <IdCheckDuringSignin />
+            <IdCheckDuringSignin onPassed={onIdPassed} onReset={onIdReset} />
+            {idPassed ? (
             <Text style={{ fontSize: 16, color: colors.foreground, textAlign: "center", fontWeight: "800", marginTop: 8 }}>
               Then create the account below
             </Text>
+            ) : (
+            <Text
+              style={{ fontSize: 16, color: colors.foreground, textAlign: "center", fontWeight: "800", marginTop: 8 }}
+              testID="id-check-gate"
+            >
+              {ID_MUST_PASS_FIRST}
+            </Text>
+            )}
+            {idPassed ? (
+            <>
             {params.membership === "active" ? (
               <Text
                 style={{
@@ -255,8 +293,12 @@ export default function SignUpScreen() {
                 {"\n\n"}Every new member receives a free step-by-step e-manual after they join — how to print it and sell their own on this website.
               </Text>
             )}
+            </>
+            ) : null}
           </View>
 
+          {idPassed ? (
+          <>
           <View style={{ gap: 16 }}>
             <View>
               <Text
@@ -541,6 +583,8 @@ export default function SignUpScreen() {
               testID="signup-submit"
             />
           )}
+          </>
+          ) : null}
 
           <View style={{ alignItems: "center" }}>
             <Text style={{ color: colors.muted, fontSize: 14 }}>

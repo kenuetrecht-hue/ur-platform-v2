@@ -1,5 +1,4 @@
 import { TRPCError } from "@trpc/server";
-import { ENV } from "./env";
 import type { TurnstileAction } from "../../lib/turnstile";
 import { TURNSTILE_TOKEN_MAX_LENGTH } from "../../lib/turnstile";
 
@@ -17,10 +16,9 @@ export function getTurnstilePublicSiteKey(): string {
   );
 }
 
-/** Enforced whenever a secret is configured, and always in production. */
+/** Only when both Cloudflare keys exist. A missing key must not block login or ID check. */
 export function isTurnstileEnforced(): boolean {
-  if (getTurnstileSecretKey()) return true;
-  return ENV.isProduction;
+  return getTurnstileSecretKey().length > 0 && getTurnstilePublicSiteKey().length > 0;
 }
 
 export function getTurnstileClientConfig(): {
@@ -28,9 +26,10 @@ export function getTurnstileClientConfig(): {
   siteKey: string | null;
 } {
   const siteKey = getTurnstilePublicSiteKey();
+  const ready = isTurnstileEnforced();
   return {
-    required: isTurnstileEnforced(),
-    siteKey: siteKey.length > 0 ? siteKey : null,
+    required: ready,
+    siteKey: ready && siteKey.length > 0 ? siteKey : null,
   };
 }
 
@@ -49,12 +48,7 @@ export async function assertTurnstileToken(params: {
   if (!isTurnstileEnforced()) return;
 
   const secret = getTurnstileSecretKey();
-  if (!secret) {
-    throw new TRPCError({
-      code: "PRECONDITION_FAILED",
-      message: "Security check is not configured. Set TURNSTILE_SECRET_KEY.",
-    });
-  }
+  if (!secret) return;
 
   const token = params.token?.trim() ?? "";
   if (token.length < 20 || token.length > TURNSTILE_TOKEN_MAX_LENGTH) {

@@ -15,10 +15,11 @@ import {
   type AgeKycStatus,
 } from "../../lib/age-kyc-policy";
 import * as db from "../db";
-import { generateGoogleChatReply } from "./google-ai";
+import { generateGoogleChatReply, isGoogleCloudAiConfigured } from "./google-ai";
 import { ENV } from "./env";
 import { markCreatorIdentityVerified } from "./creator-content-protection-service";
 import { isDevAgeKycBypassEnabled } from "../../lib/dev-age-kyc-mode";
+import { issueAgeKycPassToken, verifyAgeKycPassToken } from "./age-kyc-pass";
 
 type PhotoInput = {
   mimeType: string;
@@ -44,6 +45,7 @@ type MemoryKyc = {
 };
 
 const memoryByUserId = new Map<number, MemoryKyc>();
+const memoryByGuestIp = new Map<string, { attempts: number; lastAttemptAt: number }>();
 const FACE_MATCH_MIN = 75;
 const MAX_ATTEMPTS_PER_DAY = 8;
 
@@ -241,26 +243,40 @@ export async function assertUserIsAgeVerified(userId: string | number): Promise<
   }
 }
 
-export async function submitAgeKyc(params: {
-  userId: number;
-  documentType: AgeKycDocumentType;
-  idFront: PhotoInput;
-  idBack: PhotoInput;
-  selfie: PhotoInput;
-}): Promise<AgeKycPublicStatus> {
-  const current = await getAgeKycPublicStatus(params.userId);
-  if (current.verified) return current;
+type AnalyzeResult = {
+  verified: boolean;
+  rejectionReason: string | null;
+  hashes: { front: string; back: string; selfie: string };
+};
 
-  const mem = memoryByUserId.get(params.userId);
-  const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
-  const attempts = mem && mem.lastAttemptAt > dayAgo ? mem.attempts : 0;
+function assertDailyAttempts(attempts: number): void {
   if (attempts >= MAX_ATTEMPTS_PER_DAY) {
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
       message: "Too many ID checks today. Try again tomorrow or email support if a real adult ID was rejected.",
     });
   }
+}
 
+function guestAttemptsFor(ip: string): number {
+  const key = ip.trim() || "unknown";
+  const mem = memoryByGuestIp.get(key);
+  const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  if (!mem || mem.lastAttemptAt <= dayAgo) return 0;
+  return mem.attempts;
+}
+
+function recordGuestAttempt(ip: string): void {
+  const key = ip.trim() || "unknown";
+  memoryByGuestIp.set(key, { attempts: guestAttemptsFor(key) + 1, lastAttemptAt: Date.now() });
+}
+
+async function analyzeAgeKycPhotos(params: {
+  documentType: AgeKycDocumentType;
+  idFront: PhotoInput;
+  idBack: PhotoInput;
+  selfie: PhotoInput;
+}): Promise<AnalyzeResult> {
   const front = assertPhoto(params.idFront, "ID front");
   const back = assertPhoto(params.idBack, "ID back");
   const selfie = assertPhoto(params.selfie, "Selfie");
@@ -270,6 +286,17 @@ export async function submitAgeKyc(params: {
     back: sha256(back.base64),
     selfie: sha256(selfie.base64),
   };
+
+  if (isDevAgeKycBypassEnabled()) {
+    return { verified: true, rejectionReason: null, hashes };
+  }
+
+  if (!isGoogleCloudAiConfigured()) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "The photo checker is not ready on the server yet. Try again in a few minutes.",
+    });
+  }
 
   let idAnalysis: Record<string, unknown>;
   let faceAnalysis: Record<string, unknown>;
@@ -335,17 +362,94 @@ export async function submitAgeKyc(params: {
 
   const uniqueReasons = [...new Set(reasons)].slice(0, 6);
   const verified = uniqueReasons.length === 0 && isAdultAge(age);
-
-  const next: MemoryKyc = {
-    status: verified ? "verified" : "rejected",
+  return {
     verified,
     rejectionReason: verified ? null : uniqueReasons[0] ?? AGE_KYC_REQUIRED_MESSAGE,
+    hashes,
+  };
+}
+
+export type AgeKycPrecheckResult = {
+  verified: boolean;
+  rejectionReason: string | null;
+  passToken: string | null;
+};
+
+export async function precheckAgeKyc(params: {
+  ip?: string;
+  documentType: AgeKycDocumentType;
+  idFront: PhotoInput;
+  idBack: PhotoInput;
+  selfie: PhotoInput;
+}): Promise<AgeKycPrecheckResult> {
+  const ip = params.ip?.trim() || "unknown";
+  assertDailyAttempts(guestAttemptsFor(ip));
+  const analysis = await analyzeAgeKycPhotos(params);
+  recordGuestAttempt(ip);
+  return {
+    verified: analysis.verified,
+    rejectionReason: analysis.rejectionReason,
+    passToken: analysis.verified ? issueAgeKycPassToken(analysis.hashes) : null,
+  };
+}
+
+export async function claimAgeKycPass(params: {
+  userId: number;
+  passToken: string;
+}): Promise<AgeKycPublicStatus> {
+  const current = await getAgeKycPublicStatus(params.userId);
+  if (current.verified) return current;
+
+  const payload = verifyAgeKycPassToken(params.passToken);
+  if (!payload) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "The photo check expired. Take the three pictures again, then sign in.",
+    });
+  }
+
+  const next: MemoryKyc = {
+    status: "verified",
+    verified: true,
+    rejectionReason: null,
+    attempts: 1,
+    lastAttemptAt: Date.now(),
+  };
+  await persist(params.userId, next, {
+    front: payload.front,
+    back: payload.back,
+    selfie: payload.selfie,
+  });
+  markCreatorIdentityVerified(String(params.userId));
+  return publicStatusFromMemory(next);
+}
+
+export async function submitAgeKyc(params: {
+  userId: number;
+  documentType: AgeKycDocumentType;
+  idFront: PhotoInput;
+  idBack: PhotoInput;
+  selfie: PhotoInput;
+}): Promise<AgeKycPublicStatus> {
+  const current = await getAgeKycPublicStatus(params.userId);
+  if (current.verified) return current;
+
+  const mem = memoryByUserId.get(params.userId);
+  const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  const attempts = mem && mem.lastAttemptAt > dayAgo ? mem.attempts : 0;
+  assertDailyAttempts(attempts);
+
+  const analysis = await analyzeAgeKycPhotos(params);
+  const next: MemoryKyc = {
+    status: analysis.verified ? "verified" : "rejected",
+    verified: analysis.verified,
+    rejectionReason: analysis.rejectionReason,
     attempts: attempts + 1,
     lastAttemptAt: Date.now(),
   };
 
-  await persist(params.userId, next, hashes);
-  if (verified) {
+  await persist(params.userId, next, analysis.hashes);
+  if (analysis.verified) {
     markCreatorIdentityVerified(String(params.userId));
   }
   return publicStatusFromMemory(next);
@@ -354,4 +458,5 @@ export async function submitAgeKyc(params: {
 /** Test helper */
 export function resetAgeKycMemoryForTests(): void {
   memoryByUserId.clear();
+  memoryByGuestIp.clear();
 }

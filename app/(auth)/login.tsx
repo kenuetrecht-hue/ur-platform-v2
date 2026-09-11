@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,8 @@ import { PrimaryActionButton } from "@/components/primary-action-button";
 import { WebLoginSubmit } from "@/components/web-login-submit";
 import { useLoginScreen } from "@/hooks/use-login-screen";
 import { TurnstileWidget } from "@/components/turnstile-widget";
-import { LOGIN_FIELDS, LOGIN_PAGE_WHY } from "@/lib/signup-step-copy";
+import { ID_MUST_PASS_FIRST, LOGIN_FIELDS, LOGIN_PAGE_WHY } from "@/lib/signup-step-copy";
+import { hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
 import { SignupStepExplain } from "@/components/signup-step-explain";
 import { AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
 import { PostSignInAgeVerifyGate } from "@/components/go-to-id-photos";
@@ -39,6 +40,9 @@ export default function LoginScreen() {
     onTurnstileToken,
     serviceHint,
   } = useLoginScreen();
+  const [idPassed, setIdPassed] = useState(() => hasAgeKycPassToken());
+  const onIdPassed = useCallback(() => setIdPassed(true), []);
+  const onIdReset = useCallback(() => setIdPassed(false), []);
   if (isAuthenticated) {
     return <PostSignInAgeVerifyGate />;
   }
@@ -81,11 +85,22 @@ export default function LoginScreen() {
             <Text style={{ fontSize: 13, color: colors.muted, lineHeight: 19, marginBottom: 16 }}>
               {LOGIN_PAGE_WHY}
             </Text>
-            <IdCheckDuringSignin />
+            <IdCheckDuringSignin onPassed={onIdPassed} onReset={onIdReset} />
+            {idPassed ? (
             <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18, marginTop: 20, marginBottom: 8 }}>
               Then sign in
             </Text>
+            ) : (
+            <Text
+              style={{ color: colors.foreground, fontWeight: "800", fontSize: 16, marginTop: 20, marginBottom: 8 }}
+              testID="id-check-gate"
+            >
+              {ID_MUST_PASS_FIRST}
+            </Text>
+            )}
 
+            {idPassed ? (
+            <>
             {serviceHint ? (
               <View
                 style={[
@@ -178,6 +193,8 @@ export default function LoginScreen() {
                 />
               </View>
             )}
+            </>
+            ) : null}
 
             <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 20 }}>
               Don&apos;t have an account?{" "}
