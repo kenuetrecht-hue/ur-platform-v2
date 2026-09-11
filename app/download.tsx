@@ -36,7 +36,7 @@ export default function DownloadScreen() {
             <View style={styles.footer}>
               <Link href="/login" asChild>
                 <Pressable accessibilityRole="link">
-                  <Text style={styles.link}>Already have an account? Sign in</Text>
+                  <Text style={styles.link}>Join or sign in</Text>
                 </Pressable>
               </Link>
               <View style={styles.legalRow}>

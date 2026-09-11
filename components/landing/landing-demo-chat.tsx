@@ -117,7 +117,7 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
           <Text style={styles.sub}>{AGE_KYC_REQUIRED_MESSAGE}</Text>
           <Link href="/signup" asChild>
             <Pressable style={styles.sendBtn}>
-              <Text style={styles.sendText}>Create account to verify age</Text>
+              <Text style={styles.sendText}>Join or sign in to verify age</Text>
             </Pressable>
           </Link>
         </View>

@@ -24,6 +24,7 @@ import {
 } from "@/lib/launch-promotion-config";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
 import { trpc } from "@/lib/trpc";
+import { TapToRead } from "@/components/tap-to-read";
 
 function CountdownUnit({ value, label, padded }: { value: number; label: string; padded?: boolean }) {
   const display = padded ? String(value).padStart(2, "0") : value;
@@ -84,8 +85,8 @@ export function LandingPromoBanner() {
     return (
       <View style={[styles.wrap, styles.inactive]}>
         <Text style={styles.inactiveText}>Launch window closed — create an account to join the platform.</Text>
-        <Pressable onPress={() => router.push("/signup")} style={styles.cta}>
-          <Text style={styles.ctaText}>Create account →</Text>
+        <Pressable onPress={() => router.push("/login")} style={styles.cta}>
+          <Text style={styles.ctaText}>Join or sign in →</Text>
         </Pressable>
       </View>
     );
@@ -104,7 +105,9 @@ export function LandingPromoBanner() {
         {LAUNCH_SIGNUP_WINDOW_DAYS}-DAY LAUNCH · {totalRemaining} SPOTS LEFT · {tier1Remaining} TIER 1
       </Text>
       <Text style={styles.headline}>{LAUNCH_PROMOTION_HEADLINE}</Text>
-      <Text style={styles.sub}>{LAUNCH_PROMOTION_SUBLINE}</Text>
+      <TapToRead title="How the 30-day creator launch works">
+        {LAUNCH_PROMOTION_SUBLINE}
+      </TapToRead>
 
       <View style={styles.countdownCard}>
         <Text style={styles.countdownLabel}>Launch signup window ends in</Text>
@@ -132,11 +135,13 @@ export function LandingPromoBanner() {
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${tier1Progress}%` }]} />
         </View>
-        {LAUNCH_PROMOTION_TIERS[0]!.extras.map((line) => (
-          <Text key={line} style={styles.tierBullet}>
-            · {line}
-          </Text>
-        ))}
+        <TapToRead title="Tier 1 extras">
+          {LAUNCH_PROMOTION_TIERS[0]!.extras.map((line) => (
+            <Text key={line} style={styles.tierBullet}>
+              · {line}
+            </Text>
+          ))}
+        </TapToRead>
       </View>
 
       <View style={styles.tierRow}>
@@ -181,7 +186,7 @@ export function LandingPromoBanner() {
 
       <Pressable onPress={join} style={styles.cta}>
         <Text style={styles.ctaText}>
-          {parsedRef ? `Join with referral ${parsedRef} →` : "Join launch as creator →"}
+          {parsedRef ? `Join with referral ${parsedRef} →` : "Join or sign in →"}
         </Text>
       </Pressable>
 

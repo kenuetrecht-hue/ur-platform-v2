@@ -38,7 +38,7 @@ export function LandingConversionModal({ visible, onClose, creatorId, creatorNam
       demoCreator: creatorId,
     });
     if (attributionId) query.set("demoAttribution", attributionId);
-    router.push(`/signup?${query.toString()}`);
+    router.push(`/login?${query.toString()}`);
   };
 
   const voiceMutation = trpc.landing.synthesizeDemoVoice.useMutation({
@@ -84,11 +84,11 @@ export function LandingConversionModal({ visible, onClose, creatorId, creatorNam
           {voiceError ? <Text style={styles.voiceErr}>{voiceError}</Text> : null}
 
           <Text style={styles.hook}>
-            Every specialist runs on the same platform — unlock the full hive with one membership.
+            One website and one app. Sign in once. Every specialist is here.
           </Text>
 
           <Pressable onPress={goSignup} style={styles.primary}>
-            <Text style={styles.primaryText}>Create free account →</Text>
+            <Text style={styles.primaryText}>Join or sign in →</Text>
           </Pressable>
           <Pressable onPress={() => router.push("/(tabs)/ais")} style={styles.secondary}>
             <Text style={styles.secondaryText}>Explore AI Hub first</Text>

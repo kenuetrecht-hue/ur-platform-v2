@@ -17,6 +17,8 @@ import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { AppPressable } from "@/components/app-pressable";
 import { ADMIN_TAB_HREF } from "@/lib/admin-dashboard-routes";
 import { GoToIdPhotosButton } from "@/components/go-to-id-photos";
+import { TapToRead } from "@/components/tap-to-read";
+import { trpc } from "@/lib/trpc";
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -25,6 +27,8 @@ export default function HomeScreen() {
   const dailySignIn = useDailySignIn();
   const homeTab = consolidatedNavigation.getTab("home");
   const { canAccessAdminDashboard, isPlatformOwner } = usePlatformOwner();
+  const kyc = trpc.ageKyc.getStatus.useQuery(undefined, { retry: 0 });
+  const needsIdPhotos = kyc.data?.verified !== true;
 
   return (
     <ScreenContainer className="bg-background">
@@ -35,12 +39,14 @@ export default function HomeScreen() {
       >
         <HomeLaunchPromoBanner />
 
-        <View style={{ paddingHorizontal: 16, marginTop: 12, gap: 8 }}>
-          <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
-            ID check — tap to photograph ID front, ID back, and a selfie
-          </Text>
-          <GoToIdPhotosButton label="Open ID photo page" />
-        </View>
+        {needsIdPhotos ? (
+          <View style={{ paddingHorizontal: 16, marginTop: 12, gap: 8 }}>
+            <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
+              Finish the three pictures to stay in the app
+            </Text>
+            <GoToIdPhotosButton label="Open the picture page" />
+          </View>
+        ) : null}
 
         <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
           <AppPressable
@@ -112,7 +118,7 @@ export default function HomeScreen() {
         <TabScreenHeader
           icon="🏠"
           title={`Welcome${user?.name ? `, ${user.name}` : ""}`}
-          subtitle="Your creator hub — trending content, daily rewards, and quick actions."
+          subtitle="You are in. AIs, Social, and Create are the main doors."
         />
 
         <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
@@ -201,13 +207,13 @@ export default function HomeScreen() {
 
         <View style={{ paddingHorizontal: 16, gap: 12 }}>
           <DemoSection
-            title="Quick Actions"
-            description="Jump into the most-used areas of the platform."
+            title="Open a door"
+            description="The six you will use first. Everything else is under More tools."
             icon="⚡"
             variant="info"
           >
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-              {[
+            {(() => {
+              const actions = [
                 ...(canAccessAdminDashboard
                   ? [
                       {
@@ -384,7 +390,8 @@ export default function HomeScreen() {
                   label: "Discover",
                   onPress: () => router.push("/(tabs)/discover"),
                 },
-              ].map((action) => (
+              ];
+              const chip = (action: { label: string; onPress: () => void }) => (
                 <AppPressable
                   key={action.label}
                   onPress={action.onPress}
@@ -404,8 +411,20 @@ export default function HomeScreen() {
                     {action.label}
                   </Text>
                 </AppPressable>
-              ))}
-            </View>
+              );
+              return (
+                <>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+                    {actions.slice(0, 6).map(chip)}
+                  </View>
+                  <TapToRead title="More tools">
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                      {actions.slice(6).map(chip)}
+                    </View>
+                  </TapToRead>
+                </>
+              );
+            })()}
           </DemoSection>
 
           <DemoSection
@@ -435,6 +454,7 @@ export default function HomeScreen() {
             <SocialFeedPreview />
           </DemoSection>
 
+          <TapToRead title="Trending, following, and shop shortcuts">
           {homeTab?.subMenu?.map((item) => {
             const routeById: Record<string, string> = {
               trending: "/(tabs)/discover",
@@ -461,6 +481,7 @@ export default function HomeScreen() {
               </DemoSection>
             );
           })}
+          </TapToRead>
 
           {dailySignIn.error ? (
             <DemoSection

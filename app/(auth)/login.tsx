@@ -4,7 +4,6 @@ import { Link } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { useLoginScreen } from "@/hooks/use-login-screen";
-import { LOGIN_PAGE_WHY } from "@/lib/signup-step-copy";
 import { FinishAccountAfterIdPass } from "@/components/finish-account-after-id-pass";
 
 /** Same page: name / email / password first, then pictures, then enter. */
@@ -36,7 +35,7 @@ export default function LoginScreen() {
               Join or sign in
             </Text>
             <Text style={{ fontSize: 13, color: colors.muted, lineHeight: 19, marginBottom: 16 }}>
-              {LOGIN_PAGE_WHY}
+              Name, email, and password first. Then the three pictures. We sign you in after they pass.
             </Text>
             {serviceHint ? (
               <View

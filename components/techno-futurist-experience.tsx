@@ -25,13 +25,11 @@ import { LandingAppDownloadLink } from "@/components/landing/landing-app-downloa
 import { LandingPromoBanner } from "@/components/landing/landing-promo-banner";
 import { LandingAiCategoryHub } from "@/components/landing/landing-ai-category-hub";
 import { LANDING_DEMO_CREATOR_IDS } from "@/lib/landing-demo-policy";
-import { buildCreatorSignupHref } from "@/lib/launch-promotion-config";
 import { PLATFORM_DISCLOSURE_SHORT } from "@/lib/platform-disclosure-copy";
 import { PUBLIC_LEGAL_NAV } from "@/lib/public-legal-routes";
 import { TapToRead } from "@/components/tap-to-read";
 
-const HEADLINE =
-  "The future of specialist AI is collaborative, secure, and live.";
+const HEADLINE = "Join UR. One website, one app, one sign-in.";
 
 const DEFAULT_DEMO_CREATOR = LANDING_DEMO_CREATOR_IDS[0];
 
@@ -42,7 +40,7 @@ function LandingSignInButton({ variant }: { variant: "top" | "hero" }) {
   return (
     <Link href="/login" asChild>
       <Pressable style={buttonStyle} accessibilityRole="link">
-        <Text style={textStyle}>Sign in</Text>
+        <Text style={textStyle}>{variant === "top" ? "Join or sign in" : "Join or sign in"}</Text>
       </Pressable>
     </Link>
   );
@@ -55,7 +53,6 @@ export function TechnoFuturistExperience() {
   const isWide = width >= 900;
   const contentMaxWidth = Math.min(width, 1100);
   const [demoCreatorId, setDemoCreatorId] = useState<string>(DEFAULT_DEMO_CREATOR);
-  const signupHref = buildCreatorSignupHref();
 
   if (!isLoading && isAuthenticated) {
     return <Redirect href={AFTER_SIGN_IN_HREF} />;
@@ -104,11 +101,6 @@ export function TechnoFuturistExperience() {
 
             <View style={styles.heroCtaRow}>
               <LandingSignInButton variant="hero" />
-              <Link href={signupHref as never} asChild>
-                <Pressable style={styles.heroCta} accessibilityRole="link">
-                  <Text style={styles.heroCtaText}>Create account →</Text>
-                </Pressable>
-              </Link>
               <LandingAppDownloadLink variant="hero" />
             </View>
 
@@ -129,7 +121,7 @@ export function TechnoFuturistExperience() {
               <LandingAppDownloadLink variant="footer" />
               <Link href="/login" asChild>
                 <Pressable accessibilityRole="link">
-                  <Text style={styles.link}>Already have an account? Sign in</Text>
+                  <Text style={styles.link}>Join or sign in</Text>
                 </Pressable>
               </Link>
               <View style={styles.legalRow}>

@@ -107,7 +107,7 @@ export function IdCheckDuringSignin({ onPassed, onReset }: Props) {
   return (
     <View style={{ gap: 14, width: "100%" }} testID="id-check-during-signin">
       <Text style={{ color: colors.foreground, fontSize: 15, lineHeight: 22 }}>
-        Hear Uri if you want. Then use Live camera on front, back, and selfie.
+        Use Live camera on front, back, and selfie. Hear Uri if you want.
       </Text>
       <TapToRead title="How to line up the yellow box">
         Tap Hear Uri. Then tap Live camera on ID front, ID back, and selfie. A yellow box shows on each one — including the back. Fit the card, wait until Take this picture turns on, then tap it once.
@@ -153,7 +153,7 @@ export function IdCheckDuringSignin({ onPassed, onReset }: Props) {
       />
       {passed ? (
         <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 15 }} testID="id-check-passed">
-          Pictures passed. You can create the account or sign in now.
+          Pictures passed. Signing you in with the email and password above…
         </Text>
       ) : null}
       {error ? <Text style={{ color: "#c0392b", fontSize: 13 }}>{error}</Text> : null}

@@ -9,6 +9,7 @@ import {
   TERMS_SUPPORT_PHONE_TEL,
 } from "@/lib/platform-terms-of-use";
 import { getPlatformPublicOrigin } from "@/lib/platform-urls";
+import { TapToRead } from "@/components/tap-to-read";
 
 const FAQ = [
   {
@@ -55,24 +56,13 @@ export default function ProfileHelpScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <ProfileStackScreen
         title="Help & Support"
-        subtitle="FAQs and how to reach us."
+        subtitle="Tap a question to read the answer."
         icon="💬"
       >
         {FAQ.map((item) => (
-          <View
-            key={item.q}
-            style={{
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: colors.surface,
-              padding: 14,
-              gap: 6,
-            }}
-          >
-            <Text style={{ color: colors.foreground, fontWeight: "700" }}>{item.q}</Text>
-            <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>{item.a}</Text>
-          </View>
+          <TapToRead key={item.q} title={item.q}>
+            {item.a}
+          </TapToRead>
         ))}
 
         <View

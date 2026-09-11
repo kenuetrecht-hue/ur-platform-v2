@@ -97,10 +97,10 @@ export default function JoinEmanualScreen() {
           </Pressable>
         ) : (
           <Pressable
-            onPress={() => router.push("/signup")}
+            onPress={() => router.push("/login")}
             style={[styles.doneBtn, { backgroundColor: colors.primary }]}
           >
-            <Text style={styles.printText}>Create account and get this e-manual</Text>
+            <Text style={styles.printText}>Join or sign in and get this e-manual</Text>
           </Pressable>
         )}
       </ScrollView>

@@ -4,12 +4,11 @@ import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/lib/auth-context";
 import { trpc } from "@/lib/trpc";
-import { AGE_KYC_MIN_AGE } from "@/lib/age-kyc-policy";
-import { AGE_VERIFY_TITLE } from "@/lib/signup-step-copy";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { AFTER_ID_PASS_HREF } from "@/lib/after-sign-in";
 import { FinishAccountAfterIdPass } from "@/components/finish-account-after-id-pass";
 
+/** Leftover address — same join form as /login so people are never stuck on a second path. */
 export default function AgeVerifyScreen() {
   const colors = useColors();
   const router = useRouter();
@@ -30,9 +29,11 @@ export default function AgeVerifyScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 24 }}>
-            {AGE_KYC_MIN_AGE}+ identity check
+            Join or sign in
           </Text>
-          <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>{AGE_VERIFY_TITLE}</Text>
+          <Text style={{ color: colors.muted, fontSize: 15, lineHeight: 22 }}>
+            Same page as login. Name, email, and password first. Then the three pictures.
+          </Text>
 
           {verified ? (
             <View
@@ -43,7 +44,7 @@ export default function AgeVerifyScreen() {
                 padding: 16,
               }}
             >
-              <Text style={{ color: colors.foreground, fontWeight: "800" }}>Verified</Text>
+              <Text style={{ color: colors.foreground, fontWeight: "800" }}>You already passed</Text>
               <Text style={{ color: colors.muted, marginTop: 6 }}>
                 You are confirmed 18 or older. You can enter UR Platform.
               </Text>
