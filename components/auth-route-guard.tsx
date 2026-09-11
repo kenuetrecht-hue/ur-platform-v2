@@ -174,6 +174,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     isAuthenticated &&
     kycQuery.isLoading &&
     !isAgeVerifyRoute(segments) &&
+    !isAuthRoute(segments) &&
     !isDownloadRoute(segments) &&
     !isPublicLegalRoute(segments)
   ) {

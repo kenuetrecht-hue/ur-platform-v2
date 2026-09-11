@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
@@ -15,8 +15,17 @@ import { ID_MUST_PASS_FIRST, signupPrivacyBlock } from "@/lib/signup-step-copy";
 import { TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
 import { showUserMessage } from "@/lib/show-user-message";
 import { TapToRead } from "@/components/tap-to-read";
+import {
+  clearJoinAccountDraft,
+  loadJoinAccountDraft,
+  saveJoinAccountDraft,
+} from "@/lib/join-account-draft";
 
-/** One page: name / email / password first, then the three pictures, then enter. */
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** One page: name / email / password first, then pictures, then automatic sign-in. */
 export function FinishAccountAfterIdPass() {
   const colors = useColors();
   const router = useRouter();
@@ -24,22 +33,152 @@ export function FinishAccountAfterIdPass() {
   const claimPass = trpc.ageKyc.claimPass.useMutation();
   const verifyTurnstile = trpc.auth.verifyTurnstile.useMutation();
   const turnstileConfig = trpc.auth.turnstileConfig.useQuery(undefined, { staleTime: 60_000 });
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const saved = loadJoinAccountDraft();
+  const [name, setName] = useState(saved.name);
+  const [email, setEmail] = useState(saved.email);
+  const [password, setPassword] = useState(saved.password);
+  const [acceptedTerms, setAcceptedTerms] = useState(saved.acceptedTerms);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [picturesPassed, setPicturesPassed] = useState(() => hasAgeKycPassToken());
   const [showPassword, setShowPassword] = useState(false);
+  const enteredRef = useRef(false);
+  const inFlightRef = useRef(false);
+  const autoKeyRef = useRef("");
+  const draftRef = useRef({ name, email, password, acceptedTerms, turnstileToken });
+  draftRef.current = { name, email, password, acceptedTerms, turnstileToken };
+
+  useEffect(() => {
+    saveJoinAccountDraft({ name, email, password, acceptedTerms });
+  }, [name, email, password, acceptedTerms]);
+
+  const claimWithRetry = useCallback(async (): Promise<boolean> => {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        if (await claimStoredAgeKycPass((input) => claimPass.mutateAsync(input))) {
+          return true;
+        }
+      } catch {
+        /* token may not be on the next request yet */
+      }
+      await wait(350);
+    }
+    return false;
+  }, [claimPass]);
+
+  const enterApp = useCallback(() => {
+    enteredRef.current = true;
+    clearJoinAccountDraft();
+    setStatus("Pictures passed — signing you in…");
+    router.replace(AFTER_ID_PASS_HREF);
+  }, [router]);
+
+  const enterAfterPictures = useCallback(async () => {
+    if (enteredRef.current || inFlightRef.current) return;
+    const draft = draftRef.current;
+    const emailValue = draft.email.trim();
+    const passwordValue = draft.password.trim();
+    const nameValue = draft.name.trim();
+
+    if (!emailValue || !passwordValue) {
+      setError("Pictures passed. Type your email and password above. We will sign you in automatically.");
+      return;
+    }
+    if (!getAgeKycPassToken()) {
+      setError("Take the three pictures and tap Check my three pictures.");
+      return;
+    }
+
+    inFlightRef.current = true;
+    setBusy(true);
+    setError(null);
+    setStatus("Pictures passed — signing you in…");
+
+    const finishClaim = async (): Promise<boolean> => {
+      const claimed = await claimWithRetry();
+      if (claimed) {
+        enterApp();
+        return true;
+      }
+      return false;
+    };
+
+    try {
+      if (turnstileConfig.data?.required && !draft.turnstileToken.trim()) {
+        throw new Error("Complete the security check, then we will sign you in.");
+      }
+
+      try {
+        await verifyTurnstile.mutateAsync({ token: draft.turnstileToken, action: "login" });
+        await login(emailValue, passwordValue, draft.turnstileToken || undefined);
+        if (await finishClaim()) return;
+      } catch {
+        /* no account yet — create one */
+      }
+
+      if (!nameValue) {
+        setError("Pictures passed. Type your name above so we can create the account and sign you in.");
+        return;
+      }
+      if (!draft.acceptedTerms) {
+        setError("Pictures passed. Check the box that you agree to the Terms. We will sign you in after that.");
+        return;
+      }
+
+      await verifyTurnstile.mutateAsync({
+        token: draft.turnstileToken,
+        action: "signup",
+        email: emailValue,
+        displayName: nameValue,
+      });
+      const result = await register(
+        emailValue,
+        passwordValue,
+        nameValue,
+        "creator",
+        draft.turnstileToken || undefined,
+      );
+      if (result.needsEmailConfirmation) {
+        setError(
+          "Account created. Open the confirmation email, then type your email and password here. We will sign you in.",
+        );
+        setStatus(null);
+        return;
+      }
+      if (await finishClaim()) return;
+      setError("Pictures passed and the account is ready. Tap Sign in and enter once.");
+    } catch (err) {
+      const msg = explainAuthFailure(err);
+      if (msg.toLowerCase().includes("sign in with your email")) {
+        setError("Pictures passed. Keep your email and password filled in — we are signing you in.");
+        return;
+      }
+      setError(msg);
+      setStatus(null);
+      showUserMessage("Sign in", msg);
+    } finally {
+      inFlightRef.current = false;
+      setBusy(false);
+    }
+  }, [claimWithRetry, enterApp, login, register, turnstileConfig.data?.required, verifyTurnstile]);
 
   const onIdPassed = useCallback(() => {
     setPicturesPassed(true);
     setError(null);
-  }, []);
+    void enterAfterPictures();
+  }, [enterAfterPictures]);
   const onIdReset = useCallback(() => setPicturesPassed(false), []);
+
+  useEffect(() => {
+    if (!picturesPassed || busy || enteredRef.current) return;
+    if (!email.trim() || !password.trim()) return;
+    const key = `${email.trim()}|${password}|${name.trim()}|${acceptedTerms ? "1" : "0"}`;
+    if (autoKeyRef.current === key) return;
+    autoKeyRef.current = key;
+    void enterAfterPictures();
+  }, [acceptedTerms, busy, email, enterAfterPictures, name, password, picturesPassed]);
 
   const inputStyle = {
     backgroundColor: colors.surface,
@@ -53,115 +192,13 @@ export function FinishAccountAfterIdPass() {
     ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as object) : null),
   };
 
-  const requirePictures = (): boolean => {
-    if (picturesPassed && getAgeKycPassToken()) return true;
-    const msg = "Type your name, email, and password first. Then take the three pictures and tap Check my three pictures.";
-    setError(msg);
-    showUserMessage("Pictures next", msg);
-    return false;
-  };
-
-  const enterApp = () => {
-    setStatus("Success — opening the app…");
-    router.replace(AFTER_ID_PASS_HREF);
-  };
-
-  const onSignIn = async () => {
-    setError(null);
-    if (!email.trim() || !password.trim()) {
-      setError("Type your email and password first, then take the pictures.");
-      return;
-    }
-    if (!requirePictures()) return;
-    setBusy(true);
-    setStatus("Signing in…");
-    try {
-      if (turnstileConfig.data?.required && !turnstileToken.trim()) {
-        throw new Error("Complete the security check before signing in.");
-      }
-      await verifyTurnstile.mutateAsync({ token: turnstileToken, action: "login" });
-      await login(email.trim(), password.trim(), turnstileToken || undefined);
-      const claimed = await claimStoredAgeKycPass((input) => claimPass.mutateAsync(input));
-      if (claimed) {
-        enterApp();
-        return;
-      }
-      setError("Signed in, but the pictures still need to attach. Tap Check my three pictures, then Sign in again.");
-    } catch (err) {
-      const msg = explainAuthFailure(err);
-      setError(msg);
-      setStatus(null);
-      showUserMessage("Sign in", msg);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const onCreateAccount = async () => {
-    setError(null);
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      setError("Type your name, email, and password first, then take the pictures.");
-      return;
-    }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
-      return;
-    }
-    if (!acceptedTerms) {
-      setError("Check the box to agree to the Terms of Use.");
-      return;
-    }
-    if (!requirePictures()) return;
-    setBusy(true);
-    setStatus("Creating account…");
-    try {
-      if (turnstileConfig.data?.required && !turnstileToken.trim()) {
-        throw new Error("Complete the security check before creating an account.");
-      }
-      await verifyTurnstile.mutateAsync({
-        token: turnstileToken,
-        action: "signup",
-        email: email.trim(),
-        displayName: name.trim(),
-      });
-      const result = await register(
-        email.trim(),
-        password.trim(),
-        name.trim(),
-        "creator",
-        turnstileToken || undefined,
-      );
-      if (result.needsEmailConfirmation) {
-        const msg =
-          "Account created. Open the confirmation email, then type your email and password here and tap Sign in.";
-        setError(msg);
-        setStatus(null);
-        showUserMessage("Confirm your email", msg);
-        return;
-      }
-      const claimed = await claimStoredAgeKycPass((input) => claimPass.mutateAsync(input));
-      if (claimed) {
-        enterApp();
-        return;
-      }
-      setError("Account created. Tap Check my three pictures if needed, then tap Sign in.");
-    } catch (err) {
-      const msg = explainAuthFailure(err);
-      setError(msg);
-      setStatus(null);
-      showUserMessage("Create account", msg);
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
     <View style={{ gap: 12, width: "100%" }} testID="finish-account-after-id-pass">
       <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18 }}>
         1. Name, email, and password
       </Text>
       <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>
-        Fill these in first. Then scroll down for the pictures.
+        Fill these in first. After the pictures pass, we sign you in automatically.
       </Text>
 
       <Text style={{ color: colors.foreground, fontWeight: "600" }}>Name</Text>
@@ -191,7 +228,7 @@ export function FinishAccountAfterIdPass() {
       />
 
       <Text style={{ color: colors.foreground, fontWeight: "600" }}>Password</Text>
-      <View style={{ position: "relative" }}>
+      <View>
         <TextInput
           value={password}
           onChangeText={setPassword}
@@ -251,7 +288,7 @@ export function FinishAccountAfterIdPass() {
 
       {picturesPassed ? (
         <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 15 }}>
-          Pictures passed. Tap Create account or Sign in to enter.
+          Pictures passed. Signing you in with the email and password above…
         </Text>
       ) : null}
 
@@ -263,20 +300,12 @@ export function FinishAccountAfterIdPass() {
       ) : null}
 
       <PrimaryActionButton
-        label="Create account and enter"
-        loadingLabel="Creating account…"
+        label="Sign me in now"
+        loadingLabel="Signing you in…"
         loading={busy}
-        onPress={() => void onCreateAccount()}
+        onPress={() => void enterAfterPictures()}
         backgroundColor={colors.primary}
         testID="finish-account-create"
-      />
-      <PrimaryActionButton
-        label="I already have an account — Sign in and enter"
-        loadingLabel="Signing in…"
-        loading={busy}
-        onPress={() => void onSignIn()}
-        backgroundColor="#0f172a"
-        testID="finish-account-signin"
       />
     </View>
   );
