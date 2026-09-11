@@ -118,6 +118,27 @@ function collectDocuments(params: { isPlatformOwner: boolean }): SearchableDocum
   return docs;
 }
 
+const SEARCH_INDEX_TTL_MS = 20_000;
+let memberIndexCache: { at: number; docs: SearchableDocument[] } | null = null;
+let ownerIndexCache: { at: number; docs: SearchableDocument[] } | null = null;
+
+function documentsForSearch(isPlatformOwner: boolean): SearchableDocument[] {
+  const cache = isPlatformOwner ? ownerIndexCache : memberIndexCache;
+  if (cache && Date.now() - cache.at < SEARCH_INDEX_TTL_MS) {
+    return cache.docs;
+  }
+  const docs = collectDocuments({ isPlatformOwner });
+  const next = { at: Date.now(), docs };
+  if (isPlatformOwner) ownerIndexCache = next;
+  else memberIndexCache = next;
+  return docs;
+}
+
+export function _resetPlatformSearchCacheForTests(): void {
+  memberIndexCache = null;
+  ownerIndexCache = null;
+}
+
 export function searchPlatform(params: {
   query: string;
   kind?: PlatformSearchKind;
@@ -132,7 +153,7 @@ export function searchPlatform(params: {
   emptyHint: string;
 } {
   const query = sanitizeUserText(params.query, 80);
-  const docs = collectDocuments({ isPlatformOwner: params.isPlatformOwner === true });
+  const docs = documentsForSearch(params.isPlatformOwner === true);
   const scoped = params.kind ? docs.filter((doc) => doc.kind === params.kind) : docs;
   const hits = rankDocuments(scoped, query, params.limit ?? 24);
   const counts = {
@@ -160,7 +181,7 @@ export function suggestPlatformSearch(params: { isPlatformOwner?: boolean }): {
   rule: string;
   starters: string[];
 } {
-  const docs = collectDocuments({ isPlatformOwner: params.isPlatformOwner === true });
+  const docs = documentsForSearch(params.isPlatformOwner === true);
   const starters = [
     "electrician",
     "Spanish",

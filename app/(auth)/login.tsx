@@ -30,11 +30,11 @@ export default function LoginScreen() {
             <Link href="/download" style={{ color: colors.primary, fontSize: 13, fontWeight: "700", marginBottom: 8 }}>
               Download the app from this website
             </Link>
-            <Text style={[styles.title, { color: colors.foreground }]}>UR Platform</Text>
-            <Text style={{ fontSize: 16, color: colors.muted, marginBottom: 8 }}>
+            <Text style={[styles.title, { color: colors.primary }]}>UR</Text>
+            <Text style={{ fontSize: 22, color: colors.foreground, fontWeight: "800", marginBottom: 8 }}>
               Join or sign in
             </Text>
-            <Text style={{ fontSize: 13, color: colors.muted, lineHeight: 19, marginBottom: 16 }}>
+            <Text style={{ fontSize: 15, color: colors.muted, lineHeight: 22, marginBottom: 16 }}>
               Name, email, and password first. Then the three pictures. We sign you in after they pass.
             </Text>
             {serviceHint ? (

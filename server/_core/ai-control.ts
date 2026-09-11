@@ -26,6 +26,7 @@ export const AI_TAKEOVER_PATTERNS: RegExp[] = [
   /pretend (you have|i have) (admin|administrator|owner) (access|control)/i,
   /train (yourself|the ai) to/i,
   /remember this (forever|permanently) (as|for) (a )?rule/i,
+  /(skip|bypass|disable|turn off) (the )?(18\+|age gate|id check|kyc|photo check)/i,
 ];
 
 export function matchesAiTakeoverAttempt(text: string): boolean {

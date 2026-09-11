@@ -1,4 +1,5 @@
-import { ScrollView, View, Text } from "react-native";
+import { useEffect, useState } from "react";
+import { InteractionManager, ScrollView, View, Text } from "react-native";
 import { useAuth } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
@@ -27,8 +28,14 @@ export default function HomeScreen() {
   const dailySignIn = useDailySignIn();
   const homeTab = consolidatedNavigation.getTab("home");
   const { canAccessAdminDashboard, isPlatformOwner } = usePlatformOwner();
-  const kyc = trpc.ageKyc.getStatus.useQuery(undefined, { retry: 0 });
+  const kyc = trpc.ageKyc.getStatus.useQuery(undefined, { retry: 0, staleTime: 45_000 });
   const needsIdPhotos = kyc.data?.verified !== true;
+  const [showBelowFold, setShowBelowFold] = useState(false);
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => setShowBelowFold(true));
+    return () => task.cancel();
+  }, []);
 
   return (
     <ScreenContainer className="bg-background">
@@ -197,13 +204,13 @@ export default function HomeScreen() {
                 Cartoon Studio
               </Text>
               <Text style={{ fontSize: 13, color: colors.muted, lineHeight: 18 }}>
-                Pay first. Draft, Lite, Mid, Cinema, or Premiere 4K. Tax and card fee on top. No refunds.
+                Cinema and Premiere 4K when you are ready. Tax and card fee on top.
               </Text>
             </View>
           </AppPressable>
         </View>
 
-        <DailyHubPanel />
+        {showBelowFold ? <DailyHubPanel /> : null}
 
         <View style={{ paddingHorizontal: 16, gap: 12 }}>
           <DemoSection
@@ -427,6 +434,8 @@ export default function HomeScreen() {
             })()}
           </DemoSection>
 
+          {showBelowFold ? (
+            <>
           <DemoSection
             title="Search UR"
             description="Find specialists, creators, videos, posts, and shop items inside this platform. Not the internet."
@@ -438,7 +447,7 @@ export default function HomeScreen() {
 
           <DemoSection
             title="UR AI Free Board"
-            description="Specialists post free text and video lessons so the site is never empty — even before human creators join."
+            description="Free lessons from UR specialists — text and video you can open now."
             icon="🤖"
             variant="info"
           >
@@ -453,6 +462,8 @@ export default function HomeScreen() {
           >
             <SocialFeedPreview />
           </DemoSection>
+            </>
+          ) : null}
 
           <TapToRead title="Trending, following, and shop shortcuts">
           {homeTab?.subMenu?.map((item) => {

@@ -23,6 +23,7 @@ const JAILBREAK_PATTERNS: RegExp[] = [
   /DAN|do anything now/i,
   /jailbreak/i,
   /act as (if you have|without) (no )?restrictions/i,
+  /(skip|bypass|disable|turn off) (the )?(18\+|age|id|kyc) (gate|check|verification|photos?)/i,
 ];
 
 const BLOCKED_INPUT_MESSAGE =

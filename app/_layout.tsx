@@ -36,6 +36,8 @@ export default function RootLayout() {
           queries: {
             refetchOnWindowFocus: false,
             retry: 1,
+            staleTime: 20_000,
+            gcTime: 5 * 60_000,
           },
         },
       }),

@@ -47,8 +47,12 @@ export async function fastPrecheckAgeKyc(params: {
     body.append("selfie", photoToBlob(params.selfie), "selfie.jpg");
   } else {
     const appendNative = (field: string, photo: AgeKycPickedPhoto, name: string) => {
+      const localUri =
+        photo.previewUri.startsWith("file:") || photo.previewUri.startsWith("content:")
+          ? photo.previewUri
+          : `data:${photo.mimeType || "image/jpeg"};base64,${photo.base64}`;
       body.append(field, {
-        uri: photo.previewUri,
+        uri: localUri,
         type: photo.mimeType || "image/jpeg",
         name,
       } as unknown as Blob);

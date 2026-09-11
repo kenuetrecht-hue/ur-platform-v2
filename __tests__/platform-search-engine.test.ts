@@ -6,7 +6,7 @@ import {
   suggestDidYouMean,
   tokenizeQuery,
 } from "../lib/platform-search-engine";
-import { searchPlatform } from "../server/_core/platform-search-service";
+import { searchPlatform, _resetPlatformSearchCacheForTests } from "../server/_core/platform-search-service";
 import { _resetAiFreeBoardForTests } from "../server/_core/ai-free-board-service";
 import { _resetPartnerProgramForTests, enrollContentCreator } from "../server/_core/partner-program-service";
 import { createFeedPost } from "../server/_core/social-feed-service";
@@ -14,6 +14,10 @@ import { registerSocialUser } from "../server/_core/social-service";
 import { isOwnerOpsAiId } from "../lib/owner-platform-ops-catalog";
 
 describe("platform search engine", () => {
+  beforeEach(() => {
+    _resetPlatformSearchCacheForTests();
+  });
+
   it("treats close spellings as a match", () => {
     expect(levenshtein("electrician", "electrican")).toBe(1);
     const hit = scoreDocument(
@@ -64,6 +68,7 @@ describe("platform search engine", () => {
 
 describe("platform search service", () => {
   beforeEach(() => {
+    _resetPlatformSearchCacheForTests();
     _resetAiFreeBoardForTests();
     if (typeof _resetPartnerProgramForTests === "function") _resetPartnerProgramForTests();
   });

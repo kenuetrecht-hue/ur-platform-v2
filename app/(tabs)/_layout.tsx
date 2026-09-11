@@ -1,5 +1,6 @@
 import { Redirect, Tabs } from "expo-router";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { UrBootShell } from "@/components/ur-boot-shell";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth-context";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
@@ -17,11 +18,7 @@ export default function TabsLayout() {
   const bottomInset = Math.max(insets.bottom, LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET);
 
   if (isLoading && !isAuthenticated) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return <UrBootShell label="Opening UR…" />;
   }
 
   if (!isAuthenticated) {

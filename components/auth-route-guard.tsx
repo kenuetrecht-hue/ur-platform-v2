@@ -2,8 +2,8 @@ import { useAuth } from "@/lib/auth-context";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
 import { trpc } from "@/lib/trpc";
+import { UrBootShell } from "@/components/ur-boot-shell";
 import { ConductAgreementGate } from "@/components/conduct-agreement-gate";
 import { SecurityIncidentGate } from "@/components/security-incident-gate";
 import { WorldReviewHoldGate } from "@/components/world-review-hold-gate";
@@ -67,19 +67,19 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
   const kycQuery = trpc.ageKyc.getStatus.useQuery(undefined, {
     enabled: clientReady && isAuthenticated,
     retry: 1,
-    staleTime: 15_000,
+    staleTime: 45_000,
   });
   const conductQuery = trpc.conduct.status.useQuery(undefined, {
-    enabled: clientReady && isAuthenticated && kycQuery.data?.verified === true,
+    enabled: clientReady && isAuthenticated,
     retry: 1,
-    staleTime: 8_000,
-    refetchInterval: 8_000,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
   });
   const securityQuery = trpc.conduct.securityNotice.useQuery(undefined, {
-    enabled: clientReady && isAuthenticated && kycQuery.data?.verified === true,
+    enabled: clientReady && isAuthenticated,
     retry: 1,
-    staleTime: 8_000,
-    refetchInterval: 15_000,
+    staleTime: 30_000,
+    refetchInterval: 45_000,
   });
 
   useEffect(() => {
@@ -162,11 +162,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
   ]);
 
   if (clientReady && isLoading && !isPublicRoute(segments)) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return <UrBootShell label="Checking your sign-in…" />;
   }
 
   if (
@@ -178,11 +174,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     !isDownloadRoute(segments) &&
     !isPublicLegalRoute(segments)
   ) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return <UrBootShell label="Checking your pictures…" />;
   }
 
   const kycVerified = kycQuery.data?.verified === true;
@@ -194,11 +186,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     !isPublicLegalRoute(segments);
 
   if (inProduct && conductQuery.isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return <UrBootShell label="Opening UR…" />;
   }
 
   if (inProduct && conductQuery.data?.required === true && conductQuery.data?.accepted === false) {

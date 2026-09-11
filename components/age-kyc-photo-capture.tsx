@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Platform, Pressable, Text, View, Image } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { useColors } from "@/hooks/use-colors";
 import {
   photoFromDataUrl,
@@ -77,8 +78,10 @@ export function AgeKycPhotoCapture(props: Props) {
             {photo ? (
               <Image
                 source={{ uri: photo.previewUri }}
-                style={{ width: "100%", height: 160, borderRadius: 10 }}
-                resizeMode="cover"
+                style={{ width: "100%", height: 220, borderRadius: 10 }}
+                contentFit="cover"
+                cachePolicy="memory"
+                transition={80}
                 accessibilityLabel={`${slot.title} preview`}
               />
             ) : null}

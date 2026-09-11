@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import {
+  AGE_KYC_CAPTURE_QUALITY,
   ageKycWebCapture,
   normalizeAgeKycMime,
   prepareAgeKycPhoto,
@@ -78,10 +79,14 @@ async function photoFromAsset(
   if (!base64) {
     throw new Error("Could not read that photo. Try again.");
   }
+  const previewUri =
+    asset.uri.startsWith("data:") || /^[a-z][a-z0-9+.-]*:/i.test(asset.uri)
+      ? asset.uri
+      : `data:${mimeType};base64,${base64}`;
   return prepareAgeKycPhoto({
     mimeType,
     base64,
-    previewUri: asset.uri.startsWith("data:") ? asset.uri : `data:${mimeType};base64,${base64}`,
+    previewUri,
   });
 }
 
@@ -111,7 +116,7 @@ export async function pickAgeKycLibraryPhoto(): Promise<AgeKycPickedPhoto | null
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ["images"],
     base64: true,
-    quality: 0.55,
+    quality: AGE_KYC_CAPTURE_QUALITY,
   });
   if (result.canceled || !result.assets[0]) return null;
   return photoFromAsset(result.assets[0]);
@@ -132,7 +137,7 @@ export async function pickAgeKycPhoto(kind: "id" | "selfie"): Promise<AgeKycPick
     const shot = await ImagePicker.launchCameraAsync({
       mediaTypes: ["images"],
       base64: true,
-      quality: 0.55,
+      quality: AGE_KYC_CAPTURE_QUALITY,
       cameraType: ImagePicker.CameraType.front,
     });
     if (shot.canceled || !shot.assets[0]) return null;
@@ -149,13 +154,13 @@ export async function pickAgeKycPhoto(kind: "id" | "selfie"): Promise<AgeKycPick
     ? await ImagePicker.launchCameraAsync({
         mediaTypes: ["images"],
         base64: true,
-        quality: 0.55,
+        quality: AGE_KYC_CAPTURE_QUALITY,
         cameraType: ImagePicker.CameraType.back,
       })
     : await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         base64: true,
-        quality: 0.55,
+        quality: AGE_KYC_CAPTURE_QUALITY,
       });
 
   if (result.canceled || !result.assets[0]) return null;

@@ -33,5 +33,7 @@ describe("platform disclosure copy", () => {
   it("system prompts require AI identity disclosure", () => {
     expect(AI_IDENTITY_DISCLOSURE_PROMPT).toMatch(/not a human or licensed professional/i);
     expect(AI_BOUNDARY_PROMPT).toMatch(/entertainment and educational purposes only/i);
+    expect(AI_BOUNDARY_PROMPT).toMatch(/website or phone app/i);
+    expect(AI_BOUNDARY_PROMPT).toMatch(/18\+ ID check/i);
   });
 });

@@ -53,5 +53,6 @@ describe("countFilledAgeKycSlots", () => {
   it("leaves a photo unchanged when there is no browser canvas", async () => {
     const prepared = await prepareAgeKycPhoto(sample);
     expect(prepared.base64).toBe(sample.base64);
+    expect(prepared.previewUri).toBe(sample.previewUri);
   });
 });

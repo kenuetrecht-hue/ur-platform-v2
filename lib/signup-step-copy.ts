@@ -34,7 +34,7 @@ export const SIGNUP_FIELDS = [
     id: "password",
     label: "Password",
     doThis: "Choose a password at least 6 characters long. Do not reuse a password from another site if you can help it.",
-    why: "Your password is stored as a hash by the sign-in service (Supabase). UR staff cannot read the password.",
+    why: "Your password is stored so nobody at UR can read it. We never sell it.",
   },
   {
     id: "referral",
@@ -56,9 +56,9 @@ export const SIGNUP_FIELDS = [
   },
   {
     id: "cloudflare",
-    label: "Cloudflare security check",
+    label: "Security check",
     doThis: "Complete the “I am not a robot” box if it appears.",
-    why: "Cloudflare Turnstile stops bots from opening fake accounts. It is not the ID check.",
+    why: "This stops fake accounts. It is not the ID check.",
   },
 ] as const;
 

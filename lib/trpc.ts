@@ -44,9 +44,17 @@ export function createTRPCClient() {
               : url instanceof URL
                 ? url.href
                 : url.url;
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 25_000);
+          const onAbort = () => controller.abort();
+          options?.signal?.addEventListener("abort", onAbort);
           return fetch(resolveTrpcFetchUrl(href, getTrpcApiUrl()), {
             ...options,
             credentials: "include",
+            signal: controller.signal,
+          }).finally(() => {
+            clearTimeout(timeout);
+            options?.signal?.removeEventListener("abort", onAbort);
           });
         },
       }),

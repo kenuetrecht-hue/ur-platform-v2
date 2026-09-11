@@ -16,8 +16,10 @@ describe("fast ID picture check", () => {
     expect(googleAi).not.toContain(".slice(0, 2)");
   });
 
-  it("keeps pictures near 1 megapixel like other ID apps", () => {
-    expect(AGE_KYC_SEND_MAX_EDGE).toBeLessThanOrEqual(1024);
-    expect(AGE_KYC_SEND_QUALITY).toBeLessThanOrEqual(0.65);
+  it("sends sharp HD-enough pictures without a giant camera dump", () => {
+    expect(AGE_KYC_SEND_MAX_EDGE).toBeGreaterThanOrEqual(1280);
+    expect(AGE_KYC_SEND_MAX_EDGE).toBeLessThanOrEqual(1920);
+    expect(AGE_KYC_SEND_QUALITY).toBeGreaterThanOrEqual(0.72);
+    expect(AGE_KYC_SEND_QUALITY).toBeLessThanOrEqual(0.88);
   });
 });

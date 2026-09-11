@@ -59,7 +59,7 @@ export function NativeAgeKycCamera({ slot, kind, cameraLabel, onPicked, onError 
     setSnapping(true);
     try {
       const shot = await cameraRef.current?.takePictureAsync({
-        quality: 0.75,
+        quality: 0.85,
         base64: true,
       });
       if (!shot?.uri) {

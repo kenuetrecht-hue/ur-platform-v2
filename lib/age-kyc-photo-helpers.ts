@@ -45,9 +45,10 @@ export function countFilledAgeKycSlots(slots: {
   return Number(Boolean(slots.front)) + Number(Boolean(slots.back)) + Number(Boolean(slots.selfie));
 }
 
-/** Fast ID apps send ~1MP JPEGs, not full camera stills. */
-export const AGE_KYC_SEND_MAX_EDGE = 1024;
-export const AGE_KYC_SEND_QUALITY = 0.62;
+/** Capture stays HD on screen. The send copy is still sharp enough to read an ID. */
+export const AGE_KYC_CAPTURE_QUALITY = 0.85;
+export const AGE_KYC_SEND_MAX_EDGE = 1600;
+export const AGE_KYC_SEND_QUALITY = 0.78;
 
 function photoByteLength(base64: string): number {
   const padding = (base64.match(/=+$/) ?? [""])[0].length;
@@ -77,7 +78,8 @@ export async function prepareAgeKycPhoto(photo: AgeKycPickedPhoto): Promise<AgeK
       }
       ctx.drawImage(img, 0, 0, width, height);
       try {
-        resolve(photoFromDataUrl(canvas.toDataURL("image/jpeg", AGE_KYC_SEND_QUALITY)));
+        const send = photoFromDataUrl(canvas.toDataURL("image/jpeg", AGE_KYC_SEND_QUALITY));
+        resolve({ ...send, previewUri: photo.previewUri });
       } catch {
         resolve(photo);
       }

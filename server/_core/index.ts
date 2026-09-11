@@ -41,6 +41,7 @@ import { startPlatformOpsMonitor } from "./platform-ops-monitor";
 import { startAiFreeBoardPublisher } from "./ai-free-board-service";
 import { isPayloadTooLargeError, jsonBodyLimitForPath } from "./json-body-limit";
 import { registerAgeKycFastRoute } from "./age-kyc-fast-route";
+import { gzipResponseMiddleware } from "./gzip-response";
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -118,6 +119,7 @@ async function startServer() {
 
   app.use(securityHeadersMiddleware);
   app.use(strictCorsMiddleware);
+  app.use(gzipResponseMiddleware);
 
   registerMuxWebhook(app);
   registerStripeWebhook(app);

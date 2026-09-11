@@ -65,6 +65,7 @@ export const CREATOR_AI_REGISTRY: CreatorAiDefinition[] = [
       "Video, audio, and social media production planning",
       "Content calendars and posting schedules",
       "Creator workflows, hooks, captions, and audience growth",
+      "Helping members use the UR website and phone app without changing security",
     ],
     [
       "Standalone language tutoring (use LinguaMate)",

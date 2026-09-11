@@ -1,9 +1,10 @@
 import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { TRPCError } from "@trpc/server";
-import { getClientIp } from "./api-security";
+import { checkIpNamespaceLimit, getClientIp, isIpBlocked } from "./api-security";
 import { assertTurnstileToken } from "./turnstile";
 import { precheckAgeKyc } from "./age-kyc-service";
+import { sniffAgeKycImageMime } from "./age-kyc-image-sniff";
 import { AGE_KYC_IMAGE_MAX_BYTES, type AgeKycDocumentType } from "../../lib/age-kyc-policy";
 
 const DOC_TYPES: AgeKycDocumentType[] = [
@@ -28,12 +29,19 @@ function fileToPhoto(file: Express.Multer.File | undefined, label: string) {
   if (!file?.buffer?.length) {
     throw new TRPCError({ code: "BAD_REQUEST", message: `${label} photo is missing.` });
   }
-  const mimeType = (file.mimetype || "image/jpeg").toLowerCase();
+  const mimeType = sniffAgeKycImageMime(file.buffer);
+  if (!mimeType) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `${label} must be a JPEG, PNG, or WebP photo.`,
+    });
+  }
   return { mimeType, base64: file.buffer.toString("base64") };
 }
 
 function statusFor(error: TRPCError): number {
   if (error.code === "TOO_MANY_REQUESTS") return 429;
+  if (error.code === "FORBIDDEN") return 403;
   if (error.code === "BAD_REQUEST") return 400;
   if (error.code === "PRECONDITION_FAILED") return 412;
   if (error.code === "BAD_GATEWAY") return 502;
@@ -82,6 +90,31 @@ async function handlePrecheck(req: Request, res: Response): Promise<void> {
 /** Binary JPEG upload — the same pattern Stripe Identity / Onfido use for speed. */
 export function registerAgeKycFastRoute(app: Express): void {
   app.post("/api/age-kyc/precheck", (req, res, next) => {
+    const ip = getClientIp(req);
+    if (isIpBlocked(ip)) {
+      res.status(403).json({
+        verified: false,
+        rejectionReason: "This network is blocked.",
+        passToken: null,
+        error: "This network is blocked.",
+      });
+      return;
+    }
+    try {
+      checkIpNamespaceLimit("auth", ip);
+    } catch (error) {
+      if (error instanceof TRPCError) {
+        res.status(statusFor(error)).json({
+          verified: false,
+          rejectionReason: error.message,
+          passToken: null,
+          error: error.message,
+        });
+        return;
+      }
+      throw error;
+    }
+    res.setHeader("Cache-Control", "private, no-store");
     acceptPhotos(req, res, (err: unknown) => {
       if (err) {
         res.status(413).json({

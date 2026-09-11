@@ -10,8 +10,8 @@ import {
 /** Poll interval while chat is open — keeps web + app in sync when WebSocket is down. */
 export const AI_CHAT_SYNC_INTERVAL_MS = 2_500;
 
-/** Slower poll when WebSocket is connected (realtime pushes handle most updates). */
-export const AI_CHAT_SYNC_FALLBACK_INTERVAL_MS = 12_000;
+/** Slow safety poll when WebSocket is already pushing the same thread to web + phone. */
+export const AI_CHAT_SYNC_FALLBACK_INTERVAL_MS = 30_000;
 
 export type SyncedChatMessage = {
   id: string;
@@ -52,7 +52,7 @@ export function useAiChatSync(params: {
     { creatorId: params.creatorId },
     {
       enabled: active,
-      staleTime: 0,
+      staleTime: realtimeConnected ? 10_000 : 0,
       refetchInterval: active
         ? realtimeConnected
           ? AI_CHAT_SYNC_FALLBACK_INTERVAL_MS

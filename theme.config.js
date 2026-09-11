@@ -2,8 +2,8 @@
 const themeColors = {
   primary: { light: '#4F46E5', dark: '#818CF8' },
   secondary: { light: '#7C3AED', dark: '#A78BFA' },
-  background: { light: '#F4F2FA', dark: '#0C0C12' },
-  surface: { light: '#FFFFFF', dark: '#1C1C28' },
+  background: { light: '#F4F2FA', dark: '#07080d' },
+  surface: { light: '#FFFFFF', dark: '#0f111a' },
   foreground: { light: '#0F172A', dark: '#F1F5F9' },
   muted: { light: '#64748B', dark: '#94A3B8' },
   border: { light: '#DDD6FE', dark: '#2E2E40' },

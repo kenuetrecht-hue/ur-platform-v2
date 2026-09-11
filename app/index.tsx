@@ -1,8 +1,8 @@
 import { Redirect } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
+import { UrBootShell } from "@/components/ur-boot-shell";
 
 /** Website and app entry: signed-in people go to the ID photo page first. */
 export default function Index() {
@@ -14,11 +14,7 @@ export default function Index() {
   }, []);
 
   if (!clientReady || isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return <UrBootShell label="Opening UR…" />;
   }
 
   if (isAuthenticated) {

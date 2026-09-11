@@ -26,6 +26,7 @@ export const AI_ROLES: Record<PlatformAiRole, AiRoleDefinition> = {
       "Content calendars and posting schedules",
       "Creator workflows, hooks, captions, and audience growth for content",
       "Multilingual content strategy (scripts and captions for global audiences)",
+      "Helping members use the UR website and phone app (doors, join, pictures, studios, shop) without changing security",
     ],
     outOfScope: [
       "Standalone language tutoring or grammar drills (use LinguaMate)",
