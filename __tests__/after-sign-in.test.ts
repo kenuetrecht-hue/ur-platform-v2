@@ -4,6 +4,7 @@ import {
   AFTER_SIGN_IN_HREF,
   hrefAfterSignIn,
   shouldEnterAppFromAgeVerify,
+  shouldKeepCredentialFormVisible,
   shouldOpenAgeVerifyPage,
   shouldSendSignedOutUserToLoginFromAgeVerify,
 } from "../lib/after-sign-in";
@@ -15,6 +16,9 @@ describe("after sign-in", () => {
     expect(shouldOpenAgeVerifyPage({ isAuthenticated: true, kycVerified: false })).toBe(true);
     expect(shouldOpenAgeVerifyPage({ isAuthenticated: true, kycVerified: true })).toBe(false);
     expect(shouldOpenAgeVerifyPage({ isAuthenticated: false, kycVerified: false })).toBe(false);
+    expect(
+      shouldOpenAgeVerifyPage({ isAuthenticated: true, kycVerified: false, hasPhotoPass: true }),
+    ).toBe(false);
   });
 
   it("keeps the photo page path as a tap target people can open by hand", () => {
@@ -28,6 +32,13 @@ describe("after sign-in", () => {
   it("opens the app after the photos already passed", () => {
     expect(hrefAfterSignIn(true)).toBe(AFTER_ID_PASS_HREF);
     expect(hrefAfterSignIn(false)).toBe(AFTER_SIGN_IN_HREF);
+  });
+
+  it("keeps name email and password on screen after the pictures pass", () => {
+    expect(shouldKeepCredentialFormVisible({ hasPhotoPass: true, kycVerified: false })).toBe(true);
+    expect(shouldKeepCredentialFormVisible({ hasPhotoPass: true, kycVerified: undefined })).toBe(true);
+    expect(shouldKeepCredentialFormVisible({ hasPhotoPass: true, kycVerified: true })).toBe(false);
+    expect(shouldKeepCredentialFormVisible({ hasPhotoPass: false, kycVerified: false })).toBe(false);
   });
 
   it("leaves the leftover photo page once the account is verified", () => {

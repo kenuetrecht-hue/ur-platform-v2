@@ -13,9 +13,11 @@ import {
   AFTER_ID_PASS_HREF,
   AFTER_SIGN_IN_HREF,
   shouldEnterAppFromAgeVerify,
+  shouldKeepCredentialFormVisible,
   shouldOpenAgeVerifyPage,
   shouldSendSignedOutUserToLoginFromAgeVerify,
 } from "@/lib/after-sign-in";
+import { hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
 
 function isAuthRoute(segments: string[]): boolean {
   const root = segments[0];
@@ -108,17 +110,22 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    const kycVerified = kycQuery.data?.verified === true;
+    const hasPhotoPass = hasAgeKycPassToken();
+
     if (isAuthenticated && inAuthRoute) {
-      router.replace(AFTER_SIGN_IN_HREF);
+      if (shouldKeepCredentialFormVisible({ hasPhotoPass, kycVerified })) {
+        return;
+      }
+      router.replace(kycVerified ? AFTER_ID_PASS_HREF : AFTER_SIGN_IN_HREF);
       return;
     }
 
-    const kycVerified = kycQuery.data?.verified === true;
-
     if (
-      shouldOpenAgeVerifyPage({ isAuthenticated, kycVerified }) &&
+      shouldOpenAgeVerifyPage({ isAuthenticated, kycVerified, hasPhotoPass }) &&
       !inAgeVerify &&
-      !inDownload
+      !inDownload &&
+      !inAuthRoute
     ) {
       router.replace(AFTER_SIGN_IN_HREF);
       return;

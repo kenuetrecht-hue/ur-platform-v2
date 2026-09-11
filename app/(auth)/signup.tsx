@@ -21,7 +21,6 @@ import { WebLoginSubmit } from "@/components/web-login-submit";
 import { showUserMessage } from "@/lib/show-user-message";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { markGiveJoinEmanual } from "@/lib/join-emanual-handoff";
-import { PostSignInAgeVerifyGate } from "@/components/go-to-id-photos";
 import { IdCheckDuringSignin } from "@/components/id-check-during-signin";
 
 const ROLES: { id: UserRole; label: string; desc: string }[] = [
@@ -42,7 +41,7 @@ export default function SignUpScreen() {
     demoAttribution?: string;
     demoCreator?: string;
   }>();
-  const { register, isAuthenticated } = useAuth();
+  const { register } = useAuth();
   const colors = useColors();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -180,10 +179,6 @@ export default function SignUpScreen() {
   };
 
   const loading = submitting;
-
-  if (isAuthenticated) {
-    return <PostSignInAgeVerifyGate />;
-  }
 
   return (
     <ScreenContainer className="bg-background">

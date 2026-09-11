@@ -13,8 +13,19 @@ export function shouldOpenAgeVerifyPage(params: {
   isAuthenticated: boolean;
   /** True only after the server says the ID check passed. */
   kycVerified: boolean | undefined;
+  /** Guest photo check already passed — stay on login/signup to type email and password. */
+  hasPhotoPass?: boolean;
 }): boolean {
+  if (params.hasPhotoPass) return false;
   return params.isAuthenticated && params.kycVerified !== true;
+}
+
+/** After pictures pass, keep the email / name / password form on screen. */
+export function shouldKeepCredentialFormVisible(params: {
+  hasPhotoPass: boolean;
+  kycVerified: boolean | undefined;
+}): boolean {
+  return params.hasPhotoPass && params.kycVerified !== true;
 }
 
 /** People may open the ID page before they finish signing in — do not bounce them back to login. */

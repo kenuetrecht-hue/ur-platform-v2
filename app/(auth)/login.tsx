@@ -1,62 +1,21 @@
 import React, { useCallback, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  Platform,
-  StyleSheet,
-  KeyboardAvoidingView,
-} from "react-native";
+import { View, Text, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
 import { Link } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
-import { PrimaryActionButton } from "@/components/primary-action-button";
-import { WebLoginSubmit } from "@/components/web-login-submit";
 import { useLoginScreen } from "@/hooks/use-login-screen";
-import { TurnstileWidget } from "@/components/turnstile-widget";
-import { ID_MUST_PASS_FIRST, LOGIN_FIELDS, LOGIN_PAGE_WHY } from "@/lib/signup-step-copy";
+import { ID_MUST_PASS_FIRST, LOGIN_PAGE_WHY } from "@/lib/signup-step-copy";
 import { hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
-import { SignupStepExplain } from "@/components/signup-step-explain";
-import { PostSignInAgeVerifyGate } from "@/components/go-to-id-photos";
 import { IdCheckDuringSignin } from "@/components/id-check-during-signin";
+import { FinishAccountAfterIdPass } from "@/components/finish-account-after-id-pass";
 
-/** Same login on website and native app — web uses a DOM submit button so clicks register. */
+/** Same login on website and native app — pictures first, then name / email / password. */
 export default function LoginScreen() {
   const colors = useColors();
-  const {
-    emailRef,
-    passwordRef,
-    email,
-    password,
-    submitting,
-    displayError,
-    statusLine,
-    isAuthenticated,
-    handleLogin,
-    onEmailChange,
-    onPasswordChange,
-    onTurnstileToken,
-    serviceHint,
-  } = useLoginScreen();
+  const { serviceHint } = useLoginScreen();
   const [idPassed, setIdPassed] = useState(() => hasAgeKycPassToken());
   const onIdPassed = useCallback(() => setIdPassed(true), []);
   const onIdReset = useCallback(() => setIdPassed(false), []);
-  if (isAuthenticated) {
-    return <PostSignInAgeVerifyGate />;
-  }
-
-  const inputStyle = {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 16,
-    color: colors.foreground,
-    width: "100%" as const,
-    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as object) : null),
-  };
 
   return (
     <ScreenContainer className="bg-background">
@@ -86,114 +45,31 @@ export default function LoginScreen() {
             </Text>
             <IdCheckDuringSignin onPassed={onIdPassed} onReset={onIdReset} />
             {idPassed ? (
-            <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18, marginTop: 20, marginBottom: 8 }}>
-              Then sign in
-            </Text>
+              <>
+                {serviceHint ? (
+                  <View
+                    style={[
+                      styles.errorBox,
+                      { backgroundColor: colors.surface, borderColor: colors.error ?? "#ef4444" },
+                    ]}
+                  >
+                    <Text style={[styles.errorText, { color: colors.error ?? "#ef4444" }]}>
+                      {serviceHint}
+                    </Text>
+                  </View>
+                ) : null}
+                <View style={{ marginTop: 16 }}>
+                  <FinishAccountAfterIdPass />
+                </View>
+              </>
             ) : (
-            <Text
-              style={{ color: colors.foreground, fontWeight: "800", fontSize: 16, marginTop: 20, marginBottom: 8 }}
-              testID="id-check-gate"
-            >
-              {ID_MUST_PASS_FIRST}
-            </Text>
-            )}
-
-            {idPassed ? (
-            <>
-            {serviceHint ? (
-              <View
-                style={[
-                  styles.errorBox,
-                  { backgroundColor: colors.surface, borderColor: colors.error ?? "#ef4444" },
-                ]}
+              <Text
+                style={{ color: colors.foreground, fontWeight: "800", fontSize: 16, marginTop: 20, marginBottom: 8 }}
+                testID="id-check-gate"
               >
-                <Text style={[styles.errorText, { color: colors.error ?? "#ef4444" }]}>
-                  {serviceHint}
-                </Text>
-              </View>
-            ) : null}
-
-            {displayError ? (
-              <View
-                style={[
-                  styles.errorBox,
-                  { backgroundColor: colors.surface, borderColor: colors.error ?? "#ef4444" },
-                ]}
-              >
-                <Text style={[styles.errorText, { color: colors.error ?? "#ef4444" }]}>
-                  {displayError}
-                </Text>
-              </View>
-            ) : null}
-
-            {statusLine && !displayError ? (
-              <Text style={[styles.status, { color: colors.primary }]}>{statusLine}</Text>
-            ) : null}
-
-            <Text style={[styles.label, { color: colors.foreground }]}>Email</Text>
-            <SignupStepExplain doThis={LOGIN_FIELDS[0].doThis} why={LOGIN_FIELDS[0].why} />
-            <TextInput
-              ref={emailRef}
-              value={email}
-              onChangeText={onEmailChange}
-              placeholder="you@example.com"
-              placeholderTextColor={colors.muted}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              textContentType="emailAddress"
-              testID="login-email"
-              editable={!submitting}
-              style={inputStyle}
-              returnKeyType="next"
-            />
-
-            <Text style={[styles.label, { color: colors.foreground, marginTop: 16 }]}>Password</Text>
-            <SignupStepExplain doThis={LOGIN_FIELDS[1].doThis} why={LOGIN_FIELDS[1].why} />
-            <TextInput
-              ref={passwordRef}
-              value={password}
-              onChangeText={onPasswordChange}
-              placeholder="Your password"
-              placeholderTextColor={colors.muted}
-              secureTextEntry
-              autoComplete="current-password"
-              textContentType="password"
-              testID="login-password"
-              editable={!submitting}
-              style={inputStyle}
-              returnKeyType="go"
-              onSubmitEditing={() => {
-                void handleLogin();
-              }}
-            />
-
-            <View style={{ marginTop: 16, marginBottom: 4 }}>
-              <TurnstileWidget action="login" onToken={onTurnstileToken} />
-            </View>
-
-            {Platform.OS === "web" ? (
-              <WebLoginSubmit
-                label="Sign In"
-                loadingLabel="Signing in..."
-                loading={submitting}
-                backgroundColor={colors.primary}
-                onPress={handleLogin}
-              />
-            ) : (
-              <View style={{ marginTop: 24 }}>
-                <PrimaryActionButton
-                  label="Sign In"
-                  loadingLabel="Signing in..."
-                  loading={submitting}
-                  onPress={handleLogin}
-                  backgroundColor={colors.primary}
-                  testID="login-submit"
-                />
-              </View>
+                {ID_MUST_PASS_FIRST}
+              </Text>
             )}
-            </>
-            ) : null}
 
             <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center", marginTop: 20 }}>
               Don&apos;t have an account?{" "}

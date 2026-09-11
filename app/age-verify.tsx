@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { View, Text, Pressable, ScrollView, Alert } from "react-native";
-import { Link, Stack, useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/lib/auth-context";
@@ -14,7 +14,6 @@ import {
   AGE_VERIFY_TITLE,
   AGE_VERIFY_WHAT_TO_DO,
   AGE_VERIFY_WHY,
-  PICTURES_PASSED_SIGN_IN_NEXT,
   signupPrivacyBlock,
 } from "@/lib/signup-step-copy";
 import { countFilledAgeKycSlots, type AgeKycPickedPhoto } from "@/lib/age-kyc-photo-picker";
@@ -27,6 +26,7 @@ import { explainAuthFailure } from "@/lib/auth-network-error";
 import { AFTER_ID_PASS_HREF } from "@/lib/after-sign-in";
 import { getAgeKycPassToken, hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
 import { claimStoredAgeKycPass } from "@/lib/claim-stored-age-kyc-pass";
+import { FinishAccountAfterIdPass } from "@/components/finish-account-after-id-pass";
 
 const DOCS: { id: AgeKycDocumentType; label: string }[] = [
   { id: "driver_license", label: "Driver license" },
@@ -66,10 +66,13 @@ export default function AgeVerifyScreen() {
   });
 
   useEffect(() => {
-    if (statusQuery.error) {
-      setLocalError(explainAuthFailure(statusQuery.error));
+    if (!statusQuery.error) return;
+    const msg = explainAuthFailure(statusQuery.error);
+    setLocalError(msg);
+    if (msg.toLowerCase().includes("sign in with your email")) {
+      void logout();
     }
-  }, [statusQuery.error]);
+  }, [statusQuery.error, logout]);
 
   useEffect(() => {
     if (!isAuthenticated || !getAgeKycPassToken() || claimAttempted.current) return;
@@ -152,31 +155,8 @@ export default function AgeVerifyScreen() {
                 />
               </View>
             </View>
-          ) : picturesAlreadyPassed && !isAuthenticated ? (
-            <View
-              style={{
-                borderWidth: 1,
-                borderColor: colors.primary,
-                borderRadius: 12,
-                padding: 16,
-                gap: 12,
-              }}
-            >
-              <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18 }}>
-                Pictures passed
-              </Text>
-              <Text style={{ color: colors.foreground, fontSize: 15, lineHeight: 22 }}>
-                {PICTURES_PASSED_SIGN_IN_NEXT}
-              </Text>
-              <PrimaryActionButton
-                label="Sign in"
-                onPress={() => router.replace("/login")}
-                backgroundColor={colors.primary}
-              />
-              <Link href="/signup" style={{ color: colors.primary, fontWeight: "800", fontSize: 16, textAlign: "center" }}>
-                Create an account
-              </Link>
-            </View>
+          ) : picturesAlreadyPassed ? (
+            <FinishAccountAfterIdPass />
           ) : (
             <>
               <Text style={{ color: colors.foreground, fontWeight: "700", marginTop: 4 }}>
