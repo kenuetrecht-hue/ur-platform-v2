@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
@@ -6,14 +6,16 @@ import { useAuth } from "@/lib/auth-context";
 import { trpc } from "@/lib/trpc";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { TurnstileWidget } from "@/components/turnstile-widget";
+import { IdCheckDuringSignin } from "@/components/id-check-during-signin";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { claimStoredAgeKycPass } from "@/lib/claim-stored-age-kyc-pass";
-import { hrefAfterSignIn } from "@/lib/after-sign-in";
-import { PICTURES_PASSED_SIGN_IN_NEXT } from "@/lib/signup-step-copy";
+import { AFTER_ID_PASS_HREF } from "@/lib/after-sign-in";
+import { getAgeKycPassToken, hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
+import { ID_MUST_PASS_FIRST } from "@/lib/signup-step-copy";
 import { TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
 import { showUserMessage } from "@/lib/show-user-message";
 
-/** Name, email, and password on the same page after the three pictures pass. */
+/** One page: name / email / password first, then the three pictures, then enter. */
 export function FinishAccountAfterIdPass() {
   const colors = useColors();
   const router = useRouter();
@@ -29,6 +31,13 @@ export function FinishAccountAfterIdPass() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [picturesPassed, setPicturesPassed] = useState(() => hasAgeKycPassToken());
+
+  const onIdPassed = useCallback(() => {
+    setPicturesPassed(true);
+    setError(null);
+  }, []);
+  const onIdReset = useCallback(() => setPicturesPassed(false), []);
 
   const inputStyle = {
     backgroundColor: colors.surface,
@@ -42,17 +51,26 @@ export function FinishAccountAfterIdPass() {
     ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as object) : null),
   };
 
-  const finish = async (claimed: boolean) => {
-    setStatus(claimed ? "Success — opening the app…" : "Signed in. Opening the app…");
-    router.replace(hrefAfterSignIn(claimed));
+  const requirePictures = (): boolean => {
+    if (picturesPassed && getAgeKycPassToken()) return true;
+    const msg = "Type your name, email, and password first. Then take the three pictures and tap Check my three pictures.";
+    setError(msg);
+    showUserMessage("Pictures next", msg);
+    return false;
+  };
+
+  const enterApp = () => {
+    setStatus("Success — opening the app…");
+    router.replace(AFTER_ID_PASS_HREF);
   };
 
   const onSignIn = async () => {
     setError(null);
     if (!email.trim() || !password.trim()) {
-      setError("Type your email and password.");
+      setError("Type your email and password first, then take the pictures.");
       return;
     }
+    if (!requirePictures()) return;
     setBusy(true);
     setStatus("Signing in…");
     try {
@@ -61,17 +79,12 @@ export function FinishAccountAfterIdPass() {
       }
       await verifyTurnstile.mutateAsync({ token: turnstileToken, action: "login" });
       await login(email.trim(), password.trim(), turnstileToken || undefined);
-      let claimed = false;
-      try {
-        claimed = await claimStoredAgeKycPass((input) => claimPass.mutateAsync(input));
-      } catch (claimErr) {
-        setError(explainAuthFailure(claimErr));
-      }
+      const claimed = await claimStoredAgeKycPass((input) => claimPass.mutateAsync(input));
       if (claimed) {
-        await finish(true);
+        enterApp();
         return;
       }
-      setStatus("Signed in. Keep this page open and tap Sign in once more if the app does not open.");
+      setError("Signed in, but the pictures still need to attach. Tap Check my three pictures, then Sign in again.");
     } catch (err) {
       const msg = explainAuthFailure(err);
       setError(msg);
@@ -85,7 +98,7 @@ export function FinishAccountAfterIdPass() {
   const onCreateAccount = async () => {
     setError(null);
     if (!name.trim() || !email.trim() || !password.trim()) {
-      setError("Type your name, email, and password.");
+      setError("Type your name, email, and password first, then take the pictures.");
       return;
     }
     if (password.length < 6) {
@@ -96,6 +109,7 @@ export function FinishAccountAfterIdPass() {
       setError("Check the box to agree to the Terms of Use.");
       return;
     }
+    if (!requirePictures()) return;
     setBusy(true);
     setStatus("Creating account…");
     try {
@@ -123,17 +137,12 @@ export function FinishAccountAfterIdPass() {
         showUserMessage("Confirm your email", msg);
         return;
       }
-      let claimed = false;
-      try {
-        claimed = await claimStoredAgeKycPass((input) => claimPass.mutateAsync(input));
-      } catch (claimErr) {
-        setError(explainAuthFailure(claimErr));
-      }
+      const claimed = await claimStoredAgeKycPass((input) => claimPass.mutateAsync(input));
       if (claimed) {
-        await finish(true);
+        enterApp();
         return;
       }
-      setStatus("Account created. Keep this page open and tap Sign in if the app does not open.");
+      setError("Account created. Tap Check my three pictures if needed, then tap Sign in.");
     } catch (err) {
       const msg = explainAuthFailure(err);
       setError(msg);
@@ -147,10 +156,10 @@ export function FinishAccountAfterIdPass() {
   return (
     <View style={{ gap: 12, width: "100%" }} testID="finish-account-after-id-pass">
       <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18 }}>
-        Pictures passed — now create the account
+        1. Name, email, and password
       </Text>
       <Text style={{ color: colors.foreground, fontSize: 15, lineHeight: 22 }}>
-        {PICTURES_PASSED_SIGN_IN_NEXT} Type your name, email, and password on this page.
+        {ID_MUST_PASS_FIRST}
       </Text>
 
       <Text style={{ color: colors.foreground, fontWeight: "600" }}>Name</Text>
@@ -217,6 +226,18 @@ export function FinishAccountAfterIdPass() {
 
       <TurnstileWidget action="signup" onToken={setTurnstileToken} />
 
+      <View style={{ height: 8 }} />
+      <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18 }}>
+        2. Then take the three pictures
+      </Text>
+      <IdCheckDuringSignin onPassed={onIdPassed} onReset={onIdReset} />
+
+      {picturesPassed ? (
+        <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 15 }}>
+          Pictures passed. Tap Create account or Sign in to enter.
+        </Text>
+      ) : null}
+
       {error ? (
         <Text style={{ color: "#c0392b", fontSize: 14, lineHeight: 20 }}>{error}</Text>
       ) : null}
@@ -225,7 +246,7 @@ export function FinishAccountAfterIdPass() {
       ) : null}
 
       <PrimaryActionButton
-        label="Create account"
+        label="Create account and enter"
         loadingLabel="Creating account…"
         loading={busy}
         onPress={() => void onCreateAccount()}
@@ -233,7 +254,7 @@ export function FinishAccountAfterIdPass() {
         testID="finish-account-create"
       />
       <PrimaryActionButton
-        label="I already have an account — Sign in"
+        label="I already have an account — Sign in and enter"
         loadingLabel="Signing in…"
         loading={busy}
         onPress={() => void onSignIn()}

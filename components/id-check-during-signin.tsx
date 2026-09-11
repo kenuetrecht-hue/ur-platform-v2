@@ -9,7 +9,6 @@ import { countFilledAgeKycSlots, prepareAgeKycPhoto, type AgeKycPickedPhoto } fr
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { loadAgeKycDraft, saveAgeKycDraftSlot } from "@/lib/age-kyc-draft-store";
 import { clearAgeKycPassToken, getAgeKycPassToken, setAgeKycPassToken } from "@/lib/age-kyc-pass-store";
-import { ID_MUST_PASS_FIRST } from "@/lib/signup-step-copy";
 import { trpc } from "@/lib/trpc";
 import type { AgeKycDocumentType } from "@/lib/age-kyc-policy";
 
@@ -107,12 +106,11 @@ export function IdCheckDuringSignin({ onPassed, onReset }: Props) {
   return (
     <View style={{ gap: 14, width: "100%" }} testID="id-check-during-signin">
       <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 20 }}>
-        Hear Uri, then take the three pictures
+        Hear Uri, then photograph the ID
       </Text>
       <Text style={{ color: colors.foreground, fontSize: 15, lineHeight: 22, fontWeight: "700" }}>
         Tap Hear Uri. Then tap Live camera on ID front, ID back, and selfie. A yellow box shows on each one — including the back. Fit the card, wait until Take this picture turns on, then tap it once.
       </Text>
-      <Text style={{ color: colors.foreground, fontSize: 14, lineHeight: 20 }}>{ID_MUST_PASS_FIRST}</Text>
       <SignupKycCartoonSample />
       <Text style={{ color: colors.foreground, fontWeight: "700" }}>ID type</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>

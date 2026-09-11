@@ -61,7 +61,7 @@ describe("Signup and ID-check customer copy", () => {
     expect(text).toContain("photograph a government id");
     expect(text).toContain("live selfie");
     expect(text).toContain("check the box");
-    expect(text).toContain("only unlock after they pass");
+    expect(text).toContain("only let you enter after they pass");
   });
 
   it("says UR does not keep the ID pictures and names the third-party checker", () => {
