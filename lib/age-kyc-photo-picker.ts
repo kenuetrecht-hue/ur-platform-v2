@@ -3,6 +3,7 @@ import { type AgeKycMimeType } from "./age-kyc-policy";
 import {
   ageKycWebCapture,
   isAllowedAgeKycMime,
+  prepareAgeKycPhoto,
   readFileAsPhoto,
   type AgeKycPickedPhoto,
 } from "./age-kyc-photo-helpers";
@@ -11,6 +12,7 @@ export {
   ageKycWebCapture,
   countFilledAgeKycSlots,
   photoFromDataUrl,
+  prepareAgeKycPhoto,
   readFileAsPhoto,
   type AgeKycPickedPhoto,
 } from "./age-kyc-photo-helpers";
@@ -56,9 +58,9 @@ async function pickOnWeb(kind: "id" | "selfie" | "library"): Promise<AgeKycPicke
   });
 }
 
-function photoFromAsset(
+async function photoFromAsset(
   asset: { mimeType?: string | null; base64?: string | null; uri: string },
-): AgeKycPickedPhoto {
+): Promise<AgeKycPickedPhoto> {
   if (!asset.base64) {
     throw new Error("Could not read that photo. Try again.");
   }
@@ -66,11 +68,11 @@ function photoFromAsset(
   if (!isAllowedAgeKycMime(mimeType)) {
     throw new Error("Use a JPEG, PNG, or WebP photo.");
   }
-  return {
+  return prepareAgeKycPhoto({
     mimeType,
     base64: asset.base64,
     previewUri: asset.uri.startsWith("data:") ? asset.uri : `data:${mimeType};base64,${asset.base64}`,
-  };
+  });
 }
 
 /** Photo already on the phone or computer. */
@@ -86,7 +88,7 @@ export async function pickAgeKycLibraryPhoto(): Promise<AgeKycPickedPhoto | null
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ["images"],
     base64: true,
-    quality: 0.8,
+    quality: 0.55,
   });
   if (result.canceled || !result.assets[0]) return null;
   return photoFromAsset(result.assets[0]);
@@ -107,7 +109,7 @@ export async function pickAgeKycPhoto(kind: "id" | "selfie"): Promise<AgeKycPick
     const shot = await ImagePicker.launchCameraAsync({
       mediaTypes: ["images"],
       base64: true,
-      quality: 0.8,
+      quality: 0.55,
       cameraType: ImagePicker.CameraType.front,
     });
     if (shot.canceled || !shot.assets[0]) return null;
@@ -124,13 +126,13 @@ export async function pickAgeKycPhoto(kind: "id" | "selfie"): Promise<AgeKycPick
     ? await ImagePicker.launchCameraAsync({
         mediaTypes: ["images"],
         base64: true,
-        quality: 0.8,
+        quality: 0.55,
         cameraType: ImagePicker.CameraType.back,
       })
     : await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         base64: true,
-        quality: 0.8,
+        quality: 0.55,
       });
 
   if (result.canceled || !result.assets[0]) return null;

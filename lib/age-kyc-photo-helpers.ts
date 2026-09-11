@@ -29,6 +29,47 @@ export function countFilledAgeKycSlots(slots: {
   return Number(Boolean(slots.front)) + Number(Boolean(slots.back)) + Number(Boolean(slots.selfie));
 }
 
+export const AGE_KYC_SEND_MAX_EDGE = 1280;
+export const AGE_KYC_SEND_QUALITY = 0.7;
+
+function photoByteLength(base64: string): number {
+  const padding = (base64.match(/=+$/) ?? [""])[0].length;
+  return Math.floor((base64.length * 3) / 4) - padding;
+}
+
+/** Shrink a camera shot so three pictures fit the ID-check request. */
+export async function prepareAgeKycPhoto(photo: AgeKycPickedPhoto): Promise<AgeKycPickedPhoto> {
+  if (typeof document === "undefined") return photo;
+  const ImageCtor = typeof Image !== "undefined" ? Image : null;
+  if (!ImageCtor) return photo;
+
+  return new Promise((resolve) => {
+    const img = new ImageCtor();
+    img.onload = () => {
+      const longest = Math.max(img.width, img.height);
+      const scale = longest > AGE_KYC_SEND_MAX_EDGE ? AGE_KYC_SEND_MAX_EDGE / longest : 1;
+      const width = Math.max(1, Math.round(img.width * scale));
+      const height = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(photo);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      try {
+        resolve(photoFromDataUrl(canvas.toDataURL("image/jpeg", AGE_KYC_SEND_QUALITY)));
+      } catch {
+        resolve(photo);
+      }
+    };
+    img.onerror = () => resolve(photo);
+    img.src = photo.previewUri;
+  });
+}
+
 export function readFileAsPhoto(file: File): Promise<AgeKycPickedPhoto> {
   return new Promise((resolve, reject) => {
     if (file.size > AGE_KYC_IMAGE_MAX_BYTES) {
@@ -45,11 +86,12 @@ export function readFileAsPhoto(file: File): Promise<AgeKycPickedPhoto> {
       const result = String(reader.result ?? "");
       const comma = result.indexOf(",");
       const base64 = comma >= 0 ? result.slice(comma + 1) : result;
-      resolve({
+      const photo: AgeKycPickedPhoto = {
         mimeType,
         base64,
         previewUri: result.startsWith("data:") ? result : `data:${mimeType};base64,${base64}`,
-      });
+      };
+      void prepareAgeKycPhoto(photo).then(resolve, reject);
     };
     reader.onerror = () => reject(new Error("Could not read photo."));
     reader.readAsDataURL(file);
@@ -65,8 +107,7 @@ export function photoFromDataUrl(dataUrl: string): AgeKycPickedPhoto {
   if (!isAllowedAgeKycMime(mimeType)) {
     throw new Error("Use a JPEG, PNG, or WebP photo.");
   }
-  const padding = (base64.match(/=+$/) ?? [""])[0].length;
-  const bytes = Math.floor((base64.length * 3) / 4) - padding;
+  const bytes = photoByteLength(base64);
   if (bytes > AGE_KYC_IMAGE_MAX_BYTES) {
     throw new Error("Photo is too large (max 4 MB).");
   }

@@ -5,7 +5,8 @@ import { AgeKycPhotoCapture } from "@/components/age-kyc-photo-capture";
 import { SignupKycCartoonSample } from "@/components/signup-kyc-cartoon-sample";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { TurnstileWidget } from "@/components/turnstile-widget";
-import { countFilledAgeKycSlots, type AgeKycPickedPhoto } from "@/lib/age-kyc-photo-picker";
+import { countFilledAgeKycSlots, prepareAgeKycPhoto, type AgeKycPickedPhoto } from "@/lib/age-kyc-photo-picker";
+import { explainAuthFailure } from "@/lib/auth-network-error";
 import { loadAgeKycDraft, saveAgeKycDraftSlot } from "@/lib/age-kyc-draft-store";
 import { clearAgeKycPassToken, getAgeKycPassToken, setAgeKycPassToken } from "@/lib/age-kyc-pass-store";
 import { ID_MUST_PASS_FIRST } from "@/lib/signup-step-copy";
@@ -53,7 +54,7 @@ export function IdCheckDuringSignin({ onPassed, onReset }: Props) {
     onError: (err) => {
       setPassed(false);
       onReset?.();
-      setError(err.message);
+      setError(explainAuthFailure(err));
     },
   });
 
@@ -83,13 +84,24 @@ export function IdCheckDuringSignin({ onPassed, onReset }: Props) {
       return;
     }
     setError(null);
-    precheck.mutate({
-      documentType,
-      idFront: { mimeType: front.mimeType, base64: front.base64 },
-      idBack: { mimeType: back.mimeType, base64: back.base64 },
-      selfie: { mimeType: selfie.mimeType, base64: selfie.base64 },
-      turnstileToken: turnstileToken || undefined,
-    });
+    void (async () => {
+      try {
+        const [idFront, idBack, liveSelfie] = await Promise.all([
+          prepareAgeKycPhoto(front),
+          prepareAgeKycPhoto(back),
+          prepareAgeKycPhoto(selfie),
+        ]);
+        precheck.mutate({
+          documentType,
+          idFront: { mimeType: idFront.mimeType, base64: idFront.base64 },
+          idBack: { mimeType: idBack.mimeType, base64: idBack.base64 },
+          selfie: { mimeType: liveSelfie.mimeType, base64: liveSelfie.base64 },
+          turnstileToken: turnstileToken || undefined,
+        });
+      } catch (err) {
+        setError(explainAuthFailure(err));
+      }
+    })();
   };
 
   return (

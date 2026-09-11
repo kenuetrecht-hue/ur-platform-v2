@@ -14,11 +14,12 @@ describe("explainAuthFailure", () => {
     );
   });
 
-  it("rewrites HTML-as-JSON (DOCTYPE) into an API hint", () => {
+  it("rewrites HTML-as-JSON (DOCTYPE) into a check-again hint on the live site", () => {
     const msg = explainAuthFailure(
       new Error("Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"),
     );
-    expect(msg.toLowerCase()).toContain("api");
-    expect(msg.toLowerCase()).toContain("8082");
+    expect(msg.toLowerCase()).toContain("pictures");
+    expect(msg.toLowerCase()).toContain("check my three pictures");
+    expect(msg.toLowerCase()).not.toContain("8082");
   });
 });

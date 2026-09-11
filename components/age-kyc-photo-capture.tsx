@@ -6,6 +6,7 @@ import {
   photoFromDataUrl,
   pickAgeKycLibraryPhoto,
   pickAgeKycPhoto,
+  prepareAgeKycPhoto,
   readFileAsPhoto,
   type AgeKycPickedPhoto,
 } from "@/lib/age-kyc-photo-picker";
@@ -204,9 +205,15 @@ function WebCameraCard({
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Could not capture that frame.");
       ctx.drawImage(video, 0, 0);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-      onPicked(photoFromDataUrl(dataUrl));
-      stopLive();
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+      void prepareAgeKycPhoto(photoFromDataUrl(dataUrl))
+        .then((photo) => {
+          onPicked(photo);
+          stopLive();
+        })
+        .catch((error) => {
+          onError(error instanceof Error ? error.message : "Could not take that picture.");
+        });
     } catch (error) {
       onError(error instanceof Error ? error.message : "Could not take that picture.");
     }

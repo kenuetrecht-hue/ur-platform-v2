@@ -39,6 +39,7 @@ import { hydrateCreatorRosterFromDatabase } from "./partner-program-service";
 import { hydrateRecentAiUserMemory } from "./ai-user-memory-persistence";
 import { startPlatformOpsMonitor } from "./platform-ops-monitor";
 import { startAiFreeBoardPublisher } from "./ai-free-board-service";
+import { isPayloadTooLargeError, jsonBodyLimitForPath } from "./json-body-limit";
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -120,8 +121,11 @@ async function startServer() {
   registerMuxWebhook(app);
   registerStripeWebhook(app);
 
-  // JSON body limit — large uploads should use dedicated storage routes
-  app.use(express.json({ limit: "1mb" }));
+  // JSON body limit — 1mb everywhere except the ID photo check (three pictures).
+  app.use((req, res, next) => {
+    const path = `${req.originalUrl ?? ""} ${req.url ?? ""}`;
+    express.json({ limit: jsonBodyLimitForPath(path) })(req, res, next);
+  });
   app.use(express.urlencoded({ limit: "1mb", extended: true }));
 
   app.use("/api", apiIpGuardMiddleware);
@@ -226,6 +230,23 @@ async function startServer() {
   );
 
   registerStaticWeb(app);
+
+  app.use((
+    err: unknown,
+    _req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    if (isPayloadTooLargeError(err)) {
+      res.status(413).json({
+        error: {
+          message: "Those pictures are too large. Take them again and tap Check my three pictures.",
+        },
+      });
+      return;
+    }
+    next(err);
+  });
 
   const preferredPort = parseInt(process.env.PORT || "3000", 10);
   try {

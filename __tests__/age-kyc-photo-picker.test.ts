@@ -3,6 +3,7 @@ import {
   ageKycWebCapture,
   countFilledAgeKycSlots,
   photoFromDataUrl,
+  prepareAgeKycPhoto,
 } from "../lib/age-kyc-photo-helpers";
 import type { AgeKycPickedPhoto } from "../lib/age-kyc-photo-helpers";
 import { AGE_VERIFY_PHOTO_HINTS } from "../lib/signup-step-copy";
@@ -40,5 +41,10 @@ describe("countFilledAgeKycSlots", () => {
 
   it("rejects a snapshot that is not a photo", () => {
     expect(() => photoFromDataUrl("data:text/plain;base64,abc")).toThrow(/JPEG|PNG|WebP/i);
+  });
+
+  it("leaves a photo unchanged when there is no browser canvas", async () => {
+    const prepared = await prepareAgeKycPhoto(sample);
+    expect(prepared.base64).toBe(sample.base64);
   });
 });

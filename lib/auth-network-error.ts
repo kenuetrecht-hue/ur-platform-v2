@@ -9,9 +9,16 @@ export function explainAuthFailure(error: unknown): string {
   if (
     lower.includes("doctype") ||
     lower.includes("not valid json") ||
-    lower.includes("unexpected token <")
+    lower.includes("unexpected token <") ||
+    lower.includes("entity too large") ||
+    lower.includes("payload too large")
   ) {
-    return "The app reached the website instead of the API. Keep pnpm dev:web running and open http://localhost:8082 — then refresh the page.";
+    const onLocalhost =
+      typeof window !== "undefined" && /localhost|127\.0\.0\.1/.test(window.location.hostname);
+    if (onLocalhost) {
+      return "The app reached the website instead of the API. Keep pnpm dev:web running and open http://localhost:8082 — then refresh the page.";
+    }
+    return "Those pictures could not be checked. They may be too large, or the site is still starting. Take the three pictures again and tap Check my three pictures.";
   }
 
   if (
