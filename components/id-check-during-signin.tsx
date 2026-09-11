@@ -11,6 +11,7 @@ import { loadAgeKycDraft, saveAgeKycDraftSlot } from "@/lib/age-kyc-draft-store"
 import { clearAgeKycPassToken, getAgeKycPassToken, setAgeKycPassToken } from "@/lib/age-kyc-pass-store";
 import { trpc } from "@/lib/trpc";
 import type { AgeKycDocumentType } from "@/lib/age-kyc-policy";
+import { TapToRead } from "@/components/tap-to-read";
 
 const DOCS: { id: AgeKycDocumentType; label: string }[] = [
   { id: "driver_license", label: "Driver license" },
@@ -105,12 +106,12 @@ export function IdCheckDuringSignin({ onPassed, onReset }: Props) {
 
   return (
     <View style={{ gap: 14, width: "100%" }} testID="id-check-during-signin">
-      <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 20 }}>
-        Hear Uri, then photograph the ID
+      <Text style={{ color: colors.foreground, fontSize: 15, lineHeight: 22 }}>
+        Hear Uri if you want. Then use Live camera on front, back, and selfie.
       </Text>
-      <Text style={{ color: colors.foreground, fontSize: 15, lineHeight: 22, fontWeight: "700" }}>
+      <TapToRead title="How to line up the yellow box">
         Tap Hear Uri. Then tap Live camera on ID front, ID back, and selfie. A yellow box shows on each one — including the back. Fit the card, wait until Take this picture turns on, then tap it once.
-      </Text>
+      </TapToRead>
       <SignupKycCartoonSample />
       <Text style={{ color: colors.foreground, fontWeight: "700" }}>ID type</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>

@@ -11,9 +11,10 @@ import { explainAuthFailure } from "@/lib/auth-network-error";
 import { claimStoredAgeKycPass } from "@/lib/claim-stored-age-kyc-pass";
 import { AFTER_ID_PASS_HREF } from "@/lib/after-sign-in";
 import { getAgeKycPassToken, hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
-import { ID_MUST_PASS_FIRST } from "@/lib/signup-step-copy";
+import { ID_MUST_PASS_FIRST, signupPrivacyBlock } from "@/lib/signup-step-copy";
 import { TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
 import { showUserMessage } from "@/lib/show-user-message";
+import { TapToRead } from "@/components/tap-to-read";
 
 /** One page: name / email / password first, then the three pictures, then enter. */
 export function FinishAccountAfterIdPass() {
@@ -32,6 +33,7 @@ export function FinishAccountAfterIdPass() {
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [picturesPassed, setPicturesPassed] = useState(() => hasAgeKycPassToken());
+  const [showPassword, setShowPassword] = useState(false);
 
   const onIdPassed = useCallback(() => {
     setPicturesPassed(true);
@@ -158,8 +160,8 @@ export function FinishAccountAfterIdPass() {
       <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18 }}>
         1. Name, email, and password
       </Text>
-      <Text style={{ color: colors.foreground, fontSize: 15, lineHeight: 22 }}>
-        {ID_MUST_PASS_FIRST}
+      <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>
+        Fill these in first. Then scroll down for the pictures.
       </Text>
 
       <Text style={{ color: colors.foreground, fontWeight: "600" }}>Name</Text>
@@ -189,17 +191,24 @@ export function FinishAccountAfterIdPass() {
       />
 
       <Text style={{ color: colors.foreground, fontWeight: "600" }}>Password</Text>
-      <TextInput
-        value={password}
-        onChangeText={setPassword}
-        placeholder="At least 6 characters"
-        placeholderTextColor={colors.muted}
-        secureTextEntry
-        autoComplete="password"
-        editable={!busy}
-        style={inputStyle}
-        testID="finish-account-password"
-      />
+      <View style={{ position: "relative" }}>
+        <TextInput
+          value={password}
+          onChangeText={setPassword}
+          placeholder="At least 6 characters"
+          placeholderTextColor={colors.muted}
+          secureTextEntry={!showPassword}
+          autoComplete="password"
+          editable={!busy}
+          style={inputStyle}
+          testID="finish-account-password"
+        />
+        <Pressable onPress={() => setShowPassword((value) => !value)} style={{ marginTop: 8 }}>
+          <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>
+            {showPassword ? "Hide password" : "Show password"}
+          </Text>
+        </Pressable>
+      </View>
 
       <Pressable
         onPress={() => setAcceptedTerms((value) => !value)}
@@ -216,13 +225,21 @@ export function FinishAccountAfterIdPass() {
             marginTop: 2,
           }}
         />
-        <Text style={{ color: colors.foreground, fontSize: 13, lineHeight: 18, flex: 1 }}>
-          {TERMS_SIGNUP_ACKNOWLEDGMENT}{" "}
+        <Text style={{ color: colors.foreground, fontSize: 14, lineHeight: 20, flex: 1 }}>
+          I am 18 or older and I agree to the{" "}
           <Link href="/terms" style={{ color: colors.primary, fontWeight: "700" }}>
             Terms
           </Link>
+          .
         </Text>
       </Pressable>
+      <TapToRead title="Why we ask and what we keep" testID="join-why-tab">
+        {ID_MUST_PASS_FIRST}
+        {"\n\n"}
+        {TERMS_SIGNUP_ACKNOWLEDGMENT}
+        {"\n\n"}
+        {signupPrivacyBlock()}
+      </TapToRead>
 
       <TurnstileWidget action="signup" onToken={setTurnstileToken} />
 

@@ -28,6 +28,7 @@ import { LANDING_DEMO_CREATOR_IDS } from "@/lib/landing-demo-policy";
 import { buildCreatorSignupHref } from "@/lib/launch-promotion-config";
 import { PLATFORM_DISCLOSURE_SHORT } from "@/lib/platform-disclosure-copy";
 import { PUBLIC_LEGAL_NAV } from "@/lib/public-legal-routes";
+import { TapToRead } from "@/components/tap-to-read";
 
 const HEADLINE =
   "The future of specialist AI is collaborative, secure, and live.";
@@ -92,11 +93,14 @@ export function TechnoFuturistExperience() {
               {!done ? <Text style={styles.cursor}>|</Text> : null}
             </Text>
             <Text style={styles.lede}>
-              {LANDING_PLATFORM_UNITY_LINE} UR Platform is for adults. You must photograph a
-              government ID (front and back) and a matching selfie before you can enter the app,
-              website product, or AI demo. This exists because AI, social, and paid features can
-              be addictive under 18.
+              {LANDING_PLATFORM_UNITY_LINE} For adults 18 and older.
             </Text>
+            <TapToRead title="Why we require ID and a selfie">
+              You photograph a government ID (front and back) and a matching selfie before you
+              can enter the app, website, or AI demo. That keeps minors and fraud off the site.
+              AI, social, and paid features can be addictive under 18. UR does not keep the ID
+              pictures after the check.
+            </TapToRead>
 
             <View style={styles.heroCtaRow}>
               <LandingSignInButton variant="hero" />
