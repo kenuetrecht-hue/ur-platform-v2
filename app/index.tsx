@@ -2,19 +2,18 @@ import { Redirect } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { usePlatformOwner } from "@/lib/use-platform-owner";
+import { AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
 
-/** Website and app entry: owner/staff go to Administration; everyone else to Home or the public landing. */
+/** Website and app entry: signed-in people go to the ID photo page first. */
 export default function Index() {
   const { isAuthenticated, isLoading } = useAuth();
-  const { canAccessAdminDashboard, isLoading: ownerLoading } = usePlatformOwner();
   const [clientReady, setClientReady] = useState(false);
 
   useEffect(() => {
     setClientReady(true);
   }, []);
 
-  if (!clientReady || isLoading || (isAuthenticated && ownerLoading)) {
+  if (!clientReady || isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
@@ -23,10 +22,7 @@ export default function Index() {
   }
 
   if (isAuthenticated) {
-    if (canAccessAdminDashboard) {
-      return <Redirect href="/(tabs)/admin" />;
-    }
-    return <Redirect href="/(tabs)" />;
+    return <Redirect href={AFTER_SIGN_IN_HREF} />;
   }
 
   return <Redirect href="/welcome" />;

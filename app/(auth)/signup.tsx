@@ -18,6 +18,7 @@ import { WebLoginSubmit } from "@/components/web-login-submit";
 import { showUserMessage } from "@/lib/show-user-message";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { markGiveJoinEmanual } from "@/lib/join-emanual-handoff";
+import { AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
 
 const ROLES: { id: UserRole; label: string; desc: string }[] = [
   { id: "creator", label: "Content creator", desc: "Host paid live classes · 85% instant payouts" },
@@ -143,8 +144,8 @@ export default function SignUpScreen() {
         router.replace("/login");
         return;
       }
-      setStatusLine("Success — opening your free e-manual…");
-      router.replace("/e-manual?joined=1");
+      setStatusLine("Success — opening the ID photo page…");
+      router.replace(AFTER_SIGN_IN_HREF);
     } catch (err) {
       const msg = explainAuthFailure(err);
       setFormError(msg);
@@ -158,7 +159,7 @@ export default function SignUpScreen() {
   const loading = submitting;
 
   if (isAuthenticated) {
-    return <Redirect href="/(tabs)" />;
+    return <Redirect href={AFTER_SIGN_IN_HREF} />;
   }
 
   return (

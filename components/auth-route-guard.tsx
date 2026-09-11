@@ -9,6 +9,7 @@ import { SecurityIncidentGate } from "@/components/security-incident-gate";
 import { WorldReviewHoldGate } from "@/components/world-review-hold-gate";
 import { shouldGiveJoinEmanual } from "@/lib/join-emanual-handoff";
 import { isPublicLegalRoute } from "@/lib/public-legal-routes";
+import { AFTER_SIGN_IN_HREF, shouldOpenAgeVerifyPage } from "@/lib/after-sign-in";
 
 function isAuthRoute(segments: string[]): boolean {
   const root = segments[0];
@@ -99,15 +100,18 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     }
 
     if (isAuthenticated && inAuthRoute) {
-      router.replace("/age-verify");
+      router.replace(AFTER_SIGN_IN_HREF);
       return;
     }
 
     const kycVerified = kycQuery.data?.verified === true;
-    const kycReady = !kycQuery.isLoading;
 
-    if (isAuthenticated && kycReady && !kycVerified && !inAgeVerify && !inDownload) {
-      router.replace("/age-verify");
+    if (
+      shouldOpenAgeVerifyPage({ isAuthenticated, kycVerified }) &&
+      !inAgeVerify &&
+      !inDownload
+    ) {
+      router.replace(AFTER_SIGN_IN_HREF);
       return;
     }
 

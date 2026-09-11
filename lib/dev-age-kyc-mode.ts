@@ -10,6 +10,8 @@ export function isDevAgeKycBypassEnabled(): boolean {
   if (typeof process === "undefined") return false;
   const nodeEnv = process.env.NODE_ENV ?? "";
   if (nodeEnv === "production") return false;
+  // Railway is the live site even if NODE_ENV was set wrong.
+  if ((process.env.RAILWAY_ENVIRONMENT ?? "").trim()) return false;
 
   const flag = (process.env.DEV_SKIP_AGE_KYC ?? "").trim().toLowerCase();
   if (flag === "0" || flag === "false" || flag === "no" || flag === "off") return false;

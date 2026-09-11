@@ -12,6 +12,13 @@ describe("isDevAgeKycBypassEnabled", () => {
     expect(isDevAgeKycBypassEnabled()).toBe(false);
   });
 
+  it("never skips on Railway", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("DEV_SKIP_AGE_KYC", "true");
+    vi.stubEnv("RAILWAY_ENVIRONMENT", "production");
+    expect(isDevAgeKycBypassEnabled()).toBe(false);
+  });
+
   it("skips by default in development", () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("DEV_SKIP_AGE_KYC", "");

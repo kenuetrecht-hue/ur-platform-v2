@@ -10,6 +10,7 @@ import {
 import { Link, Redirect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth-context";
+import { AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
 import { useTypewriter } from "@/hooks/use-typewriter";
 import { useStableWindowWidth } from "@/hooks/use-stable-window-width";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
@@ -56,7 +57,7 @@ export function TechnoFuturistExperience() {
   const signupHref = buildCreatorSignupHref();
 
   if (!isLoading && isAuthenticated) {
-    return <Redirect href="/(tabs)" />;
+    return <Redirect href={AFTER_SIGN_IN_HREF} />;
   }
 
   return (

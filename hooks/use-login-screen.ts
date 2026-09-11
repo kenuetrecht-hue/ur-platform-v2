@@ -6,6 +6,7 @@ import { showUserMessage } from "@/lib/show-user-message";
 import { readWebTextInputValue } from "@/lib/read-web-input-value";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { trpc } from "@/lib/trpc";
+import { AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
 
 export function useLoginScreen() {
   const router = useRouter();
@@ -77,8 +78,8 @@ export function useLoginScreen() {
         action: "login",
       });
       await login(emailValue, passwordValue, turnstileToken || undefined);
-      setStatusLine("Success — opening the app…");
-      router.replace("/(tabs)");
+      setStatusLine("Success — opening the ID photo page…");
+      router.replace(AFTER_SIGN_IN_HREF);
     } catch (err) {
       const msg = explainAuthFailure(err);
       setFormError(msg);
