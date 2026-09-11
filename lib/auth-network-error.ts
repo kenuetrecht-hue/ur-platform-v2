@@ -33,5 +33,9 @@ export function explainAuthFailure(error: unknown): string {
     return supabaseUnreachableHint();
   }
 
+  if (lower.includes("please login") || lower.includes("10001")) {
+    return "Please sign in with your email and password. If your pictures already passed, you do not need to take them again.";
+  }
+
   return raw.trim() || "Sign in failed. Please try again.";
 }

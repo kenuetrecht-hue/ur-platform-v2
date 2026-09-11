@@ -14,6 +14,13 @@ describe("explainAuthFailure", () => {
     );
   });
 
+  it("rewrites Please login (10001) into a sign-in hint", () => {
+    const msg = explainAuthFailure(new Error("Please login (10001)"));
+    expect(msg.toLowerCase()).toContain("sign in");
+    expect(msg.toLowerCase()).toContain("email and password");
+    expect(msg).not.toContain("10001");
+  });
+
   it("rewrites HTML-as-JSON (DOCTYPE) into a check-again hint on the live site", () => {
     const msg = explainAuthFailure(
       new Error("Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"),

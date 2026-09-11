@@ -10,8 +10,8 @@ import { AFFILIATE_REFERRAL_PAYOUT_RULE } from "@/lib/affiliate-referral-payout-
 import { CREATOR_CONTENT_PROTECTION_NOTICE } from "@/lib/creator-content-protection-copy";
 import { TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
 import { ID_MUST_PASS_FIRST, SIGNUP_FIELDS, SIGNUP_PAGE_WHY, signupPrivacyBlock } from "@/lib/signup-step-copy";
-import { clearAgeKycDraft } from "@/lib/age-kyc-draft-store";
-import { clearAgeKycPassToken, getAgeKycPassToken, hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
+import { getAgeKycPassToken, hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
+import { claimStoredAgeKycPass } from "@/lib/claim-stored-age-kyc-pass";
 import { hrefAfterSignIn } from "@/lib/after-sign-in";
 import { SignupStepExplain } from "@/components/signup-step-explain";
 import { saveLandingDemoAttributionId } from "@/lib/landing-demo-attribution-storage";
@@ -159,21 +159,15 @@ export default function SignUpScreen() {
         router.replace("/login");
         return;
       }
-      const passToken = getAgeKycPassToken();
       let claimed = false;
-      if (passToken) {
-        try {
-          const status = await claimPass.mutateAsync({ passToken });
-          claimed = status.verified === true;
-          if (claimed) {
-            clearAgeKycPassToken();
-            clearAgeKycDraft();
-          }
-        } catch {
-          claimed = false;
-        }
+      try {
+        claimed = await claimStoredAgeKycPass((input) => claimPass.mutateAsync(input));
+      } catch (claimErr) {
+        const claimMsg = explainAuthFailure(claimErr);
+        setFormError(claimMsg);
+        showUserMessage("Pictures passed — sign-in next", claimMsg);
       }
-      setStatusLine(claimed ? "Success — opening the app…" : "Success — opening the ID photo page…");
+      setStatusLine(claimed ? "Success — opening the app…" : "Success — finishing the ID check…");
       router.replace(hrefAfterSignIn(claimed));
     } catch (err) {
       const msg = explainAuthFailure(err);

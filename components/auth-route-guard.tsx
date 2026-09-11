@@ -10,7 +10,9 @@ import { WorldReviewHoldGate } from "@/components/world-review-hold-gate";
 import { shouldGiveJoinEmanual } from "@/lib/join-emanual-handoff";
 import { isPublicLegalRoute } from "@/lib/public-legal-routes";
 import {
+  AFTER_ID_PASS_HREF,
   AFTER_SIGN_IN_HREF,
+  shouldEnterAppFromAgeVerify,
   shouldOpenAgeVerifyPage,
   shouldSendSignedOutUserToLoginFromAgeVerify,
 } from "@/lib/after-sign-in";
@@ -122,8 +124,8 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (isAuthenticated && kycVerified && inAgeVerify) {
-      // Stay on the photo page. A bounce here is why people never see the cameras.
+    if (shouldEnterAppFromAgeVerify({ isAuthenticated, kycVerified }) && inAgeVerify) {
+      router.replace(AFTER_ID_PASS_HREF);
       return;
     }
 

@@ -21,3 +21,11 @@ export function shouldOpenAgeVerifyPage(params: {
 export function shouldSendSignedOutUserToLoginFromAgeVerify(): boolean {
   return false;
 }
+
+/** After the server has the 18+ pass, leave the leftover photo page and enter the app. */
+export function shouldEnterAppFromAgeVerify(params: {
+  isAuthenticated: boolean;
+  kycVerified: boolean;
+}): boolean {
+  return params.isAuthenticated && params.kycVerified;
+}

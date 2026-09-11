@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View, Text, Pressable, ScrollView, Alert } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { Link, Stack, useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/lib/auth-context";
@@ -14,6 +14,7 @@ import {
   AGE_VERIFY_TITLE,
   AGE_VERIFY_WHAT_TO_DO,
   AGE_VERIFY_WHY,
+  PICTURES_PASSED_SIGN_IN_NEXT,
   signupPrivacyBlock,
 } from "@/lib/signup-step-copy";
 import { countFilledAgeKycSlots, type AgeKycPickedPhoto } from "@/lib/age-kyc-photo-picker";
@@ -22,6 +23,10 @@ import { AgeKycPhotoCapture } from "@/components/age-kyc-photo-capture";
 import { SignupKycCartoonSample } from "@/components/signup-kyc-cartoon-sample";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { TurnstileWidget } from "@/components/turnstile-widget";
+import { explainAuthFailure } from "@/lib/auth-network-error";
+import { AFTER_ID_PASS_HREF } from "@/lib/after-sign-in";
+import { getAgeKycPassToken, hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
+import { claimStoredAgeKycPass } from "@/lib/claim-stored-age-kyc-pass";
 
 const DOCS: { id: AgeKycDocumentType; label: string }[] = [
   { id: "driver_license", label: "Driver license" },
@@ -41,11 +46,14 @@ export default function AgeVerifyScreen() {
   const [selfie, setSelfie] = useState<AgeKycPickedPhoto | null>(draft.selfie);
   const [localError, setLocalError] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const picturesAlreadyPassed = hasAgeKycPassToken();
+  const claimAttempted = useRef(false);
 
   const statusQuery = trpc.ageKyc.getStatus.useQuery(undefined, {
     retry: 1,
     enabled: isAuthenticated,
   });
+  const claimPass = trpc.ageKyc.claimPass.useMutation();
   const submit = trpc.ageKyc.submit.useMutation({
     onSuccess: (data) => {
       if (data.verified) {
@@ -54,8 +62,27 @@ export default function AgeVerifyScreen() {
         setLocalError(data.rejectionReason ?? AGE_KYC_REQUIRED_MESSAGE);
       }
     },
-    onError: (err) => setLocalError(err.message),
+    onError: (err) => setLocalError(explainAuthFailure(err)),
   });
+
+  useEffect(() => {
+    if (statusQuery.error) {
+      setLocalError(explainAuthFailure(statusQuery.error));
+    }
+  }, [statusQuery.error]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !getAgeKycPassToken() || claimAttempted.current) return;
+    claimAttempted.current = true;
+    void claimStoredAgeKycPass((input) => claimPass.mutateAsync(input))
+      .then((claimed) => {
+        if (claimed) {
+          void statusQuery.refetch();
+          router.replace(AFTER_ID_PASS_HREF);
+        }
+      })
+      .catch((err) => setLocalError(explainAuthFailure(err)));
+  }, [isAuthenticated, claimPass, router, statusQuery]);
 
   const recordPhoto = (slot: "front" | "back" | "selfie", photo: AgeKycPickedPhoto) => {
     setLocalError(null);
@@ -69,8 +96,8 @@ export default function AgeVerifyScreen() {
 
   const onSubmit = () => {
     if (!isAuthenticated) {
-      Alert.alert("Sign in first", "Sign in on the login page, then tap Verify and enter.");
-      router.push("/login");
+      Alert.alert("Sign in next", PICTURES_PASSED_SIGN_IN_NEXT);
+      router.push(picturesAlreadyPassed ? "/login" : "/login");
       return;
     }
     if (!idFront || !idBack || !selfie) {
@@ -120,10 +147,35 @@ export default function AgeVerifyScreen() {
               <View style={{ marginTop: 12 }}>
                 <PrimaryActionButton
                   label="Enter the app"
-                  onPress={() => router.replace("/(tabs)")}
+                  onPress={() => router.replace(AFTER_ID_PASS_HREF)}
                   backgroundColor={colors.primary}
                 />
               </View>
+            </View>
+          ) : picturesAlreadyPassed && !isAuthenticated ? (
+            <View
+              style={{
+                borderWidth: 1,
+                borderColor: colors.primary,
+                borderRadius: 12,
+                padding: 16,
+                gap: 12,
+              }}
+            >
+              <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18 }}>
+                Pictures passed
+              </Text>
+              <Text style={{ color: colors.foreground, fontSize: 15, lineHeight: 22 }}>
+                {PICTURES_PASSED_SIGN_IN_NEXT}
+              </Text>
+              <PrimaryActionButton
+                label="Sign in"
+                onPress={() => router.replace("/login")}
+                backgroundColor={colors.primary}
+              />
+              <Link href="/signup" style={{ color: colors.primary, fontWeight: "800", fontSize: 16, textAlign: "center" }}>
+                Create an account
+              </Link>
             </View>
           ) : (
             <>
@@ -174,16 +226,22 @@ export default function AgeVerifyScreen() {
               <TurnstileWidget action="age_kyc" onToken={setTurnstileToken} />
 
               <PrimaryActionButton
-                label="Verify and enter"
+                label={isAuthenticated ? "Verify and enter" : "Sign in to finish"}
                 loadingLabel="Checking…"
-                loading={submit.isPending}
-                onPress={onSubmit}
+                loading={submit.isPending || claimPass.isPending}
+                onPress={isAuthenticated ? onSubmit : () => router.replace("/login")}
                 backgroundColor={colors.primary}
               />
 
               <PrivacyDetails />
             </>
           )}
+
+          {rejection && (verified || (picturesAlreadyPassed && !isAuthenticated)) ? (
+            <Text style={{ color: "#c0392b", fontSize: 13, lineHeight: 18 }}>
+              {rejection}
+            </Text>
+          ) : null}
 
           <Pressable onPress={() => void logout()} style={{ paddingVertical: 8 }}>
             <Text style={{ color: colors.muted, textAlign: "center" }}>Sign out</Text>

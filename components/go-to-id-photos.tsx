@@ -1,9 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { PrimaryActionButton } from "@/components/primary-action-button";
-import { AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
+import { AFTER_ID_PASS_HREF, AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
+import { trpc } from "@/lib/trpc";
+import { explainAuthFailure } from "@/lib/auth-network-error";
+import { hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
+import { claimStoredAgeKycPass } from "@/lib/claim-stored-age-kyc-pass";
+import { PICTURES_PASSED_SIGN_IN_NEXT } from "@/lib/signup-step-copy";
 
 /** Big control that always opens the ID / selfie page. */
 export function GoToIdPhotosButton({ label = "Open ID photo page" }: { label?: string }) {
@@ -27,17 +32,36 @@ export function GoToIdPhotosButton({ label = "Open ID photo page" }: { label?: s
   );
 }
 
-/** After sign-in: auto-open the photo page, and keep a button if auto-open does not fire. */
+/** After sign-in: attach an already-passed photo check, or open the photo page. */
 export function PostSignInAgeVerifyGate() {
   const colors = useColors();
   const router = useRouter();
+  const claimPass = trpc.ageKyc.claimPass.useMutation();
+  const [hint, setHint] = useState<string | null>(null);
+  const started = useRef(false);
+  const picturesAlreadyPassed = hasAgeKycPassToken();
 
   useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+
+    if (picturesAlreadyPassed) {
+      void claimStoredAgeKycPass((input) => claimPass.mutateAsync(input))
+        .then((claimed) => {
+          router.replace(claimed ? AFTER_ID_PASS_HREF : AFTER_SIGN_IN_HREF);
+        })
+        .catch((err) => {
+          setHint(explainAuthFailure(err));
+          router.replace(AFTER_SIGN_IN_HREF);
+        });
+      return;
+    }
+
     const timer = setTimeout(() => {
       router.replace(AFTER_SIGN_IN_HREF);
     }, 250);
     return () => clearTimeout(timer);
-  }, [router]);
+  }, [claimPass, picturesAlreadyPassed, router]);
 
   return (
     <View
@@ -54,16 +78,24 @@ export function PostSignInAgeVerifyGate() {
         Sign-in worked
       </Text>
       <Text style={{ color: colors.foreground, fontSize: 18, lineHeight: 26, fontWeight: "700" }}>
-        Next step: photograph your ID front, ID back, and a selfie.
+        {picturesAlreadyPassed
+          ? PICTURES_PASSED_SIGN_IN_NEXT
+          : "Next step: photograph your ID front, ID back, and a selfie."}
       </Text>
+      {hint ? (
+        <Text style={{ color: "#c0392b", fontSize: 14, lineHeight: 20 }}>{hint}</Text>
+      ) : null}
       <PrimaryActionButton
         testID="go-to-id-photos-auto"
-        label="Open ID photo page"
-        onPress={() => router.replace(AFTER_SIGN_IN_HREF)}
+        label={picturesAlreadyPassed ? "Open the app" : "Open ID photo page"}
+        onPress={() => router.replace(picturesAlreadyPassed ? AFTER_ID_PASS_HREF : AFTER_SIGN_IN_HREF)}
         backgroundColor={colors.primary}
       />
-      <Link href={AFTER_SIGN_IN_HREF} style={{ color: colors.primary, fontWeight: "800", fontSize: 16, textAlign: "center" }}>
-        If nothing happened, tap here for ID photos
+      <Link
+        href={picturesAlreadyPassed ? AFTER_ID_PASS_HREF : AFTER_SIGN_IN_HREF}
+        style={{ color: colors.primary, fontWeight: "800", fontSize: 16, textAlign: "center" }}
+      >
+        If nothing happened, tap here
       </Link>
     </View>
   );

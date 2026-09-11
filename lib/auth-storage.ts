@@ -8,6 +8,10 @@ import {
 export const ACCESS_TOKEN_KEY = "accessToken";
 export const USER_STORAGE_KEY = "user";
 
+/** tRPC reads the token on every request. Keep a copy in memory so sign-in
+ * can call claimPass before localStorage finishes writing. */
+let memoryAccessToken: string | null = null;
+
 async function webGetItem(key: string): Promise<string | null> {
   if (!isWebBrowserStorageAvailable()) return null;
   return localStorage.getItem(key);
@@ -24,6 +28,7 @@ async function webRemoveItem(key: string): Promise<void> {
 }
 
 export async function getAccessToken(): Promise<string | null> {
+  if (memoryAccessToken) return memoryAccessToken;
   try {
     if (isWebBrowserStorageAvailable()) {
       return webGetItem(ACCESS_TOKEN_KEY);
@@ -39,6 +44,7 @@ export async function getAccessToken(): Promise<string | null> {
 }
 
 export async function setAccessToken(token: string): Promise<void> {
+  memoryAccessToken = token;
   if (isWebBrowserStorageAvailable()) {
     await webSetItem(ACCESS_TOKEN_KEY, token);
     return;
@@ -50,6 +56,7 @@ export async function setAccessToken(token: string): Promise<void> {
 }
 
 export async function removeAccessToken(): Promise<void> {
+  memoryAccessToken = null;
   try {
     if (isWebBrowserStorageAvailable()) {
       await webRemoveItem(ACCESS_TOKEN_KEY);

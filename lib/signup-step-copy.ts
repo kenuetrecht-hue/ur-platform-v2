@@ -14,6 +14,9 @@ export const LOGIN_PAGE_WHY =
 export const ID_MUST_PASS_FIRST =
   "Check the three pictures first. Create-account and sign-in only unlock after they pass.";
 
+export const PICTURES_PASSED_SIGN_IN_NEXT =
+  "Your pictures passed. Sign in or create an account next. You do not need to take the pictures again.";
+
 export const SIGNUP_FIELDS = [
   {
     id: "name",

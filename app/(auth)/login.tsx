@@ -18,7 +18,6 @@ import { TurnstileWidget } from "@/components/turnstile-widget";
 import { ID_MUST_PASS_FIRST, LOGIN_FIELDS, LOGIN_PAGE_WHY } from "@/lib/signup-step-copy";
 import { hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
 import { SignupStepExplain } from "@/components/signup-step-explain";
-import { AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
 import { PostSignInAgeVerifyGate } from "@/components/go-to-id-photos";
 import { IdCheckDuringSignin } from "@/components/id-check-during-signin";
 
@@ -202,12 +201,6 @@ export default function LoginScreen() {
                 Sign up
               </Link>
             </Text>
-            <Link
-              href={AFTER_SIGN_IN_HREF}
-              style={{ color: colors.primary, fontWeight: "800", fontSize: 16, textAlign: "center", marginTop: 16 }}
-            >
-              Open ID photo page
-            </Link>
             <Text style={{ color: colors.muted, fontSize: 12, textAlign: "center", marginTop: 16 }}>
               <Link href="/terms" style={{ color: colors.primary, fontWeight: "700" }}>
                 Terms

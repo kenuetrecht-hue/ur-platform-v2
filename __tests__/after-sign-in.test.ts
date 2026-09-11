@@ -3,6 +3,7 @@ import {
   AFTER_ID_PASS_HREF,
   AFTER_SIGN_IN_HREF,
   hrefAfterSignIn,
+  shouldEnterAppFromAgeVerify,
   shouldOpenAgeVerifyPage,
   shouldSendSignedOutUserToLoginFromAgeVerify,
 } from "../lib/after-sign-in";
@@ -27,5 +28,11 @@ describe("after sign-in", () => {
   it("opens the app after the photos already passed", () => {
     expect(hrefAfterSignIn(true)).toBe(AFTER_ID_PASS_HREF);
     expect(hrefAfterSignIn(false)).toBe(AFTER_SIGN_IN_HREF);
+  });
+
+  it("leaves the leftover photo page once the account is verified", () => {
+    expect(shouldEnterAppFromAgeVerify({ isAuthenticated: true, kycVerified: true })).toBe(true);
+    expect(shouldEnterAppFromAgeVerify({ isAuthenticated: true, kycVerified: false })).toBe(false);
+    expect(shouldEnterAppFromAgeVerify({ isAuthenticated: false, kycVerified: true })).toBe(false);
   });
 });

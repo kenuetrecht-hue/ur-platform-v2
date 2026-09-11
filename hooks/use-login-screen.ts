@@ -7,8 +7,8 @@ import { readWebTextInputValue } from "@/lib/read-web-input-value";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { trpc } from "@/lib/trpc";
 import { hrefAfterSignIn } from "@/lib/after-sign-in";
-import { clearAgeKycDraft } from "@/lib/age-kyc-draft-store";
-import { clearAgeKycPassToken, getAgeKycPassToken } from "@/lib/age-kyc-pass-store";
+import { getAgeKycPassToken } from "@/lib/age-kyc-pass-store";
+import { claimStoredAgeKycPass } from "@/lib/claim-stored-age-kyc-pass";
 import { ID_MUST_PASS_FIRST } from "@/lib/signup-step-copy";
 
 export function useLoginScreen() {
@@ -90,21 +90,15 @@ export function useLoginScreen() {
         action: "login",
       });
       await login(emailValue, passwordValue, turnstileToken || undefined);
-      const passToken = getAgeKycPassToken();
       let claimed = false;
-      if (passToken) {
-        try {
-          const status = await claimPass.mutateAsync({ passToken });
-          claimed = status.verified === true;
-          if (claimed) {
-            clearAgeKycPassToken();
-            clearAgeKycDraft();
-          }
-        } catch {
-          claimed = false;
-        }
+      try {
+        claimed = await claimStoredAgeKycPass((input) => claimPass.mutateAsync(input));
+      } catch (claimErr) {
+        const claimMsg = explainAuthFailure(claimErr);
+        setFormError(claimMsg);
+        showUserMessage("Pictures passed — sign-in next", claimMsg);
       }
-      setStatusLine(claimed ? "Success — opening the app…" : "Success — opening the ID photo page…");
+      setStatusLine(claimed ? "Success — opening the app…" : "Success — finishing the ID check…");
       router.replace(hrefAfterSignIn(claimed));
     } catch (err) {
       const msg = explainAuthFailure(err);
