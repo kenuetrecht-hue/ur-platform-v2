@@ -91,7 +91,6 @@ export default function AgeVerifyScreen() {
             {AGE_KYC_MIN_AGE}+ identity check
           </Text>
           <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>{AGE_VERIFY_TITLE}</Text>
-          <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 21 }}>{AGE_VERIFY_WHAT_TO_DO}</Text>
 
           {verified ? (
             <View
@@ -141,15 +140,9 @@ export default function AgeVerifyScreen() {
                 onError={setLocalError}
               />
 
-              <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
+              <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18 }}>
                 {filled} of 3 pictures recorded
               </Text>
-              {AGE_VERIFY_WHY.map((line) => (
-                <Text key={line.slice(0, 40)} style={{ color: colors.muted, fontSize: 14, lineHeight: 21 }}>
-                  {line}
-                </Text>
-              ))}
-              <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 20 }}>{signupPrivacyBlock()}</Text>
 
               <SignupKycCartoonSample />
 
@@ -168,6 +161,8 @@ export default function AgeVerifyScreen() {
                 onPress={onSubmit}
                 backgroundColor={colors.primary}
               />
+
+              <PrivacyDetails />
             </>
           )}
 
@@ -177,5 +172,30 @@ export default function AgeVerifyScreen() {
         </ScrollView>
       </ScreenContainer>
     </>
+  );
+}
+
+function PrivacyDetails() {
+  const colors = useColors();
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{ gap: 8 }}>
+      <Pressable onPress={() => setOpen((value) => !value)} style={{ paddingVertical: 8 }}>
+        <Text style={{ color: colors.primary, fontWeight: "800", textAlign: "center" }}>
+          {open ? "Hide why we ask" : "Why we ask (optional to read — Uri also says this)"}
+        </Text>
+      </Pressable>
+      {open ? (
+        <View style={{ gap: 8 }}>
+          <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 21 }}>{AGE_VERIFY_WHAT_TO_DO}</Text>
+          {AGE_VERIFY_WHY.map((line) => (
+            <Text key={line.slice(0, 40)} style={{ color: colors.muted, fontSize: 14, lineHeight: 21 }}>
+              {line}
+            </Text>
+          ))}
+          <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 20 }}>{signupPrivacyBlock()}</Text>
+        </View>
+      ) : null}
+    </View>
   );
 }

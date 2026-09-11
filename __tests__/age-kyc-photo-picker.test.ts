@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countFilledAgeKycSlots, type AgeKycPickedPhoto } from "../lib/age-kyc-photo-picker";
+import { countFilledAgeKycSlots, photoFromDataUrl, type AgeKycPickedPhoto } from "../lib/age-kyc-photo-picker";
 import { AGE_VERIFY_PHOTO_HINTS } from "../lib/signup-step-copy";
 
 const sample: AgeKycPickedPhoto = {
@@ -15,9 +15,15 @@ describe("countFilledAgeKycSlots", () => {
     expect(countFilledAgeKycSlots({ front: sample, back: sample, selfie: sample })).toBe(3);
   });
 
-  it("has copy for the three camera tabs", () => {
+  it("has copy for the three camera slots", () => {
     expect(AGE_VERIFY_PHOTO_HINTS.front.toLowerCase()).toContain("front");
     expect(AGE_VERIFY_PHOTO_HINTS.back.toLowerCase()).toContain("back");
     expect(AGE_VERIFY_PHOTO_HINTS.selfie.toLowerCase()).toContain("selfie");
+  });
+
+  it("reads a camera snapshot data URL", () => {
+    const photo = photoFromDataUrl("data:image/jpeg;base64,abc");
+    expect(photo.mimeType).toBe("image/jpeg");
+    expect(photo.base64).toBe("abc");
   });
 });

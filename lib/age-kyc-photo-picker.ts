@@ -58,7 +58,17 @@ async function pickOnWeb(kind: "id" | "selfie" | "library"): Promise<AgeKycPicke
     input.accept = "image/jpeg,image/png,image/webp";
     if (kind === "selfie") input.capture = "user";
     if (kind === "id") input.capture = "environment";
-    input.style.display = "none";
+    // iOS ignores click() on display:none inputs — keep it on-screen but invisible.
+    input.setAttribute("aria-hidden", "true");
+    Object.assign(input.style, {
+      position: "fixed",
+      left: "0",
+      top: "0",
+      width: "1px",
+      height: "1px",
+      opacity: "0",
+      zIndex: "1",
+    });
     document.body.appendChild(input);
     input.onchange = async () => {
       const file = input.files?.[0];
@@ -79,6 +89,27 @@ async function pickOnWeb(kind: "id" | "selfie" | "library"): Promise<AgeKycPicke
     };
     input.click();
   });
+}
+
+export function photoFromDataUrl(dataUrl: string): AgeKycPickedPhoto {
+  const comma = dataUrl.indexOf(",");
+  const header = comma >= 0 ? dataUrl.slice(0, comma) : "data:image/jpeg;base64";
+  const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+  const mimeMatch = header.match(/data:(image\/[a-z0-9.+-]+)/i);
+  const mimeType = (mimeMatch?.[1] ?? "image/jpeg").toLowerCase();
+  if (!isAllowedMime(mimeType)) {
+    throw new Error("Use a JPEG, PNG, or WebP photo.");
+  }
+  const padding = (base64.match(/=+$/) ?? [""])[0].length;
+  const bytes = Math.floor((base64.length * 3) / 4) - padding;
+  if (bytes > AGE_KYC_IMAGE_MAX_BYTES) {
+    throw new Error("Photo is too large (max 4 MB).");
+  }
+  return {
+    mimeType,
+    base64,
+    previewUri: dataUrl.startsWith("data:") ? dataUrl : `data:${mimeType};base64,${base64}`,
+  };
 }
 
 function photoFromAsset(
