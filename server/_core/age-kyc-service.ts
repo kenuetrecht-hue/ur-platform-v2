@@ -18,6 +18,7 @@ import {
 } from "../../lib/age-kyc-policy";
 import * as db from "../db";
 import { generateGoogleChatReply, isGoogleCloudAiConfigured } from "./google-ai";
+import { InternalServiceError } from "./service-errors";
 import { ENV } from "./env";
 import { markCreatorIdentityVerified } from "./creator-content-protection-service";
 import { isDevAgeKycBypassEnabled } from "../../lib/dev-age-kyc-mode";
@@ -48,7 +49,7 @@ type MemoryKyc = {
 
 const memoryByUserId = new Map<number, MemoryKyc>();
 const memoryByGuestIp = new Map<string, { attempts: number; lastAttemptAt: number }>();
-const FACE_MATCH_MIN = 75;
+const FACE_MATCH_MIN = 70;
 const MAX_ATTEMPTS_PER_DAY = 8;
 
 const KYC_SYSTEM_PROMPT = `You are an age-verification checker for UR Platform LLC.
@@ -317,44 +318,48 @@ async function analyzeAgeKycPhotos(params: {
   let backAnalysis: Record<string, unknown>;
   let faceAnalysis: Record<string, unknown>;
   try {
-    const [frontReply, backReply, faceReply] = await Promise.all([
-      generateGoogleChatReply({
-        systemPrompt: KYC_SYSTEM_PROMPT,
-        history: [],
-        message: `Document type claimed: ${params.documentType}. This single image is the ID FRONT. Read the printed birth date from this front photo (US cards often use MM/DD/YYYY). Do not output ID numbers.`,
-        temperature: 0.1,
-        maxOutputTokens: 2048,
-        attachments: [{ mimeType: front.mimeType, base64: front.base64 }],
-        responseJson: true,
-      }),
-      generateGoogleChatReply({
-        systemPrompt: KYC_SYSTEM_PROMPT,
-        history: [],
-        message: `Document type claimed: ${params.documentType}. This single image is the ID BACK. A barcode, PDF417 square, magnetic stripe, or official card reverse is a valid back even with no name, photo, or birth date. Do not output ID numbers.`,
-        temperature: 0.1,
-        maxOutputTokens: 2048,
-        attachments: [{ mimeType: back.mimeType, base64: back.base64 }],
-        responseJson: true,
-      }),
-      generateGoogleChatReply({
-        systemPrompt: KYC_SYSTEM_PROMPT,
-        history: [],
-        message:
-          "Image 1 is the ID FRONT portrait. Image 2 is a live SELFIE. Decide if they are the same person. Do not output ID numbers.",
-        temperature: 0.1,
-        maxOutputTokens: 2048,
-        attachments: [
-          { mimeType: front.mimeType, base64: front.base64 },
-          { mimeType: selfie.mimeType, base64: selfie.base64 },
-        ],
-        responseJson: true,
-      }),
-    ]);
+    const frontReply = await generateGoogleChatReply({
+      systemPrompt: KYC_SYSTEM_PROMPT,
+      history: [],
+      message: `Document type claimed: ${params.documentType}. This single image is the ID FRONT. Read the printed birth date from this front photo (US cards often use MM/DD/YYYY). Do not output ID numbers.`,
+      temperature: 0.1,
+      maxOutputTokens: 2048,
+      attachments: [{ mimeType: front.mimeType, base64: front.base64 }],
+      responseJson: true,
+    });
+    const backReply = await generateGoogleChatReply({
+      systemPrompt: KYC_SYSTEM_PROMPT,
+      history: [],
+      message: `Document type claimed: ${params.documentType}. This single image is the ID BACK. A barcode, PDF417 square, magnetic stripe, or official card reverse is a valid back even with no name, photo, or birth date. Do not output ID numbers.`,
+      temperature: 0.1,
+      maxOutputTokens: 2048,
+      attachments: [{ mimeType: back.mimeType, base64: back.base64 }],
+      responseJson: true,
+    });
+    const faceReply = await generateGoogleChatReply({
+      systemPrompt: KYC_SYSTEM_PROMPT,
+      history: [],
+      message:
+        "Image 1 is the ID FRONT portrait. Image 2 is a live SELFIE. Decide if they are the same person. Do not output ID numbers.",
+      temperature: 0.1,
+      maxOutputTokens: 2048,
+      attachments: [
+        { mimeType: front.mimeType, base64: front.base64 },
+        { mimeType: selfie.mimeType, base64: selfie.base64 },
+      ],
+      responseJson: true,
+    });
     idAnalysis = parseModelJson(frontReply.reply);
     backAnalysis = parseModelJson(backReply.reply);
     faceAnalysis = parseModelJson(faceReply.reply);
   } catch (error) {
     if (error instanceof TRPCError) throw error;
+    if (error instanceof InternalServiceError && error.code === "RATE_LIMITED") {
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: "The photo checker is busy. Wait one minute, then tap Check my three pictures again.",
+      });
+    }
     throw new TRPCError({
       code: "BAD_GATEWAY",
       message: AGE_KYC_ID_UNREADABLE_MESSAGE,
@@ -374,8 +379,12 @@ async function analyzeAgeKycPhotos(params: {
     reasons.push(AGE_KYC_UNDERAGE_MESSAGE);
   }
 
+  const hasFaceScore = faceAnalysis.faceMatchScore != null && faceAnalysis.faceMatchScore !== "";
   const faceScore = asScore(faceAnalysis.faceMatchScore);
-  const faceOk = asBool(faceAnalysis.faceMatch) && asBool(faceAnalysis.selfieLooksLive) && faceScore >= FACE_MATCH_MIN;
+  const faceOk =
+    asBool(faceAnalysis.faceMatch) &&
+    asBool(faceAnalysis.selfieLooksLive) &&
+    (!hasFaceScore || faceScore >= FACE_MATCH_MIN);
   if (!faceOk) reasons.push(AGE_KYC_MISMATCH_MESSAGE);
 
   const uniqueReasons = [...new Set(reasons)].slice(0, 6);
