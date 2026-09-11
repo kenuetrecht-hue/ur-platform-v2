@@ -93,30 +93,33 @@ describe("age KYC precheck before sign-in", () => {
     expect(claimed.verified).toBe(true);
   });
 
+  it("checks all three pictures in one call so the live site does not drop the response", async () => {
+    vi.mocked(generateGoogleChatReply).mockResolvedValue({ reply: passJson(), model: "test" });
+    await precheckAgeKyc({
+      ip: "203.0.113.15",
+      documentType: "driver_license",
+      idFront: PHOTO,
+      idBack: PHOTO,
+      selfie: PHOTO,
+    });
+    expect(generateGoogleChatReply).toHaveBeenCalledTimes(1);
+    const input = vi.mocked(generateGoogleChatReply).mock.calls[0]?.[0];
+    expect(input?.attachments).toHaveLength(3);
+  });
+
   it("still passes when the checker adds leftover notes on a readable ID", async () => {
-    vi.mocked(generateGoogleChatReply).mockImplementation(async ({ message }) => {
-      if (/ID BACK/i.test(message)) {
-        return {
-          reply: JSON.stringify({
-            isGovernmentIdBack: true,
-            dateOfBirth: null,
-            rejectionReasons: ["barcode only"],
-          }),
-          model: "test",
-        };
-      }
-      if (/SELFIE/i.test(message)) {
-        return { reply: passJson(), model: "test" };
-      }
-      return {
-        reply: JSON.stringify({
-          isGovernmentIdFront: true,
-          dateOfBirth: "05/20/1990",
-          documentExpired: false,
-          rejectionReasons: ["slight glare"],
-        }),
-        model: "test",
-      };
+    vi.mocked(generateGoogleChatReply).mockResolvedValue({
+      reply: JSON.stringify({
+        isGovernmentIdFront: true,
+        isGovernmentIdBack: true,
+        dateOfBirth: "05/20/1990",
+        documentExpired: false,
+        faceMatch: true,
+        faceMatchScore: 90,
+        selfieLooksLive: true,
+        rejectionReasons: ["slight glare", "barcode only"],
+      }),
+      model: "test",
     });
     const result = await precheckAgeKyc({
       ip: "203.0.113.13",
@@ -130,24 +133,16 @@ describe("age KYC precheck before sign-in", () => {
   });
 
   it("still passes when the face match is yes but the score number is missing", async () => {
-    vi.mocked(generateGoogleChatReply).mockImplementation(async ({ message }) => {
-      if (/ID BACK/i.test(message)) {
-        return { reply: JSON.stringify({ isGovernmentIdBack: true }), model: "test" };
-      }
-      if (/SELFIE/i.test(message)) {
-        return {
-          reply: JSON.stringify({ faceMatch: true, selfieLooksLive: true }),
-          model: "test",
-        };
-      }
-      return {
-        reply: JSON.stringify({
-          isGovernmentIdFront: true,
-          dateOfBirth: "1990-05-20",
-          documentExpired: false,
-        }),
-        model: "test",
-      };
+    vi.mocked(generateGoogleChatReply).mockResolvedValue({
+      reply: JSON.stringify({
+        isGovernmentIdFront: true,
+        isGovernmentIdBack: true,
+        dateOfBirth: "1990-05-20",
+        documentExpired: false,
+        faceMatch: true,
+        selfieLooksLive: true,
+      }),
+      model: "test",
     });
     const result = await precheckAgeKyc({
       ip: "203.0.113.14",

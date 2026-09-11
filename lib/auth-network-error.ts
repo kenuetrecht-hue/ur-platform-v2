@@ -22,6 +22,22 @@ export function explainAuthFailure(error: unknown): string {
   }
 
   if (
+    lower.includes("unable to transfer") ||
+    lower.includes("transfer response") ||
+    lower.includes("err_http2") ||
+    lower.includes("err_connection_reset") ||
+    lower.includes("err_connection_closed") ||
+    lower.includes("err_network_changed") ||
+    lower.includes("the operation was aborted") ||
+    lower.includes("aborted") ||
+    lower.includes("timeout") ||
+    lower.includes("timed out") ||
+    lower.includes("econnreset")
+  ) {
+    return "The picture check did not finish. Keep the three pictures, wait a few seconds, and tap Check my three pictures again.";
+  }
+
+  if (
     lower.includes("failed to fetch") ||
     lower.includes("network request failed") ||
     lower.includes("load failed") ||

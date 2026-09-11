@@ -318,40 +318,25 @@ async function analyzeAgeKycPhotos(params: {
   let backAnalysis: Record<string, unknown>;
   let faceAnalysis: Record<string, unknown>;
   try {
-    const frontReply = await generateGoogleChatReply({
+    // One checker call — three sequential vision calls sit idle so long the live
+    // website drops the response ("unable to transfer response from server").
+    const reply = await generateGoogleChatReply({
       systemPrompt: KYC_SYSTEM_PROMPT,
       history: [],
-      message: `Document type claimed: ${params.documentType}. This single image is the ID FRONT. Read the printed birth date from this front photo (US cards often use MM/DD/YYYY). Do not output ID numbers.`,
-      temperature: 0.1,
-      maxOutputTokens: 2048,
-      attachments: [{ mimeType: front.mimeType, base64: front.base64 }],
-      responseJson: true,
-    });
-    const backReply = await generateGoogleChatReply({
-      systemPrompt: KYC_SYSTEM_PROMPT,
-      history: [],
-      message: `Document type claimed: ${params.documentType}. This single image is the ID BACK. A barcode, PDF417 square, magnetic stripe, or official card reverse is a valid back even with no name, photo, or birth date. Do not output ID numbers.`,
-      temperature: 0.1,
-      maxOutputTokens: 2048,
-      attachments: [{ mimeType: back.mimeType, base64: back.base64 }],
-      responseJson: true,
-    });
-    const faceReply = await generateGoogleChatReply({
-      systemPrompt: KYC_SYSTEM_PROMPT,
-      history: [],
-      message:
-        "Image 1 is the ID FRONT portrait. Image 2 is a live SELFIE. Decide if they are the same person. Do not output ID numbers.",
+      message: `Document type claimed: ${params.documentType}. Image 1 is the ID FRONT. Image 2 is the ID BACK. Image 3 is a live SELFIE. Read the printed birth date from the FRONT only (US cards often use MM/DD/YYYY). A barcode, PDF417 square, magnetic stripe, or official card reverse is a valid BACK even with no name, photo, or birth date. Decide if the selfie is the same person as the ID portrait. Do not output ID numbers.`,
       temperature: 0.1,
       maxOutputTokens: 2048,
       attachments: [
         { mimeType: front.mimeType, base64: front.base64 },
+        { mimeType: back.mimeType, base64: back.base64 },
         { mimeType: selfie.mimeType, base64: selfie.base64 },
       ],
       responseJson: true,
     });
-    idAnalysis = parseModelJson(frontReply.reply);
-    backAnalysis = parseModelJson(backReply.reply);
-    faceAnalysis = parseModelJson(faceReply.reply);
+    const analysis = parseModelJson(reply.reply);
+    idAnalysis = analysis;
+    backAnalysis = analysis;
+    faceAnalysis = analysis;
   } catch (error) {
     if (error instanceof TRPCError) throw error;
     if (error instanceof InternalServiceError && error.code === "RATE_LIMITED") {
