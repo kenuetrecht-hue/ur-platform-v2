@@ -364,7 +364,7 @@ function buildUserContentParts(
   attachments?: GoogleChatAttachment[],
 ): GeminiContentPart[] {
   const parts: GeminiContentPart[] = [];
-  for (const att of (attachments ?? []).slice(0, 2)) {
+  for (const att of (attachments ?? []).slice(0, 3)) {
     const mimeType = att.mimeType.trim().toLowerCase();
     const data = att.base64.replace(/\s/g, "");
     if (!data || !mimeType) continue;
@@ -416,7 +416,7 @@ function sanitizeParams(params: GoogleChatParams): GoogleChatParams {
     })),
     maxOutputTokens,
     temperature,
-    attachments: params.attachments?.slice(0, 2),
+    attachments: params.attachments?.slice(0, 3),
     responseJson: params.responseJson === true,
     thinkingLevel: params.thinkingLevel,
     mediaResolution: params.mediaResolution,

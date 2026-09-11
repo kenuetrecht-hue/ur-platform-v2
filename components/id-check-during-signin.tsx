@@ -6,6 +6,7 @@ import { SignupKycCartoonSample } from "@/components/signup-kyc-cartoon-sample";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { countFilledAgeKycSlots, prepareAgeKycPhoto, type AgeKycPickedPhoto } from "@/lib/age-kyc-photo-picker";
+import { fastPrecheckAgeKyc } from "@/lib/age-kyc-fast-precheck";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { loadAgeKycDraft, saveAgeKycDraftSlot } from "@/lib/age-kyc-draft-store";
 import { clearAgeKycPassToken, getAgeKycPassToken, setAgeKycPassToken } from "@/lib/age-kyc-pass-store";
@@ -36,6 +37,7 @@ export function IdCheckDuringSignin({ onPassed, onReset }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [passed, setPassed] = useState(() => Boolean(getAgeKycPassToken()));
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [checking, setChecking] = useState(false);
 
   const precheck = trpc.ageKyc.precheck.useMutation({
     onSuccess: (data) => {
@@ -70,10 +72,12 @@ export function IdCheckDuringSignin({ onPassed, onReset }: Props) {
       clearAgeKycPassToken();
       onReset?.();
     }
-    saveAgeKycDraftSlot(slot, photo);
-    if (slot === "front") setFront(photo);
-    if (slot === "back") setBack(photo);
-    if (slot === "selfie") setSelfie(photo);
+    void prepareAgeKycPhoto(photo).then((ready) => {
+      saveAgeKycDraftSlot(slot, ready);
+      if (slot === "front") setFront(ready);
+      if (slot === "back") setBack(ready);
+      if (slot === "selfie") setSelfie(ready);
+    });
   };
 
   const filled = countFilledAgeKycSlots({ front, back, selfie });
@@ -84,22 +88,37 @@ export function IdCheckDuringSignin({ onPassed, onReset }: Props) {
       return;
     }
     setError(null);
+    setChecking(true);
     void (async () => {
       try {
-        const [idFront, idBack, liveSelfie] = await Promise.all([
-          prepareAgeKycPhoto(front),
-          prepareAgeKycPhoto(back),
-          prepareAgeKycPhoto(selfie),
-        ]);
-        precheck.mutate({
+        const result = await fastPrecheckAgeKyc({
           documentType,
-          idFront: { mimeType: idFront.mimeType, base64: idFront.base64 },
-          idBack: { mimeType: idBack.mimeType, base64: idBack.base64 },
-          selfie: { mimeType: liveSelfie.mimeType, base64: liveSelfie.base64 },
+          idFront: front,
+          idBack: back,
+          selfie,
           turnstileToken: turnstileToken || undefined,
         });
-      } catch (err) {
-        setError(explainAuthFailure(err));
+        if (result.verified && result.passToken) {
+          setAgeKycPassToken(result.passToken);
+          setPassed(true);
+          setError(null);
+          onPassed(result.passToken);
+          return;
+        }
+        clearAgeKycPassToken();
+        setPassed(false);
+        onReset?.();
+        setError(result.rejectionReason ?? "The pictures did not pass. Try again with a clearer ID and selfie.");
+      } catch {
+        precheck.mutate({
+          documentType,
+          idFront: { mimeType: front.mimeType, base64: front.base64 },
+          idBack: { mimeType: back.mimeType, base64: back.base64 },
+          selfie: { mimeType: selfie.mimeType, base64: selfie.base64 },
+          turnstileToken: turnstileToken || undefined,
+        });
+      } finally {
+        setChecking(false);
       }
     })();
   };
@@ -146,7 +165,7 @@ export function IdCheckDuringSignin({ onPassed, onReset }: Props) {
       <PrimaryActionButton
         label="Check my three pictures"
         loadingLabel="Checking pictures…"
-        loading={precheck.isPending}
+        loading={checking || precheck.isPending}
         onPress={onCheck}
         backgroundColor={colors.primary}
         testID="id-check-submit"

@@ -105,6 +105,8 @@ describe("age KYC precheck before sign-in", () => {
     expect(generateGoogleChatReply).toHaveBeenCalledTimes(1);
     const input = vi.mocked(generateGoogleChatReply).mock.calls[0]?.[0];
     expect(input?.attachments).toHaveLength(3);
+    expect(input?.mediaResolution).toBe("MEDIA_RESOLUTION_MEDIUM");
+    expect(input?.thinkingLevel).toBe("MINIMAL");
   });
 
   it("still passes when the checker adds leftover notes on a readable ID", async () => {

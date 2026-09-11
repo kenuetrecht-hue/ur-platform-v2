@@ -325,7 +325,9 @@ async function analyzeAgeKycPhotos(params: {
       history: [],
       message: `Document type claimed: ${params.documentType}. Image 1 is the ID FRONT. Image 2 is the ID BACK. Image 3 is a live SELFIE. Read the printed birth date from the FRONT only (US cards often use MM/DD/YYYY). A barcode, PDF417 square, magnetic stripe, or official card reverse is a valid BACK even with no name, photo, or birth date. Decide if the selfie is the same person as the ID portrait. Do not output ID numbers.`,
       temperature: 0.1,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 1024,
+      thinkingLevel: "MINIMAL",
+      mediaResolution: "MEDIA_RESOLUTION_MEDIUM",
       attachments: [
         { mimeType: front.mimeType, base64: front.base64 },
         { mimeType: back.mimeType, base64: back.base64 },
