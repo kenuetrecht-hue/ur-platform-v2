@@ -54,17 +54,40 @@ function isLikelyApiKey(value: string): boolean {
   return PUBLIC_KEY_PATTERNS.some((pattern) => pattern.test(trimmed));
 }
 
-function readServerSecret(name: (typeof SERVER_ONLY_SECRET_NAMES)[number]): string {
-  const value = process.env[name]?.trim() ?? "";
+function stripSecretWrapping(value: string): string {
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length >= 2) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length >= 2)
+  ) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
+function readEnvSecret(name: string): string {
+  const value = stripSecretWrapping(process.env[name] ?? "");
   return isUnsetOrPlaceholderEnv(value) ? "" : value;
 }
 
+function readServerSecret(name: (typeof SERVER_ONLY_SECRET_NAMES)[number]): string {
+  return readEnvSecret(name);
+}
+
+const GEMINI_KEY_ENV_NAMES = [
+  "CONTENTMATE_GEMINI_API_KEY",
+  "GEMINI_API_KEY",
+  "GOOGLE_GENERATIVE_AI_API_KEY",
+  "GOOGLE_GEMINI_API_KEY",
+] as const;
+
 /** ContentMate / LinguaMate Gemini key — server-only, never log or return to clients. */
 export function getContentmateGeminiApiKey(): string {
-  return (
-    readServerSecret("CONTENTMATE_GEMINI_API_KEY") ||
-    readServerSecret("GEMINI_API_KEY")
-  );
+  for (const name of GEMINI_KEY_ENV_NAMES) {
+    const value = readEnvSecret(name);
+    if (value) return value;
+  }
+  return "";
 }
 
 export function isContentmateGeminiConfigured(): boolean {
@@ -197,6 +220,17 @@ export function assertServerSecretsSafe(): void {
       if (!key.startsWith(prefix)) continue;
 
       const upper = key.toUpperCase();
+      const looksLikeGemini =
+        upper.includes("GEMINI") || isLikelyApiKey(stripSecretWrapping(value));
+      if (looksLikeGemini && !getContentmateGeminiApiKey()) {
+        process.env.CONTENTMATE_GEMINI_API_KEY = stripSecretWrapping(value);
+        delete process.env[key];
+        console.warn(
+          `[secrets] Moved photo-checker key from public env var "${key}" to CONTENTMATE_GEMINI_API_KEY.`,
+        );
+        continue;
+      }
+
       if (
         upper.includes("GEMINI") ||
         upper.includes("API_KEY") ||

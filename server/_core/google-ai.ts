@@ -147,7 +147,7 @@ export async function getAiHealthStatus(force = false): Promise<AiHealthStatus> 
     const status: AiHealthStatus = {
       configured: false,
       reachable: false,
-      hint: "Set CONTENTMATE_GEMINI_API_KEY in .env (from https://aistudio.google.com/apikey).",
+      hint: "Add CONTENTMATE_GEMINI_API_KEY in Railway Variables, then redeploy. A computer .env file is not copied to the live server.",
     };
     cachedAiHealth = { at: Date.now(), status };
     return status;
@@ -218,16 +218,19 @@ export async function getAiHealthStatus(force = false): Promise<AiHealthStatus> 
 }
 
 export async function logGeminiStartupCheck(): Promise<void> {
-  if (!ENV.isProduction && isContentmateGeminiConfigured()) {
-    // Skip live probe on boot — it burns quota and retries amplify 429s.
+  if (isContentmateGeminiConfigured()) {
     console.log(
-      `[google-ai] API key configured (model: ${ENV.googleGeminiModel}). Chat connects on first message.`,
+      `[google-ai] Photo checker key is present (model: ${ENV.googleGeminiModel}).`,
     );
     return;
   }
-  if (!ENV.isProduction && ENV.googleCloudProject) {
+  if (ENV.googleCloudProject) {
     console.log("[google-ai] Using Vertex AI project:", ENV.googleCloudProject);
+    return;
   }
+  console.warn(
+    "[google-ai] Photo checker key is missing. Set CONTENTMATE_GEMINI_API_KEY in Railway Variables (not only in the computer .env file).",
+  );
 }
 
 let vertexClient: VertexAI | null = null;
