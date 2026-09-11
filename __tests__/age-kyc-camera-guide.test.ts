@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ID_CARD_ASPECT,
+  chooseAgeKycCaptureRect,
   guideBoxInView,
   videoCropForCoverGuide,
 } from "../lib/age-kyc-camera-guide";
@@ -28,6 +29,17 @@ describe("ID camera guide", () => {
     expect(crop.sh).toBeGreaterThan(100);
     expect(crop.sx + crop.sw).toBeLessThanOrEqual(1920);
     expect(crop.sy + crop.sh).toBeLessThanOrEqual(1080);
+  });
+
+  it("sends the full camera frame if the box was not measured yet", () => {
+    const full = chooseAgeKycCaptureRect({
+      videoWidth: 1920,
+      videoHeight: 1080,
+      viewWidth: 0,
+      viewHeight: 0,
+      kind: "id",
+    });
+    expect(full).toEqual({ sx: 0, sy: 0, sw: 1920, sh: 1080 });
   });
 
   it("reads a US printed birth date", () => {

@@ -93,6 +93,42 @@ describe("age KYC precheck before sign-in", () => {
     expect(claimed.verified).toBe(true);
   });
 
+  it("still passes when the checker adds leftover notes on a readable ID", async () => {
+    vi.mocked(generateGoogleChatReply).mockImplementation(async ({ message }) => {
+      if (/ID BACK/i.test(message)) {
+        return {
+          reply: JSON.stringify({
+            isGovernmentIdBack: true,
+            dateOfBirth: null,
+            rejectionReasons: ["barcode only"],
+          }),
+          model: "test",
+        };
+      }
+      if (/SELFIE/i.test(message)) {
+        return { reply: passJson(), model: "test" };
+      }
+      return {
+        reply: JSON.stringify({
+          isGovernmentIdFront: true,
+          dateOfBirth: "05/20/1990",
+          documentExpired: false,
+          rejectionReasons: ["slight glare"],
+        }),
+        model: "test",
+      };
+    });
+    const result = await precheckAgeKyc({
+      ip: "203.0.113.13",
+      documentType: "driver_license",
+      idFront: PHOTO,
+      idBack: PHOTO,
+      selfie: PHOTO,
+    });
+    expect(result.verified).toBe(true);
+    expect(result.passToken).toBeTruthy();
+  });
+
   it("tells the person when the photo checker is not ready", async () => {
     vi.mocked(isGoogleCloudAiConfigured).mockReturnValue(false);
     await expect(

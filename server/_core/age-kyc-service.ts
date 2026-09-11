@@ -54,21 +54,23 @@ const KYC_SYSTEM_PROMPT = `You are an age-verification checker for UR Platform L
 This is a lawful 18+ age gate. Inspect the photos and return JSON. Do not refuse the task.
 
 Return ONLY compact JSON with these keys:
-- isGovernmentIdFront: boolean (true if image is the front of a government photo ID: driver license, state ID, passport data page, or national ID)
-- isGovernmentIdBack: boolean (true if image is the back of that ID, or passport MRZ/barcode page)
+- isGovernmentIdFront: boolean (true if this is the front of a government photo ID: driver license, state ID, passport data page, or national ID)
+- isGovernmentIdBack: boolean (true if this is an ID back: barcode, PDF417, magnetic stripe, state seal text, inventory number, or passport MRZ)
 - dateOfBirth: string YYYY-MM-DD or null if the birth date cannot be read
 - documentExpired: boolean
 - faceMatch: boolean (selfie is the same person as the ID portrait)
 - faceMatchScore: number 0-100
 - selfieLooksLive: boolean (a live person photo, not a photo-of-a-photo of the ID)
-- rejectionReasons: string[] short reasons if anything fails
+- rejectionReasons: string[] only hard failures. Leave empty when the photo is usable.
 
 Rules:
 - Never copy ID numbers, document numbers, addresses, or full MRZ into the JSON.
 - Dates on US IDs are often MM/DD/YYYY. Convert any readable birth date to YYYY-MM-DD.
-- A slightly angled card still counts if all four corners and the birth date are visible.
-- Light glare is OK if the face and birth date can still be read.
-- If you cannot read a date of birth, set dateOfBirth to null.
+- A slightly angled card still counts if the needed side is visible.
+- Light glare is OK if the needed fields can still be read.
+- The BACK of a US driver license or state ID usually has NO photo and NO birth date. A barcode or magnetic stripe is enough. That is a valid back.
+- Read the birth date from the FRONT only. Never require a birth date on the back.
+- If you cannot read a date of birth on the front, set dateOfBirth to null.
 - If the selfie is a picture of the ID instead of a face, faceMatch is false.`;
 
 function stripDataUrl(raw: string): string {
@@ -301,35 +303,44 @@ async function analyzeAgeKycPhotos(params: {
   }
 
   let idAnalysis: Record<string, unknown>;
+  let backAnalysis: Record<string, unknown>;
   let faceAnalysis: Record<string, unknown>;
   try {
-    const idReply = await generateGoogleChatReply({
-      systemPrompt: KYC_SYSTEM_PROMPT,
-      history: [],
-      message: `Document type claimed: ${params.documentType}. Image 1 is ID FRONT. Image 2 is ID BACK. Read the birth date even if printed as MM/DD/YYYY. Do not output ID numbers.`,
-      temperature: 0.1,
-      maxOutputTokens: 500,
-      attachments: [
-        { mimeType: front.mimeType, base64: front.base64 },
-        { mimeType: back.mimeType, base64: back.base64 },
-      ],
-      responseJson: true,
-    });
-    idAnalysis = parseModelJson(idReply.reply);
-
-    const faceReply = await generateGoogleChatReply({
-      systemPrompt: KYC_SYSTEM_PROMPT,
-      history: [],
-      message:
-        "Image 1 is the ID FRONT portrait. Image 2 is a live SELFIE. Decide if they are the same person. Do not output ID numbers.",
-      temperature: 0.1,
-      maxOutputTokens: 400,
-      attachments: [
-        { mimeType: front.mimeType, base64: front.base64 },
-        { mimeType: selfie.mimeType, base64: selfie.base64 },
-      ],
-      responseJson: true,
-    });
+    const [frontReply, backReply, faceReply] = await Promise.all([
+      generateGoogleChatReply({
+        systemPrompt: KYC_SYSTEM_PROMPT,
+        history: [],
+        message: `Document type claimed: ${params.documentType}. This single image is the ID FRONT. Read the printed birth date from this front photo (US cards often use MM/DD/YYYY). Do not output ID numbers.`,
+        temperature: 0.1,
+        maxOutputTokens: 500,
+        attachments: [{ mimeType: front.mimeType, base64: front.base64 }],
+        responseJson: true,
+      }),
+      generateGoogleChatReply({
+        systemPrompt: KYC_SYSTEM_PROMPT,
+        history: [],
+        message: `Document type claimed: ${params.documentType}. This single image is the ID BACK. A barcode, PDF417 square, magnetic stripe, or official card reverse is a valid back even with no name, photo, or birth date. Do not output ID numbers.`,
+        temperature: 0.1,
+        maxOutputTokens: 400,
+        attachments: [{ mimeType: back.mimeType, base64: back.base64 }],
+        responseJson: true,
+      }),
+      generateGoogleChatReply({
+        systemPrompt: KYC_SYSTEM_PROMPT,
+        history: [],
+        message:
+          "Image 1 is the ID FRONT portrait. Image 2 is a live SELFIE. Decide if they are the same person. Do not output ID numbers.",
+        temperature: 0.1,
+        maxOutputTokens: 400,
+        attachments: [
+          { mimeType: front.mimeType, base64: front.base64 },
+          { mimeType: selfie.mimeType, base64: selfie.base64 },
+        ],
+        responseJson: true,
+      }),
+    ]);
+    idAnalysis = parseModelJson(frontReply.reply);
+    backAnalysis = parseModelJson(backReply.reply);
     faceAnalysis = parseModelJson(faceReply.reply);
   } catch (error) {
     if (error instanceof TRPCError) throw error;
@@ -341,7 +352,7 @@ async function analyzeAgeKycPhotos(params: {
 
   const reasons: string[] = [];
   if (!asBool(idAnalysis.isGovernmentIdFront)) reasons.push("Front photo is not a government photo ID.");
-  if (!asBool(idAnalysis.isGovernmentIdBack)) reasons.push("Back photo is not the back of a government ID.");
+  if (!asBool(backAnalysis.isGovernmentIdBack)) reasons.push("Back photo is not the back of a government ID.");
   if (asBool(idAnalysis.documentExpired)) reasons.push("The ID appears expired.");
 
   const dob = asDob(idAnalysis.dateOfBirth);
@@ -355,14 +366,6 @@ async function analyzeAgeKycPhotos(params: {
   const faceScore = asScore(faceAnalysis.faceMatchScore);
   const faceOk = asBool(faceAnalysis.faceMatch) && asBool(faceAnalysis.selfieLooksLive) && faceScore >= FACE_MATCH_MIN;
   if (!faceOk) reasons.push(AGE_KYC_MISMATCH_MESSAGE);
-
-  const extra = [
-    ...(Array.isArray(idAnalysis.rejectionReasons) ? idAnalysis.rejectionReasons : []),
-    ...(Array.isArray(faceAnalysis.rejectionReasons) ? faceAnalysis.rejectionReasons : []),
-  ]
-    .filter((item): item is string => typeof item === "string")
-    .map((item) => item.slice(0, 120));
-  reasons.push(...extra);
 
   const uniqueReasons = [...new Set(reasons)].slice(0, 6);
   const verified = uniqueReasons.length === 0 && isAdultAge(age);

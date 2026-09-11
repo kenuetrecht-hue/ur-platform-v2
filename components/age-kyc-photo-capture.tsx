@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, Text, View, Image } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import {
-  ageKycWebCapture,
   photoFromDataUrl,
   pickAgeKycLibraryPhoto,
   pickAgeKycPhoto,
@@ -11,9 +10,12 @@ import {
   type AgeKycPickedPhoto,
 } from "@/lib/age-kyc-photo-picker";
 import { PrimaryActionButton } from "@/components/primary-action-button";
-import { videoCropForCoverGuide } from "@/lib/age-kyc-camera-guide";
+import { chooseAgeKycCaptureRect, guideBoxInView, ID_CARD_ASPECT, type GuideBox } from "@/lib/age-kyc-camera-guide";
 
 export type AgeKycSlot = "front" | "back" | "selfie";
+
+let stopOpenLiveCamera: (() => void) | null = null;
+let openLiveSlot: AgeKycSlot | null = null;
 
 const SLOTS: { id: AgeKycSlot; title: string; cameraLabel: string; kind: "id" | "selfie"; color: string }[] = [
   { id: "front", title: "1 · ID front", cameraLabel: "Open camera — ID front", kind: "id", color: "#1d4ed8" },
@@ -44,7 +46,7 @@ export function AgeKycPhotoCapture(props: Props) {
         Take the three pictures now
       </Text>
       <Text style={{ color: colors.foreground, fontSize: 16, lineHeight: 22, fontWeight: "700" }}>
-        Tap Live camera. Fit the ID inside the yellow box so all four corners show. Then tap Take this picture.
+        Tap Open camera on front, back, and selfie. A yellow box appears on each one. Fit the card inside it, then tap Take this picture once.
       </Text>
 
       {SLOTS.map((slot) => {
@@ -70,7 +72,7 @@ export function AgeKycPhotoCapture(props: Props) {
                 fontSize: 15,
               }}
             >
-              {photo ? "Photo recorded — tap below to retake" : "Not taken yet — tap Open camera"}
+              {photo ? "Photo recorded — tap Open camera to retake" : "Not taken yet — tap Open camera"}
             </Text>
 
             {photo ? (
@@ -145,13 +147,23 @@ function WebCameraCard({
 }) {
   const colors = useColors();
   const [live, setLive] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [guide, setGuide] = useState<GuideBox | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const snappingRef = useRef(false);
 
   const stopLive = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    if (openLiveSlot === slot) {
+      openLiveSlot = null;
+      stopOpenLiveCamera = null;
+    }
+    snappingRef.current = false;
+    setReady(false);
+    setGuide(null);
     setLive(false);
   };
 
@@ -159,15 +171,51 @@ function WebCameraCard({
 
   useEffect(() => {
     if (!live || !videoRef.current || !streamRef.current) return;
-    videoRef.current.srcObject = streamRef.current;
-    void videoRef.current.play().catch(() => undefined);
+    const video = videoRef.current;
+    video.srcObject = streamRef.current;
+    const markReady = () => {
+      if (video.videoWidth >= 16) setReady(true);
+    };
+    video.onloadedmetadata = markReady;
+    video.onplaying = markReady;
+    void video.play().then(markReady).catch(() => undefined);
+    return () => {
+      video.onloadedmetadata = null;
+      video.onplaying = null;
+    };
   }, [live]);
+
+  useEffect(() => {
+    if (!live) return;
+    let cancelled = false;
+    const measure = () => {
+      const frame = frameRef.current;
+      if (cancelled || !frame) return;
+      if (frame.clientWidth >= 8 && frame.clientHeight >= 8) {
+        setGuide(guideBoxInView(frame.clientWidth, frame.clientHeight, kind));
+      }
+    };
+    measure();
+    const raf = requestAnimationFrame(measure);
+    const retry = window.setTimeout(measure, 80);
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    if (observer && frameRef.current) observer.observe(frameRef.current);
+    window.addEventListener("resize", measure);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      window.clearTimeout(retry);
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [live, kind]);
 
   const openLiveCamera = async () => {
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       await fallbackFile(kind);
       return;
     }
+    stopOpenLiveCamera?.();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -178,6 +226,10 @@ function WebCameraCard({
         audio: false,
       });
       streamRef.current = stream;
+      openLiveSlot = slot;
+      stopOpenLiveCamera = stopLive;
+      snappingRef.current = false;
+      setReady(false);
       setLive(true);
     } catch {
       try {
@@ -200,17 +252,19 @@ function WebCameraCard({
 
   const snap = () => {
     const video = videoRef.current;
-    if (!video || video.videoWidth < 2) {
-      onError("Camera is not ready yet. Wait one second, then tap Take this picture.");
+    if (snappingRef.current) return;
+    if (!ready || !video || video.videoWidth < 16) {
+      onError("Wait until the camera picture appears, then tap Take this picture once.");
       return;
     }
+    snappingRef.current = true;
     try {
       const frame = frameRef.current;
-      const crop = videoCropForCoverGuide({
+      const crop = chooseAgeKycCaptureRect({
         videoWidth: video.videoWidth,
         videoHeight: video.videoHeight,
-        viewWidth: frame?.clientWidth || video.clientWidth || video.videoWidth,
-        viewHeight: frame?.clientHeight || video.clientHeight || video.videoHeight,
+        viewWidth: frame?.clientWidth ?? 0,
+        viewHeight: frame?.clientHeight ?? 0,
         kind,
       });
       const canvas = document.createElement("canvas");
@@ -226,12 +280,17 @@ function WebCameraCard({
           stopLive();
         })
         .catch((error) => {
+          snappingRef.current = false;
           onError(error instanceof Error ? error.message : "Could not take that picture.");
         });
     } catch (error) {
+      snappingRef.current = false;
       onError(error instanceof Error ? error.message : "Could not take that picture.");
     }
   };
+
+  const boxLabel =
+    slot === "front" ? "ID front" : slot === "back" ? "ID back" : "Your face";
 
   return (
     <View style={{ gap: 10 }}>
@@ -243,7 +302,7 @@ function WebCameraCard({
             style={{
               position: "relative",
               width: "100%",
-              aspectRatio: kind === "id" ? "1.4 / 1" : "3 / 4",
+              aspectRatio: kind === "id" ? "1.6 / 1" : "3 / 4",
               borderRadius: 12,
               overflow: "hidden",
               background: "#111",
@@ -261,35 +320,69 @@ function WebCameraCard({
                 transform: kind === "selfie" ? "scaleX(-1)" : undefined,
               }}
             />
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                pointerEvents: "none",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+            {guide ? (
               <div
                 style={{
-                  width: kind === "id" ? "90%" : "72%",
-                  aspectRatio: kind === "id" ? "1.586 / 1" : "1 / 1",
+                  position: "absolute",
+                  left: guide.left,
+                  top: guide.top,
+                  width: guide.width,
+                  height: guide.height,
+                  pointerEvents: "none",
                   border: "3px solid #fde68a",
                   borderRadius: kind === "id" ? 12 : "50%",
                   boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
                 }}
               />
+            ) : (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  pointerEvents: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <div
+                  style={{
+                    width: kind === "id" ? "90%" : "72%",
+                    aspectRatio: kind === "id" ? `${ID_CARD_ASPECT} / 1` : "1 / 1",
+                    maxHeight: "78%",
+                    border: "3px solid #fde68a",
+                    borderRadius: kind === "id" ? 12 : "50%",
+                    boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
+                  }}
+                />
+              </div>
+            )}
+            <div
+              style={{
+                position: "absolute",
+                left: 8,
+                top: 8,
+                background: "#fde68a",
+                color: "#111",
+                fontWeight: 800,
+                fontSize: 12,
+                padding: "4px 8px",
+                borderRadius: 8,
+              }}
+            >
+              {boxLabel}
             </div>
           </div>
           <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 15, textAlign: "center" }}>
             {kind === "id"
-              ? "Put the whole card inside the yellow box. All four corners must show."
+              ? `Fit the whole ${boxLabel.toLowerCase()} inside the yellow box. All four corners.`
               : "Put your face inside the yellow circle."}
           </Text>
           <PrimaryActionButton
             testID={`age-kyc-snap-${slot}`}
-            label="Take this picture"
+            label={ready ? "Take this picture" : "Camera opening…"}
+            loading={!ready}
+            loadingLabel="Camera opening…"
             onPress={snap}
             backgroundColor="#15803d"
           />
@@ -299,20 +392,11 @@ function WebCameraCard({
         </View>
       ) : (
         <>
-          <WebCameraFileButton
-            testID={`age-kyc-take-${slot}`}
-            label={cameraLabel}
-            capture={ageKycWebCapture(kind)}
-            backgroundColor={kind === "selfie" ? "#15803d" : slot === "back" ? "#b45309" : "#1d4ed8"}
-            textColor="#fff"
-            onPicked={onPicked}
-            onError={onError}
-          />
           <PrimaryActionButton
             testID={`age-kyc-live-${slot}`}
-            label="Live camera on this page"
+            label={cameraLabel}
             onPress={() => void openLiveCamera()}
-            backgroundColor="#0f172a"
+            backgroundColor={kind === "selfie" ? "#15803d" : slot === "back" ? "#b45309" : "#1d4ed8"}
           />
           <WebCameraFileButton
             testID={`age-kyc-library-${slot}`}

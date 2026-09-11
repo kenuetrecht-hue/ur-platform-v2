@@ -110,7 +110,7 @@ export function IdCheckDuringSignin({ onPassed, onReset }: Props) {
         Hear Uri, then take the three pictures
       </Text>
       <Text style={{ color: colors.foreground, fontSize: 15, lineHeight: 22, fontWeight: "700" }}>
-        Tap Hear Uri. He talks while you photograph ID front, ID back, and a selfie on this same page.
+        Tap Hear Uri. Then tap Open camera on ID front, ID back, and selfie. A yellow box shows on each one — including the back. Fit the card, wait until Take this picture turns on, then tap it once.
       </Text>
       <Text style={{ color: colors.foreground, fontSize: 14, lineHeight: 20 }}>{ID_MUST_PASS_FIRST}</Text>
       <SignupKycCartoonSample />

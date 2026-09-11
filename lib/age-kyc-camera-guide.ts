@@ -97,3 +97,23 @@ export function videoCropForCoverGuide(params: {
   const ey = Math.max(sy + 1, Math.min(videoHeight, Math.round(bottomRight.y)));
   return { sx, sy, sw: ex - sx, sh: ey - sy };
 }
+
+/** Use the guide crop when the view is measured. Otherwise send the full frame. */
+export function chooseAgeKycCaptureRect(params: {
+  videoWidth: number;
+  videoHeight: number;
+  viewWidth: number;
+  viewHeight: number;
+  kind: AgeKycGuideKind;
+}): VideoCrop {
+  const videoWidth = Math.max(1, params.videoWidth);
+  const videoHeight = Math.max(1, params.videoHeight);
+  if (params.viewWidth < 80 || params.viewHeight < 80 || videoWidth < 16 || videoHeight < 16) {
+    return { sx: 0, sy: 0, sw: videoWidth, sh: videoHeight };
+  }
+  const crop = videoCropForCoverGuide({ ...params, videoWidth, videoHeight });
+  if (crop.sw < 80 || crop.sh < 80) {
+    return { sx: 0, sy: 0, sw: videoWidth, sh: videoHeight };
+  }
+  return crop;
+}
