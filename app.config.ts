@@ -104,6 +104,13 @@ const config: ExpoConfig = {
   plugins: [
     "expo-router",
     [
+      "expo-camera",
+      {
+        cameraPermission:
+          "UR uses the live camera so you can line up your ID and selfie in the yellow box.",
+      },
+    ],
+    [
       "expo-image-picker",
       {
         cameraPermission:

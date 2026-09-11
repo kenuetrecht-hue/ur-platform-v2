@@ -34,6 +34,10 @@ export type GoogleChatParams = {
   attachments?: GoogleChatAttachment[];
   /** Ask the model for JSON only — used by the ID photo checker. */
   responseJson?: boolean;
+  /** Gemini 3 thinking. ID reads must stay MINIMAL or a 400-token cap returns empty JSON. */
+  thinkingLevel?: "MINIMAL" | "LOW" | "MEDIUM" | "HIGH";
+  /** Gemini 3 image detail. HIGH is required to read small printed ID dates. */
+  mediaResolution?: "MEDIA_RESOLUTION_LOW" | "MEDIA_RESOLUTION_MEDIUM" | "MEDIA_RESOLUTION_HIGH";
 };
 
 export type GoogleChatResult = {
@@ -64,15 +68,48 @@ function geminiApiModelCandidates(): string[] {
   return [...new Set([primary, ...fallbacks])];
 }
 
+type GeminiGenerationConfig = {
+  maxOutputTokens: number;
+  temperature?: number;
+  responseMimeType?: string;
+  thinkingConfig?: { thinkingLevel: "MINIMAL" | "LOW" | "MEDIUM" | "HIGH" };
+  mediaResolution?: "MEDIA_RESOLUTION_LOW" | "MEDIA_RESOLUTION_MEDIUM" | "MEDIA_RESOLUTION_HIGH";
+};
+
+/** Visible for tests — Gemini 3 thinking can swallow a short JSON ID read. */
+export function buildGeminiGenerationConfig(params: {
+  modelName: string;
+  maxOutputTokens: number;
+  temperature: number;
+  responseJson?: boolean;
+  thinkingLevel?: GoogleChatParams["thinkingLevel"];
+  mediaResolution?: GoogleChatParams["mediaResolution"];
+  hasAttachments?: boolean;
+}): GeminiGenerationConfig {
+  const config: GeminiGenerationConfig = { maxOutputTokens: params.maxOutputTokens };
+  if (!/^gemini-3/i.test(params.modelName)) {
+    config.temperature = params.temperature;
+  }
+  if (params.responseJson) {
+    config.responseMimeType = "application/json";
+  }
+  if (/^gemini-3/i.test(params.modelName)) {
+    config.thinkingConfig = {
+      thinkingLevel: params.thinkingLevel ?? (params.responseJson ? "MINIMAL" : "MEDIUM"),
+    };
+  }
+  if (params.hasAttachments) {
+    config.mediaResolution = params.mediaResolution ?? "MEDIA_RESOLUTION_HIGH";
+  }
+  return config;
+}
+
 function generationConfigForModel(
   modelName: string,
   maxOutputTokens: number,
   temperature: number,
 ): { maxOutputTokens: number; temperature?: number } {
-  if (/^gemini-3/i.test(modelName)) {
-    return { maxOutputTokens };
-  }
-  return { maxOutputTokens, temperature };
+  return buildGeminiGenerationConfig({ modelName, maxOutputTokens, temperature });
 }
 
 function geminiErrorMessage(error: unknown): string {
@@ -337,11 +374,31 @@ function buildUserContentParts(
   return parts;
 }
 
+function readGeminiReplyText(response: {
+  text: () => string;
+  candidates?: Array<{ content?: { parts?: Array<{ text?: string; thought?: boolean }> } }>;
+}): string {
+  try {
+    const text = response.text()?.trim();
+    if (text) return text;
+  } catch {
+    /* Gemini 3 can throw when only thought parts were produced. */
+  }
+  const parts = response.candidates?.[0]?.content?.parts ?? [];
+  return parts
+    .map((part) => (part.thought ? "" : part.text ?? ""))
+    .join("")
+    .trim();
+}
+
 function sanitizeParams(params: GoogleChatParams): GoogleChatParams {
-  const maxOutputTokens =
+  let maxOutputTokens =
     params.maxOutputTokens != null
       ? Math.min(Math.max(Math.floor(params.maxOutputTokens), 16), 8192)
       : undefined;
+  if (params.responseJson === true && (maxOutputTokens == null || maxOutputTokens < 2048)) {
+    maxOutputTokens = 2048;
+  }
   const temperature =
     params.temperature != null
       ? Math.min(Math.max(params.temperature, 0), 2)
@@ -361,6 +418,8 @@ function sanitizeParams(params: GoogleChatParams): GoogleChatParams {
     temperature,
     attachments: params.attachments?.slice(0, 2),
     responseJson: params.responseJson === true,
+    thinkingLevel: params.thinkingLevel,
+    mediaResolution: params.mediaResolution,
   };
 }
 
@@ -391,24 +450,29 @@ async function generateChatViaGeminiApiKey(
     const model = genAI.getGenerativeModel({
       model: modelName,
       systemInstruction: safe.systemPrompt,
-      generationConfig: {
-        ...generationConfigForModel(modelName, maxOutputTokens, temperature),
-        ...(safe.responseJson ? { responseMimeType: "application/json" } : {}),
-      },
+      generationConfig: buildGeminiGenerationConfig({
+        modelName,
+        maxOutputTokens,
+        temperature,
+        responseJson: safe.responseJson,
+        thinkingLevel: safe.thinkingLevel,
+        mediaResolution: safe.mediaResolution,
+        hasAttachments: Boolean(safe.attachments?.length),
+      }),
     });
 
     const userParts = buildUserContentParts(userMessage, safe.attachments);
 
     if (history.length === 0) {
       const result = await model.generateContent({ contents: [{ role: "user", parts: userParts }] });
-      const text = result.response.text()?.trim();
+      const text = readGeminiReplyText(result.response);
       if (!text) throw new InternalServiceError("EMPTY_RESPONSE");
       return { reply: text, model: modelName };
     }
 
     const chat = model.startChat({ history });
     const result = await chat.sendMessage(userParts);
-    const text = result.response.text()?.trim();
+    const text = readGeminiReplyText(result.response);
     if (!text) throw new InternalServiceError("EMPTY_RESPONSE");
     return { reply: text, model: modelName };
   }

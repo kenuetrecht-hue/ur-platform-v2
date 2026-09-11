@@ -14,6 +14,22 @@ export function isAllowedAgeKycMime(mime: string): mime is AgeKycMimeType {
   return AGE_KYC_MIME_TYPES.includes(mime as AgeKycMimeType);
 }
 
+/** Phones often report image/jpg or HEIC even when the file bytes are JPEG. */
+export function normalizeAgeKycMime(raw?: string | null): AgeKycMimeType | null {
+  const mime = (raw ?? "").trim().toLowerCase();
+  if (isAllowedAgeKycMime(mime)) return mime;
+  if (
+    mime === "image/jpg" ||
+    mime === "image/pjpeg" ||
+    mime === "image/heic" ||
+    mime === "image/heif" ||
+    mime === ""
+  ) {
+    return "image/jpeg";
+  }
+  return null;
+}
+
 /** Which phone camera the website should ask for. */
 export function ageKycWebCapture(kind: "id" | "selfie" | "library"): "user" | "environment" | null {
   if (kind === "selfie") return "user";

@@ -27,6 +27,15 @@ export type AgeKycStatus = "none" | "pending" | "verified" | "rejected";
 
 export type AgeKycDocumentType = "driver_license" | "state_id" | "passport" | "national_id";
 
+/** Pull the first readable date out of model text or JSON. */
+export function findFlexibleDobInText(value: string): string | null {
+  const iso = value.match(/\b(19|20)\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\b/);
+  if (iso) return parseFlexibleDob(iso[0]);
+  const us = value.match(/\b(0?[1-9]|1[0-2])[/-](0?[1-9]|[12]\d|3[01])[/-]((?:19|20)\d{2})\b/);
+  if (us) return parseFlexibleDob(us[0]);
+  return null;
+}
+
 /** Accept YYYY-MM-DD or common US printed dates such as 05/20/1990. */
 export function parseFlexibleDob(value: string): string | null {
   const trimmed = value.trim();

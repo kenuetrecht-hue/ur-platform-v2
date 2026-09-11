@@ -36,42 +36,42 @@ const BEATS: Array<{
     id: "hook",
     title: "Yeah… we know",
     narration:
-      "Hi — I'm Uri. I understand fully you do not want to do this. Nobody wakes up excited to photograph an ID. Thanks for the extra step. We should still do it. Thank you for hanging in for thirty seconds.",
+      "Hi. I'm Uri. I understand fully you do not want to do this. Nobody wakes up excited to photograph an ID. Thanks for the extra step. We should still do it. Thank you for hanging in for thirty seconds.",
     caption: "Thank you. Here is why.",
   },
   {
     id: "front",
     title: "The front is the easy one",
     narration:
-      "First the FRONT of a government ID — the side you already show at the store. Face plus date of birth. That is how we know you are 18 or older, not a kid borrowing a grown-up name. Quick. Then the awkward extra.",
+      "First, the front of a government ID. The side you already show at the store. Face, plus date of birth. That is how we know you are 18 or older, not a kid borrowing a grown-up name. Quick. Then the awkward extra.",
     caption: "Front = face + date of birth",
   },
   {
     id: "back",
     title: "The back is the 'really?' picture",
     narration:
-      "Now the BACK. Yes, we are that friend who asks you to flip the card. The barcode, stripe, or passport code proves it is a real ID. A screenshot of the front alone is how stolen cards sneak in. That extra shot is why the grown-ups stay.",
+      "Now the back. Yes, we are that friend who asks you to flip the card. The barcode, stripe, or passport code proves it is a real ID. A screenshot of the front alone is how stolen cards sneak in. That extra shot is why the grown-ups stay.",
     caption: "Back = real card, not a screenshot",
   },
   {
     id: "selfie",
     title: "And one not-so-glam selfie",
     narration:
-      "Last: a live selfie. Bathroom lighting counts. Not a picture of the ID, not your dog, not a filter that turns you into a tiger. Just you. That proves you are the person on the card — not someone with a found wallet. Thank you. This is the part that keeps the thieves out.",
+      "Last, a live selfie. Bathroom lighting counts. Not a picture of the ID. Not your dog. Not a filter that turns you into a tiger. Just you. That proves you are the person on the card, not someone with a found wallet. Thank you. This is the part that keeps the thieves out.",
     caption: "Selfie = you, not the card",
   },
   {
     id: "privacy",
     title: "We are not keeping the album",
     narration:
-      "Promise: UR does not keep the ID pictures. A checker looks only to confirm you are 18+ and that the selfie matches. We keep pass or fail and a one-way fingerprint — not a reusable copy. After you pass, your creator name locks so your work stays yours. That is the thank-you gift.",
+      "Promise. UR does not keep the ID pictures. A checker looks only to confirm you are 18 or older, and that the selfie matches. We keep pass or fail, and a one-way fingerprint. Not a reusable copy. After you pass, your creator name locks so your work stays yours. That is the thank-you gift.",
     caption: "Pictures are not stored",
   },
   {
     id: "close",
     title: "Thank you — then you enter",
     narration:
-      "This cartoon is a sample of what the website can make. Thank you for the extra step. You still take the three pictures: front, back, and selfie. Then we check them. After they pass, you create the account or sign in.",
+      "This cartoon is a sample of what the website can make. Thank you for the extra step. You still take the three pictures. Front, back, and selfie. Then we check them. After they pass, you create the account or sign in.",
     caption: "Thank you. Photos are still required.",
   },
 ];

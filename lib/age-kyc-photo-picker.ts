@@ -1,8 +1,7 @@
 import { Platform } from "react-native";
-import { type AgeKycMimeType } from "./age-kyc-policy";
 import {
   ageKycWebCapture,
-  isAllowedAgeKycMime,
+  normalizeAgeKycMime,
   prepareAgeKycPhoto,
   readFileAsPhoto,
   type AgeKycPickedPhoto,
@@ -11,6 +10,7 @@ import {
 export {
   ageKycWebCapture,
   countFilledAgeKycSlots,
+  normalizeAgeKycMime,
   photoFromDataUrl,
   prepareAgeKycPhoto,
   readFileAsPhoto,
@@ -58,20 +58,43 @@ async function pickOnWeb(kind: "id" | "selfie" | "library"): Promise<AgeKycPicke
   });
 }
 
+async function readBase64FromUri(uri: string): Promise<string | null> {
+  try {
+    const FileSystem = await import("expo-file-system");
+    return await FileSystem.readAsStringAsync(uri, { encoding: "base64" });
+  } catch {
+    return null;
+  }
+}
+
 async function photoFromAsset(
   asset: { mimeType?: string | null; base64?: string | null; uri: string },
 ): Promise<AgeKycPickedPhoto> {
-  if (!asset.base64) {
-    throw new Error("Could not read that photo. Try again.");
-  }
-  const mimeType = (asset.mimeType ?? "image/jpeg") as AgeKycMimeType;
-  if (!isAllowedAgeKycMime(mimeType)) {
+  const mimeType = normalizeAgeKycMime(asset.mimeType);
+  if (!mimeType) {
     throw new Error("Use a JPEG, PNG, or WebP photo.");
+  }
+  const base64 = asset.base64 || (await readBase64FromUri(asset.uri));
+  if (!base64) {
+    throw new Error("Could not read that photo. Try again.");
   }
   return prepareAgeKycPhoto({
     mimeType,
-    base64: asset.base64,
-    previewUri: asset.uri.startsWith("data:") ? asset.uri : `data:${mimeType};base64,${asset.base64}`,
+    base64,
+    previewUri: asset.uri.startsWith("data:") ? asset.uri : `data:${mimeType};base64,${base64}`,
+  });
+}
+
+/** Live in-app camera shot on the phone. */
+export async function photoFromNativeCapture(shot: {
+  uri: string;
+  base64?: string | null;
+  mimeType?: string | null;
+}): Promise<AgeKycPickedPhoto> {
+  return photoFromAsset({
+    uri: shot.uri,
+    base64: shot.base64,
+    mimeType: shot.mimeType ?? "image/jpeg",
   });
 }
 

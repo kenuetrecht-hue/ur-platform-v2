@@ -25,4 +25,26 @@ describe("speak-page-copy", () => {
       scoreSpeechVoice({ name: "eSpeak Compact", lang: "en-US" }),
     );
   });
+
+  it("prefers a natural online voice over an old desktop robot", () => {
+    const picked = pickHumanSpeechVoice([
+      { name: "Microsoft David Desktop", lang: "en-US", localService: true, default: true },
+      { name: "Microsoft Andrew Online (Natural)", lang: "en-US", localService: false },
+    ]);
+    expect(picked?.name).toBe("Microsoft Andrew Online (Natural)");
+  });
+});
+
+describe("human speech prep", () => {
+  it("says I.D. and eighteen plus the way a person would", async () => {
+    const { prepareSpeechForHumanVoice, splitSpeechChunks } = await import("../lib/speak-page-copy");
+    const spoken = prepareSpeechForHumanVoice(
+      "I understand fully you do not want to do this. Photograph the ID. UR is 18+.",
+    );
+    expect(spoken).toMatch(/Look, I get it/i);
+    expect(spoken).toContain("I.D.");
+    expect(spoken).toContain("this app");
+    expect(spoken).toContain("eighteen plus");
+    expect(splitSpeechChunks(spoken).length).toBeGreaterThan(1);
+  });
 });

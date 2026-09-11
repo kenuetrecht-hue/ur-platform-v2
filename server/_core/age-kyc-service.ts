@@ -9,6 +9,7 @@ import {
   AGE_KYC_ID_UNREADABLE_MESSAGE,
   AGE_KYC_UNDERAGE_MESSAGE,
   ageFromIsoDate,
+  findFlexibleDobInText,
   isAdultAge,
   parseFlexibleDob,
   type AgeKycDocumentType,
@@ -130,8 +131,18 @@ function asScore(value: unknown): number {
 }
 
 function asDob(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  return parseFlexibleDob(value);
+  if (typeof value === "string") {
+    return parseFlexibleDob(value) ?? findFlexibleDobInText(value);
+  }
+  return null;
+}
+
+function dobFromAnalysis(analysis: Record<string, unknown>): string | null {
+  for (const key of ["dateOfBirth", "dob", "birthDate", "birth_date", "date_of_birth"]) {
+    const parsed = asDob(analysis[key]);
+    if (parsed) return parsed;
+  }
+  return findFlexibleDobInText(JSON.stringify(analysis));
 }
 
 function publicStatusFromMemory(row: MemoryKyc | undefined): AgeKycPublicStatus {
@@ -312,7 +323,7 @@ async function analyzeAgeKycPhotos(params: {
         history: [],
         message: `Document type claimed: ${params.documentType}. This single image is the ID FRONT. Read the printed birth date from this front photo (US cards often use MM/DD/YYYY). Do not output ID numbers.`,
         temperature: 0.1,
-        maxOutputTokens: 500,
+        maxOutputTokens: 2048,
         attachments: [{ mimeType: front.mimeType, base64: front.base64 }],
         responseJson: true,
       }),
@@ -321,7 +332,7 @@ async function analyzeAgeKycPhotos(params: {
         history: [],
         message: `Document type claimed: ${params.documentType}. This single image is the ID BACK. A barcode, PDF417 square, magnetic stripe, or official card reverse is a valid back even with no name, photo, or birth date. Do not output ID numbers.`,
         temperature: 0.1,
-        maxOutputTokens: 400,
+        maxOutputTokens: 2048,
         attachments: [{ mimeType: back.mimeType, base64: back.base64 }],
         responseJson: true,
       }),
@@ -331,7 +342,7 @@ async function analyzeAgeKycPhotos(params: {
         message:
           "Image 1 is the ID FRONT portrait. Image 2 is a live SELFIE. Decide if they are the same person. Do not output ID numbers.",
         temperature: 0.1,
-        maxOutputTokens: 400,
+        maxOutputTokens: 2048,
         attachments: [
           { mimeType: front.mimeType, base64: front.base64 },
           { mimeType: selfie.mimeType, base64: selfie.base64 },
@@ -355,7 +366,7 @@ async function analyzeAgeKycPhotos(params: {
   if (!asBool(backAnalysis.isGovernmentIdBack)) reasons.push("Back photo is not the back of a government ID.");
   if (asBool(idAnalysis.documentExpired)) reasons.push("The ID appears expired.");
 
-  const dob = asDob(idAnalysis.dateOfBirth);
+  const dob = dobFromAnalysis(idAnalysis);
   const age = dob ? ageFromIsoDate(dob) : null;
   if (!dob || age == null) {
     reasons.push(AGE_KYC_ID_UNREADABLE_MESSAGE);

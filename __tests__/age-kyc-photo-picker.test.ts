@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ageKycWebCapture,
   countFilledAgeKycSlots,
+  normalizeAgeKycMime,
   photoFromDataUrl,
   prepareAgeKycPhoto,
 } from "../lib/age-kyc-photo-helpers";
@@ -31,6 +32,12 @@ describe("countFilledAgeKycSlots", () => {
     const photo = photoFromDataUrl("data:image/jpeg;base64,abc");
     expect(photo.mimeType).toBe("image/jpeg");
     expect(photo.base64).toBe("abc");
+  });
+
+  it("treats phone jpg and HEIC labels as JPEG", () => {
+    expect(normalizeAgeKycMime("image/jpg")).toBe("image/jpeg");
+    expect(normalizeAgeKycMime("image/heic")).toBe("image/jpeg");
+    expect(normalizeAgeKycMime("image/png")).toBe("image/png");
   });
 
   it("asks the phone camera for ID back/front and the selfie camera for the face", () => {

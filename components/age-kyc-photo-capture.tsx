@@ -3,12 +3,11 @@ import { Platform, Pressable, Text, View, Image } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import {
   photoFromDataUrl,
-  pickAgeKycLibraryPhoto,
   pickAgeKycPhoto,
   prepareAgeKycPhoto,
-  readFileAsPhoto,
   type AgeKycPickedPhoto,
 } from "@/lib/age-kyc-photo-picker";
+import { NativeAgeKycCamera } from "@/components/native-age-kyc-camera";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { chooseAgeKycCaptureRect, guideBoxInView, ID_CARD_ASPECT, type GuideBox } from "@/lib/age-kyc-camera-guide";
 
@@ -18,9 +17,9 @@ let stopOpenLiveCamera: (() => void) | null = null;
 let openLiveSlot: AgeKycSlot | null = null;
 
 const SLOTS: { id: AgeKycSlot; title: string; cameraLabel: string; kind: "id" | "selfie"; color: string }[] = [
-  { id: "front", title: "1 · ID front", cameraLabel: "Open camera — ID front", kind: "id", color: "#1d4ed8" },
-  { id: "back", title: "2 · ID back", cameraLabel: "Open camera — ID back", kind: "id", color: "#b45309" },
-  { id: "selfie", title: "3 · Selfie", cameraLabel: "Open camera — selfie", kind: "selfie", color: "#15803d" },
+  { id: "front", title: "1 · ID front", cameraLabel: "Live camera — ID front", kind: "id", color: "#1d4ed8" },
+  { id: "back", title: "2 · ID back", cameraLabel: "Live camera — ID back", kind: "id", color: "#b45309" },
+  { id: "selfie", title: "3 · Selfie", cameraLabel: "Live camera — selfie", kind: "selfie", color: "#15803d" },
 ];
 
 type Props = {
@@ -46,7 +45,7 @@ export function AgeKycPhotoCapture(props: Props) {
         Take the three pictures now
       </Text>
       <Text style={{ color: colors.foreground, fontSize: 16, lineHeight: 22, fontWeight: "700" }}>
-        Tap Open camera on front, back, and selfie. A yellow box appears on each one. Fit the card inside it, then tap Take this picture once.
+        Tap Live camera on front, back, and selfie. A yellow box appears on each one. Fit the card inside it, then tap Take this picture once.
       </Text>
 
       {SLOTS.map((slot) => {
@@ -72,7 +71,7 @@ export function AgeKycPhotoCapture(props: Props) {
                 fontSize: 15,
               }}
             >
-              {photo ? "Photo recorded — tap Open camera to retake" : "Not taken yet — tap Open camera"}
+              {photo ? "Photo recorded — tap Live camera to retake" : "Not taken yet — tap Live camera"}
             </Text>
 
             {photo ? (
@@ -93,37 +92,13 @@ export function AgeKycPhotoCapture(props: Props) {
                 onError={props.onError}
               />
             ) : (
-              <View style={{ gap: 10 }}>
-                <PrimaryActionButton
-                  testID={`age-kyc-take-${slot.id}`}
-                  label={photo ? `Retake — ${slot.title}` : slot.cameraLabel}
-                  onPress={() => {
-                    void pickAgeKycPhoto(slot.kind)
-                      .then((next) => {
-                        if (next) props.onPicked(slot.id, next);
-                      })
-                      .catch((error) => {
-                        props.onError(error instanceof Error ? error.message : "Could not open camera.");
-                      });
-                  }}
-                  backgroundColor={slot.color}
-                />
-                <PrimaryActionButton
-                  testID={`age-kyc-library-${slot.id}`}
-                  label="Upload a photo already on this phone"
-                  onPress={() => {
-                    void pickAgeKycLibraryPhoto()
-                      .then((next) => {
-                        if (next) props.onPicked(slot.id, next);
-                      })
-                      .catch((error) => {
-                        props.onError(error instanceof Error ? error.message : "Could not open photos.");
-                      });
-                  }}
-                  backgroundColor={colors.background}
-                  textColor={colors.foreground}
-                />
-              </View>
+              <NativeAgeKycCamera
+                slot={slot.id}
+                kind={slot.kind}
+                cameraLabel={photo ? `Retake — ${slot.title}` : slot.cameraLabel}
+                onPicked={(next) => props.onPicked(slot.id, next)}
+                onError={props.onError}
+              />
             )}
           </View>
         );
@@ -398,86 +373,8 @@ function WebCameraCard({
             onPress={() => void openLiveCamera()}
             backgroundColor={kind === "selfie" ? "#15803d" : slot === "back" ? "#b45309" : "#1d4ed8"}
           />
-          <WebCameraFileButton
-            testID={`age-kyc-library-${slot}`}
-            label="Upload a photo already on this phone"
-            capture={null}
-            backgroundColor={colors.background}
-            textColor={colors.foreground}
-            onPicked={onPicked}
-            onError={onError}
-          />
         </>
       )}
     </View>
-  );
-}
-
-/** Real file input — phones open the camera when capture is set. Pressable + hidden click often does nothing. */
-function WebCameraFileButton({
-  testID,
-  label,
-  capture,
-  backgroundColor,
-  textColor,
-  onPicked,
-  onError,
-}: {
-  testID: string;
-  label: string;
-  capture: "user" | "environment" | null;
-  backgroundColor: string;
-  textColor: string;
-  onPicked: (photo: AgeKycPickedPhoto) => void;
-  onError: (message: string) => void;
-}) {
-  return (
-    <label
-      style={{
-        display: "flex",
-        position: "relative",
-        minHeight: 58,
-        borderRadius: 12,
-        backgroundColor,
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: "pointer",
-        fontWeight: 800,
-        fontSize: 16,
-        color: textColor,
-        textAlign: "center",
-        padding: 16,
-        overflow: "hidden",
-      }}
-    >
-      {label}
-      <input
-        type="file"
-        accept="image/*"
-        {...(capture ? { capture } : {})}
-        data-testid={testID}
-        aria-label={label}
-        onChange={(event) => {
-          const file = event.currentTarget.files?.[0];
-          event.currentTarget.value = "";
-          if (!file) return;
-          void readFileAsPhoto(file)
-            .then(onPicked)
-            .catch((error) => {
-              onError(error instanceof Error ? error.message : "Could not read photo.");
-            });
-        }}
-        style={{
-          position: "absolute",
-          left: 0,
-          top: 0,
-          width: "100%",
-          height: "100%",
-          opacity: 0,
-          fontSize: 20,
-          cursor: "pointer",
-        }}
-      />
-    </label>
   );
 }
