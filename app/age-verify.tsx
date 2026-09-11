@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { View, Text, Pressable, ScrollView, Alert } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/lib/auth-context";
@@ -31,6 +31,7 @@ const DOCS: { id: AgeKycDocumentType; label: string }[] = [
 
 export default function AgeVerifyScreen() {
   const colors = useColors();
+  const router = useRouter();
   const { logout } = useAuth();
   const [documentType, setDocumentType] = useState<AgeKycDocumentType>("driver_license");
   const [idFront, setIdFront] = useState<AgeKycPickedPhoto | null>(null);
@@ -105,6 +106,13 @@ export default function AgeVerifyScreen() {
               <Text style={{ color: colors.muted, marginTop: 6 }}>
                 You are confirmed 18 or older. You can enter UR Platform.
               </Text>
+              <View style={{ marginTop: 12 }}>
+                <PrimaryActionButton
+                  label="Enter the app"
+                  onPress={() => router.replace("/(tabs)")}
+                  backgroundColor={colors.primary}
+                />
+              </View>
             </View>
           ) : (
             <>

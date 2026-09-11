@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, TextInput, Pressable, ScrollView, Platform } from "react-native";
-import { useRouter, Link, useLocalSearchParams, Redirect } from "expo-router";
+import { useRouter, Link, useLocalSearchParams } from "expo-router";
 import { useAuth, type UserRole } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
@@ -19,6 +19,7 @@ import { showUserMessage } from "@/lib/show-user-message";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { markGiveJoinEmanual } from "@/lib/join-emanual-handoff";
 import { AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
+import { PostSignInAgeVerifyGate } from "@/components/go-to-id-photos";
 
 const ROLES: { id: UserRole; label: string; desc: string }[] = [
   { id: "creator", label: "Content creator", desc: "Host paid live classes · 85% instant payouts" },
@@ -159,7 +160,7 @@ export default function SignUpScreen() {
   const loading = submitting;
 
   if (isAuthenticated) {
-    return <Redirect href={AFTER_SIGN_IN_HREF} />;
+    return <PostSignInAgeVerifyGate />;
   }
 
   return (

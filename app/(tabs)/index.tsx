@@ -16,6 +16,7 @@ import { PlatformSearchPanel } from "@/components/platform-search-panel";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { AppPressable } from "@/components/app-pressable";
 import { ADMIN_TAB_HREF } from "@/lib/admin-dashboard-routes";
+import { GoToIdPhotosButton } from "@/components/go-to-id-photos";
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -33,6 +34,13 @@ export default function HomeScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <HomeLaunchPromoBanner />
+
+        <View style={{ paddingHorizontal: 16, marginTop: 12, gap: 8 }}>
+          <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
+            ID check — tap to photograph ID front, ID back, and a selfie
+          </Text>
+          <GoToIdPhotosButton label="Open ID photo page" />
+        </View>
 
         <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
           <AppPressable

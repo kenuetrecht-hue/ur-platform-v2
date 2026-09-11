@@ -9,4 +9,8 @@ describe("after sign-in", () => {
     expect(shouldOpenAgeVerifyPage({ isAuthenticated: true, kycVerified: true })).toBe(false);
     expect(shouldOpenAgeVerifyPage({ isAuthenticated: false, kycVerified: false })).toBe(false);
   });
+
+  it("keeps the photo page path as a tap target people can open by hand", () => {
+    expect(AFTER_SIGN_IN_HREF.includes("age-verify")).toBe(true);
+  });
 });

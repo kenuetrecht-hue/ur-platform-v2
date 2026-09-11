@@ -115,13 +115,13 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (isAuthenticated && kycVerified && shouldGiveJoinEmanual() && !isEmanualRoute(segments)) {
-      router.replace("/e-manual?joined=1");
+    if (isAuthenticated && kycVerified && inAgeVerify) {
+      // Stay on the photo page. A bounce here is why people never see the cameras.
       return;
     }
 
-    if (isAuthenticated && kycVerified && inAgeVerify) {
-      router.replace(canAccessAdminDashboard ? "/(tabs)/admin" : "/(tabs)");
+    if (isAuthenticated && kycVerified && shouldGiveJoinEmanual() && !isEmanualRoute(segments)) {
+      router.replace("/e-manual?joined=1");
       return;
     }
 

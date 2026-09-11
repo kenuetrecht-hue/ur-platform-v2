@@ -8,7 +8,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
 } from "react-native";
-import { Link, Redirect } from "expo-router";
+import { Link } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { PrimaryActionButton } from "@/components/primary-action-button";
@@ -18,6 +18,7 @@ import { TurnstileWidget } from "@/components/turnstile-widget";
 import { LOGIN_FIELDS, LOGIN_PAGE_WHY } from "@/lib/signup-step-copy";
 import { SignupStepExplain } from "@/components/signup-step-explain";
 import { AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
+import { PostSignInAgeVerifyGate } from "@/components/go-to-id-photos";
 
 /** Same login on website and native app — web uses a DOM submit button so clicks register. */
 export default function LoginScreen() {
@@ -38,7 +39,7 @@ export default function LoginScreen() {
     serviceHint,
   } = useLoginScreen();
   if (isAuthenticated) {
-    return <Redirect href={AFTER_SIGN_IN_HREF} />;
+    return <PostSignInAgeVerifyGate />;
   }
 
   const inputStyle = {
@@ -179,6 +180,12 @@ export default function LoginScreen() {
                 Sign up
               </Link>
             </Text>
+            <Link
+              href={AFTER_SIGN_IN_HREF}
+              style={{ color: colors.primary, fontWeight: "800", fontSize: 16, textAlign: "center", marginTop: 16 }}
+            >
+              Open ID photo page
+            </Link>
             <Text style={{ color: colors.muted, fontSize: 12, textAlign: "center", marginTop: 16 }}>
               <Link href="/terms" style={{ color: colors.primary, fontWeight: "700" }}>
                 Terms
