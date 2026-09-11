@@ -1,63 +1,28 @@
 import { Platform } from "react-native";
+import { type AgeKycMimeType } from "./age-kyc-policy";
 import {
-  AGE_KYC_IMAGE_MAX_BYTES,
-  AGE_KYC_MIME_TYPES,
-  type AgeKycMimeType,
-} from "./age-kyc-policy";
+  ageKycWebCapture,
+  isAllowedAgeKycMime,
+  readFileAsPhoto,
+  type AgeKycPickedPhoto,
+} from "./age-kyc-photo-helpers";
 
-export type AgeKycPickedPhoto = {
-  mimeType: AgeKycMimeType;
-  base64: string;
-  previewUri: string;
-};
-
-function isAllowedMime(mime: string): mime is AgeKycMimeType {
-  return AGE_KYC_MIME_TYPES.includes(mime as AgeKycMimeType);
-}
-
-export function countFilledAgeKycSlots(slots: {
-  front: AgeKycPickedPhoto | null;
-  back: AgeKycPickedPhoto | null;
-  selfie: AgeKycPickedPhoto | null;
-}): number {
-  return Number(Boolean(slots.front)) + Number(Boolean(slots.back)) + Number(Boolean(slots.selfie));
-}
-
-export function readFileAsPhoto(file: File): Promise<AgeKycPickedPhoto> {
-  return new Promise((resolve, reject) => {
-    if (file.size > AGE_KYC_IMAGE_MAX_BYTES) {
-      reject(new Error("Photo is too large (max 4 MB)."));
-      return;
-    }
-    const mimeType = file.type || "image/jpeg";
-    if (!isAllowedMime(mimeType)) {
-      reject(new Error("Use a JPEG, PNG, or WebP photo."));
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = String(reader.result ?? "");
-      const comma = result.indexOf(",");
-      const base64 = comma >= 0 ? result.slice(comma + 1) : result;
-      resolve({
-        mimeType,
-        base64,
-        previewUri: result.startsWith("data:") ? result : `data:${mimeType};base64,${base64}`,
-      });
-    };
-    reader.onerror = () => reject(new Error("Could not read photo."));
-    reader.readAsDataURL(file);
-  });
-}
+export {
+  ageKycWebCapture,
+  countFilledAgeKycSlots,
+  photoFromDataUrl,
+  readFileAsPhoto,
+  type AgeKycPickedPhoto,
+} from "./age-kyc-photo-helpers";
 
 async function pickOnWeb(kind: "id" | "selfie" | "library"): Promise<AgeKycPickedPhoto | null> {
   if (typeof document === "undefined") return null;
   return new Promise((resolve, reject) => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = "image/jpeg,image/png,image/webp";
-    if (kind === "selfie") input.capture = "user";
-    if (kind === "id") input.capture = "environment";
+    input.accept = "image/*";
+    const capture = ageKycWebCapture(kind);
+    if (capture) input.setAttribute("capture", capture);
     // iOS ignores click() on display:none inputs — keep it on-screen but invisible.
     input.setAttribute("aria-hidden", "true");
     Object.assign(input.style, {
@@ -91,27 +56,6 @@ async function pickOnWeb(kind: "id" | "selfie" | "library"): Promise<AgeKycPicke
   });
 }
 
-export function photoFromDataUrl(dataUrl: string): AgeKycPickedPhoto {
-  const comma = dataUrl.indexOf(",");
-  const header = comma >= 0 ? dataUrl.slice(0, comma) : "data:image/jpeg;base64";
-  const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
-  const mimeMatch = header.match(/data:(image\/[a-z0-9.+-]+)/i);
-  const mimeType = (mimeMatch?.[1] ?? "image/jpeg").toLowerCase();
-  if (!isAllowedMime(mimeType)) {
-    throw new Error("Use a JPEG, PNG, or WebP photo.");
-  }
-  const padding = (base64.match(/=+$/) ?? [""])[0].length;
-  const bytes = Math.floor((base64.length * 3) / 4) - padding;
-  if (bytes > AGE_KYC_IMAGE_MAX_BYTES) {
-    throw new Error("Photo is too large (max 4 MB).");
-  }
-  return {
-    mimeType,
-    base64,
-    previewUri: dataUrl.startsWith("data:") ? dataUrl : `data:${mimeType};base64,${base64}`,
-  };
-}
-
 function photoFromAsset(
   asset: { mimeType?: string | null; base64?: string | null; uri: string },
 ): AgeKycPickedPhoto {
@@ -119,7 +63,7 @@ function photoFromAsset(
     throw new Error("Could not read that photo. Try again.");
   }
   const mimeType = (asset.mimeType ?? "image/jpeg") as AgeKycMimeType;
-  if (!isAllowedMime(mimeType)) {
+  if (!isAllowedAgeKycMime(mimeType)) {
     throw new Error("Use a JPEG, PNG, or WebP photo.");
   }
   return {

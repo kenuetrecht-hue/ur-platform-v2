@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, Text, View, Image } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import {
+  ageKycWebCapture,
   photoFromDataUrl,
   pickAgeKycLibraryPhoto,
   pickAgeKycPhoto,
+  readFileAsPhoto,
   type AgeKycPickedPhoto,
 } from "@/lib/age-kyc-photo-picker";
 import { PrimaryActionButton } from "@/components/primary-action-button";
@@ -233,21 +235,101 @@ function WebCameraCard({
         </View>
       ) : (
         <>
-          <PrimaryActionButton
+          <WebCameraFileButton
             testID={`age-kyc-take-${slot}`}
             label={cameraLabel}
-            onPress={() => void openLiveCamera()}
-            backgroundColor={kind === "selfie" ? "#15803d" : kind === "id" && slot === "back" ? "#b45309" : "#1d4ed8"}
+            capture={ageKycWebCapture(kind)}
+            backgroundColor={kind === "selfie" ? "#15803d" : slot === "back" ? "#b45309" : "#1d4ed8"}
+            textColor="#fff"
+            onPicked={onPicked}
+            onError={onError}
           />
           <PrimaryActionButton
+            testID={`age-kyc-live-${slot}`}
+            label="Live camera on this page"
+            onPress={() => void openLiveCamera()}
+            backgroundColor="#0f172a"
+          />
+          <WebCameraFileButton
             testID={`age-kyc-library-${slot}`}
             label="Upload a photo already on this phone"
-            onPress={() => void fallbackFile("library")}
+            capture={null}
             backgroundColor={colors.background}
             textColor={colors.foreground}
+            onPicked={onPicked}
+            onError={onError}
           />
         </>
       )}
     </View>
+  );
+}
+
+/** Real file input — phones open the camera when capture is set. Pressable + hidden click often does nothing. */
+function WebCameraFileButton({
+  testID,
+  label,
+  capture,
+  backgroundColor,
+  textColor,
+  onPicked,
+  onError,
+}: {
+  testID: string;
+  label: string;
+  capture: "user" | "environment" | null;
+  backgroundColor: string;
+  textColor: string;
+  onPicked: (photo: AgeKycPickedPhoto) => void;
+  onError: (message: string) => void;
+}) {
+  return (
+    <label
+      style={{
+        display: "flex",
+        position: "relative",
+        minHeight: 58,
+        borderRadius: 12,
+        backgroundColor,
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
+        fontWeight: 800,
+        fontSize: 16,
+        color: textColor,
+        textAlign: "center",
+        padding: 16,
+        overflow: "hidden",
+      }}
+    >
+      {label}
+      <input
+        type="file"
+        accept="image/*"
+        {...(capture ? { capture } : {})}
+        data-testid={testID}
+        aria-label={label}
+        onChange={(event) => {
+          const file = event.currentTarget.files?.[0];
+          event.currentTarget.value = "";
+          if (!file) return;
+          void readFileAsPhoto(file)
+            .then(onPicked)
+            .catch((error) => {
+              onError(error instanceof Error ? error.message : "Could not read photo.");
+            });
+        }}
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width: "100%",
+          height: "100%",
+          opacity: 0,
+          fontSize: 20,
+          cursor: "pointer",
+        }}
+      />
+    </label>
   );
 }

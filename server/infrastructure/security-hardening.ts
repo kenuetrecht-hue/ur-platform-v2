@@ -126,7 +126,8 @@ export class SecurityHardeningSystem {
       },
       {
         name: "Content-Security-Policy",
-        value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'",
+        value:
+          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; connect-src 'self'",
         description: "Content Security Policy",
       },
       {

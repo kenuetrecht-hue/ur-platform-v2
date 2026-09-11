@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { countFilledAgeKycSlots, photoFromDataUrl, type AgeKycPickedPhoto } from "../lib/age-kyc-photo-picker";
+import {
+  ageKycWebCapture,
+  countFilledAgeKycSlots,
+  photoFromDataUrl,
+} from "../lib/age-kyc-photo-helpers";
+import type { AgeKycPickedPhoto } from "../lib/age-kyc-photo-helpers";
 import { AGE_VERIFY_PHOTO_HINTS } from "../lib/signup-step-copy";
 
 const sample: AgeKycPickedPhoto = {
@@ -25,5 +30,15 @@ describe("countFilledAgeKycSlots", () => {
     const photo = photoFromDataUrl("data:image/jpeg;base64,abc");
     expect(photo.mimeType).toBe("image/jpeg");
     expect(photo.base64).toBe("abc");
+  });
+
+  it("asks the phone camera for ID back/front and the selfie camera for the face", () => {
+    expect(ageKycWebCapture("id")).toBe("environment");
+    expect(ageKycWebCapture("selfie")).toBe("user");
+    expect(ageKycWebCapture("library")).toBeNull();
+  });
+
+  it("rejects a snapshot that is not a photo", () => {
+    expect(() => photoFromDataUrl("data:text/plain;base64,abc")).toThrow(/JPEG|PNG|WebP/i);
   });
 });
