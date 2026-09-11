@@ -32,6 +32,8 @@ export type GoogleChatParams = {
   temperature?: number;
   /** User-owned images/PDFs for vision analysis — server-sanitized only. */
   attachments?: GoogleChatAttachment[];
+  /** Ask the model for JSON only — used by the ID photo checker. */
+  responseJson?: boolean;
 };
 
 export type GoogleChatResult = {
@@ -358,6 +360,7 @@ function sanitizeParams(params: GoogleChatParams): GoogleChatParams {
     maxOutputTokens,
     temperature,
     attachments: params.attachments?.slice(0, 2),
+    responseJson: params.responseJson === true,
   };
 }
 
@@ -388,7 +391,10 @@ async function generateChatViaGeminiApiKey(
     const model = genAI.getGenerativeModel({
       model: modelName,
       systemInstruction: safe.systemPrompt,
-      generationConfig: generationConfigForModel(modelName, maxOutputTokens, temperature),
+      generationConfig: {
+        ...generationConfigForModel(modelName, maxOutputTokens, temperature),
+        ...(safe.responseJson ? { responseMimeType: "application/json" } : {}),
+      },
     });
 
     const userParts = buildUserContentParts(userMessage, safe.attachments);

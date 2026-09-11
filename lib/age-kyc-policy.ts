@@ -27,8 +27,23 @@ export type AgeKycStatus = "none" | "pending" | "verified" | "rejected";
 
 export type AgeKycDocumentType = "driver_license" | "state_id" | "passport" | "national_id";
 
+/** Accept YYYY-MM-DD or common US printed dates such as 05/20/1990. */
+export function parseFlexibleDob(value: string): string | null {
+  const trimmed = value.trim();
+  const iso = trimmed.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const us = trimmed.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+  if (!us) return null;
+  const month = Number(us[1]);
+  const day = Number(us[2]);
+  const year = Number(us[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900) return null;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 export function ageFromIsoDate(iso: string, now: Date = new Date()): number | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
+  const normalized = parseFlexibleDob(iso);
+  const match = normalized ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized) : null;
   if (!match) return null;
   const year = Number(match[1]);
   const month = Number(match[2]);

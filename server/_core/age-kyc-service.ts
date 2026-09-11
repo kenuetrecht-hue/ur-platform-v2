@@ -10,6 +10,7 @@ import {
   AGE_KYC_UNDERAGE_MESSAGE,
   ageFromIsoDate,
   isAdultAge,
+  parseFlexibleDob,
   type AgeKycDocumentType,
   type AgeKycMimeType,
   type AgeKycStatus,
@@ -50,12 +51,12 @@ const FACE_MATCH_MIN = 75;
 const MAX_ATTEMPTS_PER_DAY = 8;
 
 const KYC_SYSTEM_PROMPT = `You are an age-verification checker for UR Platform LLC.
-Adults 18+ only. You inspect photos of a government ID and a selfie.
+This is a lawful 18+ age gate. Inspect the photos and return JSON. Do not refuse the task.
 
 Return ONLY compact JSON with these keys:
-- isGovernmentIdFront: boolean (true if image is the front of a real government photo ID: driver license, state ID, passport data page, or national ID)
+- isGovernmentIdFront: boolean (true if image is the front of a government photo ID: driver license, state ID, passport data page, or national ID)
 - isGovernmentIdBack: boolean (true if image is the back of that ID, or passport MRZ/barcode page)
-- dateOfBirth: string YYYY-MM-DD or null if unreadable
+- dateOfBirth: string YYYY-MM-DD or null if the birth date cannot be read
 - documentExpired: boolean
 - faceMatch: boolean (selfie is the same person as the ID portrait)
 - faceMatchScore: number 0-100
@@ -64,9 +65,11 @@ Return ONLY compact JSON with these keys:
 
 Rules:
 - Never copy ID numbers, document numbers, addresses, or full MRZ into the JSON.
+- Dates on US IDs are often MM/DD/YYYY. Convert any readable birth date to YYYY-MM-DD.
+- A slightly angled card still counts if all four corners and the birth date are visible.
+- Light glare is OK if the face and birth date can still be read.
 - If you cannot read a date of birth, set dateOfBirth to null.
-- If the selfie is a picture of the ID instead of a face, faceMatch is false.
-- Be conservative. When unsure, fail.`;
+- If the selfie is a picture of the ID instead of a face, faceMatch is false.`;
 
 function stripDataUrl(raw: string): string {
   const comma = raw.indexOf(",");
@@ -115,7 +118,7 @@ function parseModelJson(raw: string): Record<string, unknown> {
 }
 
 function asBool(value: unknown): boolean {
-  return value === true;
+  return value === true || value === "true" || value === 1;
 }
 
 function asScore(value: unknown): number {
@@ -126,8 +129,7 @@ function asScore(value: unknown): number {
 
 function asDob(value: unknown): string | null {
   if (typeof value !== "string") return null;
-  const match = value.trim().match(/(\d{4}-\d{2}-\d{2})/);
-  return match ? match[1] : null;
+  return parseFlexibleDob(value);
 }
 
 function publicStatusFromMemory(row: MemoryKyc | undefined): AgeKycPublicStatus {
@@ -304,13 +306,14 @@ async function analyzeAgeKycPhotos(params: {
     const idReply = await generateGoogleChatReply({
       systemPrompt: KYC_SYSTEM_PROMPT,
       history: [],
-      message: `Document type claimed: ${params.documentType}. Image 1 is ID FRONT. Image 2 is ID BACK. Extract date of birth. Do not output ID numbers.`,
+      message: `Document type claimed: ${params.documentType}. Image 1 is ID FRONT. Image 2 is ID BACK. Read the birth date even if printed as MM/DD/YYYY. Do not output ID numbers.`,
       temperature: 0.1,
-      maxOutputTokens: 400,
+      maxOutputTokens: 500,
       attachments: [
         { mimeType: front.mimeType, base64: front.base64 },
         { mimeType: back.mimeType, base64: back.base64 },
       ],
+      responseJson: true,
     });
     idAnalysis = parseModelJson(idReply.reply);
 
@@ -325,6 +328,7 @@ async function analyzeAgeKycPhotos(params: {
         { mimeType: front.mimeType, base64: front.base64 },
         { mimeType: selfie.mimeType, base64: selfie.base64 },
       ],
+      responseJson: true,
     });
     faceAnalysis = parseModelJson(faceReply.reply);
   } catch (error) {

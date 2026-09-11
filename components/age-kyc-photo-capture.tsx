@@ -11,6 +11,7 @@ import {
   type AgeKycPickedPhoto,
 } from "@/lib/age-kyc-photo-picker";
 import { PrimaryActionButton } from "@/components/primary-action-button";
+import { videoCropForCoverGuide } from "@/lib/age-kyc-camera-guide";
 
 export type AgeKycSlot = "front" | "back" | "selfie";
 
@@ -43,7 +44,7 @@ export function AgeKycPhotoCapture(props: Props) {
         Take the three pictures now
       </Text>
       <Text style={{ color: colors.foreground, fontSize: 16, lineHeight: 22, fontWeight: "700" }}>
-        Tap a green Open camera button. The phone camera opens. You can do this while Uri is talking.
+        Tap Live camera. Fit the ID inside the yellow box so all four corners show. Then tap Take this picture.
       </Text>
 
       {SLOTS.map((slot) => {
@@ -145,6 +146,7 @@ function WebCameraCard({
   const colors = useColors();
   const [live, setLive] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const frameRef = useRef<HTMLDivElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   const stopLive = () => {
@@ -168,7 +170,11 @@ function WebCameraCard({
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: kind === "selfie" ? "user" : { ideal: "environment" } },
+        video: {
+          facingMode: kind === "selfie" ? "user" : { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
         audio: false,
       });
       streamRef.current = stream;
@@ -199,13 +205,21 @@ function WebCameraCard({
       return;
     }
     try {
+      const frame = frameRef.current;
+      const crop = videoCropForCoverGuide({
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        viewWidth: frame?.clientWidth || video.clientWidth || video.videoWidth,
+        viewHeight: frame?.clientHeight || video.clientHeight || video.videoHeight,
+        kind,
+      });
       const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = crop.sw;
+      canvas.height = crop.sh;
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Could not capture that frame.");
-      ctx.drawImage(video, 0, 0);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+      ctx.drawImage(video, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, crop.sw, crop.sh);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
       void prepareAgeKycPhoto(photoFromDataUrl(dataUrl))
         .then((photo) => {
           onPicked(photo);
@@ -223,13 +237,56 @@ function WebCameraCard({
     <View style={{ gap: 10 }}>
       {live ? (
         <View style={{ gap: 10 }}>
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            style={{ width: "100%", maxHeight: 280, borderRadius: 12, background: "#111", objectFit: "cover" }}
-          />
+          <div
+            ref={frameRef}
+            data-testid={`age-kyc-guide-${slot}`}
+            style={{
+              position: "relative",
+              width: "100%",
+              aspectRatio: kind === "id" ? "1.4 / 1" : "3 / 4",
+              borderRadius: 12,
+              overflow: "hidden",
+              background: "#111",
+            }}
+          >
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                transform: kind === "selfie" ? "scaleX(-1)" : undefined,
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                pointerEvents: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <div
+                style={{
+                  width: kind === "id" ? "90%" : "72%",
+                  aspectRatio: kind === "id" ? "1.586 / 1" : "1 / 1",
+                  border: "3px solid #fde68a",
+                  borderRadius: kind === "id" ? 12 : "50%",
+                  boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
+                }}
+              />
+            </div>
+          </div>
+          <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 15, textAlign: "center" }}>
+            {kind === "id"
+              ? "Put the whole card inside the yellow box. All four corners must show."
+              : "Put your face inside the yellow circle."}
+          </Text>
           <PrimaryActionButton
             testID={`age-kyc-snap-${slot}`}
             label="Take this picture"

@@ -17,6 +17,7 @@ describe("age-kyc-policy", () => {
     expect(ageFromIsoDate("2008-08-27", now)).toBe(17);
     expect(ageFromIsoDate("2008-08-26", now)).toBe(18);
     expect(ageFromIsoDate("not-a-date", now)).toBeNull();
+    expect(ageFromIsoDate("01/15/2000", now)).toBe(26);
   });
 
   it("treats 18 and over as adult", () => {

@@ -29,8 +29,8 @@ export function countFilledAgeKycSlots(slots: {
   return Number(Boolean(slots.front)) + Number(Boolean(slots.back)) + Number(Boolean(slots.selfie));
 }
 
-export const AGE_KYC_SEND_MAX_EDGE = 1280;
-export const AGE_KYC_SEND_QUALITY = 0.7;
+export const AGE_KYC_SEND_MAX_EDGE = 1600;
+export const AGE_KYC_SEND_QUALITY = 0.82;
 
 function photoByteLength(base64: string): number {
   const padding = (base64.match(/=+$/) ?? [""])[0].length;
