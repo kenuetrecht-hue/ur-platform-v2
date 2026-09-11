@@ -136,7 +136,7 @@ export class SecurityHardeningSystem {
       },
       {
         name: "Permissions-Policy",
-        value: "geolocation=(), microphone=(self), camera=()",
+        value: "geolocation=(), microphone=(self), camera=(self)",
         description: "Control browser features",
       },
     ];

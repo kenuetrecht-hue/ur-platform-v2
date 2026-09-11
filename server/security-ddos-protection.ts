@@ -345,7 +345,7 @@ export class SecurityDDoSProtection {
       "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
       "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'",
       "Referrer-Policy": "strict-origin-when-cross-origin",
-      "Permissions-Policy": "geolocation=(), microphone=(self), camera=()",
+      "Permissions-Policy": "geolocation=(), microphone=(self), camera=(self)",
     };
   }
 

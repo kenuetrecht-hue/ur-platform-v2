@@ -15,7 +15,15 @@ function isAllowedMime(mime: string): mime is AgeKycMimeType {
   return AGE_KYC_MIME_TYPES.includes(mime as AgeKycMimeType);
 }
 
-function readFileAsPhoto(file: File): Promise<AgeKycPickedPhoto> {
+export function countFilledAgeKycSlots(slots: {
+  front: AgeKycPickedPhoto | null;
+  back: AgeKycPickedPhoto | null;
+  selfie: AgeKycPickedPhoto | null;
+}): number {
+  return Number(Boolean(slots.front)) + Number(Boolean(slots.back)) + Number(Boolean(slots.selfie));
+}
+
+export function readFileAsPhoto(file: File): Promise<AgeKycPickedPhoto> {
   return new Promise((resolve, reject) => {
     if (file.size > AGE_KYC_IMAGE_MAX_BYTES) {
       reject(new Error("Photo is too large (max 4 MB)."));
@@ -42,13 +50,14 @@ function readFileAsPhoto(file: File): Promise<AgeKycPickedPhoto> {
   });
 }
 
-async function pickOnWeb(kind: "id" | "selfie"): Promise<AgeKycPickedPhoto | null> {
+async function pickOnWeb(kind: "id" | "selfie" | "library"): Promise<AgeKycPickedPhoto | null> {
   if (typeof document === "undefined") return null;
   return new Promise((resolve, reject) => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/jpeg,image/png,image/webp";
-    input.capture = kind === "selfie" ? "user" : "environment";
+    if (kind === "selfie") input.capture = "user";
+    if (kind === "id") input.capture = "environment";
     input.style.display = "none";
     document.body.appendChild(input);
     input.onchange = async () => {
@@ -72,6 +81,42 @@ async function pickOnWeb(kind: "id" | "selfie"): Promise<AgeKycPickedPhoto | nul
   });
 }
 
+function photoFromAsset(
+  asset: { mimeType?: string | null; base64?: string | null; uri: string },
+): AgeKycPickedPhoto {
+  if (!asset.base64) {
+    throw new Error("Could not read that photo. Try again.");
+  }
+  const mimeType = (asset.mimeType ?? "image/jpeg") as AgeKycMimeType;
+  if (!isAllowedMime(mimeType)) {
+    throw new Error("Use a JPEG, PNG, or WebP photo.");
+  }
+  return {
+    mimeType,
+    base64: asset.base64,
+    previewUri: asset.uri.startsWith("data:") ? asset.uri : `data:${mimeType};base64,${asset.base64}`,
+  };
+}
+
+/** Photo already on the phone or computer. */
+export async function pickAgeKycLibraryPhoto(): Promise<AgeKycPickedPhoto | null> {
+  if (Platform.OS === "web") {
+    return pickOnWeb("library");
+  }
+  const ImagePicker = await import("expo-image-picker");
+  const lib = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!lib.granted) {
+    throw new Error("Photo library permission is required to use a saved picture.");
+  }
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ["images"],
+    base64: true,
+    quality: 0.8,
+  });
+  if (result.canceled || !result.assets[0]) return null;
+  return photoFromAsset(result.assets[0]);
+}
+
 /** ID: camera or library. Selfie: front camera when possible. */
 export async function pickAgeKycPhoto(kind: "id" | "selfie"): Promise<AgeKycPickedPhoto | null> {
   if (Platform.OS === "web") {
@@ -90,17 +135,8 @@ export async function pickAgeKycPhoto(kind: "id" | "selfie"): Promise<AgeKycPick
       quality: 0.8,
       cameraType: ImagePicker.CameraType.front,
     });
-    if (shot.canceled || !shot.assets[0]?.base64) return null;
-    const asset = shot.assets[0];
-    const mimeType = (asset.mimeType ?? "image/jpeg") as AgeKycMimeType;
-    if (!isAllowedMime(mimeType)) {
-      throw new Error("Use a JPEG, PNG, or WebP photo.");
-    }
-    return {
-      mimeType,
-      base64: asset.base64,
-      previewUri: asset.uri,
-    };
+    if (shot.canceled || !shot.assets[0]) return null;
+    return photoFromAsset(shot.assets[0]);
   }
 
   const lib = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -122,15 +158,6 @@ export async function pickAgeKycPhoto(kind: "id" | "selfie"): Promise<AgeKycPick
         quality: 0.8,
       });
 
-  if (result.canceled || !result.assets[0]?.base64) return null;
-  const asset = result.assets[0];
-  const mimeType = (asset.mimeType ?? "image/jpeg") as AgeKycMimeType;
-  if (!isAllowedMime(mimeType)) {
-    throw new Error("Use a JPEG, PNG, or WebP photo.");
-  }
-  return {
-    mimeType,
-    base64: asset.base64,
-    previewUri: asset.uri,
-  };
+  if (result.canceled || !result.assets[0]) return null;
+  return photoFromAsset(result.assets[0]);
 }

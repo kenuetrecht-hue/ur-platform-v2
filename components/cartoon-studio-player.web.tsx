@@ -3,6 +3,7 @@ import { Pressable, Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { cartoonFrameDataUri, type PublicCartoonProject } from "@/lib/cartoon-studio";
 import { useFairShowWatch } from "@/hooks/use-fair-show-watch";
+import { speakPageCopy, stopPageCopy } from "@/lib/speak-page-copy";
 
 type Props = {
   project: PublicCartoonProject;
@@ -29,15 +30,18 @@ export function CartoonStudioPlayer({ project, sample = false }: Props) {
     enabled: !sample,
   });
 
-  useEffect(() => {
-    if (!sample) return;
-    setIndex(0);
-    setPlaying(true);
-  }, [sample]);
+  useEffect(() => () => stopPageCopy(), []);
 
   useEffect(() => {
     if (!playing || !scene) return;
-    const timer = window.setTimeout(() => {
+    let cancelled = false;
+    void (async () => {
+      if (scene.voiceEnabled && scene.narration.trim()) {
+        await speakPageCopy(scene.narration);
+      } else {
+        await new Promise((resolve) => window.setTimeout(resolve, scene.durationSeconds * 1000));
+      }
+      if (cancelled) return;
       const nextWatched = watchedSeconds + scene.durationSeconds;
       if (index + 1 < project.scenes.length) {
         pulse(nextWatched);
@@ -46,8 +50,10 @@ export function CartoonStudioPlayer({ project, sample = false }: Props) {
         pulse(nextWatched, true);
         setPlaying(false);
       }
-    }, scene.durationSeconds * 1000);
-    return () => window.clearTimeout(timer);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [playing, index, scene, project.scenes.length, watchedSeconds, pulse]);
 
   const exportWebm = async () => {
@@ -128,13 +134,14 @@ export function CartoonStudioPlayer({ project, sample = false }: Props) {
       <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
         <Pressable
           onPress={() => {
+            stopPageCopy();
             setIndex(0);
             setPlaying(true);
           }}
           style={{ backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }}
         >
           <Text style={{ color: "#fff", fontWeight: "700" }}>
-            {playing ? "Playing…" : sample ? "Play again" : "Play cartoon"}
+            {playing ? "Uri is talking…" : sample ? "Hear Uri explain" : "Play cartoon"}
           </Text>
         </Pressable>
         <Pressable

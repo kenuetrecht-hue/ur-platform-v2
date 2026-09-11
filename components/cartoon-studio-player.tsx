@@ -3,6 +3,7 @@ import { Platform, Pressable, Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import type { PublicCartoonProject } from "@/lib/cartoon-studio";
 import { useFairShowWatch } from "@/hooks/use-fair-show-watch";
+import { speakPageCopy, stopPageCopy } from "@/lib/speak-page-copy";
 
 type Props = {
   project: PublicCartoonProject;
@@ -26,15 +27,18 @@ export function CartoonStudioPlayer({ project, sample = false }: Props) {
     enabled: !sample,
   });
 
-  useEffect(() => {
-    if (!sample) return;
-    setIndex(0);
-    setPlaying(true);
-  }, [sample]);
+  useEffect(() => () => stopPageCopy(), []);
 
   useEffect(() => {
     if (!playing || !scene) return;
-    const timer = setTimeout(() => {
+    let cancelled = false;
+    void (async () => {
+      if (scene.voiceEnabled && scene.narration.trim()) {
+        await speakPageCopy(scene.narration);
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, scene.durationSeconds * 1000));
+      }
+      if (cancelled) return;
       const nextWatched = watchedSeconds + scene.durationSeconds;
       if (index + 1 < project.scenes.length) {
         pulse(nextWatched);
@@ -43,8 +47,10 @@ export function CartoonStudioPlayer({ project, sample = false }: Props) {
         pulse(nextWatched, true);
         setPlaying(false);
       }
-    }, scene.durationSeconds * 1000);
-    return () => clearTimeout(timer);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [playing, index, scene, project.scenes.length, watchedSeconds, pulse]);
 
   if (!scene) return null;
@@ -67,24 +73,21 @@ export function CartoonStudioPlayer({ project, sample = false }: Props) {
           Scene {scene.order} / {project.scenes.length} · {scene.durationSeconds}s
         </Text>
         <Text style={{ color: colors.foreground, fontSize: 22, fontWeight: "800" }}>{scene.title}</Text>
-        <Text style={{ color: colors.foreground, fontSize: 16, lineHeight: 24 }}>{scene.narration}</Text>
-        {scene.caption ? (
-          <Text style={{ color: colors.muted, fontSize: 13 }}>Caption: {scene.caption}</Text>
-        ) : null}
-        <Text style={{ color: colors.muted, fontSize: 11 }}>
-          {scene.voiceEnabled ? "Voice on" : "Voice off"} · music {scene.musicMood} {scene.musicVolume}%
+        <Text style={{ color: colors.muted, fontSize: 15, lineHeight: 22 }}>
+          {playing ? "Listen — Uri is talking. You do not have to read a script." : scene.caption}
         </Text>
       </View>
       <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
         <Pressable
           onPress={() => {
+            stopPageCopy();
             setIndex(0);
             setPlaying(true);
           }}
           style={{ backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }}
         >
           <Text style={{ color: "#fff", fontWeight: "700" }}>
-            {playing ? "Playing…" : sample ? "Play again" : "Play cartoon"}
+            {playing ? "Uri is talking…" : sample ? "Hear Uri explain" : "Play cartoon"}
           </Text>
         </Pressable>
         <Pressable

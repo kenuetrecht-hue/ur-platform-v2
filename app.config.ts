@@ -50,9 +50,13 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
-    "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+      NSCameraUsageDescription:
+        "UR takes a photo of your ID and a selfie to confirm you are 18 or older.",
+      NSPhotoLibraryUsageDescription:
+        "UR can use a photo of your ID from this phone if the camera is not available.",
+    },
   },
   android: {
     adaptiveIcon: {
@@ -69,6 +73,8 @@ const config: ExpoConfig = {
       "VIBRATE",
       "RECORD_AUDIO",
       "MODIFY_AUDIO_SETTINGS",
+      "CAMERA",
+      "READ_MEDIA_IMAGES",
     ],
     intentFilters: [
       {
@@ -97,6 +103,15 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-router",
+    [
+      "expo-image-picker",
+      {
+        cameraPermission:
+          "Allow UR to take pictures of your ID and a selfie for the 18+ check.",
+        photosPermission:
+          "Allow UR to use a photo of your ID from this phone for the 18+ check.",
+      },
+    ],
     [
       "expo-notifications",
       {

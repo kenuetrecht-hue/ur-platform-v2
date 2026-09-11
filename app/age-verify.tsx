@@ -1,12 +1,5 @@
 import { useState } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  Image,
-  Alert,
-} from "react-native";
+import { View, Text, Pressable, ScrollView, Alert } from "react-native";
 import { Stack } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
@@ -18,13 +11,13 @@ import {
   type AgeKycDocumentType,
 } from "@/lib/age-kyc-policy";
 import {
-  AGE_VERIFY_PHOTO_HINTS,
   AGE_VERIFY_TITLE,
   AGE_VERIFY_WHAT_TO_DO,
   AGE_VERIFY_WHY,
   signupPrivacyBlock,
 } from "@/lib/signup-step-copy";
-import { pickAgeKycPhoto, type AgeKycPickedPhoto } from "@/lib/age-kyc-photo-picker";
+import { countFilledAgeKycSlots, type AgeKycPickedPhoto } from "@/lib/age-kyc-photo-picker";
+import { AgeKycPhotoCapture } from "@/components/age-kyc-photo-capture";
 import { SignupKycCartoonSample } from "@/components/signup-kyc-cartoon-sample";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { TurnstileWidget } from "@/components/turnstile-widget";
@@ -35,46 +28,6 @@ const DOCS: { id: AgeKycDocumentType; label: string }[] = [
   { id: "passport", label: "Passport" },
   { id: "national_id", label: "National ID" },
 ];
-
-function PhotoSlot({
-  title,
-  hint,
-  photo,
-  onPick,
-}: {
-  title: string;
-  hint: string;
-  photo: AgeKycPickedPhoto | null;
-  onPick: () => void;
-}) {
-  const colors = useColors();
-  return (
-    <Pressable
-      onPress={onPick}
-      style={{
-        borderWidth: 1,
-        borderColor: colors.border,
-        borderRadius: 12,
-        padding: 12,
-        backgroundColor: colors.surface,
-        minHeight: 120,
-        justifyContent: "center",
-      }}
-    >
-      <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 14 }}>{title}</Text>
-      <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>{hint}</Text>
-      {photo ? (
-        <Image
-          source={{ uri: photo.previewUri }}
-          style={{ width: "100%", height: 140, borderRadius: 8, marginTop: 10 }}
-          resizeMode="cover"
-        />
-      ) : (
-        <Text style={{ color: colors.primary, fontWeight: "700", marginTop: 10 }}>Tap to photograph</Text>
-      )}
-    </Pressable>
-  );
-}
 
 export default function AgeVerifyScreen() {
   const colors = useColors();
@@ -98,18 +51,14 @@ export default function AgeVerifyScreen() {
     onError: (err) => setLocalError(err.message),
   });
 
-  const pick = async (slot: "front" | "back" | "selfie") => {
+  const recordPhoto = (slot: "front" | "back" | "selfie", photo: AgeKycPickedPhoto) => {
     setLocalError(null);
-    try {
-      const photo = await pickAgeKycPhoto(slot === "selfie" ? "selfie" : "id");
-      if (!photo) return;
-      if (slot === "front") setIdFront(photo);
-      if (slot === "back") setIdBack(photo);
-      if (slot === "selfie") setSelfie(photo);
-    } catch (error) {
-      setLocalError(error instanceof Error ? error.message : "Could not open camera.");
-    }
+    if (slot === "front") setIdFront(photo);
+    if (slot === "back") setIdBack(photo);
+    if (slot === "selfie") setSelfie(photo);
   };
+
+  const filled = countFilledAgeKycSlots({ front: idFront, back: idBack, selfie });
 
   const onSubmit = () => {
     if (!idFront || !idBack || !selfie) {
@@ -133,19 +82,16 @@ export default function AgeVerifyScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenContainer className="bg-background">
-        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 14 }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 64, gap: 14, flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+        >
           <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 24 }}>
             {AGE_KYC_MIN_AGE}+ identity check
           </Text>
           <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>{AGE_VERIFY_TITLE}</Text>
           <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 21 }}>{AGE_VERIFY_WHAT_TO_DO}</Text>
-          {AGE_VERIFY_WHY.map((line) => (
-            <Text key={line.slice(0, 40)} style={{ color: colors.muted, fontSize: 14, lineHeight: 21 }}>
-              {line}
-            </Text>
-          ))}
-          <SignupKycCartoonSample />
-          <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 20 }}>{signupPrivacyBlock()}</Text>
 
           {verified ? (
             <View
@@ -187,24 +133,25 @@ export default function AgeVerifyScreen() {
                 ))}
               </View>
 
-              <PhotoSlot
-                title="ID front"
-                hint={AGE_VERIFY_PHOTO_HINTS.front}
-                photo={idFront}
-                onPick={() => void pick("front")}
+              <AgeKycPhotoCapture
+                front={idFront}
+                back={idBack}
+                selfie={selfie}
+                onPicked={recordPhoto}
+                onError={setLocalError}
               />
-              <PhotoSlot
-                title="ID back"
-                hint={AGE_VERIFY_PHOTO_HINTS.back}
-                photo={idBack}
-                onPick={() => void pick("back")}
-              />
-              <PhotoSlot
-                title="Selfie"
-                hint={AGE_VERIFY_PHOTO_HINTS.selfie}
-                photo={selfie}
-                onPick={() => void pick("selfie")}
-              />
+
+              <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
+                {filled} of 3 pictures recorded
+              </Text>
+              {AGE_VERIFY_WHY.map((line) => (
+                <Text key={line.slice(0, 40)} style={{ color: colors.muted, fontSize: 14, lineHeight: 21 }}>
+                  {line}
+                </Text>
+              ))}
+              <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 20 }}>{signupPrivacyBlock()}</Text>
+
+              <SignupKycCartoonSample />
 
               {rejection ? (
                 <Text style={{ color: "#c0392b", fontSize: 13, lineHeight: 18 }}>

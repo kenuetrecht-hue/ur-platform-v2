@@ -2,7 +2,6 @@ import { Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { CartoonStudioPlayer } from "@/components/cartoon-studio-player";
 import {
-  SIGNUP_KYC_CARTOON_BLURB,
   SIGNUP_KYC_CARTOON_HEADLINE,
   SIGNUP_KYC_CARTOON_QUALITY_NOTE,
   SIGNUP_KYC_CARTOON_SAMPLE,
@@ -27,7 +26,9 @@ export function SignupKycCartoonSample() {
       <Text style={{ color: "#fff", fontWeight: "800", fontSize: 20, lineHeight: 26 }}>
         {SIGNUP_KYC_CARTOON_HEADLINE}
       </Text>
-      <Text style={{ color: "#cbd5e1", fontSize: 14, lineHeight: 21 }}>{SIGNUP_KYC_CARTOON_BLURB}</Text>
+      <Text style={{ color: "#fde68a", fontSize: 16, lineHeight: 22, fontWeight: "700" }}>
+        Tap Hear Uri. He talks you through the three pictures. You do not have to read a script.
+      </Text>
       <CartoonStudioPlayer project={SIGNUP_KYC_CARTOON_SAMPLE} sample />
       <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
         {SIGNUP_KYC_CARTOON_QUALITY_NOTE}
