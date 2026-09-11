@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { AFTER_SIGN_IN_HREF, shouldOpenAgeVerifyPage } from "../lib/after-sign-in";
+import {
+  AFTER_SIGN_IN_HREF,
+  shouldOpenAgeVerifyPage,
+  shouldSendSignedOutUserToLoginFromAgeVerify,
+} from "../lib/after-sign-in";
 
 describe("after sign-in", () => {
   it("sends signed-in people to the photo page until they pass ID check", () => {
@@ -12,5 +16,9 @@ describe("after sign-in", () => {
 
   it("keeps the photo page path as a tap target people can open by hand", () => {
     expect(AFTER_SIGN_IN_HREF.includes("age-verify")).toBe(true);
+  });
+
+  it("does not bounce a signed-out person off the ID page", () => {
+    expect(shouldSendSignedOutUserToLoginFromAgeVerify()).toBe(false);
   });
 });

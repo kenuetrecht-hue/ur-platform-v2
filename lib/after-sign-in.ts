@@ -11,3 +11,8 @@ export function shouldOpenAgeVerifyPage(params: {
 }): boolean {
   return params.isAuthenticated && params.kycVerified !== true;
 }
+
+/** People may open the ID page before they finish signing in — do not bounce them back to login. */
+export function shouldSendSignedOutUserToLoginFromAgeVerify(): boolean {
+  return false;
+}

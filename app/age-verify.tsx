@@ -17,6 +17,7 @@ import {
   signupPrivacyBlock,
 } from "@/lib/signup-step-copy";
 import { countFilledAgeKycSlots, type AgeKycPickedPhoto } from "@/lib/age-kyc-photo-picker";
+import { loadAgeKycDraft, saveAgeKycDraftSlot } from "@/lib/age-kyc-draft-store";
 import { AgeKycPhotoCapture } from "@/components/age-kyc-photo-capture";
 import { SignupKycCartoonSample } from "@/components/signup-kyc-cartoon-sample";
 import { PrimaryActionButton } from "@/components/primary-action-button";
@@ -32,15 +33,19 @@ const DOCS: { id: AgeKycDocumentType; label: string }[] = [
 export default function AgeVerifyScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, isAuthenticated } = useAuth();
+  const draft = loadAgeKycDraft();
   const [documentType, setDocumentType] = useState<AgeKycDocumentType>("driver_license");
-  const [idFront, setIdFront] = useState<AgeKycPickedPhoto | null>(null);
-  const [idBack, setIdBack] = useState<AgeKycPickedPhoto | null>(null);
-  const [selfie, setSelfie] = useState<AgeKycPickedPhoto | null>(null);
+  const [idFront, setIdFront] = useState<AgeKycPickedPhoto | null>(draft.front);
+  const [idBack, setIdBack] = useState<AgeKycPickedPhoto | null>(draft.back);
+  const [selfie, setSelfie] = useState<AgeKycPickedPhoto | null>(draft.selfie);
   const [localError, setLocalError] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
 
-  const statusQuery = trpc.ageKyc.getStatus.useQuery(undefined, { retry: 1 });
+  const statusQuery = trpc.ageKyc.getStatus.useQuery(undefined, {
+    retry: 1,
+    enabled: isAuthenticated,
+  });
   const submit = trpc.ageKyc.submit.useMutation({
     onSuccess: (data) => {
       if (data.verified) {
@@ -54,6 +59,7 @@ export default function AgeVerifyScreen() {
 
   const recordPhoto = (slot: "front" | "back" | "selfie", photo: AgeKycPickedPhoto) => {
     setLocalError(null);
+    saveAgeKycDraftSlot(slot, photo);
     if (slot === "front") setIdFront(photo);
     if (slot === "back") setIdBack(photo);
     if (slot === "selfie") setSelfie(photo);
@@ -62,6 +68,11 @@ export default function AgeVerifyScreen() {
   const filled = countFilledAgeKycSlots({ front: idFront, back: idBack, selfie });
 
   const onSubmit = () => {
+    if (!isAuthenticated) {
+      Alert.alert("Sign in first", "Sign in on the login page, then tap Verify and enter.");
+      router.push("/login");
+      return;
+    }
     if (!idFront || !idBack || !selfie) {
       Alert.alert("Photos required", "Photograph the ID front, ID back, and a selfie of your face.");
       return;

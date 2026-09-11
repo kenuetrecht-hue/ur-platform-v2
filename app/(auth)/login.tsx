@@ -19,6 +19,7 @@ import { LOGIN_FIELDS, LOGIN_PAGE_WHY } from "@/lib/signup-step-copy";
 import { SignupStepExplain } from "@/components/signup-step-explain";
 import { AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
 import { PostSignInAgeVerifyGate } from "@/components/go-to-id-photos";
+import { IdCheckDuringSignin } from "@/components/id-check-during-signin";
 
 /** Same login on website and native app — web uses a DOM submit button so clicks register. */
 export default function LoginScreen() {
@@ -77,8 +78,12 @@ export default function LoginScreen() {
             <Text style={{ fontSize: 16, color: colors.muted, marginBottom: 8 }}>
               Sign in to your account
             </Text>
-            <Text style={{ fontSize: 13, color: colors.muted, lineHeight: 19, marginBottom: 24 }}>
+            <Text style={{ fontSize: 13, color: colors.muted, lineHeight: 19, marginBottom: 16 }}>
               {LOGIN_PAGE_WHY}
+            </Text>
+            <IdCheckDuringSignin />
+            <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18, marginTop: 20, marginBottom: 8 }}>
+              Then sign in
             </Text>
 
             {serviceHint ? (

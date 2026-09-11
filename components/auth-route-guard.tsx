@@ -9,7 +9,11 @@ import { SecurityIncidentGate } from "@/components/security-incident-gate";
 import { WorldReviewHoldGate } from "@/components/world-review-hold-gate";
 import { shouldGiveJoinEmanual } from "@/lib/join-emanual-handoff";
 import { isPublicLegalRoute } from "@/lib/public-legal-routes";
-import { AFTER_SIGN_IN_HREF, shouldOpenAgeVerifyPage } from "@/lib/after-sign-in";
+import {
+  AFTER_SIGN_IN_HREF,
+  shouldOpenAgeVerifyPage,
+  shouldSendSignedOutUserToLoginFromAgeVerify,
+} from "@/lib/after-sign-in";
 
 function isAuthRoute(segments: string[]): boolean {
   const root = segments[0];
@@ -94,7 +98,10 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       segments[0] === "playroom" ||
       segments[0] === "world";
 
-    if (!isAuthenticated && (inProtectedRoute || inAgeVerify)) {
+    if (
+      !isAuthenticated &&
+      (inProtectedRoute || (inAgeVerify && shouldSendSignedOutUserToLoginFromAgeVerify()))
+    ) {
       router.replace("/login");
       return;
     }

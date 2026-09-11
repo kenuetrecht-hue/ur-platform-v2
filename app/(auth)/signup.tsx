@@ -20,6 +20,7 @@ import { explainAuthFailure } from "@/lib/auth-network-error";
 import { markGiveJoinEmanual } from "@/lib/join-emanual-handoff";
 import { AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
 import { PostSignInAgeVerifyGate } from "@/components/go-to-id-photos";
+import { IdCheckDuringSignin } from "@/components/id-check-during-signin";
 
 const ROLES: { id: UserRole; label: string; desc: string }[] = [
   { id: "creator", label: "Content creator", desc: "Host paid live classes · 85% instant payouts" },
@@ -198,8 +199,9 @@ export default function SignUpScreen() {
             <Text style={{ fontSize: 13, color: colors.muted, textAlign: "center", lineHeight: 19 }}>
               {SIGNUP_PAGE_WHY}
             </Text>
-            <Text style={{ fontSize: 14, color: colors.foreground, textAlign: "center", lineHeight: 20, fontWeight: "700" }}>
-              After you create the account, the next page has three big Open camera buttons — ID front, ID back, and selfie — and Uri talks while you take them.
+            <IdCheckDuringSignin />
+            <Text style={{ fontSize: 16, color: colors.foreground, textAlign: "center", fontWeight: "800", marginTop: 8 }}>
+              Then create the account below
             </Text>
             {params.membership === "active" ? (
               <Text
