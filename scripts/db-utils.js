@@ -12,14 +12,49 @@ function normalizeDatabaseUrl(url) {
 }
 
 function getDatabaseUrl() {
-  const raw = process.env.DATABASE_URL;
-  if (!raw) return null;
-  if (!raw.startsWith("mysql://") && !raw.startsWith("mysql2://")) {
+  const named = [
+    process.env.MYSQL_DATABASE_URL,
+    process.env.TIDB_DATABASE_URL,
+    process.env.MYSQL_URL,
+    process.env.DATABASE_URL,
+  ];
+  for (let i = 0; i < named.length; i += 1) {
+    const raw = (named[i] || "").trim();
+    if (raw.startsWith("mysql://") || raw.startsWith("mysql2://")) {
+      return normalizeDatabaseUrl(raw);
+    }
+  }
+  const host = (process.env.MYSQLHOST || "").trim();
+  const user = (process.env.MYSQLUSER || "").trim();
+  const database = (process.env.MYSQLDATABASE || "").trim();
+  const password = process.env.MYSQLPASSWORD || "";
+  const port = (process.env.MYSQLPORT || "").trim() || "3306";
+  if (host && user && database) {
+    return normalizeDatabaseUrl(
+      "mysql://" +
+        encodeURIComponent(user) +
+        ":" +
+        encodeURIComponent(password) +
+        "@" +
+        host +
+        ":" +
+        port +
+        "/" +
+        encodeURIComponent(database),
+    );
+  }
+  const raw = (process.env.DATABASE_URL || "").trim();
+  if (raw.startsWith("postgres://") || raw.startsWith("postgresql://")) {
+    throw new Error(
+      "DATABASE_URL is Postgres. Set MYSQL_DATABASE_URL to a mysql://… string, or add a Railway MySQL database.",
+    );
+  }
+  if (raw) {
     throw new Error(
       "DATABASE_URL must be mysql://… (this project uses drizzle-orm/mysql2, not PostgreSQL).",
     );
   }
-  return normalizeDatabaseUrl(raw);
+  return null;
 }
 
 function parseDatabaseName(url) {

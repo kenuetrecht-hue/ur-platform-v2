@@ -5,6 +5,7 @@ import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { isOwnerOpenId, isOwnerEmail, resolveUserRole } from "./_core/owner-auth";
 import { getLaunchDate, getLaunchWindowEnd } from "../lib/launch-promotion-config";
+import { mysqlDatabaseUrlWarning, resolveMysqlDatabaseUrl } from "../lib/mysql-database-url";
 
 function isDbConnectionRefused(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
@@ -29,24 +30,14 @@ function logDbFailure(action: string, error: unknown): void {
 let _db: ReturnType<typeof drizzle> | null = null;
 let _dbProbeFailureLogged = false;
 
-function normalizeDatabaseUrl(url: string): string {
-  return url.replace(/@localhost(?=[:/])/g, "@127.0.0.1");
-}
-
 // Lazily create the drizzle instance; probes MySQL so callers get null when it is down.
 export async function getDb() {
   if (_db) return _db;
 
-  const rawUrl = process.env.DATABASE_URL;
-  if (!rawUrl) return null;
-
-  const url = normalizeDatabaseUrl(rawUrl);
-  if (!url.startsWith("mysql://") && !url.startsWith("mysql2://")) {
-    console.error(
-      "[Database] DATABASE_URL must be a MySQL connection string (mysql://…). " +
-        "This project uses drizzle-orm/mysql2 — a postgresql:// URL will not work. " +
-        "Example: mysql://root:@127.0.0.1:3306/ur_platform",
-    );
+  const url = resolveMysqlDatabaseUrl();
+  if (!url) {
+    const warning = mysqlDatabaseUrlWarning();
+    if (warning) console.error(warning);
     return null;
   }
 

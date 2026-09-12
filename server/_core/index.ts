@@ -297,8 +297,8 @@ async function startServer() {
     }
   })();
   void db.getDb().then((conn) => {
-    const dbUrl = process.env.DATABASE_URL ?? "";
-    if (!dbUrl) {
+    const dbUrl = process.env.MYSQL_DATABASE_URL || process.env.TIDB_DATABASE_URL || process.env.MYSQL_URL || process.env.DATABASE_URL || "";
+    if (!conn && !dbUrl) {
       console.warn("[Database] DATABASE_URL not set — loyalty/user data will not persist");
     } else if (!conn) {
       console.warn(
