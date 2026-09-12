@@ -24,7 +24,7 @@ describe("ID picture byte sniff", () => {
 });
 
 describe("shared website and app pipelines", () => {
-  it("gzips JSON for the app and website, but not ID photo uploads", () => {
+  it("would gzip JSON but never photo uploads, if a safe compressor is mounted later", () => {
     expect(
       shouldGzipResponse({
         acceptEncoding: "gzip, deflate",

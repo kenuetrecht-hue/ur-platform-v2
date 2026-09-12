@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { Platform } from "react-native";
-
-const PRODUCTION_HOSTS = new Set(["urplatform.llc", "www.urplatform.llc"]);
+import { isLivePwaHost } from "@/lib/pwa-hosts";
 
 function ensureHeadLink(rel: string, href: string): void {
   if (typeof document === "undefined") return;
@@ -40,7 +39,7 @@ export function useRegisterPwaServiceWorker(): void {
     ensureHeadMeta("apple-mobile-web-app-status-bar-style", "black-translucent");
 
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
-    if (!PRODUCTION_HOSTS.has(window.location.hostname)) return;
+    if (!isLivePwaHost(window.location.hostname)) return;
 
     void navigator.serviceWorker.register("/sw.js").catch(() => {
       // Add to Home Screen still works without the worker.

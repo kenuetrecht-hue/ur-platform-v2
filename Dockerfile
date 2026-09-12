@@ -32,7 +32,8 @@ RUN mkdir -p node_modules/react-native-css-interop/.cache \
   && printf '/* nativewind cache seed */\n' > node_modules/react-native-css-interop/.cache/web.css \
   && pnpm run build \
   && mkdir -p dist-web \
-  && (pnpm run build:web || echo "[docker] build:web failed — shipping API + fallback page")
+  && (pnpm run build:web || echo "[docker] build:web failed — shipping API + fallback page") \
+  && cp -f public/manifest.webmanifest public/sw.js dist-web/
 
 FROM node:22-bookworm-slim
 

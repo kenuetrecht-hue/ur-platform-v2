@@ -26,7 +26,32 @@ export function hasStaticWebBuild(distPath = resolveWebDistPath()): boolean {
   return fs.existsSync(path.join(distPath, "index.html"));
 }
 
+const PWA_INSTALL_FILES = ["manifest.webmanifest", "sw.js"] as const;
+
+/** Home-screen wrap files — never fall through to the HTML app shell. */
+export function registerPwaInstallFiles(app: express.Application): void {
+  const distPath = resolveWebDistPath();
+  const publicDir = path.join(process.cwd(), "public");
+  for (const file of PWA_INSTALL_FILES) {
+    app.get(`/${file}`, (_req, res, next) => {
+      const target = [path.join(distPath, file), path.join(publicDir, file)].find((candidate) =>
+        fs.existsSync(candidate),
+      );
+      if (!target) {
+        next();
+        return;
+      }
+      if (file.endsWith(".webmanifest")) {
+        res.type("application/manifest+json");
+      }
+      res.setHeader("Cache-Control", "no-cache");
+      res.sendFile(path.resolve(target));
+    });
+  }
+}
+
 export function registerStaticWeb(app: express.Application): boolean {
+  registerPwaInstallFiles(app);
   const distPath = resolveWebDistPath();
   if (!hasStaticWebBuild(distPath)) {
     console.warn(

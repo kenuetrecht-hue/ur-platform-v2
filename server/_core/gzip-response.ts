@@ -18,7 +18,11 @@ export function shouldGzipResponse(params: {
   return !type || COMPRESSIBLE.test(type);
 }
 
-/** Gzip JSON and text for the website and phone app. Skip photos, uploads, and live sockets. */
+/**
+ * Do not mount this on the live Express app.
+ * Wrapping res.write/end hung the website and the phone home-screen wrap
+ * (curl of / never finished). Railway/CDN already gzip when it is safe.
+ */
 export function gzipResponseMiddleware(req: Request, res: Response, next: NextFunction): void {
   if (req.method === "HEAD") {
     next();
