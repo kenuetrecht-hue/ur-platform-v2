@@ -12,6 +12,7 @@ import { isPublicLegalRoute } from "@/lib/public-legal-routes";
 import {
   AFTER_ID_PASS_HREF,
   AFTER_SIGN_IN_HREF,
+  hrefForSignedOutUser,
   shouldEnterAppFromAgeVerify,
   shouldKeepCredentialFormVisible,
   shouldOpenAgeVerifyPage,
@@ -21,7 +22,7 @@ import { hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
 
 function isAuthRoute(segments: string[]): boolean {
   const root = segments[0];
-  return root === "(auth)" || root === "login" || root === "signup";
+  return root === "(auth)" || root === "login" || root === "signup" || root === "signin";
 }
 
 function isPublicMarketing(segments: string[]): boolean {
@@ -106,7 +107,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       !isAuthenticated &&
       (inProtectedRoute || (inAgeVerify && shouldSendSignedOutUserToLoginFromAgeVerify()))
     ) {
-      router.replace("/login");
+      router.replace(hrefForSignedOutUser());
       return;
     }
 
@@ -114,7 +115,8 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     const hasPhotoPass = hasAgeKycPassToken();
 
     if (isAuthenticated && inAuthRoute) {
-      if (shouldKeepCredentialFormVisible({ hasPhotoPass, kycVerified })) {
+      const onReturningLogin = segments.includes("signin");
+      if (!onReturningLogin && shouldKeepCredentialFormVisible({ hasPhotoPass, kycVerified })) {
         return;
       }
       router.replace(AFTER_ID_PASS_HREF);

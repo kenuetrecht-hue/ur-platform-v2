@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   AFTER_ID_PASS_HREF,
   AFTER_SIGN_IN_HREF,
+  RETURNING_LOGIN_HREF,
   hrefAfterSignIn,
+  hrefForSignedOutUser,
+  hrefWhenAlreadySignedIn,
   shouldEnterAppFromAgeVerify,
   shouldKeepCredentialFormVisible,
   shouldOpenAgeVerifyPage,
@@ -45,5 +48,11 @@ describe("after sign-in", () => {
     expect(shouldEnterAppFromAgeVerify({ isAuthenticated: true, kycVerified: true })).toBe(true);
     expect(shouldEnterAppFromAgeVerify({ isAuthenticated: true, kycVerified: false })).toBe(false);
     expect(shouldEnterAppFromAgeVerify({ isAuthenticated: false, kycVerified: true })).toBe(false);
+  });
+
+  it("sends a signed-out person to the email-password login, not the pictures page", () => {
+    expect(RETURNING_LOGIN_HREF).toBe("/signin");
+    expect(hrefForSignedOutUser()).toBe("/signin");
+    expect(hrefWhenAlreadySignedIn()).toBe(AFTER_ID_PASS_HREF);
   });
 });

@@ -7,6 +7,7 @@ describe("join e-manual", () => {
     expect(JOIN_EMANUAL_TITLE).toMatch(/e-manual/i);
     expect(JOIN_EMANUAL_STEPS).toHaveLength(8);
     expect(JOIN_EMANUAL_STEPS[0]?.clicks[0]).toMatch(/urplatform\.llc/i);
+    expect(JOIN_EMANUAL_STEPS[1]?.clicks.some((c) => /already joined/i.test(c))).toBe(true);
     expect(JOIN_EMANUAL_STEPS[6]?.clicks.some((c) => /List for sale/i.test(c))).toBe(true);
     expect(JOIN_EMANUAL_STEPS[7]?.clicks.some((c) => /85%/i.test(c))).toBe(true);
     expect(JOIN_EMANUAL_STEPS[7]?.clicks.some((c) => /100%/i.test(c))).toBe(true);

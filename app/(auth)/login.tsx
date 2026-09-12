@@ -30,6 +30,9 @@ export default function LoginScreen() {
             <Link href="/download" style={{ color: colors.primary, fontSize: 13, fontWeight: "700", marginBottom: 8 }}>
               Download the app from this website
             </Link>
+            <Link href="/signin" style={{ color: colors.primary, fontSize: 14, fontWeight: "700", marginBottom: 12 }}>
+              Already have an account? Log in with email and password
+            </Link>
             <Text style={[styles.title, { color: colors.primary }]}>UR</Text>
             <Text style={{ fontSize: 22, color: colors.foreground, fontWeight: "800", marginBottom: 8 }}>
               Join or sign in

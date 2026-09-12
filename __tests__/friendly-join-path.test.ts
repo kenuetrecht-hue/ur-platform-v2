@@ -10,6 +10,8 @@ describe("website and app friendliness", () => {
     const signup = readFileSync("app/(auth)/signup.tsx", "utf8");
     expect(home).toContain("Join or sign in");
     expect(home).toContain("HomepageSignIn");
+    expect(home).toContain("Log in");
+    expect(home).toContain("RETURNING_LOGIN_HREF");
     expect(home).not.toContain("Create account →");
     expect(signup).toContain('from "./login"');
     expect(SIGNUP_PAGE_TITLE).toBe("Join or sign in");

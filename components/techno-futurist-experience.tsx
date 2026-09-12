@@ -10,7 +10,7 @@ import {
 import { Link, Redirect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth-context";
-import { AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
+import { AFTER_ID_PASS_HREF, RETURNING_LOGIN_HREF } from "@/lib/after-sign-in";
 import { useTypewriter } from "@/hooks/use-typewriter";
 import { useStableWindowWidth } from "@/hooks/use-stable-window-width";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
@@ -39,9 +39,9 @@ function LandingSignInButton({ variant }: { variant: "top" | "hero" }) {
   const textStyle = variant === "top" ? styles.signInBtnText : styles.heroSignInText;
 
   return (
-    <Link href="/login" asChild>
+    <Link href={RETURNING_LOGIN_HREF} asChild>
       <Pressable style={buttonStyle} accessibilityRole="link">
-        <Text style={textStyle}>{variant === "top" ? "Join or sign in" : "Join or sign in"}</Text>
+        <Text style={textStyle}>{variant === "top" ? "Log in" : "Log in"}</Text>
       </Pressable>
     </Link>
   );
@@ -56,7 +56,7 @@ export function TechnoFuturistExperience() {
   const [demoCreatorId, setDemoCreatorId] = useState<string>(DEFAULT_DEMO_CREATOR);
 
   if (!isLoading && isAuthenticated) {
-    return <Redirect href={AFTER_SIGN_IN_HREF} />;
+    return <Redirect href={AFTER_ID_PASS_HREF} />;
   }
 
   return (

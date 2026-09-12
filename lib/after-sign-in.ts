@@ -4,6 +4,19 @@
  */
 export const AFTER_SIGN_IN_HREF = "/age-verify" as const;
 export const AFTER_ID_PASS_HREF = "/(tabs)" as const;
+/** Returning members: email + password only. New members still use /login for pictures. */
+export const RETURNING_LOGIN_HREF = "/signin" as const;
+export const JOIN_ACCOUNT_HREF = "/login" as const;
+
+/** Already signed in on this phone or computer — open the app. The ID guard still applies. */
+export function hrefWhenAlreadySignedIn(): typeof AFTER_ID_PASS_HREF {
+  return AFTER_ID_PASS_HREF;
+}
+
+/** Signed out: simple login, not the join-and-pictures page. */
+export function hrefForSignedOutUser(): typeof RETURNING_LOGIN_HREF {
+  return RETURNING_LOGIN_HREF;
+}
 
 export function hrefAfterSignIn(photosAlreadyPassed: boolean): typeof AFTER_ID_PASS_HREF | typeof AFTER_SIGN_IN_HREF {
   return photosAlreadyPassed ? AFTER_ID_PASS_HREF : AFTER_SIGN_IN_HREF;

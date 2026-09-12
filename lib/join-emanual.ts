@@ -34,6 +34,7 @@ export const JOIN_EMANUAL_STEPS: JoinEmanualStep[] = [
     clicks: [
       "On the homepage, tap Join or sign in.",
       "Or go straight to https://urplatform.llc/login — login and signup are the same page.",
+      "If you already joined, tap Log in and type only your email and password. You do not take the pictures again.",
       "Type your Name, Email, and Password first.",
       "Leave Stay logged in checked if you want the app to remember you next time.",
       "Check the box that you are 18 or older and accept the Terms of Use.",

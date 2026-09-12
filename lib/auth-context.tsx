@@ -9,6 +9,7 @@ import type { Session, User as SupabaseUser, SupabaseClient } from "@supabase/su
 import { getSupabaseClientAsync } from "./supabase";
 import { explainAuthFailure } from "./auth-network-error";
 import { isAlreadyRegisteredAuthError } from "./auth-already-registered";
+import { rememberSignedInApiDevice } from "./known-api-device";
 import {
   clearAuthStorage,
   getAccessToken,
@@ -90,6 +91,7 @@ async function persistSession(session: Session, user: AuthUser): Promise<void> {
     await setRefreshToken(session.refresh_token);
   }
   await setStoredUserJson(JSON.stringify(user));
+  rememberSignedInApiDevice();
 }
 
 const authReducer = (state: AuthState, action: AuthAction): AuthState => {
