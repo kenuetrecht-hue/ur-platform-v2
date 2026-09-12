@@ -29,7 +29,7 @@ export function LandingSocialProof() {
       <Text style={styles.tag}>SOCIAL PROOF · CREATOR & AFFILIATE</Text>
       <Text style={styles.title}>Real engagement. Real payouts.</Text>
       <Text style={styles.sub}>
-        Loyalty points, affiliate referrals, and Uphold-ready creator earnings — built into the
+        Loyalty points, affiliate referrals, and Stripe bank payouts for creators — built into the
         platform.
       </Text>
 

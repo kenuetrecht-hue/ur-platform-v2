@@ -27,6 +27,7 @@ import {
 } from "@/lib/ai-session-constants";
 import { TransactionHistoryList, CustomLinkCard } from "@/components/transaction-history-list";
 import { CreatorPayoutSetupPanel } from "@/components/creator-payout-setup-panel";
+import { CreatorStorePanel } from "@/components/creator-store-panel";
 import { CreatorSocialShareBar, CreatorPromoCard } from "@/components/creator-social-share";
 import { CreatorContentMatePanel } from "@/components/creator-contentmate-panel";
 import { CreatorContentProtectionPanel } from "@/components/creator-content-protection-panel";
@@ -151,7 +152,7 @@ export function ContentCreatorDashboardPanel() {
           <Text style={{ fontSize: 28 }}>🎬</Text>
           <Text style={[styles.title, { color: colors.foreground }]}>Content Creator Dashboard</Text>
           <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 21 }}>
-            Everything you need to host paid live AI classes — scheduling, instant Uphold payouts,
+            Everything you need to host paid live AI classes — scheduling, Stripe bank payouts,
             Facebook promo tools, and ContentMate AI to write your captions.
           </Text>
           <View style={{ gap: 6, marginVertical: 8 }}>
@@ -288,7 +289,7 @@ export function ContentCreatorDashboardPanel() {
                   sub={
                     analytics.pendingPayoutCents > 0
                       ? `$${(analytics.pendingPayoutCents / 100).toFixed(2)} pending`
-                      : "Instant via Uphold"
+                      : "Paid to your Stripe bank"
                   }
                 />
                 <StatCard

@@ -102,11 +102,10 @@ export const JOIN_EMANUAL_STEPS: JoinEmanualStep[] = [
     title: "Connect payouts so you can get paid",
     clicks: [
       "On the Creator Dashboard, stay on Overview.",
-      "Find Set up instant payouts (Uphold / blockchain).",
-      "Connect Uphold with your Uphold email, or paste a USDC wallet address.",
-      "You keep 85% of each e-manual / merch sale. UR keeps 15%. The customer pays their state sales tax and the Stripe card fee — you do not absorb those.",
-      "Tips to you are 100% yours; the fan pays the card fee.",
-      "Card checkout is still being finished (Stripe). You can list now; live card charges start when Stripe is on.",
+      "Tap Connect your bank with Stripe.",
+      "Finish Stripe’s bank form, then come back here.",
+      "Buyers pay Stripe. You get 85% of each class, merch, or e-manual sale. UR keeps 15%.",
+      "Tips to you are 100% yours. The customer pays tax and the card fee.",
     ],
   },
 ];

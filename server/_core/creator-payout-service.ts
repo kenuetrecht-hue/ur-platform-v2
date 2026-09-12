@@ -39,7 +39,7 @@ export function getCreatorSaleShare(userId: string, now = new Date()): number {
   return CREATOR_PAYOUT_SHARE;
 }
 
-export type PayoutMethod = "uphold" | "crypto_wallet";
+export type PayoutMethod = "uphold" | "crypto_wallet" | "stripe_connect";
 export type PayoutAsset = "USDC" | "BTC" | "ETH";
 export type PayoutNetwork = "ethereum" | "polygon" | "solana";
 
@@ -50,6 +50,7 @@ export type CreatorPayoutProfile = {
   upholdUserId?: string;
   upholdEmail?: string;
   walletAddress?: string;
+  stripeAccountId?: string;
   asset: PayoutAsset;
   network: PayoutNetwork;
   connectedAt?: string;
@@ -70,6 +71,7 @@ export type PayoutTransfer = {
   sourceTransactionId?: string;
   upholdTransferId?: string;
   blockchainTxHash?: string;
+  stripeTransferId?: string;
   createdAt: string;
   completedAt?: string;
   message: string;
@@ -208,14 +210,16 @@ export function processInstantCreatorPayout(params: {
   kind?: "sale" | "tip" | "pending_release";
   now?: Date;
 }): PayoutTransfer | null {
+  const profile = profiles.get(params.creatorUserId);
   const share =
     params.kind === "tip" || params.kind === "pending_release"
       ? 1
-      : getCreatorSaleShare(params.creatorUserId, params.now);
+      : profile?.method === "stripe_connect"
+        ? CREATOR_PAYOUT_SHARE
+        : getCreatorSaleShare(params.creatorUserId, params.now);
   const netCents = Math.round(params.grossCents * share);
   const platformFeeCents = params.grossCents - netCents;
 
-  const profile = profiles.get(params.creatorUserId);
   if (!profile || profile.status !== "connected" || !profile.method) {
     const pending = getCreatorPayoutProfile(params.creatorUserId);
     pending.pendingBalanceCents += netCents;
@@ -240,9 +244,13 @@ export function processInstantCreatorPayout(params: {
     createdAt: new Date().toISOString(),
     completedAt: new Date().toISOString(),
     message:
-      profile.method === "uphold"
-        ? `Instant USDC sent to Uphold (${profile.upholdEmail})`
-        : `Instant ${profile.asset} sent to wallet ${profile.walletAddress?.slice(0, 8)}…`,
+      profile.method === "stripe_connect"
+        ? params.kind === "tip"
+          ? "Stripe sent 100% of this tip to the creator’s bank. The fan paid the card fee."
+          : `Stripe sent ${saleShareToPercent(CREATOR_PAYOUT_SHARE)}% of this sale to the creator’s bank. UR kept ${saleShareToPercent(1 - CREATOR_PAYOUT_SHARE)}%.`
+        : profile.method === "uphold"
+          ? `Instant USDC sent to Uphold (${profile.upholdEmail})`
+          : `Instant ${profile.asset} sent to wallet ${profile.walletAddress?.slice(0, 8)}…`,
   };
 
   transfers.push(transfer);
@@ -275,6 +283,78 @@ export function listCreatorPayouts(userId: string, limit = 30): PayoutTransfer[]
     .slice(0, limit);
 }
 
+/** Stripe already moved the money. Book the same 100% tip / 85–15 sale split. */
+export function recordStripeConnectSettlement(params: {
+  creatorUserId: string;
+  kind: "sale" | "tip";
+  grossCents: number;
+  netCents: number;
+  platformFeeCents: number;
+  sourceTransactionId?: string;
+}): PayoutTransfer {
+  const expectedShare = params.kind === "tip" ? 1 : CREATOR_PAYOUT_SHARE;
+  const expectedNet = Math.round(params.grossCents * expectedShare);
+  const netCents = params.kind === "tip" ? params.grossCents : expectedNet;
+  const platformFeeCents = params.grossCents - netCents;
+
+  const profile = {
+    ...getCreatorPayoutProfile(params.creatorUserId),
+    method: "stripe_connect" as const,
+    status: "connected" as const,
+  };
+  profiles.set(params.creatorUserId, profile);
+
+  const transfer: PayoutTransfer = {
+    id: randomUUID(),
+    userId: params.creatorUserId,
+    grossCents: params.grossCents,
+    platformFeeCents,
+    netCents,
+    asset: "USDC",
+    network: "polygon",
+    method: "stripe_connect",
+    status: "completed",
+    sourceTransactionId: params.sourceTransactionId,
+    stripeTransferId: params.sourceTransactionId,
+    createdAt: new Date().toISOString(),
+    completedAt: new Date().toISOString(),
+    message:
+      params.kind === "tip"
+        ? "Stripe sent 100% of this tip to the creator’s bank. The fan paid the card fee."
+        : `Stripe sent ${saleShareToPercent(expectedShare)}% of this sale to the creator’s bank. UR kept ${saleShareToPercent(1 - expectedShare)}%.`,
+  };
+  transfers.push(transfer);
+  profile.totalPaidOutCents += netCents;
+  profiles.set(params.creatorUserId, profile);
+
+  recordTransaction({
+    type: "creator_payout",
+    amountCents: netCents,
+    description: transfer.message,
+    payeeUserId: params.creatorUserId,
+    metadata: {
+      payoutId: transfer.id,
+      kind: params.kind,
+      grossCents: params.grossCents,
+      platformFeeCents,
+      stripe: true,
+    },
+  });
+  return transfer;
+}
+
+export function attachStripeConnectPayout(userId: string, stripeAccountId: string): CreatorPayoutProfile {
+  const profile: CreatorPayoutProfile = {
+    ...getCreatorPayoutProfile(userId),
+    method: "stripe_connect",
+    status: "connected",
+    stripeAccountId,
+    connectedAt: new Date().toISOString(),
+  };
+  profiles.set(userId, profile);
+  return profile;
+}
+
 export function getCreatorPayoutDashboard(userId: string) {
   const creator = getContentCreatorProfile(userId);
   const payout = getCreatorPayoutProfile(userId);
@@ -291,10 +371,11 @@ export function getCreatorPayoutDashboard(userId: string) {
     canReceiveInstantPayouts: payout.status === "connected",
     recentPayouts,
     setupRequired: payout.status !== "connected",
+    stripeConnectReady: payout.method === "stripe_connect" && payout.status === "connected",
     setupMessage:
       payout.status === "connected"
-        ? "Instant payouts active — 85% of each class/merch sale, 100% of tips (the fan pays the card fee)."
-        : "Connect Uphold or a USDC wallet to receive earnings instantly after each class sale or tip.",
+        ? "Buyers pay Stripe. You get 100% of tips and 85% of everything else (class, merch, e-manual). UR keeps 15% of those sales. The customer pays tax and the card fee."
+        : "Connect your bank with Stripe. Buyers pay Stripe. You get 100% of tips and 85% of sales. UR keeps 15% of sales.",
     tipSharePercent: 100,
     classSharePercent: saleShareToPercent(saleShare),
   };

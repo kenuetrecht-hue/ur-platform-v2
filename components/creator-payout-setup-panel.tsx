@@ -17,10 +17,27 @@ export function CreatorPayoutSetupPanel() {
   const [upholdEmail, setUpholdEmail] = useState("");
   const [walletAddress, setWalletAddress] = useState("");
   const [mode, setMode] = useState<"uphold" | "wallet">("uphold");
+  const [showOther, setShowOther] = useState(false);
 
   const payout = trpc.partnerDashboard.payoutDashboard.useQuery();
   const upholdUrl = trpc.partnerDashboard.upholdConnectUrl.useQuery(undefined, {
-    enabled: payout.data?.enrolled === true,
+    enabled: payout.data?.enrolled === true && showOther,
+  });
+
+  const stripeOnboard = trpc.partnerDashboard.stripeConnectOnboard.useMutation({
+    onSuccess: (result) => {
+      void utils.partnerDashboard.payoutDashboard.invalidate();
+      void utils.partnerDashboard.creatorDashboard.invalidate();
+      if (result.url) {
+        void Linking.openURL(result.url);
+      }
+    },
+  });
+  const stripeRefresh = trpc.partnerDashboard.stripeConnectRefresh.useMutation({
+    onSuccess: () => {
+      void utils.partnerDashboard.payoutDashboard.invalidate();
+      void utils.partnerDashboard.creatorDashboard.invalidate();
+    },
   });
 
   const connectUphold = trpc.partnerDashboard.connectUphold.useMutation({
@@ -47,17 +64,24 @@ export function CreatorPayoutSetupPanel() {
   }
 
   const p = payout.data.payout;
+  const tipShare = payout.data.tipSharePercent ?? 100;
+  const saleShare = 85;
 
   if (p.status === "connected") {
+    const via =
+      p.method === "stripe_connect"
+        ? "your Stripe bank"
+        : p.method === "uphold"
+          ? `Uphold (${p.upholdEmail})`
+          : "USDC wallet";
     return (
       <View style={[styles.card, { borderColor: colors.primary, backgroundColor: `${colors.primary}10` }]}>
         <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 15 }}>
-          ⚡ Instant payouts active
+          Payouts are connected
         </Text>
         <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>
-          You receive {payout.data.creatorSharePercent}% of each sale via{" "}
-          {p.method === "uphold" ? `Uphold (${p.upholdEmail})` : `USDC wallet`} — typically within
-          seconds on the blockchain.
+          Buyers pay Stripe. You get {tipShare}% of every tip and {saleShare}% of classes, merch, and
+          e-manuals via {via}. UR keeps 15% of those sales. The customer pays tax and the card fee.
         </Text>
         <Text style={{ color: colors.foreground, fontSize: 12, marginTop: 4 }}>
           Total paid out: ${(p.totalPaidOutCents / 100).toFixed(2)}
@@ -70,6 +94,19 @@ export function CreatorPayoutSetupPanel() {
             ✓ ${(tx.netCents / 100).toFixed(2)} {tx.asset} — {tx.message}
           </Text>
         ))}
+        {p.method === "stripe_connect" ? (
+          <Pressable
+            onPress={() => stripeRefresh.mutate()}
+            disabled={stripeRefresh.isPending}
+            style={[styles.btn, { backgroundColor: colors.primary }]}
+          >
+            {stripeRefresh.isPending ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.btnText}>Refresh Stripe bank status</Text>
+            )}
+          </Pressable>
+        ) : null}
       </View>
     );
   }
@@ -77,92 +114,118 @@ export function CreatorPayoutSetupPanel() {
   return (
     <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
       <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 15 }}>
-        💰 Set up instant payouts (Uphold / blockchain)
+        Connect your bank with Stripe
       </Text>
       <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>
-        {payout.data.setupMessage} You keep {payout.data.creatorSharePercent}% of every class sale.
+        {payout.data.setupMessage} Tips {tipShare}%. Everything else {saleShare}% to you / 15% to UR.
       </Text>
+      <Pressable
+        onPress={() => stripeOnboard.mutate()}
+        disabled={stripeOnboard.isPending}
+        style={[styles.btn, { backgroundColor: colors.primary }]}
+      >
+        {stripeOnboard.isPending ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.btnText}>Connect your bank with Stripe</Text>
+        )}
+      </Pressable>
+      {stripeOnboard.error ? (
+        <Text style={{ color: colors.muted, fontSize: 12 }}>{stripeOnboard.error.message}</Text>
+      ) : null}
 
-      <View style={styles.tabRow}>
-        <Pressable
-          onPress={() => setMode("uphold")}
-          style={[styles.tab, { backgroundColor: mode === "uphold" ? colors.primary : colors.background }]}
-        >
-          <Text style={{ color: mode === "uphold" ? "#fff" : colors.foreground, fontWeight: "700" }}>
-            Uphold
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setMode("wallet")}
-          style={[styles.tab, { backgroundColor: mode === "wallet" ? colors.primary : colors.background }]}
-        >
-          <Text style={{ color: mode === "wallet" ? "#fff" : colors.foreground, fontWeight: "700" }}>
-            USDC wallet
-          </Text>
-        </Pressable>
-      </View>
+      <Pressable onPress={() => setShowOther((v) => !v)} hitSlop={6}>
+        <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>
+          {showOther ? "Hide other payout options" : "Other payout options (Uphold / USDC)"}
+        </Text>
+      </Pressable>
 
-      {mode === "uphold" ? (
-        <View style={{ gap: 8 }}>
-          <Text style={{ color: colors.muted, fontSize: 12 }}>{upholdUrl.data?.message}</Text>
-          <Pressable
-            onPress={() => upholdUrl.data?.url && Linking.openURL(upholdUrl.data.url)}
-            style={[styles.btn, { backgroundColor: colors.primary }]}
-          >
-            <Text style={styles.btnText}>
-              {upholdUrl.data?.mode === "oauth" ? "Connect Uphold account" : "Create Uphold account"}
-            </Text>
-          </Pressable>
-          <TextInput
-            value={upholdEmail}
-            onChangeText={setUpholdEmail}
-            placeholder="Your Uphold email after signing up"
-            placeholderTextColor={colors.muted}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
-          />
-          <Pressable
-            disabled={!upholdEmail.trim() || connectUphold.isPending}
-            onPress={() => connectUphold.mutate({ upholdEmail: upholdEmail.trim() })}
-            style={[styles.btn, { backgroundColor: colors.primary, opacity: !upholdEmail.trim() ? 0.5 : 1 }]}
-          >
-            {connectUphold.isPending ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.btnText}>Link Uphold for instant USDC</Text>
-            )}
-          </Pressable>
+      {showOther ? (
+        <View style={{ gap: 10 }}>
+          <View style={styles.tabRow}>
+            <Pressable
+              onPress={() => setMode("uphold")}
+              style={[styles.tab, { backgroundColor: mode === "uphold" ? colors.primary : colors.background }]}
+            >
+              <Text style={{ color: mode === "uphold" ? "#fff" : colors.foreground, fontWeight: "700" }}>
+                Uphold
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setMode("wallet")}
+              style={[styles.tab, { backgroundColor: mode === "wallet" ? colors.primary : colors.background }]}
+            >
+              <Text style={{ color: mode === "wallet" ? "#fff" : colors.foreground, fontWeight: "700" }}>
+                USDC wallet
+              </Text>
+            </Pressable>
+          </View>
+
+          {mode === "uphold" ? (
+            <View style={{ gap: 8 }}>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>{upholdUrl.data?.message}</Text>
+              <Pressable
+                onPress={() => upholdUrl.data?.url && Linking.openURL(upholdUrl.data.url)}
+                style={[styles.btn, { backgroundColor: colors.primary }]}
+              >
+                <Text style={styles.btnText}>
+                  {upholdUrl.data?.mode === "oauth" ? "Connect Uphold account" : "Create Uphold account"}
+                </Text>
+              </Pressable>
+              <TextInput
+                value={upholdEmail}
+                onChangeText={setUpholdEmail}
+                placeholder="Your Uphold email after signing up"
+                placeholderTextColor={colors.muted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                maxLength={254}
+                style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+              />
+              <Pressable
+                disabled={!upholdEmail.trim() || connectUphold.isPending}
+                onPress={() => connectUphold.mutate({ upholdEmail: upholdEmail.trim() })}
+                style={[styles.btn, { backgroundColor: colors.primary, opacity: !upholdEmail.trim() ? 0.5 : 1 }]}
+              >
+                {connectUphold.isPending ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.btnText}>Link Uphold for instant USDC</Text>
+                )}
+              </Pressable>
+            </View>
+          ) : (
+            <View style={{ gap: 8 }}>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>
+                Paste your USDC wallet address (Polygon/Ethereum) for direct blockchain payouts.
+              </Text>
+              <TextInput
+                value={walletAddress}
+                onChangeText={setWalletAddress}
+                placeholder="0x… or Solana address"
+                placeholderTextColor={colors.muted}
+                autoCapitalize="none"
+                maxLength={128}
+                style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+              />
+              <Pressable
+                disabled={walletAddress.trim().length < 20 || connectWallet.isPending}
+                onPress={() => connectWallet.mutate({ walletAddress: walletAddress.trim(), asset: "USDC" })}
+                style={[
+                  styles.btn,
+                  { backgroundColor: colors.primary, opacity: walletAddress.trim().length < 20 ? 0.5 : 1 },
+                ]}
+              >
+                {connectWallet.isPending ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.btnText}>Connect wallet</Text>
+                )}
+              </Pressable>
+            </View>
+          )}
         </View>
-      ) : (
-        <View style={{ gap: 8 }}>
-          <Text style={{ color: colors.muted, fontSize: 12 }}>
-            Paste your USDC wallet address (Polygon/Ethereum) for direct blockchain payouts.
-          </Text>
-          <TextInput
-            value={walletAddress}
-            onChangeText={setWalletAddress}
-            placeholder="0x… or Solana address"
-            placeholderTextColor={colors.muted}
-            autoCapitalize="none"
-            style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
-          />
-          <Pressable
-            disabled={walletAddress.trim().length < 20 || connectWallet.isPending}
-            onPress={() => connectWallet.mutate({ walletAddress: walletAddress.trim(), asset: "USDC" })}
-            style={[
-              styles.btn,
-              { backgroundColor: colors.primary, opacity: walletAddress.trim().length < 20 ? 0.5 : 1 },
-            ]}
-          >
-            {connectWallet.isPending ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.btnText}>Connect wallet</Text>
-            )}
-          </Pressable>
-        </View>
-      )}
+      ) : null}
     </View>
   );
 }

@@ -17,8 +17,14 @@ import { getPlatformPublicOrigin } from "../../lib/platform-urls";
 import { getAiTalkPack, type AiTalkPackId } from "../../lib/ai-talk-pricing";
 import { calculateCustomerCheckout } from "../../lib/stripe-checkout-pricing";
 import { purchaseAiTalkPack } from "./ai-premium-media-service";
+import { splitCreatorStripeCharge, type CreatorStripeKind } from "../../lib/stripe-connect-split";
+import { CREATOR_PAYOUT_SHARE, recordStripeConnectSettlement } from "./creator-payout-service";
+import { getStripeConnectAccount, isStripeConnectReady } from "./stripe-connect-service";
+import { creditCreatorTipEarnings } from "./partner-program-service";
 
 export const STRIPE_TALK_PACK_KIND = "talk_pack";
+export const STRIPE_CREATOR_SALE_KIND = "creator_sale";
+export const STRIPE_CREATOR_TIP_KIND = "creator_tip";
 const STRIPE_SIGNATURE_TOLERANCE_SEC = 300;
 
 export type StripeCheckoutSessionCreateParams = {
@@ -36,6 +42,10 @@ export type StripeCheckoutSessionCreateParams = {
     };
   }>;
   metadata: Record<string, string>;
+  applicationFeeCents?: number;
+  transferDestination?: string;
+  /** Exact cents the creator’s Connect account receives. */
+  transferCents?: number;
 };
 
 export type StripeCheckoutAdapter = {
@@ -119,6 +129,17 @@ async function createStripeCheckoutSessionViaHttps(
   for (const [key, value] of Object.entries(params.metadata)) {
     body.set(`metadata[${key}]`, value);
   }
+  if (
+    typeof params.applicationFeeCents === "number" &&
+    params.applicationFeeCents >= 0 &&
+    params.transferDestination?.startsWith("acct_")
+  ) {
+    body.set("payment_intent_data[application_fee_amount]", String(params.applicationFeeCents));
+    body.set("payment_intent_data[transfer_data][destination]", params.transferDestination);
+    if (typeof params.transferCents === "number" && params.transferCents >= 0) {
+      body.set("payment_intent_data[transfer_data][amount]", String(params.transferCents));
+    }
+  }
 
   const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
@@ -187,6 +208,84 @@ export async function createTalkPackCheckoutSession(params: {
   };
 }
 
+export async function createCreatorMarketplaceCheckout(params: {
+  buyerUserId: string;
+  buyerEmail: string;
+  creatorUserId: string;
+  kind: CreatorStripeKind;
+  subtotalCents: number;
+  billingStateCode: string;
+  productName: string;
+  successPath: string;
+  cancelPath: string;
+  extraMetadata?: Record<string, string>;
+}): Promise<{ checkoutUrl: string; sessionId: string; totalCents: number; split: ReturnType<typeof splitCreatorStripeCharge> }> {
+  assertLiveCheckoutAllowed();
+  if (!isStripeConnectReady(params.creatorUserId)) {
+    throw new InternalServiceError(
+      "NOT_CONFIGURED",
+      "This creator has not connected a Stripe bank account yet.",
+    );
+  }
+  const account = getStripeConnectAccount(params.creatorUserId);
+  if (!account) {
+    throw new InternalServiceError("NOT_CONFIGURED", "This creator has not connected a Stripe bank account yet.");
+  }
+
+  const priced = calculateCustomerCheckout(params.subtotalCents, params.billingStateCode);
+  const split = splitCreatorStripeCharge({
+    kind: params.kind,
+    subtotalCents: priced.subtotalCents,
+    salesTaxCents: priced.salesTaxCents,
+    stateFeeCents: priced.stateFeeCents,
+    saleShare: CREATOR_PAYOUT_SHARE,
+  });
+  const origin = getPlatformPublicOrigin();
+  const adapter = await getAdapter();
+  const kindMeta = params.kind === "tip" ? STRIPE_CREATOR_TIP_KIND : STRIPE_CREATOR_SALE_KIND;
+
+  const session = await adapter.createSession({
+    mode: "payment",
+    client_reference_id: params.buyerUserId.slice(0, 200),
+    customer_email: params.buyerEmail.trim() ? params.buyerEmail.trim().slice(0, 200) : undefined,
+    success_url: `${origin}${params.successPath}`,
+    cancel_url: `${origin}${params.cancelPath}`,
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          unit_amount: priced.totalCents,
+          product_data: { name: params.productName.slice(0, 120) },
+        },
+      },
+    ],
+    applicationFeeCents: split.applicationFeeCents,
+    transferDestination: account.stripeAccountId,
+    transferCents: split.creatorCents,
+    metadata: {
+      kind: kindMeta,
+      userId: params.buyerUserId,
+      creatorUserId: params.creatorUserId,
+      billingStateCode: params.billingStateCode,
+      priceCents: String(params.subtotalCents),
+      creatorCents: String(split.creatorCents),
+      platformFeeCents: String(split.platformFeeCents),
+      ...(params.extraMetadata ?? {}),
+    },
+  });
+
+  if (!session.url) {
+    throw new InternalServiceError("UPSTREAM_FAILED", "Stripe did not return a checkout URL.");
+  }
+  return {
+    checkoutUrl: session.url,
+    sessionId: session.id,
+    totalCents: priced.totalCents,
+    split,
+  };
+}
+
 export function fulfillStripeCheckoutSession(session: {
   id: string;
   payment_status?: string | null;
@@ -200,6 +299,34 @@ export function fulfillStripeCheckoutSession(session: {
   }
 
   const metadata = session.metadata ?? {};
+  if (metadata.kind === STRIPE_CREATOR_SALE_KIND || metadata.kind === STRIPE_CREATOR_TIP_KIND) {
+    const creatorUserId = metadata.creatorUserId?.trim();
+    const creatorCents = Number.parseInt(metadata.creatorCents ?? "", 10);
+    const platformFeeCents = Number.parseInt(metadata.platformFeeCents ?? "", 10);
+    const priceCents = Number.parseInt(metadata.priceCents ?? "", 10);
+    if (!creatorUserId || !Number.isFinite(creatorCents) || !Number.isFinite(priceCents)) {
+      return { handled: false, ignored: true };
+    }
+    const kind = metadata.kind === STRIPE_CREATOR_TIP_KIND ? "tip" : "sale";
+    recordStripeConnectSettlement({
+      creatorUserId,
+      kind,
+      grossCents: priceCents,
+      netCents: creatorCents,
+      platformFeeCents: Number.isFinite(platformFeeCents) ? platformFeeCents : priceCents - creatorCents,
+      sourceTransactionId: session.id,
+    });
+    if (kind === "tip") {
+      try {
+        creditCreatorTipEarnings(creatorUserId, priceCents);
+      } catch {
+        /* Settlement still books; creator profile credit needs an enrolled creator. */
+      }
+    }
+    fulfilledSessionIds.add(session.id);
+    return { handled: true, ignored: false };
+  }
+
   if (metadata.kind !== STRIPE_TALK_PACK_KIND) {
     return { handled: false, ignored: true };
   }

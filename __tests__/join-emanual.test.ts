@@ -9,6 +9,8 @@ describe("join e-manual", () => {
     expect(JOIN_EMANUAL_STEPS[0]?.clicks[0]).toMatch(/urplatform\.llc/i);
     expect(JOIN_EMANUAL_STEPS[6]?.clicks.some((c) => /List for sale/i.test(c))).toBe(true);
     expect(JOIN_EMANUAL_STEPS[7]?.clicks.some((c) => /85%/i.test(c))).toBe(true);
+    expect(JOIN_EMANUAL_STEPS[7]?.clicks.some((c) => /100%/i.test(c))).toBe(true);
+    expect(JOIN_EMANUAL_STEPS[7]?.clicks.some((c) => /Stripe/i.test(c))).toBe(true);
   });
 
   it("flags a new member to receive the e-manual after they join", () => {

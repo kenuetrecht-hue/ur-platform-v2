@@ -6,6 +6,7 @@ import {
   protectedProcedure,
   publicProcedure,
   router,
+  secureProcedure,
 } from "../_core/trpc";
 import {
   attachReferralAtSignup,
@@ -14,6 +15,7 @@ import {
   getAffiliateDashboard,
   getCreatorDashboard,
   resolveAffiliateReferralCode,
+  getContentCreatorProfile,
   getOwnerCreatorRoster,
 } from "../_core/partner-program-service";
 import { getAffiliateReferralProgramInfo } from "../../lib/affiliate-referral-payout-policy";
@@ -44,10 +46,15 @@ import {
 import {
   completeUpholdConnection,
   connectCryptoWallet,
+  attachStripeConnectPayout,
   getCreatorPayoutDashboard,
   getUpholdConnectUrl,
   flushPendingPayouts,
 } from "../_core/creator-payout-service";
+import {
+  refreshStripeConnectStatus,
+  startStripeConnectOnboarding,
+} from "../_core/stripe-connect-service";
 import {
   getCreatorAnalytics,
   getCreatorPromoPayload,
@@ -286,6 +293,33 @@ export const partnerDashboardRouter = router({
   payoutDashboard: protectedProcedure.query(({ ctx }) =>
     getCreatorPayoutDashboard(String(ctx.user.id)),
   ),
+
+  stripeConnectOnboard: secureProcedure("commerce").mutation(async ({ ctx }) => {
+    if (!getContentCreatorProfile(String(ctx.user.id))) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Enroll as a content creator first.",
+      });
+    }
+    const result = await startStripeConnectOnboarding({
+      userId: String(ctx.user.id),
+      email: ctx.user.email ?? "",
+    });
+    if (result.simulated) {
+      attachStripeConnectPayout(String(ctx.user.id), result.accountId);
+      flushPendingPayouts(String(ctx.user.id));
+    }
+    return result;
+  }),
+
+  stripeConnectRefresh: secureProcedure("commerce").mutation(async ({ ctx }) => {
+    const account = await refreshStripeConnectStatus(String(ctx.user.id));
+    if (account?.chargesEnabled && account.payoutsEnabled) {
+      attachStripeConnectPayout(String(ctx.user.id), account.stripeAccountId);
+      flushPendingPayouts(String(ctx.user.id));
+    }
+    return getCreatorPayoutDashboard(String(ctx.user.id));
+  }),
 
   upholdConnectUrl: protectedProcedure.query(({ ctx }) =>
     getUpholdConnectUrl(String(ctx.user.id)),

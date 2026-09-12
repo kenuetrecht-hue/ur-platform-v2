@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
-import { getClientPlatform, openWebBrowserCheckout } from "@/lib/web-checkout";
+import { getClientPlatform, openExternalCheckoutUrl, openWebBrowserCheckout } from "@/lib/web-checkout";
 import { NoRefundPurchaseAck } from "@/components/no-refund-purchase-ack";
 import { BillingStatePicker } from "@/components/billing-state-picker";
 import { creatorTipCheckout, type CreatorTipPackId } from "@/lib/creator-tips";
@@ -24,7 +24,12 @@ export function CreatorTipButton({
   const [notice, setNotice] = useState<string | null>(null);
   const catalog = trpc.creatorTips.catalog.useQuery(undefined, { enabled: open });
   const send = trpc.creatorTips.send.useMutation({
-    onSuccess: (res) => setNotice(res.notice),
+    onSuccess: (res) => {
+      if ("checkoutUrl" in res && res.checkoutUrl) {
+        void openExternalCheckoutUrl(res.checkoutUrl);
+      }
+      setNotice(res.notice);
+    },
     onError: (e) => setNotice(e.message),
   });
 

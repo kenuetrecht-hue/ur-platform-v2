@@ -2,6 +2,8 @@ import express, { type Express, type Request, type Response } from "express";
 import { InternalServiceError } from "./service-errors";
 import { getStripeWebhookSecret, redactSecrets } from "./secrets";
 import { fulfillStripeCheckoutSession, verifyStripeWebhookEvent } from "./stripe-checkout-service";
+import { applyStripeAccountWebhook } from "./stripe-connect-service";
+import { attachStripeConnectPayout } from "./creator-payout-service";
 
 export function registerStripeWebhook(app: Express): void {
   app.post(
@@ -23,6 +25,20 @@ export function registerStripeWebhook(app: Express): void {
 
       try {
         const event = verifyStripeWebhookEvent(rawBody, signature);
+        if (event.type === "account.updated") {
+          const account = applyStripeAccountWebhook(event.data.object as {
+            id?: string;
+            charges_enabled?: boolean;
+            payouts_enabled?: boolean;
+            details_submitted?: boolean;
+            metadata?: Record<string, string> | null;
+          });
+          if (account?.chargesEnabled && account.payoutsEnabled) {
+            attachStripeConnectPayout(account.userId, account.stripeAccountId);
+          }
+          res.status(200).json({ ok: true, handled: Boolean(account) });
+          return;
+        }
         if (
           event.type !== "checkout.session.completed" &&
           event.type !== "checkout.session.async_payment_succeeded"
