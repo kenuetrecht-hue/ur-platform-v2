@@ -8,6 +8,7 @@ import React, {
 import type { Session, User as SupabaseUser, SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseClientAsync } from "./supabase";
 import { explainAuthFailure } from "./auth-network-error";
+import { isAlreadyRegisteredAuthError } from "./auth-already-registered";
 import {
   clearAuthStorage,
   getAccessToken,
@@ -351,6 +352,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         });
 
         if (error) {
+          if (isAlreadyRegisteredAuthError(error)) {
+            const existing = await withTimeout(
+              supabase.auth.signInWithPassword({
+                email: email.trim(),
+                password: password.trim(),
+                options: captchaToken ? { captchaToken } : undefined,
+              }),
+              15_000,
+              "Sign in",
+            );
+            if (existing.error) {
+              throw new Error(explainAuthFailure(existing.error));
+            }
+            if (!existing.data.session?.access_token || !existing.data.user) {
+              throw new Error(
+                "That email is already on UR. Type the same password you used before. We will sign you in.",
+              );
+            }
+            const existingUser = mapSupabaseUser(existing.data.user);
+            await persistSession(existing.data.session, existingUser);
+            dispatch({
+              type: "LOGIN_SUCCESS",
+              payload: {
+                user: existingUser,
+                accessToken: existing.data.session.access_token,
+              },
+            });
+            return { needsEmailConfirmation: false };
+          }
           throw new Error(explainAuthFailure(error));
         }
 

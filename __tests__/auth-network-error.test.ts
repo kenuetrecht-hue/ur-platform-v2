@@ -27,6 +27,12 @@ describe("explainAuthFailure", () => {
     expect(msg.toLowerCase()).not.toContain("unable to transfer");
   });
 
+  it("does not leave people stuck on User already registered", () => {
+    const msg = explainAuthFailure(new Error("User already registered"));
+    expect(msg.toLowerCase()).toContain("signing you in");
+    expect(msg.toLowerCase()).not.toContain("user already registered");
+  });
+
   it("rewrites HTML-as-JSON (DOCTYPE) into a check-again hint on the live site", () => {
     const msg = explainAuthFailure(
       new Error("Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"),

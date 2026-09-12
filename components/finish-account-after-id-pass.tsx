@@ -21,6 +21,7 @@ import {
   saveJoinAccountDraft,
 } from "@/lib/join-account-draft";
 import { getStayLoggedIn, setStayLoggedIn } from "@/lib/stay-logged-in";
+import { isAlreadyRegisteredAuthError } from "@/lib/auth-already-registered";
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -30,7 +31,7 @@ function wait(ms: number): Promise<void> {
 export function FinishAccountAfterIdPass() {
   const colors = useColors();
   const router = useRouter();
-  const { login, register } = useAuth();
+  const { login, register, isAuthenticated } = useAuth();
   const claimPass = trpc.ageKyc.claimPass.useMutation();
   const verifyTurnstile = trpc.auth.verifyTurnstile.useMutation();
   const turnstileConfig = trpc.auth.turnstileConfig.useQuery(undefined, { staleTime: 60_000 });
@@ -47,6 +48,7 @@ export function FinishAccountAfterIdPass() {
   const [showPassword, setShowPassword] = useState(false);
   const [stayLoggedIn, setStayLoggedInBox] = useState(() => getStayLoggedIn());
   const enteredRef = useRef(false);
+  const pendingEnterRef = useRef(false);
   const inFlightRef = useRef(false);
   const autoKeyRef = useRef("");
   const draftRef = useRef({ name, email, password, acceptedTerms, turnstileToken, stayLoggedIn });
@@ -99,59 +101,68 @@ export function FinishAccountAfterIdPass() {
     setError(null);
     setStatus("Pictures passed — signing you in…");
 
-    const finishClaim = async (): Promise<boolean> => {
-      const claimed = await claimWithRetry();
-      if (claimed) {
-        enterApp();
-        return true;
-      }
-      return false;
-    };
-
     try {
       if (turnstileConfig.data?.required && !draft.turnstileToken.trim()) {
         throw new Error("Complete the security check, then we will sign you in.");
       }
 
+      if (draft.turnstileToken.trim()) {
+        try {
+          await verifyTurnstile.mutateAsync({
+            token: draft.turnstileToken,
+            action: "signup",
+            email: emailValue,
+            displayName: nameValue || undefined,
+          });
+        } catch {
+          /* Token may already have been used. Sign-in can still open the app. */
+        }
+      }
+
+      let signedIn = false;
       try {
-        await verifyTurnstile.mutateAsync({ token: draft.turnstileToken, action: "login" });
         await login(emailValue, passwordValue, draft.turnstileToken || undefined);
-        if (await finishClaim()) return;
-      } catch {
-        /* no account yet — create one */
+        signedIn = true;
+      } catch (loginErr) {
+        if (!nameValue) {
+          setError("Pictures passed. Type your name above so we can create the account and sign you in.");
+          return;
+        }
+        if (!draft.acceptedTerms) {
+          setError("Pictures passed. Check the box that you agree to the Terms. We will sign you in after that.");
+          return;
+        }
+        try {
+          const result = await register(
+            emailValue,
+            passwordValue,
+            nameValue,
+            "creator",
+            draft.turnstileToken || undefined,
+          );
+          if (result.needsEmailConfirmation) {
+            setError(
+              "Account created. Open the confirmation email, then type your email and password here. We will sign you in.",
+            );
+            setStatus(null);
+            return;
+          }
+          signedIn = true;
+        } catch (registerErr) {
+          if (!isAlreadyRegisteredAuthError(registerErr)) {
+            throw registerErr;
+          }
+          await login(emailValue, passwordValue, draft.turnstileToken || undefined);
+          signedIn = true;
+        }
+        if (!signedIn) throw loginErr;
       }
 
-      if (!nameValue) {
-        setError("Pictures passed. Type your name above so we can create the account and sign you in.");
-        return;
+      pendingEnterRef.current = true;
+      if (isAuthenticated) {
+        await claimWithRetry();
+        enterApp();
       }
-      if (!draft.acceptedTerms) {
-        setError("Pictures passed. Check the box that you agree to the Terms. We will sign you in after that.");
-        return;
-      }
-
-      await verifyTurnstile.mutateAsync({
-        token: draft.turnstileToken,
-        action: "signup",
-        email: emailValue,
-        displayName: nameValue,
-      });
-      const result = await register(
-        emailValue,
-        passwordValue,
-        nameValue,
-        "creator",
-        draft.turnstileToken || undefined,
-      );
-      if (result.needsEmailConfirmation) {
-        setError(
-          "Account created. Open the confirmation email, then type your email and password here. We will sign you in.",
-        );
-        setStatus(null);
-        return;
-      }
-      if (await finishClaim()) return;
-      setError("Pictures passed and the account is ready. Tap Sign in and enter once.");
     } catch (err) {
       const msg = explainAuthFailure(err);
       if (msg.toLowerCase().includes("sign in with your email")) {
@@ -165,7 +176,15 @@ export function FinishAccountAfterIdPass() {
       inFlightRef.current = false;
       setBusy(false);
     }
-  }, [claimWithRetry, enterApp, login, register, turnstileConfig.data?.required, verifyTurnstile]);
+  }, [claimWithRetry, enterApp, isAuthenticated, login, register, turnstileConfig.data?.required, verifyTurnstile]);
+
+  useEffect(() => {
+    if (!pendingEnterRef.current || !isAuthenticated || enteredRef.current) return;
+    void (async () => {
+      await claimWithRetry();
+      enterApp();
+    })();
+  }, [claimWithRetry, enterApp, isAuthenticated]);
 
   const onIdPassed = useCallback(() => {
     setPicturesPassed(true);
