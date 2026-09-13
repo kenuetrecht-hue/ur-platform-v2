@@ -25,7 +25,7 @@ export default function SignupSelfieScreen() {
 
   return (
     <SignupDoorShell
-      title="Selfie"
+      title="Selfie · Step 3 of 3"
       lede="One live selfie to match the ID. Then review and tap Check my ID and selfie. We log you in after it passes."
       testID="signup-selfie-form"
       backHref={JOIN_ID_PHOTOS_HREF}

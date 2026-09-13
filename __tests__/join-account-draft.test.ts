@@ -31,6 +31,7 @@ describe("join account draft", () => {
       name: "Ken",
       email: "ken@example.com",
       password: "secret1",
+      confirmPassword: "secret1",
       acceptedTerms: true,
       turnstileToken: "",
     });
@@ -38,6 +39,7 @@ describe("join account draft", () => {
       name: "Ken",
       email: "ken@example.com",
       password: "secret1",
+      confirmPassword: "secret1",
       acceptedTerms: true,
       turnstileToken: "",
     });

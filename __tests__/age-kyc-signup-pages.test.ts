@@ -16,8 +16,10 @@ describe("signup account / ID / selfie pages", () => {
     const idRoute = readFileSync("app/(auth)/signup-id.tsx", "utf8");
     const selfieRoute = readFileSync("app/(auth)/signup-selfie.tsx", "utf8");
     expect(signup).toContain("FinishAccountAfterIdPass");
-    expect(signup).toContain("Sign up");
+    expect(signup).toContain("Step 1 of 3");
     expect(signup).not.toContain("AgeKycPhotoCapture");
+    expect(idRoute).toContain("Step 2 of 3");
+    expect(selfieRoute).toContain("Step 3 of 3");
     expect(idRoute).toContain("SignupIdPictures");
     expect(readFileSync("components/signup-id-pictures.tsx", "utf8")).toContain("JOIN_SELFIE_HREF");
     expect(selfieRoute).toContain("SignupSelfieCheck");
@@ -31,6 +33,7 @@ describe("signup account / ID / selfie pages", () => {
         name: "Ken",
         email: "ken@example.com",
         password: "secret1",
+        confirmPassword: "secret1",
         acceptedTerms: true,
         turnstileToken: "",
       }),
@@ -40,7 +43,18 @@ describe("signup account / ID / selfie pages", () => {
         name: "Ken",
         email: "ken@example.com",
         password: "secret1",
+        confirmPassword: "secret1",
         acceptedTerms: false,
+        turnstileToken: "",
+      }),
+    ).toBe(false);
+    expect(
+      canContinueToIdPictures({
+        name: "Ken",
+        email: "ken@example.com",
+        password: "secret1",
+        confirmPassword: "other1",
+        acceptedTerms: true,
         turnstileToken: "",
       }),
     ).toBe(false);
