@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Platform, Pressable, Text, TextInput, View } from "react-native";
-import { Link, useRouter } from "expo-router";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "@/lib/auth-context";
 import { trpc } from "@/lib/trpc";
 import { TurnstileWidget } from "@/components/turnstile-widget";
@@ -8,6 +8,9 @@ import { PrimaryActionButton } from "@/components/primary-action-button";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { claimStoredAgeKycPass } from "@/lib/claim-stored-age-kyc-pass";
 import { AFTER_ID_PASS_HREF, JOIN_ACCOUNT_HREF } from "@/lib/after-sign-in";
+import { EXISTING_ACCOUNT_LOGIN_HINT } from "@/lib/existing-join-login";
+import { loadJoinAccountDraft } from "@/lib/join-account-draft";
+import { sendPasswordResetEmail } from "@/lib/send-password-reset";
 import { getStayLoggedIn, setStayLoggedIn } from "@/lib/stay-logged-in";
 import { rememberSignedInApiDevice } from "@/lib/known-api-device";
 import { useColors } from "@/hooks/use-colors";
@@ -22,13 +25,17 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
   const verifyTurnstile = trpc.auth.verifyTurnstile.useMutation();
   const claimPass = trpc.ageKyc.claimPass.useMutation();
   const turnstileConfig = trpc.auth.turnstileConfig.useQuery(undefined, { staleTime: 60_000 });
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const params = useLocalSearchParams<{ existing?: string }>();
+  const saved = loadJoinAccountDraft();
+  const alreadyJoined = params.existing === "1";
+  const [email, setEmail] = useState(saved.email);
+  const [password, setPassword] = useState(saved.password);
   const [showPassword, setShowPassword] = useState(false);
   const [stayLoggedIn, setStayLoggedInBox] = useState(() => getStayLoggedIn());
   const [turnstileToken, setTurnstileToken] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(alreadyJoined ? EXISTING_ACCOUNT_LOGIN_HINT : null);
   const [busy, setBusy] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
 
   const homepage = variant === "homepage";
   const staged = variant === "page" || homepage;
@@ -197,6 +204,34 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
         onPress={() => void onSubmit()}
         backgroundColor={staged ? T.brandPurple : colors.primary}
         testID={homepage ? "homepage-sign-in-submit" : "returning-login-submit"}
+      />
+      <PrimaryActionButton
+        label="Send a new password to this email"
+        loadingLabel="Sending…"
+        loading={resetBusy}
+        onPress={() => {
+          void (async () => {
+            const emailValue = email.trim();
+            if (!emailValue) {
+              setError("Type your email, then tap Send a new password.");
+              return;
+            }
+            setResetBusy(true);
+            setError(null);
+            try {
+              await sendPasswordResetEmail(emailValue);
+              setError(
+                "If this email is on UR, check your inbox. Open the link, type a new password twice, then Login.",
+              );
+            } catch (err) {
+              setError(explainAuthFailure(err));
+            } finally {
+              setResetBusy(false);
+            }
+          })();
+        }}
+        backgroundColor={staged ? T.brandBlue : colors.muted}
+        testID="send-new-password"
       />
 
       {homepage ? (

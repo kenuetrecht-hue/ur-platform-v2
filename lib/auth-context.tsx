@@ -9,6 +9,7 @@ import type { Session, User as SupabaseUser, SupabaseClient } from "@supabase/su
 import { getSupabaseClientAsync } from "./supabase";
 import { explainAuthFailure } from "./auth-network-error";
 import { isAlreadyRegisteredAuthError } from "./auth-already-registered";
+import { signInWithPasswordRetryingCaptcha } from "./supabase-password-signin";
 import { rememberSignedInApiDevice } from "./known-api-device";
 import {
   clearAuthStorage,
@@ -275,14 +276,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       const supabase = await getSupabaseClientAsync();
-      const { data, error } = await withTimeout(
-        supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password: password.trim(),
-          options: captchaToken ? { captchaToken } : undefined,
-        }),
-        15_000,
-        "Login",
+      const { data, error } = await signInWithPasswordRetryingCaptcha(
+        supabase,
+        email,
+        password,
+        captchaToken,
+        withTimeout,
       );
 
       if (error) {
@@ -355,14 +354,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (error) {
           if (isAlreadyRegisteredAuthError(error)) {
-            const existing = await withTimeout(
-              supabase.auth.signInWithPassword({
-                email: email.trim(),
-                password: password.trim(),
-                options: captchaToken ? { captchaToken } : undefined,
-              }),
-              15_000,
-              "Login",
+            const existing = await signInWithPasswordRetryingCaptcha(
+              supabase,
+              email,
+              password,
+              captchaToken,
+              withTimeout,
             );
             if (existing.error) {
               throw new Error(explainAuthFailure(existing.error));

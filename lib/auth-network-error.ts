@@ -60,7 +60,7 @@ export function explainAuthFailure(error: unknown): string {
   }
 
   if (isInvalidLoginAuthError(raw)) {
-    return "Wrong email or password. If you are new, tap Sign up. If you already joined, use the same password you first used.";
+    return "Wrong email or password. If you just signed up again, a new password does not replace the first one. Use the first password, or tap Send a new password. If you are new, tap Sign up.";
   }
 
   return raw.trim() || "Login failed. Please try again.";

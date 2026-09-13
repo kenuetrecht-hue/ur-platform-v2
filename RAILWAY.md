@@ -79,6 +79,8 @@ The app uses **MySQL** (drizzle mysql2), not Postgres.
 
 A Doctor AI log line about `ownerCommandCenterEvents` is **not** the Sign up flow. If that insert fails, check that table setup ran on this website’s MySQL. It does not mean you should roll back the three-page Sign up.
 
+If Login says the email already joined, that account lives in **Supabase** (sign-in), not Railway MySQL. A new password on Sign up does not change the first one. The Login page has **Send a new password**. In Supabase → Authentication → URL configuration, allow `https://ur-platform-v2-production.up.railway.app/new-password` (and `/login`). Do not paste keys.
+
 ## What Railway must not do
 
 - Do not deploy a branch other than `main`.

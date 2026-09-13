@@ -10,6 +10,7 @@ import { clearJoinAccountDraft, loadJoinAccountDraft } from "@/lib/join-account-
 import { getStayLoggedIn, setStayLoggedIn } from "@/lib/stay-logged-in";
 import { isAlreadyRegisteredAuthError } from "@/lib/auth-already-registered";
 import { isInvalidLoginAuthError } from "@/lib/auth-invalid-login";
+import { EXISTING_ACCOUNT_AFTER_PICTURES } from "@/lib/existing-join-login";
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -125,9 +126,7 @@ export function useEnterAppAfterPictures() {
         } catch (loginErr) {
           if (isInvalidLoginAuthError(loginErr) || isAlreadyRegisteredAuthError(loginErr)) {
             hardStopRef.current = true;
-            setError(
-              "This email already has an account. Tap Back to login and use the same password you first used. You do not take the pictures again.",
-            );
+            setError(EXISTING_ACCOUNT_AFTER_PICTURES);
             setStatus(null);
             return;
           }
@@ -145,9 +144,7 @@ export function useEnterAppAfterPictures() {
           return;
         }
         hardStopRef.current = true;
-        setError(
-          "This email already has an account. Tap Back to login and use the same password you first used. You do not take the pictures again.",
-        );
+        setError(EXISTING_ACCOUNT_AFTER_PICTURES);
         setStatus(null);
         return;
       }
@@ -178,9 +175,7 @@ export function useEnterAppAfterPictures() {
       const msg = explainAuthFailure(err);
       if (isInvalidLoginAuthError(err) || isAlreadyRegisteredAuthError(err)) {
         hardStopRef.current = true;
-        setError(
-          "This email already has an account. Tap Back to login and use the same password you first used. You do not take the pictures again.",
-        );
+        setError(EXISTING_ACCOUNT_AFTER_PICTURES);
         setStatus(null);
         return;
       }
