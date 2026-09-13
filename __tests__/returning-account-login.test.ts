@@ -43,13 +43,14 @@ describe("returning account login", () => {
     expect(tabs).toContain('href="/login"');
   });
 
-  it("sends leftover /age-verify and a stale home-screen wrap to Login", () => {
+  it("sends leftover /age-verify to Login or Sign up, not a flash loop", () => {
     const ageVerify = readFileSync("app/age-verify.tsx", "utf8");
     const manifest = readFileSync("public/manifest.webmanifest", "utf8");
     const signin = readFileSync("app/(auth)/signin.tsx", "utf8");
     expect(ageVerify).toContain("RETURNING_LOGIN_HREF");
+    expect(ageVerify).toContain("JOIN_ACCOUNT_HREF");
     expect(ageVerify).toContain("Redirect");
-    expect(ageVerify).toContain("statusQuery.isError");
+    expect(ageVerify).not.toContain("FinishAccountAfterIdPass");
     expect(manifest).toContain('"/login"');
     expect(signin).toContain("./login");
   });
@@ -64,14 +65,4 @@ describe("returning account login", () => {
     expect(finish).toContain("IdCheckDuringSignin");
   });
 
-  it("sends leftover /age-verify and a stale home-screen wrap to Login", () => {
-    const ageVerify = readFileSync("app/age-verify.tsx", "utf8");
-    const manifest = readFileSync("public/manifest.webmanifest", "utf8");
-    const signin = readFileSync("app/(auth)/signin.tsx", "utf8");
-    expect(ageVerify).toContain("RETURNING_LOGIN_HREF");
-    expect(ageVerify).toContain("Redirect");
-    expect(ageVerify).toContain("statusQuery.isError");
-    expect(manifest).toContain('"/login"');
-    expect(signin).toContain("./login");
-  });
 });

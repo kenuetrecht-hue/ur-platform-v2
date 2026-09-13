@@ -1,5 +1,6 @@
 import { supabaseUnreachableHint } from "../shared/supabase-config";
 import { isAlreadyRegisteredAuthError } from "./auth-already-registered";
+import { isInvalidLoginAuthError } from "./auth-invalid-login";
 
 /** Map cryptic browser/network errors to an action the owner can take. */
 
@@ -56,6 +57,10 @@ export function explainAuthFailure(error: unknown): string {
 
   if (isAlreadyRegisteredAuthError(raw)) {
     return "That email is already on UR. We are logging you in with the password you typed.";
+  }
+
+  if (isInvalidLoginAuthError(raw)) {
+    return "Wrong email or password. If you are new, tap Sign up. If you already joined, use the same password you first used.";
   }
 
   return raw.trim() || "Login failed. Please try again.";

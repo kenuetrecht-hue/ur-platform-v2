@@ -45,7 +45,7 @@ describe("after sign-in", () => {
     ).toBe(false);
     expect(
       shouldSendAuthenticatedJoinToLogin({ isAuthenticated: true, kycQueryFailed: true }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       shouldSendAuthenticatedJoinToLogin({ isAuthenticated: true, kycQueryFailed: false }),
     ).toBe(false);
@@ -78,7 +78,7 @@ describe("after sign-in", () => {
 
   it("opens the app after the photos already passed", () => {
     expect(hrefAfterSignIn(true)).toBe(AFTER_ID_PASS_HREF);
-    expect(hrefAfterSignIn(false)).toBe(AFTER_SIGN_IN_HREF);
+    expect(hrefAfterSignIn(false)).toBe("/signup");
   });
 
   it("keeps name email and password on screen until the ID check is on the account", () => {

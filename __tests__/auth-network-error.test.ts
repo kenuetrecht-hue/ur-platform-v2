@@ -8,10 +8,11 @@ describe("explainAuthFailure", () => {
     expect(msg.toLowerCase()).toContain("supabase");
   });
 
-  it("passes through normal credential errors", () => {
-    expect(explainAuthFailure(new Error("Invalid login credentials"))).toBe(
-      "Invalid login credentials",
-    );
+  it("rewrites invalid login credentials into a Login or Sign up hint", () => {
+    const msg = explainAuthFailure(new Error("Invalid login credentials"));
+    expect(msg.toLowerCase()).toContain("wrong email or password");
+    expect(msg.toLowerCase()).toContain("sign up");
+    expect(msg.toLowerCase()).not.toContain("invalid login credentials");
   });
 
   it("rewrites Please login (10001) into a login hint", () => {

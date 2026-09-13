@@ -11,7 +11,6 @@ import { shouldGiveJoinEmanual } from "@/lib/join-emanual-handoff";
 import { isPublicLegalRoute } from "@/lib/public-legal-routes";
 import {
   AFTER_ID_PASS_HREF,
-  AFTER_SIGN_IN_HREF,
   JOIN_ACCOUNT_HREF,
   RETURNING_LOGIN_HREF,
   hrefForSignedOutUser,
@@ -165,7 +164,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       !inDownload &&
       !inAuthRoute
     ) {
-      router.replace(AFTER_SIGN_IN_HREF);
+      router.replace(JOIN_ACCOUNT_HREF);
       return;
     }
 

@@ -18,8 +18,8 @@ export function hrefForSignedOutUser(): typeof RETURNING_LOGIN_HREF {
   return RETURNING_LOGIN_HREF;
 }
 
-export function hrefAfterSignIn(photosAlreadyPassed: boolean): typeof AFTER_ID_PASS_HREF | typeof AFTER_SIGN_IN_HREF {
-  return photosAlreadyPassed ? AFTER_ID_PASS_HREF : AFTER_SIGN_IN_HREF;
+export function hrefAfterSignIn(photosAlreadyPassed: boolean): typeof AFTER_ID_PASS_HREF | typeof JOIN_ACCOUNT_HREF {
+  return photosAlreadyPassed ? AFTER_ID_PASS_HREF : JOIN_ACCOUNT_HREF;
 }
 
 export function shouldOpenAgeVerifyPage(params: {
@@ -70,12 +70,12 @@ export function shouldSendSignedOutUserToLoginFromAgeVerify(): boolean {
   return true;
 }
 
-/** Authenticated + pictures page + KYC status fetch failed → Login, not another ID loop. */
-export function shouldSendAuthenticatedJoinToLogin(params: {
+/** A failed KYC fetch must not bounce Sign up ↔ Login. Stay on Sign up. */
+export function shouldSendAuthenticatedJoinToLogin(_params: {
   isAuthenticated: boolean;
   kycQueryFailed: boolean;
 }): boolean {
-  return params.isAuthenticated && params.kycQueryFailed;
+  return false;
 }
 
 /** Only send Login → Sign up when we know the account has not passed ID. */

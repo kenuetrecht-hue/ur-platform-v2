@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, Pressable, Text, TextInput, View } from "react-native";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/lib/auth-context";
 import { trpc } from "@/lib/trpc";
@@ -13,7 +13,6 @@ import { AFTER_ID_PASS_HREF, shouldEnterAppAfterMemberSignIn } from "@/lib/after
 import { getAgeKycPassToken, hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
 import { ID_MUST_PASS_FIRST, signupPrivacyBlock } from "@/lib/signup-step-copy";
 import { TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
-import { showUserMessage } from "@/lib/show-user-message";
 import { TapToRead } from "@/components/tap-to-read";
 import {
   clearJoinAccountDraft,
@@ -22,6 +21,7 @@ import {
 } from "@/lib/join-account-draft";
 import { getStayLoggedIn, setStayLoggedIn } from "@/lib/stay-logged-in";
 import { isAlreadyRegisteredAuthError } from "@/lib/auth-already-registered";
+import { isInvalidLoginAuthError } from "@/lib/auth-invalid-login";
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -52,6 +52,7 @@ export function FinishAccountAfterIdPass() {
   const pendingEnterRef = useRef(false);
   const inFlightRef = useRef(false);
   const autoKeyRef = useRef("");
+  const hardStopRef = useRef(false);
   const draftRef = useRef({ name, email, password, acceptedTerms, turnstileToken, stayLoggedIn });
   draftRef.current = { name, email, password, acceptedTerms, turnstileToken, stayLoggedIn };
 
@@ -82,7 +83,7 @@ export function FinishAccountAfterIdPass() {
   }, [router]);
 
   const enterAfterPictures = useCallback(async () => {
-    if (enteredRef.current || inFlightRef.current) return;
+    if (enteredRef.current || inFlightRef.current || hardStopRef.current) return;
     const draft = draftRef.current;
     const emailValue = draft.email.trim();
     const passwordValue = draft.password.trim();
@@ -121,51 +122,63 @@ export function FinishAccountAfterIdPass() {
         }
       }
 
-      let signedIn = false;
-      try {
-        await login(emailValue, passwordValue, draft.turnstileToken || undefined);
-        signedIn = true;
-      } catch (loginErr) {
-        if (isAuthenticated) {
-          signedIn = true;
-        } else if (isAlreadyRegisteredAuthError(loginErr)) {
-          setError("That email is already on UR. Keep your password filled in — we are logging you in.");
-        }
-        if (!signedIn) {
-          if (!nameValue) {
-            setError("Pictures passed. Type your name above so we can create the account and log you in.");
-            return;
-          }
-          if (!draft.acceptedTerms) {
-            setError("Pictures passed. Check the box that you agree to the Terms. We will log you in after that.");
-            return;
-          }
-          try {
-            const result = await register(
-              emailValue,
-              passwordValue,
-              nameValue,
-              "creator",
-              draft.turnstileToken || undefined,
+      let signedIn = isAuthenticated;
+      if (!signedIn && nameValue && draft.acceptedTerms) {
+        try {
+          const result = await register(
+            emailValue,
+            passwordValue,
+            nameValue,
+            "creator",
+            draft.turnstileToken || undefined,
+          );
+          if (result.needsEmailConfirmation) {
+            setError(
+              "Account created. Open the confirmation email, then type your email and password here. We will log you in.",
             );
-            if (result.needsEmailConfirmation) {
-              setError(
-                "Account created. Open the confirmation email, then type your email and password here. We will log you in.",
-              );
-              setStatus(null);
-              return;
-            }
-            signedIn = true;
-          } catch (registerErr) {
-            if (!isAlreadyRegisteredAuthError(registerErr)) {
-              throw registerErr;
-            }
-            setStatus("That email is already on UR. Logging you in…");
-            await login(emailValue, passwordValue, draft.turnstileToken || undefined);
-            signedIn = true;
+            setStatus(null);
+            return;
+          }
+          signedIn = true;
+        } catch (registerErr) {
+          if (!isAlreadyRegisteredAuthError(registerErr) && !isInvalidLoginAuthError(registerErr)) {
+            throw registerErr;
           }
         }
-        if (!signedIn) throw loginErr;
+      }
+
+      if (!signedIn) {
+        try {
+          await login(emailValue, passwordValue, draft.turnstileToken || undefined);
+          signedIn = true;
+        } catch (loginErr) {
+          if (isInvalidLoginAuthError(loginErr) || isAlreadyRegisteredAuthError(loginErr)) {
+            hardStopRef.current = true;
+            setError(
+              "This email already has an account. Tap Back to login and use the same password you first used. You do not take the pictures again.",
+            );
+            setStatus(null);
+            return;
+          }
+          throw loginErr;
+        }
+      }
+
+      if (!signedIn) {
+        if (!nameValue) {
+          setError("Pictures passed. Type your name above so we can create the account and log you in.");
+          return;
+        }
+        if (!draft.acceptedTerms) {
+          setError("Pictures passed. Check the box that you agree to the Terms. We will log you in after that.");
+          return;
+        }
+        hardStopRef.current = true;
+        setError(
+          "This email already has an account. Tap Back to login and use the same password you first used. You do not take the pictures again.",
+        );
+        setStatus(null);
+        return;
       }
 
       pendingEnterRef.current = true;
@@ -193,13 +206,20 @@ export function FinishAccountAfterIdPass() {
       return;
     } catch (err) {
       const msg = explainAuthFailure(err);
+      if (isInvalidLoginAuthError(err) || isAlreadyRegisteredAuthError(err)) {
+        hardStopRef.current = true;
+        setError(
+          "This email already has an account. Tap Back to login and use the same password you first used. You do not take the pictures again.",
+        );
+        setStatus(null);
+        return;
+      }
       if (msg.toLowerCase().includes("sign in with your email")) {
         setError("Pictures passed. Keep your email and password filled in — we are logging you in.");
         return;
       }
       setError(msg);
       setStatus(null);
-      showUserMessage("Login", msg);
     } finally {
       inFlightRef.current = false;
       setBusy(false);
@@ -237,7 +257,7 @@ export function FinishAccountAfterIdPass() {
   const onIdReset = useCallback(() => setPicturesPassed(false), []);
 
   useEffect(() => {
-    if (!picturesPassed || busy || enteredRef.current) return;
+    if (!picturesPassed || busy || enteredRef.current || hardStopRef.current) return;
     if (!email.trim() || !password.trim()) return;
     const key = `${email.trim()}|${password}|${name.trim()}|${acceptedTerms ? "1" : "0"}`;
     if (autoKeyRef.current === key) return;
@@ -333,11 +353,8 @@ export function FinishAccountAfterIdPass() {
           }}
         />
         <Text style={{ color: colors.foreground, fontSize: 14, lineHeight: 20, flex: 1 }}>
-          I am 18 or older and I agree to the{" "}
-          <Link href="/terms" style={{ color: colors.primary, fontWeight: "700" }}>
-            Terms
-          </Link>
-          .
+          I am 18 or older and I agree to the Terms. Check this box here — you do not leave this
+          page.
         </Text>
       </Pressable>
       <Pressable
@@ -366,10 +383,11 @@ export function FinishAccountAfterIdPass() {
           Stay logged in. Next time you open the app, you will already be signed in.
         </Text>
       </Pressable>
+      <TapToRead title="Read the Terms (stay on this page)" testID="join-terms-tab">
+        {TERMS_SIGNUP_ACKNOWLEDGMENT}
+      </TapToRead>
       <TapToRead title="Why we ask and what we keep" testID="join-why-tab">
         {ID_MUST_PASS_FIRST}
-        {"\n\n"}
-        {TERMS_SIGNUP_ACKNOWLEDGMENT}
         {"\n\n"}
         {signupPrivacyBlock()}
       </TapToRead>

@@ -26,9 +26,14 @@ export function PublicLegalScreen({ kicker, title, lede, effectiveDate, sections
       <SafeAreaView style={styles.safe} edges={["top", "left", "right", "bottom"]}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.page}>
-            <Link href="/welcome" asChild>
+            <Link href="/signup" asChild>
               <Pressable accessibilityRole="link">
-                <Text style={styles.back}>Back to homepage</Text>
+                <Text style={styles.back}>← Back to Sign up</Text>
+              </Pressable>
+            </Link>
+            <Link href="/login" asChild>
+              <Pressable accessibilityRole="link">
+                <Text style={styles.back}>← Back to Login</Text>
               </Pressable>
             </Link>
 
