@@ -26,11 +26,15 @@ export function shouldOpenAgeVerifyPage(params: {
   isAuthenticated: boolean;
   /** True only after the server says the ID check passed. */
   kycVerified: boolean | undefined;
-  /** Guest photo check already passed — stay on login/signup to type email and password. */
+  /** Guest photo token is not a pass into the app. Keep them on Sign up until the account is verified. */
   hasPhotoPass?: boolean;
 }): boolean {
-  if (params.hasPhotoPass) return false;
   return params.isAuthenticated && params.kycVerified !== true;
+}
+
+/** Sign-up may open the site only after the 18+ pass is on the account — not from a leftover device token. */
+export function shouldEnterAppAfterSignupClaim(claimedOnAccount: boolean): boolean {
+  return claimedOnAccount === true;
 }
 
 /** Keep email and password on screen until the server says the ID check passed. */

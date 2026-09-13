@@ -12,6 +12,7 @@ import { isPublicLegalRoute } from "@/lib/public-legal-routes";
 import {
   AFTER_ID_PASS_HREF,
   AFTER_SIGN_IN_HREF,
+  JOIN_ACCOUNT_HREF,
   hrefForSignedOutUser,
   shouldEnterAppFromAgeVerify,
   shouldKeepCredentialFormVisible,
@@ -119,11 +120,21 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       if (onJoinPictures && shouldKeepCredentialFormVisible({ hasPhotoPass, kycVerified })) {
         return;
       }
+      if (kycQuery.isLoading) {
+        return;
+      }
+      if (kycVerified !== true) {
+        if (!onJoinPictures) {
+          router.replace(JOIN_ACCOUNT_HREF);
+        }
+        return;
+      }
       router.replace(AFTER_ID_PASS_HREF);
       return;
     }
 
     if (
+      !kycQuery.isLoading &&
       shouldOpenAgeVerifyPage({ isAuthenticated, kycVerified, hasPhotoPass }) &&
       !inAgeVerify &&
       !inDownload &&
@@ -180,6 +191,20 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
   }
 
   const kycVerified = kycQuery.data?.verified === true;
+  if (
+    isAuthenticated &&
+    !kycQuery.isLoading &&
+    kycVerified !== true &&
+    !isAgeVerifyRoute(segments) &&
+    !isAuthRoute(segments) &&
+    !isDownloadRoute(segments) &&
+    !isPublicLegalRoute(segments) &&
+    !isPublicMarketing(segments) &&
+    !isEmanualRoute(segments)
+  ) {
+    return <UrBootShell label="Checking your pictures…" />;
+  }
+
   const inProduct =
     isAuthenticated &&
     kycVerified &&

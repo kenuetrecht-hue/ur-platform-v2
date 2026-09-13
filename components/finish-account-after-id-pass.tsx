@@ -9,7 +9,7 @@ import { TurnstileWidget } from "@/components/turnstile-widget";
 import { IdCheckDuringSignin } from "@/components/id-check-during-signin";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { claimStoredAgeKycPass } from "@/lib/claim-stored-age-kyc-pass";
-import { AFTER_ID_PASS_HREF } from "@/lib/after-sign-in";
+import { AFTER_ID_PASS_HREF, shouldEnterAppAfterSignupClaim } from "@/lib/after-sign-in";
 import { getAgeKycPassToken, hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
 import { ID_MUST_PASS_FIRST, signupPrivacyBlock } from "@/lib/signup-step-copy";
 import { TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
@@ -33,6 +33,7 @@ export function FinishAccountAfterIdPass() {
   const router = useRouter();
   const { login, register, isAuthenticated } = useAuth();
   const claimPass = trpc.ageKyc.claimPass.useMutation();
+  const kycUtils = trpc.useUtils();
   const verifyTurnstile = trpc.auth.verifyTurnstile.useMutation();
   const turnstileConfig = trpc.auth.turnstileConfig.useQuery(undefined, { staleTime: 60_000 });
   const saved = loadJoinAccountDraft();
@@ -62,6 +63,7 @@ export function FinishAccountAfterIdPass() {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         if (await claimStoredAgeKycPass((input) => claimPass.mutateAsync(input))) {
+          await kycUtils.ageKyc.getStatus.invalidate();
           return true;
         }
       } catch {
@@ -70,7 +72,7 @@ export function FinishAccountAfterIdPass() {
       await wait(350);
     }
     return false;
-  }, [claimPass]);
+  }, [claimPass, kycUtils]);
 
   const enterApp = useCallback(() => {
     enteredRef.current = true;
@@ -160,8 +162,15 @@ export function FinishAccountAfterIdPass() {
 
       pendingEnterRef.current = true;
       if (isAuthenticated) {
-        await claimWithRetry();
-        enterApp();
+        const claimed = await claimWithRetry();
+        if (shouldEnterAppAfterSignupClaim(claimed)) {
+          enterApp();
+          return;
+        }
+        pendingEnterRef.current = false;
+        setError("Pictures passed. We could not attach them to this account yet. Tap Check my three pictures again, then we will log you in.");
+        setStatus(null);
+        return;
       }
     } catch (err) {
       const msg = explainAuthFailure(err);
@@ -181,8 +190,14 @@ export function FinishAccountAfterIdPass() {
   useEffect(() => {
     if (!pendingEnterRef.current || !isAuthenticated || enteredRef.current) return;
     void (async () => {
-      await claimWithRetry();
-      enterApp();
+      const claimed = await claimWithRetry();
+      if (shouldEnterAppAfterSignupClaim(claimed)) {
+        enterApp();
+        return;
+      }
+      pendingEnterRef.current = false;
+      setError("Pictures passed. We could not attach them to this account yet. Tap Check my three pictures again, then we will log you in.");
+      setStatus(null);
     })();
   }, [claimWithRetry, enterApp, isAuthenticated]);
 

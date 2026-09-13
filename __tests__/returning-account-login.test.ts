@@ -39,4 +39,13 @@ describe("returning account login", () => {
     expect(guard).toContain("hrefForSignedOutUser");
     expect(tabs).toContain('href="/login"');
   });
+
+  it("keeps new people on Sign up until the account has the 18+ pass", () => {
+    const guard = readFileSync("components/auth-route-guard.tsx", "utf8");
+    const finish = readFileSync("components/finish-account-after-id-pass.tsx", "utf8");
+    expect(guard).toContain("JOIN_ACCOUNT_HREF");
+    expect(guard).toContain("kycQuery.isLoading");
+    expect(finish).toContain("shouldEnterAppAfterSignupClaim");
+    expect(finish).toContain("IdCheckDuringSignin");
+  });
 });

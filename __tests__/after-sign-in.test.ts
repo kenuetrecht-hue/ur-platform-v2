@@ -6,6 +6,7 @@ import {
   hrefAfterSignIn,
   hrefForSignedOutUser,
   hrefWhenAlreadySignedIn,
+  shouldEnterAppAfterSignupClaim,
   shouldEnterAppFromAgeVerify,
   shouldKeepCredentialFormVisible,
   shouldOpenAgeVerifyPage,
@@ -21,7 +22,12 @@ describe("after sign-in", () => {
     expect(shouldOpenAgeVerifyPage({ isAuthenticated: false, kycVerified: false })).toBe(false);
     expect(
       shouldOpenAgeVerifyPage({ isAuthenticated: true, kycVerified: false, hasPhotoPass: true }),
-    ).toBe(false);
+    ).toBe(true);
+  });
+
+  it("does not open the app from a leftover photo token until the account has the 18+ pass", () => {
+    expect(shouldEnterAppAfterSignupClaim(true)).toBe(true);
+    expect(shouldEnterAppAfterSignupClaim(false)).toBe(false);
   });
 
   it("keeps the photo page path as a tap target people can open by hand", () => {
