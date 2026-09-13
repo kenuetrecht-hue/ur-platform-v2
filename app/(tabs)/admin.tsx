@@ -16,7 +16,7 @@ export default function AdminTabScreen() {
   }
 
   if (!canAccessAdminDashboard) {
-    return <Redirect href="/(tabs)/index" />;
+    return <Redirect href="/home" />;
   }
 
   return <OwnerOpsScreen />;

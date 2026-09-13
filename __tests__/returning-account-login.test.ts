@@ -38,6 +38,7 @@ describe("returning account login", () => {
     const tabs = readFileSync("app/(tabs)/_layout.tsx", "utf8");
     expect(guard).toContain("hrefForSignedOutUser");
     expect(guard).toContain("RETURNING_LOGIN_HREF");
+    expect(guard).toContain("isLoginOrSignupDoorPath");
     expect(guard).toContain("isKycStatusKnown");
     expect(guard).toContain("kycQuery.isError");
     expect(tabs).toContain('href="/login"');

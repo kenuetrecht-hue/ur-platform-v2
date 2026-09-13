@@ -34,6 +34,12 @@ describe("explainAuthFailure", () => {
     expect(msg.toLowerCase()).not.toContain("user already registered");
   });
 
+  it("rewrites Forbidden into a wait-and-check-again hint", () => {
+    const msg = explainAuthFailure(new Error("Forbidden"));
+    expect(msg.toLowerCase()).toContain("check this id");
+    expect(msg.toLowerCase()).not.toBe("forbidden");
+  });
+
   it("rewrites HTML-as-JSON (DOCTYPE) into a check-again hint on the live site", () => {
     const msg = explainAuthFailure(
       new Error("Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"),

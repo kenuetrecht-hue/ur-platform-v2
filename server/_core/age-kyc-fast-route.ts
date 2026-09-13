@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { TRPCError } from "@trpc/server";
-import { checkIpNamespaceLimit, getClientIp, isIpBlocked } from "./api-security";
+import { checkIpNamespaceLimit, getClientIp } from "./api-security";
 import { assertTurnstileToken } from "./turnstile";
 import { precheckAgeKyc, precheckIdDocument, precheckSelfieMatch } from "./age-kyc-service";
 import { sniffAgeKycImageMime } from "./age-kyc-image-sniff";
@@ -179,15 +179,6 @@ async function handleSelfieMatch(req: Request, res: Response): Promise<void> {
 export function registerAgeKycFastRoute(app: Express): void {
   app.post("/api/age-kyc/precheck", (req, res, next) => {
     const ip = getClientIp(req);
-    if (isIpBlocked(ip)) {
-      res.status(403).json({
-        verified: false,
-        rejectionReason: "This network is blocked.",
-        passToken: null,
-        error: "This network is blocked.",
-      });
-      return;
-    }
     try {
       checkIpNamespaceLimit("auth", ip);
     } catch (error) {
@@ -219,15 +210,6 @@ export function registerAgeKycFastRoute(app: Express): void {
 
   app.post("/api/age-kyc/document", (req, res, next) => {
     const ip = getClientIp(req);
-    if (isIpBlocked(ip)) {
-      res.status(403).json({
-        verified: false,
-        rejectionReason: "This network is blocked.",
-        documentToken: null,
-        error: "This network is blocked.",
-      });
-      return;
-    }
     try {
       checkIpNamespaceLimit("auth", ip);
     } catch (error) {
@@ -259,15 +241,6 @@ export function registerAgeKycFastRoute(app: Express): void {
 
   app.post("/api/age-kyc/selfie", (req, res, next) => {
     const ip = getClientIp(req);
-    if (isIpBlocked(ip)) {
-      res.status(403).json({
-        verified: false,
-        rejectionReason: "This network is blocked.",
-        passToken: null,
-        error: "This network is blocked.",
-      });
-      return;
-    }
     try {
       checkIpNamespaceLimit("auth", ip);
     } catch (error) {

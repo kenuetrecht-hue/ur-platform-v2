@@ -57,12 +57,18 @@ export default function TabsLayout() {
         }}
       >
       <Tabs.Screen
-        name="index"
+        name="home"
         options={{
           title: "Home",
           tabBarIcon: ({ focused }) => (
             <TabBarIcon name="house.fill" focused={focused} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          href: "/home",
         }}
       />
       <Tabs.Screen

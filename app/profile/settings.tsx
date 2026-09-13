@@ -3,6 +3,7 @@ import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { ProfileStackScreen } from "@/components/profile-stack-screen";
 import { WarningDisclosureModal } from "@/components/warning-banner";
+import { ChangePasswordCard } from "@/components/change-password-card";
 import { useColors } from "@/hooks/use-colors";
 import { useThemeContext } from "@/lib/theme-provider";
 import type { ColorScheme } from "@/constants/theme";
@@ -22,9 +23,11 @@ export default function ProfileSettingsScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <ProfileStackScreen
         title="Settings"
-        subtitle="Appearance, disclosures, and preferences."
+        subtitle="Password, appearance, disclosures, and preferences."
         icon="⚙️"
       >
+        <ChangePasswordCard />
+
         <View
           style={{
             borderRadius: 12,

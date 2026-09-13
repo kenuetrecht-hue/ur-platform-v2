@@ -3,8 +3,11 @@
  * When photos already passed, go straight into the app.
  */
 export const AFTER_SIGN_IN_HREF = "/age-verify" as const;
-/** Concrete Home tab. Bare `/(tabs)` is a layout with no screen — a blank white page on the website. */
-export const AFTER_ID_PASS_HREF = "/(tabs)/index" as const;
+/**
+ * Real Home URL. `/(tabs)` and `/(tabs)/index` are layouts on the website —
+ * they render a blank white page. `/home` is a screen people can open.
+ */
+export const AFTER_ID_PASS_HREF = "/home" as const;
 export const AFTER_JOIN_WELCOME_HREF = "/e-manual?joined=1" as const;
 /** Returning members: email + password. New members use /signup, then ID, then selfie. */
 export const RETURNING_LOGIN_HREF = "/login" as const;
@@ -14,7 +17,14 @@ export const JOIN_SELFIE_HREF = "/signup-selfie" as const;
 
 /** Account, ID, and selfie pages in the new join path — not leftover /age-verify. */
 export function isJoinFlowPath(path: string): boolean {
-  return path.includes("signup");
+  return path.includes("signup") && !isLoginOrSignupDoorPath(path);
+}
+
+/** Typed /login or /signup in the address bar — always show that door. */
+export function isLoginOrSignupDoorPath(path: string): boolean {
+  const normalized = path.replace(/^\//, "").toLowerCase();
+  const last = normalized.split("/").filter(Boolean).pop() ?? "";
+  return last === "login" || last === "signup" || last === "signin";
 }
 
 /** Already signed in on this phone or computer — open the app. The ID guard still applies. */

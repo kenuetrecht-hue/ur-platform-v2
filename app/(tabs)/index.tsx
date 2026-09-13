@@ -18,6 +18,7 @@ import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { AppPressable } from "@/components/app-pressable";
 import { ADMIN_TAB_HREF } from "@/lib/admin-dashboard-routes";
 import { GoToIdPhotosButton } from "@/components/go-to-id-photos";
+import { PasswordRemindBanner } from "@/components/password-remind-banner";
 import { TapToRead } from "@/components/tap-to-read";
 import { trpc } from "@/lib/trpc";
 
@@ -45,6 +46,7 @@ export default function HomeScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <HomeLaunchPromoBanner />
+        <PasswordRemindBanner />
 
         {needsIdPhotos ? (
           <View style={{ paddingHorizontal: 16, marginTop: 12, gap: 8 }}>

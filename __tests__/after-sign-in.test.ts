@@ -1,3 +1,4 @@
+import { readFileSync } from "fs";
 import { describe, expect, it } from "vitest";
 import {
   AFTER_ID_PASS_HREF,
@@ -7,6 +8,7 @@ import {
   JOIN_SELFIE_HREF,
   RETURNING_LOGIN_HREF,
   isJoinFlowPath,
+  isLoginOrSignupDoorPath,
   hrefAfterSignIn,
   hrefForSignedOutUser,
   hrefWhenAlreadySignedIn,
@@ -81,13 +83,13 @@ describe("after sign-in", () => {
   });
 
   it("opens the app after the photos already passed", () => {
-    expect(AFTER_ID_PASS_HREF).toBe("/(tabs)/index");
+    expect(AFTER_ID_PASS_HREF).toBe("/home");
     expect(hrefAfterSignIn(true)).toBe(AFTER_ID_PASS_HREF);
     expect(hrefAfterSignIn(false)).toBe("/signup");
     expect(JOIN_ACCOUNT_HREF).toBe("/signup");
     expect(JOIN_ID_PHOTOS_HREF).toBe("/signup-id");
     expect(JOIN_SELFIE_HREF).toBe("/signup-selfie");
-    expect(isJoinFlowPath("/signup")).toBe(true);
+    expect(isJoinFlowPath("/signup")).toBe(false);
     expect(isJoinFlowPath("(auth)/signup-id")).toBe(true);
     expect(isJoinFlowPath("(auth)/signup-selfie")).toBe(true);
     expect(isJoinFlowPath("/login")).toBe(false);
@@ -104,6 +106,21 @@ describe("after sign-in", () => {
     expect(shouldEnterAppFromAgeVerify({ isAuthenticated: true, kycVerified: true })).toBe(true);
     expect(shouldEnterAppFromAgeVerify({ isAuthenticated: true, kycVerified: false })).toBe(false);
     expect(shouldEnterAppFromAgeVerify({ isAuthenticated: false, kycVerified: true })).toBe(false);
+  });
+
+  it("keeps /login and /signup as real doors on website and app", () => {
+    expect(isLoginOrSignupDoorPath("/login")).toBe(true);
+    expect(isLoginOrSignupDoorPath("/signup")).toBe(true);
+    expect(isLoginOrSignupDoorPath("(auth)/login")).toBe(true);
+    expect(isLoginOrSignupDoorPath("/signup-id")).toBe(false);
+    const guard = readFileSync("components/auth-route-guard.tsx", "utf8");
+    const tabs = readFileSync("app/(tabs)/_layout.tsx", "utf8");
+    expect(guard).toContain("isLoginOrSignupDoorPath");
+    expect(tabs).toContain('name="home"');
+    expect(readFileSync("app/(auth)/login.tsx", "utf8")).toContain("Login");
+    expect(readFileSync("app/(auth)/signup.tsx", "utf8")).toContain("Sign up");
+    expect(readFileSync("app.config.ts", "utf8")).toContain('pathPrefix: "/login"');
+    expect(readFileSync("app.config.ts", "utf8")).toContain('pathPrefix: "/signup"');
   });
 
   it("sends a signed-out person to the email-password login, not the pictures page", () => {

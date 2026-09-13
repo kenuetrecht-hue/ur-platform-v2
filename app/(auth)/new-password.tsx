@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Text, TextInput, View, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { SignupDoorShell } from "@/components/signup-door-shell";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { RETURNING_LOGIN_HREF } from "@/lib/after-sign-in";
+import { PUBLIC_WEBSITE_ORIGIN } from "@/lib/password-recovery-url";
 import { getSupabaseClientAsync } from "@/lib/supabase";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { passwordsMatch } from "@/lib/join-account-draft";
@@ -18,6 +19,32 @@ export default function NewPasswordScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [linkReady, setLinkReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const supabase = await getSupabaseClientAsync();
+        const { data } = await supabase.auth.getSession();
+        if (!cancelled) {
+          setLinkReady(Boolean(data.session));
+          if (!data.session) {
+            setError(
+              `This page needs the email link. Open ${PUBLIC_WEBSITE_ORIGIN}/login and tap Send a new password.`,
+            );
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setError("This page needs the email link. Open Login and tap Send a new password.");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const inputStyle = {
     backgroundColor: colors.surface,
@@ -32,6 +59,12 @@ export default function NewPasswordScreen() {
   };
 
   const onSave = async () => {
+    if (!linkReady) {
+      setError(
+        `This page needs the email link. Open ${PUBLIC_WEBSITE_ORIGIN}/login and tap Send a new password.`,
+      );
+      return;
+    }
     if (!passwordsMatch(password, confirmPassword)) {
       setError("Type the new password twice. Both lines must match and have at least 6 characters.");
       return;

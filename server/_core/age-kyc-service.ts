@@ -626,3 +626,19 @@ export function resetAgeKycMemoryForTests(): void {
   memoryByUserId.clear();
   memoryByGuestIp.clear();
 }
+
+/** Owner start-over: drop stored ID hashes and pass/fail for every row on that email. */
+export async function clearAgeKycRecordsForEmail(email: string): Promise<number> {
+  const people = await db.listUsersByEmail(email);
+  let cleared = 0;
+  for (const person of people) {
+    memoryByUserId.delete(person.id);
+    try {
+      await db.deleteKycVerification(person.id);
+      cleared += 1;
+    } catch {
+      /* keep going — sign-in scrap still matters */
+    }
+  }
+  return cleared;
+}

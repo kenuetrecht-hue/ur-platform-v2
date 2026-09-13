@@ -23,9 +23,4 @@ export async function signInWithPasswordRetryingCaptcha(
   );
 }
 
-export function passwordResetRedirectUrl(): string {
-  if (typeof window !== "undefined" && window.location?.origin) {
-    return `${window.location.origin}/new-password`;
-  }
-  return "/new-password";
-}
+export { passwordResetRedirectUrl } from "@/lib/password-recovery-url";

@@ -26,7 +26,7 @@ export default function CustomLinkScreen() {
       });
       return;
     }
-    router.replace(resolved.data.redirectPath as "/(tabs)");
+    router.replace((resolved.data.redirectPath || "/home") as "/home");
   }, [resolved.data, router]);
 
   return (

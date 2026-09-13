@@ -50,6 +50,7 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
+    associatedDomains: ["applinks:urplatform.llc", "applinks:www.urplatform.llc"],
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:
@@ -85,6 +86,17 @@ const config: ExpoConfig = {
             scheme: env.scheme,
             host: "*",
           },
+        ],
+        category: ["BROWSABLE", "DEFAULT"],
+      },
+      {
+        action: "VIEW",
+        autoVerify: true,
+        data: [
+          { scheme: "https", host: "urplatform.llc", pathPrefix: "/login" },
+          { scheme: "https", host: "urplatform.llc", pathPrefix: "/signup" },
+          { scheme: "https", host: "www.urplatform.llc", pathPrefix: "/login" },
+          { scheme: "https", host: "www.urplatform.llc", pathPrefix: "/signup" },
         ],
         category: ["BROWSABLE", "DEFAULT"],
       },

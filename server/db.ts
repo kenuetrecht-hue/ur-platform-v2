@@ -135,23 +135,23 @@ export async function getUserByOpenId(openId: string) {
 }
 
 export async function getUserByEmail(email: string) {
+  const matches = await listUsersByEmail(email);
+  return matches[0];
+}
+
+export async function listUsersByEmail(email: string) {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get user: database not available");
-    return undefined;
+    return [];
   }
 
   try {
     const normalized = email.toLowerCase().trim();
-    const result = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, normalized))
-      .limit(1);
-    return result.length > 0 ? result[0] : undefined;
+    return await db.select().from(users).where(eq(users.email, normalized));
   } catch (error) {
-    logDbFailure("Failed to get user by email", error);
-    return undefined;
+    logDbFailure("Failed to list users by email", error);
+    return [];
   }
 }
 
@@ -201,6 +201,12 @@ export async function updateKycVerification(
     .update(kycVerification)
     .set({ ...data, updatedAt: new Date() })
     .where(eq(kycVerification.userId, userId));
+}
+
+export async function deleteKycVerification(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(kycVerification).where(eq(kycVerification.userId, userId));
 }
 
 // ============ EMAIL VERIFICATION ============

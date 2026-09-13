@@ -13,6 +13,7 @@ import {
   AFTER_ID_PASS_HREF,
   JOIN_ACCOUNT_HREF,
   isJoinFlowPath,
+  isLoginOrSignupDoorPath,
   RETURNING_LOGIN_HREF,
   hrefForSignedOutUser,
   isKycStatusKnown,
@@ -23,11 +24,22 @@ import {
   shouldSendAuthenticatedUserToJoinPictures,
   shouldSendSignedOutUserToLoginFromAgeVerify,
 } from "@/lib/after-sign-in";
+import { isNewPasswordPath } from "@/lib/password-recovery-url";
 import { hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
 
 function isAuthRoute(segments: string[]): boolean {
   const root = segments[0];
-  return root === "(auth)" || root === "login" || root === "signup" || root === "signin";
+  const path = segments.join("/");
+  return (
+    root === "(auth)" ||
+    root === "login" ||
+    root === "signup" ||
+    root === "signin" ||
+    root === "signup-id" ||
+    root === "signup-selfie" ||
+    root === "new-password" ||
+    isNewPasswordPath(path)
+  );
 }
 
 function isPublicMarketing(segments: string[]): boolean {
@@ -102,6 +114,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     const inAgeVerify = isAgeVerifyRoute(segments);
     const inProtectedRoute =
       segments[0] === "(tabs)" ||
+      segments[0] === "home" ||
       segments[0] === "profile" ||
       segments[0] === "jobsite" ||
       segments[0] === "owner-ops" ||
@@ -126,6 +139,12 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     const hasPhotoPass = hasAgeKycPassToken();
 
     if (isAuthenticated && inAuthRoute) {
+      if (isNewPasswordPath(segments.join("/"))) {
+        return;
+      }
+      if (isLoginOrSignupDoorPath(segments.join("/"))) {
+        return;
+      }
       const onJoinPictures = isJoinFlowPath(segments.join("/"));
       if (
         onJoinPictures &&

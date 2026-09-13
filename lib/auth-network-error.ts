@@ -59,6 +59,10 @@ export function explainAuthFailure(error: unknown): string {
     return "That email is already on UR. We are logging you in with the password you typed.";
   }
 
+  if (lower.includes("forbidden") || lower.includes("this network is blocked")) {
+    return "Too many tries from this phone or Wi-Fi. Wait ten minutes, then tap Check this ID again.";
+  }
+
   if (isInvalidLoginAuthError(raw)) {
     return "Wrong email or password. If you just signed up again, a new password does not replace the first one. Use the first password, or tap Send a new password. If you are new, tap Sign up.";
   }

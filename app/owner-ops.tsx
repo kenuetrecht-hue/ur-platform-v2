@@ -11,6 +11,7 @@ import { CommerceOpsPanel } from "@/components/commerce-ops-panel";
 import { CommerceTrendOpsPanel } from "@/components/commerce-trend-ops-panel";
 import { FairShowOwnerPanel } from "@/components/fair-show-owner-panel";
 import { SecurityNoticeOpsPanel } from "@/components/security-notice-ops-panel";
+import { OwnerSigninResetPanel } from "@/components/owner-signin-reset-panel";
 import { FoundingAudienceReviewPanel } from "@/components/founding-audience-review-panel";
 import { LandingDemoConversionStatsPanel } from "@/components/landing-demo-conversion-stats-panel";
 import { AdminDashboard } from "@/components/admin-dashboard";
@@ -191,6 +192,7 @@ export default function OwnerOpsScreen() {
             {isPlatformOwner ? <PlatformConductReviewPanel /> : null}
             {isPlatformOwner ? <FoundingAudienceReviewPanel /> : null}
             {isPlatformOwner ? <FairShowOwnerPanel /> : null}
+            {isPlatformOwner ? <OwnerSigninResetPanel /> : null}
             {isPlatformOwner ? <SecurityNoticeOpsPanel /> : null}
             {isPlatformOwner ? <CommerceTrendOpsPanel /> : null}
             {isPlatformOwner ? <CommerceOpsPanel /> : null}

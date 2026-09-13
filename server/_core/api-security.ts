@@ -371,15 +371,34 @@ export function strictCorsMiddleware(
 }
 
 /** Express middleware: global IP rate limit + blocklist for all /api routes */
+export function isAgeKycApiPath(path: string): boolean {
+  return path.toLowerCase().includes("/api/age-kyc");
+}
+
 export function apiIpGuardMiddleware(
   req: Request,
   res: Response,
   next: NextFunction,
 ): void {
   const ip = getClientIp(req);
+  const path = `${req.originalUrl ?? ""} ${req.path ?? ""}`;
+
+  // ID check must stay open after a login flood. Blocking it traps new members and the owner.
+  if (isAgeKycApiPath(path)) {
+    if (!checkGlobalIpLimit(ip)) {
+      res.status(429).json({
+        error: "Too many picture checks. Wait one minute, then tap Check this ID again.",
+      });
+      return;
+    }
+    next();
+    return;
+  }
 
   if (isIpBlocked(ip)) {
-    res.status(403).json({ error: "Forbidden" });
+    res.status(403).json({
+      error: "Too many tries from this network. Wait ten minutes, then try Login or Check this ID again.",
+    });
     return;
   }
 

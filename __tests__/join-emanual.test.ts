@@ -27,7 +27,7 @@ describe("join e-manual", () => {
 
   it("opens a real page after pictures, not a blank tab layout", () => {
     expect(AFTER_JOIN_WELCOME_HREF).toBe("/e-manual?joined=1");
-    expect(AFTER_ID_PASS_HREF).toBe("/(tabs)/index");
+    expect(AFTER_ID_PASS_HREF).toBe("/home");
     const hook = readFileSync("hooks/use-enter-app-after-pictures.ts", "utf8");
     const manual = readFileSync("app/e-manual.tsx", "utf8");
     expect(hook).toContain("AFTER_JOIN_WELCOME_HREF");

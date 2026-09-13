@@ -121,8 +121,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoading) {
       if (isAuthenticated && segments[0] !== "(tabs)") {
-        router.replace("/(tabs)");
-      } else if (!isAuthenticated && segments[0] !== "login") {
+        router.replace("/home");
+      } else if (!isAuthenticated && segments[0] !== "login" && segments[0] !== "signup") {
         router.replace("/login");
       }
     }

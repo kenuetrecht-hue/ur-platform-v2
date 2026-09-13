@@ -10,6 +10,9 @@ import {
 } from "../_core/trpc";
 import { ENV, isOwnerEmailConfigured } from "../_core/env";
 import { getPlatformOwnerDisplayName } from "../_core/owner-auth";
+import { ownerResetMemberSignIn } from "../_core/owner-signin-reset-service";
+import { mapServiceErrorToTrpc } from "../_core/service-errors";
+import type { OwnerSigninResetAction } from "../../lib/owner-signin-reset";
 import {
   getAccessStatus,
   grantFreeAccessByOwner,
@@ -516,4 +519,24 @@ export const platformOpsRouter = router({
   resetOwnerPrice: ownerProcedure
     .input(z.object({ skuId: z.string().trim().min(3).max(96) }))
     .mutation(({ input }) => resetOwnerPriceSku(input.skuId)),
+
+  resetMemberSignIn: ownerProcedure
+    .input(
+      z.object({
+        email: z.string().trim().email().max(254),
+        action: z.enum(["send_new_password", "clear_so_they_can_signup"]),
+        confirmPhrase: z.string().trim().min(1).max(40),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        return await ownerResetMemberSignIn({
+          email: input.email,
+          action: input.action as OwnerSigninResetAction,
+          confirmPhrase: input.confirmPhrase,
+        });
+      } catch (error) {
+        mapServiceErrorToTrpc(error);
+      }
+    }),
 });
