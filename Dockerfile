@@ -1,5 +1,6 @@
-# Production image for the UR Platform API.
-# Railway detects this file and uses it instead of treating the repo as an Expo app.
+# Production image for the UR Platform website + API.
+# Railway: read RAILWAY.md before changing start, branch, or this file.
+# Deploy GitHub branch main only. Start is scripts/start-production.js (tables, then site).
 
 FROM node:22-bookworm-slim AS builder
 

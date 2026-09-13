@@ -15,4 +15,14 @@ describe("Railway MySQL table setup", () => {
     expect(migrate).toContain("drizzle-kit");
     expect(migrate).not.toContain("pnpm exec drizzle-kit");
   });
+
+  it("tells Railway to ship main and the three Sign up pages", () => {
+    const brief = readFileSync("RAILWAY.md", "utf8");
+    expect(brief).toContain("**`main` only**");
+    expect(brief).toContain("/signup");
+    expect(brief).toContain("/signup-id");
+    expect(brief).toContain("/signup-selfie");
+    expect(brief).toContain("Step 1 of 3");
+    expect(brief).toContain("id-check-during-signin.tsx");
+  });
 });
