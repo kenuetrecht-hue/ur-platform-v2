@@ -1,36 +1,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isInvalidLoginAuthError } from "@/lib/auth-invalid-login";
 
 /**
- * Sign in, then retry once without a captcha token.
- * A leftover Sign up check token makes Supabase say "invalid login credentials"
- * even when the password is right.
+ * Sign in with email and password only.
+ * Never send a Turnstile / Sign up check token to Supabase — that makes
+ * Supabase say "invalid login credentials" even when the password is right.
+ * Our server already checks Turnstile before this runs.
  */
 export async function signInWithPasswordRetryingCaptcha(
   supabase: SupabaseClient,
   email: string,
   password: string,
-  captchaToken: string | undefined,
+  _captchaToken: string | undefined,
   withTimeout: <T>(promise: Promise<T>, ms: number, label: string) => Promise<T>,
 ) {
-  const trimmedEmail = email.trim();
-  const trimmedPassword = password.trim();
-  const first = await withTimeout(
-    supabase.auth.signInWithPassword({
-      email: trimmedEmail,
-      password: trimmedPassword,
-      options: captchaToken ? { captchaToken } : undefined,
-    }),
-    15_000,
-    "Login",
-  );
-  if (!first.error || !captchaToken || !isInvalidLoginAuthError(first.error)) {
-    return first;
-  }
   return withTimeout(
     supabase.auth.signInWithPassword({
-      email: trimmedEmail,
-      password: trimmedPassword,
+      email: email.trim(),
+      password: password.trim(),
     }),
     15_000,
     "Login",

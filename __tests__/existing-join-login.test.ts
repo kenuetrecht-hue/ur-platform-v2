@@ -20,6 +20,7 @@ describe("existing email after pictures", () => {
     expect(login).toContain("loadJoinAccountDraft");
     expect(hook).toContain("EXISTING_ACCOUNT_AFTER_PICTURES");
     expect(signin).toContain("signInWithPasswordRetryingCaptcha");
+    expect(signin).toContain("Never send a Turnstile");
     expect(readFileSync("app/(auth)/new-password.tsx", "utf8")).toContain("Save password and go to Login");
   });
 });

@@ -10,6 +10,7 @@ import { claimStoredAgeKycPass } from "@/lib/claim-stored-age-kyc-pass";
 import { AFTER_ID_PASS_HREF, JOIN_ACCOUNT_HREF } from "@/lib/after-sign-in";
 import { EXISTING_ACCOUNT_LOGIN_HINT } from "@/lib/existing-join-login";
 import { loadJoinAccountDraft } from "@/lib/join-account-draft";
+import { readWebTextInputValue } from "@/lib/read-web-input-value";
 import { sendPasswordResetEmail } from "@/lib/send-password-reset";
 import { getStayLoggedIn, setStayLoggedIn } from "@/lib/stay-logged-in";
 import { rememberSignedInApiDevice } from "@/lib/known-api-device";
@@ -55,8 +56,11 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
   const linkColor = staged ? T.electric : colors.primary;
 
   const onSubmit = async () => {
-    const emailValue = email.trim();
-    const passwordValue = password.trim();
+    const emptyRef = { current: null };
+    const emailValue = (email.trim() || readWebTextInputValue(emptyRef, "login-email")).trim();
+    const passwordValue = (
+      password.trim() || readWebTextInputValue(emptyRef, "login-password")
+    ).trim();
     if (!emailValue || !passwordValue) {
       setError("Type your email and password, then tap Login.");
       return;
