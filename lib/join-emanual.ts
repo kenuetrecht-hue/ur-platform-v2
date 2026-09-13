@@ -59,7 +59,8 @@ export const JOIN_EMANUAL_STEPS: JoinEmanualStep[] = [
     clicks: [
       "Stay on this page: https://urplatform.llc/e-manual",
       "Tap Download to this phone at the top. The file is UR-Platform-e-manual.pdf.",
-      "On a phone, pick Save to Files or Downloads on the next screen. Check Files or Downloads if you do not see it right away.",
+      "If that screen does not save it, tap Open PDF file, then Share → Save to Files or Downloads.",
+      "On a phone, pick Save to Files or Downloads. Check Files or Downloads if you do not see it right away.",
       "On a computer, you can also tap Print / Save as PDF.",
       "You now have a PDF copy. You can sell copies of manuals you write the same way buyers will save yours.",
     ],

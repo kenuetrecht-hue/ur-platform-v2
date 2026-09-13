@@ -19,7 +19,11 @@ describe("join e-manual download", () => {
     const route = readFileSync("server/_core/index.ts", "utf8");
     expect(page).toContain("downloadJoinEmanual");
     expect(page).toContain("Download to this phone");
+    expect(page).toContain("Open PDF file");
     expect(route).toContain("registerJoinEmanualPdfRoute");
+    const storage = readFileSync("lib/auth-storage.ts", "utf8");
+    expect(storage).toContain("AsyncStorage.setItem(ACCESS_TOKEN_KEY");
+    expect(storage).not.toContain("SecureStore.setItemAsync(ACCESS_TOKEN_KEY");
   });
 });
 

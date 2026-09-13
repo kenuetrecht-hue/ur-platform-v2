@@ -6,6 +6,8 @@ import { useAuth } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
 import { clearGiveJoinEmanual } from "@/lib/join-emanual-handoff";
 import { downloadJoinEmanual } from "@/lib/join-emanual-download";
+import { JOIN_EMANUAL_PDF_PATH } from "@/lib/join-emanual-pdf";
+import * as Linking from "expo-linking";
 import {
   JOIN_EMANUAL_GIFT_LINE,
   JOIN_EMANUAL_MONEY_NOTES,
@@ -64,10 +66,14 @@ export default function JoinEmanualScreen() {
               <Text style={styles.printText}>{saving ? "Saving…" : "Download to this phone"}</Text>
             </Pressable>
             <Pressable
-              onPress={printManual}
+              onPress={() => {
+                const url = `${getPlatformPublicOrigin()}${JOIN_EMANUAL_PDF_PATH}`;
+                void Linking.openURL(url);
+              }}
               style={[styles.printBtn, { backgroundColor: colors.muted }]}
+              testID="open-join-emanual-pdf"
             >
-              <Text style={styles.printText}>Print / Save as PDF</Text>
+              <Text style={styles.printText}>Open PDF file</Text>
             </Pressable>
           </View>
         </View>

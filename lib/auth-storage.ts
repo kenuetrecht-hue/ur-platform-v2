@@ -1,10 +1,15 @@
-import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import {
   isWebBrowserStorageAvailable,
 } from "./supabase-auth-storage";
 import { getStayLoggedIn } from "./stay-logged-in";
+
+/**
+ * Phone sign-in lives in AsyncStorage, not SecureStore.
+ * iOS Keychain (SecureStore) rejects values over 2048 bytes, and a real
+ * login token is bigger than that — so the phone was never keeping the sign-in.
+ */
 
 export const ACCESS_TOKEN_KEY = "accessToken";
 export const USER_STORAGE_KEY = "user";
@@ -58,7 +63,7 @@ export async function getAccessToken(): Promise<string | null> {
     if (Platform.OS === "web") {
       return null;
     }
-    return SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+    return AsyncStorage.getItem(ACCESS_TOKEN_KEY);
   } catch (error) {
     console.error("[AuthStorage] Failed to get access token:", error);
     return null;
@@ -74,8 +79,7 @@ export async function setAccessToken(token: string): Promise<void> {
   if (Platform.OS === "web") {
     return;
   }
-  if (!getStayLoggedIn()) return;
-  await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, token);
+  await AsyncStorage.setItem(ACCESS_TOKEN_KEY, token);
 }
 
 export async function removeAccessToken(): Promise<void> {
@@ -88,7 +92,7 @@ export async function removeAccessToken(): Promise<void> {
     if (Platform.OS === "web") {
       return;
     }
-    await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+    await AsyncStorage.removeItem(ACCESS_TOKEN_KEY);
   } catch (error) {
     console.error("[AuthStorage] Failed to remove access token:", error);
   }
@@ -117,7 +121,6 @@ export async function setStoredUserJson(userJson: string): Promise<void> {
   if (Platform.OS === "web") {
     return;
   }
-  if (!getStayLoggedIn()) return;
   await AsyncStorage.setItem(USER_STORAGE_KEY, userJson);
 }
 
@@ -129,7 +132,7 @@ export async function getRefreshToken(): Promise<string | null> {
     if (Platform.OS === "web") {
       return null;
     }
-    return SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+    return AsyncStorage.getItem(REFRESH_TOKEN_KEY);
   } catch {
     return null;
   }
@@ -143,8 +146,7 @@ export async function setRefreshToken(token: string): Promise<void> {
   if (Platform.OS === "web") {
     return;
   }
-  if (!getStayLoggedIn()) return;
-  await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token);
+  await AsyncStorage.setItem(REFRESH_TOKEN_KEY, token);
 }
 
 export async function removeRefreshToken(): Promise<void> {
@@ -156,7 +158,7 @@ export async function removeRefreshToken(): Promise<void> {
     if (Platform.OS === "web") {
       return;
     }
-    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+    await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
   } catch {
     /* ignore */
   }
