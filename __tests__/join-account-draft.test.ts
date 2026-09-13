@@ -32,12 +32,14 @@ describe("join account draft", () => {
       email: "ken@example.com",
       password: "secret1",
       acceptedTerms: true,
+      turnstileToken: "",
     });
     expect(loadJoinAccountDraft()).toEqual({
       name: "Ken",
       email: "ken@example.com",
       password: "secret1",
       acceptedTerms: true,
+      turnstileToken: "",
     });
   });
 });

@@ -127,7 +127,20 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
         style={inputStyle}
       />
 
-      <Text style={{ color: labelColor, fontWeight: "600" }}>Password</Text>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+        <Text style={{ color: labelColor, fontWeight: "600" }}>Password</Text>
+        <Pressable
+          onPress={() => setShowPassword((value) => !value)}
+          hitSlop={10}
+          testID="show-password"
+          accessibilityRole="button"
+          style={{ paddingVertical: 6, paddingHorizontal: 8 }}
+        >
+          <Text style={{ color: linkColor, fontWeight: "800", fontSize: 14 }}>
+            {showPassword ? "Hide password" : "Show password"}
+          </Text>
+        </Pressable>
+      </View>
       <TextInput
         value={password}
         onChangeText={setPassword}
@@ -142,11 +155,6 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
         maxLength={128}
         style={inputStyle}
       />
-      <Pressable onPress={() => setShowPassword((value) => !value)}>
-        <Text style={{ color: linkColor, fontWeight: "700", fontSize: 13 }}>
-          {showPassword ? "Hide password" : "Show password"}
-        </Text>
-      </Pressable>
 
       <Pressable
         onPress={() => {

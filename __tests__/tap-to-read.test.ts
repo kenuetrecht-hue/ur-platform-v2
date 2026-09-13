@@ -7,9 +7,9 @@ describe("tap-to-read disclosures", () => {
     expect(join).toContain("TapToRead");
     expect(join).toContain("I am 18 or older and I agree");
     expect(join).toContain("Show password");
-    expect(join).toContain("logging you in");
-    expect(join.indexOf("1. Name, email, and password")).toBeLessThan(
-      join.indexOf("2. Then take the three pictures"),
-    );
+    expect(join).toContain('testID="show-password"');
+    expect(join).toContain("Continue to ID pictures");
+    expect(join).not.toContain("AgeKycPhotoCapture");
+    expect(join).not.toContain("IdCheckDuringSignin");
   });
 });

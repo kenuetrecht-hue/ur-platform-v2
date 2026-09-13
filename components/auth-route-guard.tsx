@@ -12,6 +12,7 @@ import { isPublicLegalRoute } from "@/lib/public-legal-routes";
 import {
   AFTER_ID_PASS_HREF,
   JOIN_ACCOUNT_HREF,
+  isJoinFlowPath,
   RETURNING_LOGIN_HREF,
   hrefForSignedOutUser,
   isKycStatusKnown,
@@ -125,7 +126,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     const hasPhotoPass = hasAgeKycPassToken();
 
     if (isAuthenticated && inAuthRoute) {
-      const onJoinPictures = segments.join("/").includes("signup");
+      const onJoinPictures = isJoinFlowPath(segments.join("/"));
       if (
         onJoinPictures &&
         shouldSendAuthenticatedJoinToLogin({

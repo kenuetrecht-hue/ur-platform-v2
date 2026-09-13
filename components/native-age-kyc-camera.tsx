@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useColors } from "@/hooks/use-colors";
@@ -53,6 +53,37 @@ export function NativeAgeKycCamera({ slot, kind, cameraLabel, onPicked, onError 
     setReady(false);
     setLive(true);
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      stopOpenNativeCamera?.();
+      const granted = permission?.granted || (await requestPermission()).granted;
+      if (cancelled) return;
+      if (!granted) {
+        onError("Allow the camera so the yellow box can sit on this page.");
+        return;
+      }
+      openNativeSlot = slot;
+      stopOpenNativeCamera = () => {
+        if (openNativeSlot === slot) {
+          openNativeSlot = null;
+          stopOpenNativeCamera = null;
+        }
+      };
+      setReady(false);
+      setLive(true);
+    })();
+    return () => {
+      cancelled = true;
+      if (openNativeSlot === slot) {
+        openNativeSlot = null;
+        stopOpenNativeCamera = null;
+      }
+    };
+    // Mount once per slot (parent keys this camera). Do not re-open on parent re-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slot, kind]);
 
   const snap = async () => {
     if (snapping || !ready) return;
@@ -132,7 +163,7 @@ export function NativeAgeKycCamera({ slot, kind, cameraLabel, onPicked, onError 
             style={{
               position: "absolute",
               left: "5%",
-              top: kind === "id" ? "14%" : "14%",
+              top: "14%",
               width: kind === "id" ? "90%" : "72%",
               height: kind === "id" ? "72%" : "56%",
               alignSelf: "center",

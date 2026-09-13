@@ -3,7 +3,7 @@ import { Text, View } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { PrimaryActionButton } from "@/components/primary-action-button";
-import { AFTER_ID_PASS_HREF, AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
+import { AFTER_ID_PASS_HREF, JOIN_ACCOUNT_HREF } from "@/lib/after-sign-in";
 import { trpc } from "@/lib/trpc";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
@@ -19,11 +19,11 @@ export function GoToIdPhotosButton({ label = "Open ID photo page" }: { label?: s
       <PrimaryActionButton
         testID="go-to-id-photos"
         label={label}
-        onPress={() => router.push(AFTER_SIGN_IN_HREF)}
+        onPress={() => router.push(JOIN_ACCOUNT_HREF)}
         backgroundColor={colors.primary}
       />
       <Link
-        href={AFTER_SIGN_IN_HREF}
+        href={JOIN_ACCOUNT_HREF}
         style={{ color: colors.primary, fontWeight: "800", fontSize: 16, textAlign: "center" }}
       >
         If the button does nothing, tap this link
@@ -48,17 +48,17 @@ export function PostSignInAgeVerifyGate() {
     if (picturesAlreadyPassed) {
       void claimStoredAgeKycPass((input) => claimPass.mutateAsync(input))
         .then((claimed) => {
-          router.replace(claimed ? AFTER_ID_PASS_HREF : AFTER_SIGN_IN_HREF);
+          router.replace(claimed ? AFTER_ID_PASS_HREF : JOIN_ACCOUNT_HREF);
         })
         .catch((err) => {
           setHint(explainAuthFailure(err));
-          router.replace(AFTER_SIGN_IN_HREF);
+          router.replace(JOIN_ACCOUNT_HREF);
         });
       return;
     }
 
     const timer = setTimeout(() => {
-      router.replace(AFTER_SIGN_IN_HREF);
+      router.replace(JOIN_ACCOUNT_HREF);
     }, 250);
     return () => clearTimeout(timer);
   }, [claimPass, picturesAlreadyPassed, router]);
@@ -75,7 +75,7 @@ export function PostSignInAgeVerifyGate() {
       testID="post-sign-in-age-verify-gate"
     >
       <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 26 }}>
-        Sign-in worked
+        Login worked
       </Text>
       <Text style={{ color: colors.foreground, fontSize: 18, lineHeight: 26, fontWeight: "700" }}>
         {picturesAlreadyPassed
@@ -88,11 +88,11 @@ export function PostSignInAgeVerifyGate() {
       <PrimaryActionButton
         testID="go-to-id-photos-auto"
         label={picturesAlreadyPassed ? "Open the app" : "Open ID photo page"}
-        onPress={() => router.replace(picturesAlreadyPassed ? AFTER_ID_PASS_HREF : AFTER_SIGN_IN_HREF)}
+        onPress={() => router.replace(picturesAlreadyPassed ? AFTER_ID_PASS_HREF : JOIN_ACCOUNT_HREF)}
         backgroundColor={colors.primary}
       />
       <Link
-        href={picturesAlreadyPassed ? AFTER_ID_PASS_HREF : AFTER_SIGN_IN_HREF}
+        href={picturesAlreadyPassed ? AFTER_ID_PASS_HREF : JOIN_ACCOUNT_HREF}
         style={{ color: colors.primary, fontWeight: "800", fontSize: 16, textAlign: "center" }}
       >
         If nothing happened, tap here

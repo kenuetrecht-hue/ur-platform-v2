@@ -4,9 +4,16 @@
  */
 export const AFTER_SIGN_IN_HREF = "/age-verify" as const;
 export const AFTER_ID_PASS_HREF = "/(tabs)" as const;
-/** Returning members: email + password. New members use /signup for pictures. */
+/** Returning members: email + password. New members use /signup, then ID, then selfie. */
 export const RETURNING_LOGIN_HREF = "/login" as const;
 export const JOIN_ACCOUNT_HREF = "/signup" as const;
+export const JOIN_ID_PHOTOS_HREF = "/signup-id" as const;
+export const JOIN_SELFIE_HREF = "/signup-selfie" as const;
+
+/** Account, ID, and selfie pages in the new join path — not leftover /age-verify. */
+export function isJoinFlowPath(path: string): boolean {
+  return path.includes("signup");
+}
 
 /** Already signed in on this phone or computer — open the app. The ID guard still applies. */
 export function hrefWhenAlreadySignedIn(): typeof AFTER_ID_PASS_HREF {

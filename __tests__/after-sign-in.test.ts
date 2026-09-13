@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   AFTER_ID_PASS_HREF,
   AFTER_SIGN_IN_HREF,
+  JOIN_ACCOUNT_HREF,
+  JOIN_ID_PHOTOS_HREF,
+  JOIN_SELFIE_HREF,
   RETURNING_LOGIN_HREF,
+  isJoinFlowPath,
   hrefAfterSignIn,
   hrefForSignedOutUser,
   hrefWhenAlreadySignedIn,
@@ -79,6 +83,13 @@ describe("after sign-in", () => {
   it("opens the app after the photos already passed", () => {
     expect(hrefAfterSignIn(true)).toBe(AFTER_ID_PASS_HREF);
     expect(hrefAfterSignIn(false)).toBe("/signup");
+    expect(JOIN_ACCOUNT_HREF).toBe("/signup");
+    expect(JOIN_ID_PHOTOS_HREF).toBe("/signup-id");
+    expect(JOIN_SELFIE_HREF).toBe("/signup-selfie");
+    expect(isJoinFlowPath("/signup")).toBe(true);
+    expect(isJoinFlowPath("(auth)/signup-id")).toBe(true);
+    expect(isJoinFlowPath("(auth)/signup-selfie")).toBe(true);
+    expect(isJoinFlowPath("/login")).toBe(false);
   });
 
   it("keeps name email and password on screen until the ID check is on the account", () => {

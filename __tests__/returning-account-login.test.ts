@@ -61,8 +61,10 @@ describe("returning account login", () => {
     expect(guard).toContain("JOIN_ACCOUNT_HREF");
     expect(guard).toContain("kycQuery.isLoading");
     expect(guard).toContain("shouldSendAuthenticatedUserToJoinPictures");
-    expect(finish).toContain("shouldEnterAppAfterMemberSignIn");
-    expect(finish).toContain("IdCheckDuringSignin");
+    expect(finish).toContain("JOIN_ID_PHOTOS_HREF");
+    expect(finish).not.toContain("AgeKycPhotoCapture");
+    const hook = readFileSync("hooks/use-enter-app-after-pictures.ts", "utf8");
+    expect(hook).toContain("shouldEnterAppAfterMemberSignIn");
   });
 
 });

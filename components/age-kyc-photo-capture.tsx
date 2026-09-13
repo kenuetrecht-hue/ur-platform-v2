@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import { useColors } from "@/hooks/use-colors";
 import {
   photoFromDataUrl,
+  pickAgeKycLibraryPhoto,
   pickAgeKycPhoto,
   prepareAgeKycPhoto,
   type AgeKycPickedPhoto,
@@ -11,6 +12,16 @@ import {
 import { NativeAgeKycCamera } from "@/components/native-age-kyc-camera";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { chooseAgeKycCaptureRect, guideBoxInView, ID_CARD_ASPECT, type GuideBox } from "@/lib/age-kyc-camera-guide";
+import {
+  ageKycWizardTitle,
+  initialAgeKycIdStep,
+  initialAgeKycSelfieStep,
+  nextAgeKycIdWizardStep,
+  nextAgeKycSelfieWizardStep,
+  type AgeKycCapturePhase,
+  type AgeKycIdWizardStep,
+  type AgeKycSelfieWizardStep,
+} from "@/lib/age-kyc-wizard";
 
 export type AgeKycSlot = "front" | "back" | "selfie";
 
@@ -24,11 +35,13 @@ const SLOTS: { id: AgeKycSlot; title: string; cameraLabel: string; kind: "id" | 
 ];
 
 type Props = {
+  phase: AgeKycCapturePhase;
   front: AgeKycPickedPhoto | null;
   back: AgeKycPickedPhoto | null;
   selfie: AgeKycPickedPhoto | null;
   onPicked: (slot: AgeKycSlot, photo: AgeKycPickedPhoto) => void;
   onError: (message: string) => void;
+  onRetakeId?: (slot: "front" | "back") => void;
 };
 
 function photoFor(slot: AgeKycSlot, props: Props): AgeKycPickedPhoto | null {
@@ -39,73 +52,120 @@ function photoFor(slot: AgeKycSlot, props: Props): AgeKycPickedPhoto | null {
 
 export function AgeKycPhotoCapture(props: Props) {
   const colors = useColors();
+  const [idStep, setIdStep] = useState<AgeKycIdWizardStep>(() =>
+    initialAgeKycIdStep({ front: props.front, back: props.back }),
+  );
+  const [selfieStep, setSelfieStep] = useState<AgeKycSelfieWizardStep>(() =>
+    initialAgeKycSelfieStep({ selfie: props.selfie }),
+  );
+
+  const step = props.phase === "id" ? idStep : selfieStep;
+  const active = SLOTS.find((slot) => slot.id === step);
+  const photo = active ? photoFor(active.id, props) : null;
+  const reviewSlots = props.phase === "id" ? SLOTS.filter((slot) => slot.kind === "id") : SLOTS;
+  const showReview = props.phase === "id" ? idStep === "id-ready" : selfieStep === "review";
+
+  const takeSlot = (slot: AgeKycSlot, next: AgeKycPickedPhoto) => {
+    props.onPicked(slot, next);
+    if (slot === "front" || slot === "back") {
+      setIdStep(nextAgeKycIdWizardStep(slot));
+      return;
+    }
+    setSelfieStep(nextAgeKycSelfieWizardStep("selfie"));
+  };
+
+  const onRetake = (slot: AgeKycSlot) => {
+    if (slot === "front" || slot === "back") {
+      if (props.phase === "selfie") {
+        props.onRetakeId?.(slot);
+        return;
+      }
+      setIdStep(slot);
+      return;
+    }
+    setSelfieStep("selfie");
+  };
 
   return (
     <View style={{ gap: 12 }} testID="age-kyc-photo-capture">
       <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 22 }}>
-        Take the three pictures now
+        {ageKycWizardTitle(step)}
       </Text>
       <Text style={{ color: colors.foreground, fontSize: 16, lineHeight: 22, fontWeight: "700" }}>
-        Tap Live camera on front, back, and selfie. A yellow box appears on each one. Fit the card inside it, then tap Take this picture once.
+        {props.phase === "id"
+          ? "One ID picture at a time. Fit the yellow box, tap Take this picture once, then we open the other side. The selfie is a separate page."
+          : "One live selfie. Fit the yellow box, tap Take this picture once, then review all three."}
       </Text>
 
-      {SLOTS.map((slot) => {
-        const photo = photoFor(slot.id, props);
-        return (
-          <View
-            key={slot.id}
-            testID={`age-kyc-slot-${slot.id}`}
-            style={{
-              borderWidth: 3,
-              borderColor: photo ? "#22c55e" : slot.color,
-              borderRadius: 16,
-              padding: 14,
-              backgroundColor: colors.surface,
-              gap: 10,
-            }}
-          >
-            <Text style={{ color: slot.color, fontWeight: "900", fontSize: 20 }}>{slot.title}</Text>
-            <Text
-              style={{
-                color: photo ? "#16a34a" : colors.foreground,
-                fontWeight: "800",
-                fontSize: 15,
-              }}
-            >
-              {photo ? "Photo recorded — tap Live camera to retake" : "Not taken yet — tap Live camera"}
-            </Text>
-
-            {photo ? (
-              <Image
-                source={{ uri: photo.previewUri }}
-                style={{ width: "100%", height: 220, borderRadius: 10 }}
-                contentFit="cover"
-                cachePolicy="memory"
-                transition={80}
-                accessibilityLabel={`${slot.title} preview`}
-              />
-            ) : null}
-
-            {Platform.OS === "web" ? (
-              <WebCameraCard
-                slot={slot.id}
-                kind={slot.kind}
-                cameraLabel={photo ? `Retake — ${slot.title}` : slot.cameraLabel}
-                onPicked={(next) => props.onPicked(slot.id, next)}
-                onError={props.onError}
-              />
-            ) : (
-              <NativeAgeKycCamera
-                slot={slot.id}
-                kind={slot.kind}
-                cameraLabel={photo ? `Retake — ${slot.title}` : slot.cameraLabel}
-                onPicked={(next) => props.onPicked(slot.id, next)}
-                onError={props.onError}
-              />
-            )}
-          </View>
-        );
-      })}
+      {showReview ? (
+        <View style={{ gap: 10 }} testID={props.phase === "id" ? "age-kyc-id-ready" : "age-kyc-review"}>
+          {reviewSlots.map((slot) => {
+            const shot = photoFor(slot.id, props);
+            return (
+              <Pressable
+                key={slot.id}
+                testID={`age-kyc-slot-${slot.id}`}
+                onPress={() => onRetake(slot.id)}
+                style={{
+                  borderWidth: 3,
+                  borderColor: shot ? "#22c55e" : slot.color,
+                  borderRadius: 16,
+                  padding: 12,
+                  backgroundColor: colors.surface,
+                  gap: 8,
+                }}
+              >
+                <Text style={{ color: slot.color, fontWeight: "900", fontSize: 16 }}>{slot.title}</Text>
+                {shot ? (
+                  <Image
+                    source={{ uri: shot.previewUri }}
+                    style={{ width: "100%", height: 140, borderRadius: 10 }}
+                    contentFit="cover"
+                    cachePolicy="memory"
+                    accessibilityLabel={`${slot.title} preview`}
+                  />
+                ) : (
+                  <Text style={{ color: colors.foreground, fontWeight: "700" }}>Tap to take this one</Text>
+                )}
+                <Text style={{ color: colors.muted, fontWeight: "700" }}>Tap to retake</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : active ? (
+        <View
+          testID={`age-kyc-slot-${active.id}`}
+          style={{
+            borderWidth: 3,
+            borderColor: photo ? "#22c55e" : active.color,
+            borderRadius: 16,
+            padding: 14,
+            backgroundColor: colors.surface,
+            gap: 10,
+          }}
+        >
+          <Text style={{ color: active.color, fontWeight: "900", fontSize: 20 }}>{active.title}</Text>
+          {Platform.OS === "web" ? (
+            <WebCameraCard
+              key={`${props.phase}-${active.id}`}
+              slot={active.id}
+              kind={active.kind}
+              cameraLabel={photo ? `Retake — ${active.title}` : active.cameraLabel}
+              onPicked={(next) => takeSlot(active.id, next)}
+              onError={props.onError}
+            />
+          ) : (
+            <NativeAgeKycCamera
+              key={`${props.phase}-${active.id}`}
+              slot={active.id}
+              kind={active.kind}
+              cameraLabel={photo ? `Retake — ${active.title}` : active.cameraLabel}
+              onPicked={(next) => takeSlot(active.id, next)}
+              onError={props.onError}
+            />
+          )}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -131,6 +191,7 @@ function WebCameraCard({
   const frameRef = useRef<HTMLDivElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const snappingRef = useRef(false);
+  const startGenRef = useRef(0);
 
   const stopLive = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -145,7 +206,56 @@ function WebCameraCard({
     setLive(false);
   };
 
-  useEffect(() => () => stopLive(), []);
+  const openLiveCamera = async () => {
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      await fallbackFile(kind);
+      return;
+    }
+    const gen = ++startGenRef.current;
+    stopOpenLiveCamera?.();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: kind === "selfie" ? "user" : { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+        audio: false,
+      });
+      if (startGenRef.current !== gen) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      streamRef.current = stream;
+      openLiveSlot = slot;
+      stopOpenLiveCamera = stopLive;
+      snappingRef.current = false;
+      setReady(false);
+      setLive(true);
+    } catch {
+      try {
+        const photo = await pickAgeKycPhoto(kind);
+        if (photo) onPicked(photo);
+      } catch (error) {
+        onError(error instanceof Error ? error.message : "Could not open camera.");
+      }
+    }
+  };
+
+  useEffect(() => {
+    void openLiveCamera();
+    return () => {
+      startGenRef.current += 1;
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      if (openLiveSlot === slot) {
+        openLiveSlot = null;
+        stopOpenLiveCamera = null;
+      }
+    };
+    // One live camera per mounted slot. Parent keys this card when the side changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slot, kind]);
 
   useEffect(() => {
     if (!live || !videoRef.current || !streamRef.current) return;
@@ -187,37 +297,6 @@ function WebCameraCard({
       window.removeEventListener("resize", measure);
     };
   }, [live, kind]);
-
-  const openLiveCamera = async () => {
-    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-      await fallbackFile(kind);
-      return;
-    }
-    stopOpenLiveCamera?.();
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: kind === "selfie" ? "user" : { ideal: "environment" },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-        audio: false,
-      });
-      streamRef.current = stream;
-      openLiveSlot = slot;
-      stopOpenLiveCamera = stopLive;
-      snappingRef.current = false;
-      setReady(false);
-      setLive(true);
-    } catch {
-      try {
-        const photo = await pickAgeKycPhoto(kind);
-        if (photo) onPicked(photo);
-      } catch (error) {
-        onError(error instanceof Error ? error.message : "Could not open camera.");
-      }
-    }
-  };
 
   const fallbackFile = async (mode: "id" | "selfie" | "library") => {
     try {
@@ -369,14 +448,12 @@ function WebCameraCard({
           </Pressable>
         </View>
       ) : (
-        <>
-          <PrimaryActionButton
-            testID={`age-kyc-live-${slot}`}
-            label={cameraLabel}
-            onPress={() => void openLiveCamera()}
-            backgroundColor={kind === "selfie" ? "#15803d" : slot === "back" ? "#b45309" : "#1d4ed8"}
-          />
-        </>
+        <PrimaryActionButton
+          testID={`age-kyc-live-${slot}`}
+          label={cameraLabel}
+          onPress={() => void openLiveCamera()}
+          backgroundColor={kind === "selfie" ? "#15803d" : slot === "back" ? "#b45309" : "#1d4ed8"}
+        />
       )}
     </View>
   );

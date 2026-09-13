@@ -20,7 +20,7 @@ describe("fast ID picture check", () => {
     const precheck = readFileSync("lib/age-kyc-fast-precheck.ts", "utf8");
     expect(precheck).toContain("AbortController");
     expect(precheck).toMatch(/AGE_KYC_FAST_PRECHECK_TIMEOUT_MS = 40_000/);
-    const idCheck = readFileSync("components/id-check-during-signin.tsx", "utf8");
+    const idCheck = readFileSync("components/signup-selfie-check.tsx", "utf8");
     expect(idCheck).toContain("did not finish");
   });
 

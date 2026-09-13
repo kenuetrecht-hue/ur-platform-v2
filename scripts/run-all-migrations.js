@@ -26,7 +26,7 @@ const SUPPLEMENTAL_MIGRATIONS = [
 async function ensureDatabase() {
   const url = getDatabaseUrl();
   if (!url) {
-    console.error("[db] DATABASE_URL is not set in .env");
+    console.error("[db] No MySQL URL. Set MYSQL_DATABASE_URL or MYSQL_URL (mysql://…).");
     process.exit(1);
   }
 
@@ -38,6 +38,8 @@ async function ensureDatabase() {
       `CREATE DATABASE IF NOT EXISTS \`${dbName.replace(/`/g, "")}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
     );
     console.log(`[db] Database ready: ${dbName}`);
+  } catch (err) {
+    console.warn("[db] Could not CREATE DATABASE (will use the existing one):", err.message || err);
   } finally {
     await conn.end();
   }
@@ -45,7 +47,8 @@ async function ensureDatabase() {
 
 function runDrizzleMigrate() {
   console.log("[db] Running drizzle-kit migrate…");
-  execSync("pnpm exec drizzle-kit migrate", {
+  const kit = path.join(process.cwd(), "node_modules", "drizzle-kit", "bin.cjs");
+  execSync(`"${process.execPath}" "${kit}" migrate`, {
     stdio: "inherit",
     env: process.env,
     cwd: process.cwd(),
