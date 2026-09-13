@@ -9,7 +9,7 @@ import { TurnstileWidget } from "@/components/turnstile-widget";
 import { IdCheckDuringSignin } from "@/components/id-check-during-signin";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { claimStoredAgeKycPass } from "@/lib/claim-stored-age-kyc-pass";
-import { AFTER_ID_PASS_HREF, shouldEnterAppAfterSignupClaim } from "@/lib/after-sign-in";
+import { AFTER_ID_PASS_HREF, shouldEnterAppAfterMemberSignIn } from "@/lib/after-sign-in";
 import { getAgeKycPassToken, hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
 import { ID_MUST_PASS_FIRST, signupPrivacyBlock } from "@/lib/signup-step-copy";
 import { TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
@@ -126,52 +126,71 @@ export function FinishAccountAfterIdPass() {
         await login(emailValue, passwordValue, draft.turnstileToken || undefined);
         signedIn = true;
       } catch (loginErr) {
-        if (!nameValue) {
-          setError("Pictures passed. Type your name above so we can create the account and log you in.");
-          return;
+        if (isAuthenticated) {
+          signedIn = true;
+        } else if (isAlreadyRegisteredAuthError(loginErr)) {
+          setError("That email is already on UR. Keep your password filled in — we are logging you in.");
         }
-        if (!draft.acceptedTerms) {
-          setError("Pictures passed. Check the box that you agree to the Terms. We will log you in after that.");
-          return;
-        }
-        try {
-          const result = await register(
-            emailValue,
-            passwordValue,
-            nameValue,
-            "creator",
-            draft.turnstileToken || undefined,
-          );
-          if (result.needsEmailConfirmation) {
-            setError(
-              "Account created. Open the confirmation email, then type your email and password here. We will log you in.",
-            );
-            setStatus(null);
+        if (!signedIn) {
+          if (!nameValue) {
+            setError("Pictures passed. Type your name above so we can create the account and log you in.");
             return;
           }
-          signedIn = true;
-        } catch (registerErr) {
-          if (!isAlreadyRegisteredAuthError(registerErr)) {
-            throw registerErr;
+          if (!draft.acceptedTerms) {
+            setError("Pictures passed. Check the box that you agree to the Terms. We will log you in after that.");
+            return;
           }
-          await login(emailValue, passwordValue, draft.turnstileToken || undefined);
-          signedIn = true;
+          try {
+            const result = await register(
+              emailValue,
+              passwordValue,
+              nameValue,
+              "creator",
+              draft.turnstileToken || undefined,
+            );
+            if (result.needsEmailConfirmation) {
+              setError(
+                "Account created. Open the confirmation email, then type your email and password here. We will log you in.",
+              );
+              setStatus(null);
+              return;
+            }
+            signedIn = true;
+          } catch (registerErr) {
+            if (!isAlreadyRegisteredAuthError(registerErr)) {
+              throw registerErr;
+            }
+            setStatus("That email is already on UR. Logging you in…");
+            await login(emailValue, passwordValue, draft.turnstileToken || undefined);
+            signedIn = true;
+          }
         }
         if (!signedIn) throw loginErr;
       }
 
       pendingEnterRef.current = true;
-      if (isAuthenticated) {
-        const claimed = await claimWithRetry();
-        if (shouldEnterAppAfterSignupClaim(claimed)) {
-          enterApp();
-          return;
+      const claimed = await claimWithRetry();
+      let accountAlreadyVerified = claimed;
+      if (!accountAlreadyVerified) {
+        try {
+          const status = await kycUtils.ageKyc.getStatus.fetch();
+          accountAlreadyVerified = status?.verified === true;
+        } catch {
+          /* phone fetch may still be catching up */
         }
-        pendingEnterRef.current = false;
-        setError("Pictures passed. We could not attach them to this account yet. Tap Check my three pictures again, then we will log you in.");
-        setStatus(null);
+      }
+      if (shouldEnterAppAfterMemberSignIn({ claimedOnAccount: claimed, accountAlreadyVerified })) {
+        enterApp();
         return;
       }
+      if (!isAuthenticated) {
+        setStatus("Pictures passed — logging you in…");
+        return;
+      }
+      pendingEnterRef.current = false;
+      setError("Pictures passed. We could not attach them to this account yet. Tap Check my three pictures again, then we will log you in.");
+      setStatus(null);
+      return;
     } catch (err) {
       const msg = explainAuthFailure(err);
       if (msg.toLowerCase().includes("sign in with your email")) {
@@ -185,13 +204,22 @@ export function FinishAccountAfterIdPass() {
       inFlightRef.current = false;
       setBusy(false);
     }
-  }, [claimWithRetry, enterApp, isAuthenticated, login, register, turnstileConfig.data?.required, verifyTurnstile]);
+  }, [claimWithRetry, enterApp, isAuthenticated, kycUtils, login, register, turnstileConfig.data?.required, verifyTurnstile]);
 
   useEffect(() => {
     if (!pendingEnterRef.current || !isAuthenticated || enteredRef.current) return;
     void (async () => {
       const claimed = await claimWithRetry();
-      if (shouldEnterAppAfterSignupClaim(claimed)) {
+      let accountAlreadyVerified = claimed;
+      if (!accountAlreadyVerified) {
+        try {
+          const status = await kycUtils.ageKyc.getStatus.fetch();
+          accountAlreadyVerified = status?.verified === true;
+        } catch {
+          /* retry path */
+        }
+      }
+      if (shouldEnterAppAfterMemberSignIn({ claimedOnAccount: claimed, accountAlreadyVerified })) {
         enterApp();
         return;
       }
@@ -199,7 +227,7 @@ export function FinishAccountAfterIdPass() {
       setError("Pictures passed. We could not attach them to this account yet. Tap Check my three pictures again, then we will log you in.");
       setStatus(null);
     })();
-  }, [claimWithRetry, enterApp, isAuthenticated]);
+  }, [claimWithRetry, enterApp, isAuthenticated, kycUtils]);
 
   const onIdPassed = useCallback(() => {
     setPicturesPassed(true);

@@ -13,10 +13,14 @@ import {
   AFTER_ID_PASS_HREF,
   AFTER_SIGN_IN_HREF,
   JOIN_ACCOUNT_HREF,
+  RETURNING_LOGIN_HREF,
   hrefForSignedOutUser,
+  isKycStatusKnown,
   shouldEnterAppFromAgeVerify,
   shouldKeepCredentialFormVisible,
   shouldOpenAgeVerifyPage,
+  shouldSendAuthenticatedJoinToLogin,
+  shouldSendAuthenticatedUserToJoinPictures,
   shouldSendSignedOutUserToLoginFromAgeVerify,
 } from "@/lib/after-sign-in";
 import { hasAgeKycPassToken } from "@/lib/age-kyc-pass-store";
@@ -68,8 +72,9 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
 
   const kycQuery = trpc.ageKyc.getStatus.useQuery(undefined, {
     enabled: clientReady && isAuthenticated,
-    retry: 1,
+    retry: 2,
     staleTime: 45_000,
+    refetchInterval: (query) => (query.state.status === "error" ? 8_000 : false),
   });
   const conductQuery = trpc.conduct.status.useQuery(undefined, {
     enabled: clientReady && isAuthenticated,
@@ -113,20 +118,40 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     }
 
     const kycVerified = kycQuery.data?.verified === true;
+    const kycStatusKnown = isKycStatusKnown({
+      isLoading: kycQuery.isLoading,
+      isError: kycQuery.isError,
+      hasData: kycQuery.data != null,
+    });
     const hasPhotoPass = hasAgeKycPassToken();
 
     if (isAuthenticated && inAuthRoute) {
       const onJoinPictures = segments.join("/").includes("signup");
+      if (
+        onJoinPictures &&
+        shouldSendAuthenticatedJoinToLogin({
+          isAuthenticated,
+          kycQueryFailed: kycQuery.isError,
+        })
+      ) {
+        router.replace(RETURNING_LOGIN_HREF);
+        return;
+      }
       if (onJoinPictures && shouldKeepCredentialFormVisible({ hasPhotoPass, kycVerified })) {
         return;
       }
-      if (kycQuery.isLoading) {
+      if (!kycStatusKnown) {
+        return;
+      }
+      if (
+        kycVerified !== true &&
+        !onJoinPictures &&
+        shouldSendAuthenticatedUserToJoinPictures({ kycStatusKnown, kycVerified })
+      ) {
+        router.replace(JOIN_ACCOUNT_HREF);
         return;
       }
       if (kycVerified !== true) {
-        if (!onJoinPictures) {
-          router.replace(JOIN_ACCOUNT_HREF);
-        }
         return;
       }
       router.replace(AFTER_ID_PASS_HREF);
@@ -134,7 +159,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     }
 
     if (
-      !kycQuery.isLoading &&
+      kycStatusKnown &&
       shouldOpenAgeVerifyPage({ isAuthenticated, kycVerified, hasPhotoPass }) &&
       !inAgeVerify &&
       !inDownload &&
@@ -171,6 +196,8 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     router,
     kycQuery.data?.verified,
     kycQuery.isLoading,
+    kycQuery.isError,
+    kycQuery.data,
     canAccessAdminDashboard,
   ]);
 

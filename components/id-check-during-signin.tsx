@@ -109,7 +109,17 @@ export function IdCheckDuringSignin({ onPassed, onReset }: Props) {
         setPassed(false);
         onReset?.();
         setError(result.rejectionReason ?? "The pictures did not pass. Try again with a clearer ID and selfie.");
-      } catch {
+      } catch (err) {
+        const msg = explainAuthFailure(err);
+        const lower = msg.toLowerCase();
+        if (
+          lower.includes("did not finish") ||
+          lower.includes("timed out") ||
+          lower.includes("timeout")
+        ) {
+          setError(msg);
+          return;
+        }
         precheck.mutate({
           documentType,
           idFront: { mimeType: front.mimeType, base64: front.base64 },

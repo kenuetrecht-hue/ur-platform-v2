@@ -16,6 +16,14 @@ describe("fast ID picture check", () => {
     expect(googleAi).not.toContain(".slice(0, 2)");
   });
 
+  it("times out a stuck phone upload so Check my three pictures can be tapped again", () => {
+    const precheck = readFileSync("lib/age-kyc-fast-precheck.ts", "utf8");
+    expect(precheck).toContain("AbortController");
+    expect(precheck).toMatch(/AGE_KYC_FAST_PRECHECK_TIMEOUT_MS = 40_000/);
+    const idCheck = readFileSync("components/id-check-during-signin.tsx", "utf8");
+    expect(idCheck).toContain("did not finish");
+  });
+
   it("sends sharp HD-enough pictures without a giant camera dump", () => {
     expect(AGE_KYC_SEND_MAX_EDGE).toBeGreaterThanOrEqual(1280);
     expect(AGE_KYC_SEND_MAX_EDGE).toBeLessThanOrEqual(1920);

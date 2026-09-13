@@ -10,6 +10,9 @@ export type AgeKycFastPrecheckResult = {
   passToken: string | null;
 };
 
+/** Phone uploads must not spin forever. Keep the photos and let them tap Check again. */
+export const AGE_KYC_FAST_PRECHECK_TIMEOUT_MS = 40_000;
+
 function bytesFromBase64(base64: string): Uint8Array {
   if (typeof atob === "function") {
     const binary = atob(base64);
@@ -62,23 +65,39 @@ export async function fastPrecheckAgeKyc(params: {
     appendNative("selfie", params.selfie, "selfie.jpg");
   }
 
-  const response = await fetch(ageKycPrecheckUrlFromTrpc(getTrpcApiUrl()), {
-    method: "POST",
-    body,
-    credentials: "include",
-  });
-  const data = (await response.json().catch(() => null)) as
-    | (AgeKycFastPrecheckResult & { error?: string })
-    | null;
-  if (!data) {
-    throw new Error("Unable to transfer response from server");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AGE_KYC_FAST_PRECHECK_TIMEOUT_MS);
+  try {
+    const response = await fetch(ageKycPrecheckUrlFromTrpc(getTrpcApiUrl()), {
+      method: "POST",
+      body,
+      credentials: "include",
+      signal: controller.signal,
+    });
+    const data = (await response.json().catch(() => null)) as
+      | (AgeKycFastPrecheckResult & { error?: string })
+      | null;
+    if (!data) {
+      throw new Error("Unable to transfer response from server");
+    }
+    if (!response.ok && data.error) {
+      throw new Error(data.error);
+    }
+    return {
+      verified: data.verified === true,
+      rejectionReason: data.rejectionReason ?? null,
+      passToken: data.passToken ?? null,
+    };
+  } catch (error) {
+    const raw = error instanceof Error ? error.message : String(error ?? "");
+    const name = error instanceof Error ? error.name : "";
+    if (name === "AbortError" || raw.toLowerCase().includes("abort")) {
+      throw new Error(
+        "The picture check did not finish. Keep the three pictures and tap Check my three pictures again.",
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
   }
-  if (!response.ok && data.error) {
-    throw new Error(data.error);
-  }
-  return {
-    verified: data.verified === true,
-    rejectionReason: data.rejectionReason ?? null,
-    passToken: data.passToken ?? null,
-  };
 }
