@@ -10,7 +10,7 @@ import {
 import { Link, Redirect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth-context";
-import { AFTER_ID_PASS_HREF, RETURNING_LOGIN_HREF } from "@/lib/after-sign-in";
+import { AFTER_ID_PASS_HREF, JOIN_ACCOUNT_HREF, RETURNING_LOGIN_HREF } from "@/lib/after-sign-in";
 import { useTypewriter } from "@/hooks/use-typewriter";
 import { useStableWindowWidth } from "@/hooks/use-stable-window-width";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
@@ -30,7 +30,7 @@ import { PUBLIC_LEGAL_NAV } from "@/lib/public-legal-routes";
 import { TapToRead } from "@/components/tap-to-read";
 import { HomepageSignIn } from "@/components/homepage-sign-in";
 
-const HEADLINE = "Join UR. One website, one app, one sign-in.";
+const HEADLINE = "Join UR. One website, one app, one login.";
 
 const DEFAULT_DEMO_CREATOR = LANDING_DEMO_CREATOR_IDS[0];
 
@@ -41,7 +41,17 @@ function LandingSignInButton({ variant }: { variant: "top" | "hero" }) {
   return (
     <Link href={RETURNING_LOGIN_HREF} asChild>
       <Pressable style={buttonStyle} accessibilityRole="link">
-        <Text style={textStyle}>{variant === "top" ? "Log in" : "Log in"}</Text>
+        <Text style={textStyle}>Login</Text>
+      </Pressable>
+    </Link>
+  );
+}
+
+function LandingSignUpButton() {
+  return (
+    <Link href={JOIN_ACCOUNT_HREF} asChild>
+      <Pressable style={styles.signUpBtn} accessibilityRole="link">
+        <Text style={styles.signUpBtnText}>Sign up</Text>
       </Pressable>
     </Link>
   );
@@ -82,6 +92,7 @@ export function TechnoFuturistExperience() {
               <View style={styles.topLinks}>
                 <LandingAppDownloadLink variant="top" />
                 <LandingSignInButton variant="top" />
+                <LandingSignUpButton />
               </View>
             </View>
 
@@ -123,7 +134,7 @@ export function TechnoFuturistExperience() {
               <LandingAppDownloadLink variant="footer" />
               <Link href="/login" asChild>
                 <Pressable accessibilityRole="link">
-                  <Text style={styles.link}>Join or sign in</Text>
+                  <Text style={styles.link}>Login</Text>
                 </Pressable>
               </Link>
               <View style={styles.legalRow}>
@@ -175,6 +186,14 @@ const styles = StyleSheet.create({
     ...(Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null),
   },
   signInBtnText: { color: T.electric, fontWeight: "800", fontSize: 13 },
+  signUpBtn: {
+    backgroundColor: T.electric,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    ...(Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null),
+  },
+  signUpBtnText: { color: T.bg, fontWeight: "800", fontSize: 13 },
   kicker: {
     color: T.electricDim,
     fontSize: 10,

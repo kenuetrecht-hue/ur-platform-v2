@@ -51,8 +51,8 @@ describe("after sign-in", () => {
   });
 
   it("sends a signed-out person to the email-password login, not the pictures page", () => {
-    expect(RETURNING_LOGIN_HREF).toBe("/signin");
-    expect(hrefForSignedOutUser()).toBe("/signin");
+    expect(RETURNING_LOGIN_HREF).toBe("/login");
+    expect(hrefForSignedOutUser()).toBe("/login");
     expect(hrefWhenAlreadySignedIn()).toBe(AFTER_ID_PASS_HREF);
   });
 });

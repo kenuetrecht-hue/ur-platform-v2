@@ -71,7 +71,7 @@ const BEATS: Array<{
     id: "close",
     title: "Thank you — then you enter",
     narration:
-      "This cartoon is a sample of what the website can make. Thank you for the extra step. You still take the three pictures. Front, back, and selfie. Then we check them. After they pass, you create the account or sign in.",
+      "This cartoon is a sample of what the website can make. Thank you for the extra step. You still take the three pictures. Front, back, and selfie. Then we check them. After they pass, you create the account or login.",
     caption: "Thank you. Photos are still required.",
   },
 ];

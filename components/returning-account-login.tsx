@@ -31,26 +31,27 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
   const [busy, setBusy] = useState(false);
 
   const homepage = variant === "homepage";
+  const staged = variant === "page" || homepage;
   const inputStyle = {
-    backgroundColor: homepage ? "rgba(255,255,255,0.08)" : colors.surface,
-    borderColor: homepage ? "rgba(255,255,255,0.28)" : colors.border,
+    backgroundColor: staged ? "rgba(255,255,255,0.08)" : colors.surface,
+    borderColor: staged ? "rgba(255,255,255,0.28)" : colors.border,
     borderWidth: 1,
     borderRadius: 12,
     padding: 12,
     fontSize: 16,
-    color: homepage ? T.text : colors.foreground,
+    color: staged ? T.text : colors.foreground,
     width: "100%" as const,
     ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as object) : null),
   };
-  const labelColor = homepage ? T.text : colors.foreground;
-  const mutedColor = homepage ? T.muted : colors.muted;
-  const linkColor = homepage ? T.electric : colors.primary;
+  const labelColor = staged ? T.text : colors.foreground;
+  const mutedColor = staged ? T.muted : colors.muted;
+  const linkColor = staged ? T.electric : colors.primary;
 
   const onSubmit = async () => {
     const emailValue = email.trim();
     const passwordValue = password.trim();
     if (!emailValue || !passwordValue) {
-      setError("Type your email and password, then tap Log in.");
+      setError("Type your email and password, then tap Login.");
       return;
     }
     setStayLoggedIn(stayLoggedIn);
@@ -58,7 +59,7 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
     setError(null);
     try {
       if (turnstileConfig.data?.required && !turnstileToken.trim()) {
-        throw new Error("Complete the security check, then tap Log in.");
+        throw new Error("Complete the security check, then tap Login.");
       }
       if (turnstileToken.trim()) {
         try {
@@ -101,12 +102,11 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
           : { gap: 12 }),
       }}
     >
-      <Text style={{ color: labelColor, fontWeight: "800", fontSize: 18 }}>
-        {homepage ? "Log in here" : "Log in"}
-      </Text>
+      {homepage ? (
+        <Text style={{ color: labelColor, fontWeight: "800", fontSize: 18 }}>Login</Text>
+      ) : null}
       <Text style={{ color: mutedColor, fontSize: 14, lineHeight: 20 }}>
-        Already have an account? Email is your username. Then your password. No pictures on this
-        page.
+        Email is your username. Then your password. No pictures on this page.
       </Text>
 
       <Text style={{ color: labelColor, fontWeight: "600" }}>Email</Text>
@@ -165,7 +165,7 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
             height: 20,
             borderRadius: 6,
             borderWidth: 2,
-            borderColor: stayLoggedIn ? linkColor : homepage ? "rgba(255,255,255,0.4)" : colors.border,
+            borderColor: stayLoggedIn ? linkColor : staged ? "rgba(255,255,255,0.4)" : colors.border,
             backgroundColor: stayLoggedIn ? linkColor : "transparent",
           }}
         />
@@ -177,23 +177,25 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
       <TurnstileWidget action="login" onToken={setTurnstileToken} />
 
       {error ? (
-        <Text style={{ color: homepage ? "#ffb4b4" : "#c0392b", fontSize: 14, lineHeight: 20 }}>
+        <Text style={{ color: staged ? "#ffb4b4" : "#c0392b", fontSize: 14, lineHeight: 20 }}>
           {error}
         </Text>
       ) : null}
 
       <PrimaryActionButton
-        label="Log in"
-        loadingLabel="Signing you in…"
+        label="Login"
+        loadingLabel="Logging you in…"
         loading={busy}
         onPress={() => void onSubmit()}
-        backgroundColor={homepage ? T.electric : colors.primary}
+        backgroundColor={staged ? T.brandPurple : colors.primary}
         testID={homepage ? "homepage-sign-in-submit" : "returning-login-submit"}
       />
 
-      <Link href={JOIN_ACCOUNT_HREF} style={{ color: linkColor, fontWeight: "700", fontSize: 14 }}>
-        New here? Join and take the three pictures
-      </Link>
+      {homepage ? (
+        <Link href={JOIN_ACCOUNT_HREF} style={{ color: linkColor, fontWeight: "700", fontSize: 14 }}>
+          New to UR? Sign up
+        </Link>
+      ) : null}
     </View>
   );
 }

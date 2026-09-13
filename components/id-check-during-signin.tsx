@@ -172,7 +172,7 @@ export function IdCheckDuringSignin({ onPassed, onReset }: Props) {
       />
       {passed ? (
         <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 15 }} testID="id-check-passed">
-          Pictures passed. Signing you in with the email and password above…
+          Pictures passed. Logging you in with the email and password above…
         </Text>
       ) : null}
       {error ? <Text style={{ color: "#c0392b", fontSize: 13 }}>{error}</Text> : null}

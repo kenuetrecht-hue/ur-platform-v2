@@ -1,10 +1,10 @@
 import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { AFTER_SIGN_IN_HREF } from "@/lib/after-sign-in";
+import { AFTER_ID_PASS_HREF, RETURNING_LOGIN_HREF } from "@/lib/after-sign-in";
 import { UrBootShell } from "@/components/ur-boot-shell";
 
-/** Website and app entry: signed-in people go to the ID photo page first. */
+/** First door: Login. Already logged in → the app. The ID guard still applies. */
 export default function Index() {
   const { isAuthenticated, isLoading } = useAuth();
   const [clientReady, setClientReady] = useState(false);
@@ -18,8 +18,8 @@ export default function Index() {
   }
 
   if (isAuthenticated) {
-    return <Redirect href={AFTER_SIGN_IN_HREF} />;
+    return <Redirect href={AFTER_ID_PASS_HREF} />;
   }
 
-  return <Redirect href="/welcome" />;
+  return <Redirect href={RETURNING_LOGIN_HREF} />;
 }

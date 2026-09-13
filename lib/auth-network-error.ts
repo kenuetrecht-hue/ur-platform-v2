@@ -51,12 +51,12 @@ export function explainAuthFailure(error: unknown): string {
   }
 
   if (lower.includes("please login") || lower.includes("10001")) {
-    return "Please sign in with your email and password. If your pictures already passed, you do not need to take them again.";
+    return "Please login with your email and password. If your pictures already passed, you do not need to take them again.";
   }
 
   if (isAlreadyRegisteredAuthError(raw)) {
-    return "That email is already on UR. We are signing you in with the password you typed.";
+    return "That email is already on UR. We are logging you in with the password you typed.";
   }
 
-  return raw.trim() || "Sign in failed. Please try again.";
+  return raw.trim() || "Login failed. Please try again.";
 }

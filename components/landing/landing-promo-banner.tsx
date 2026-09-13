@@ -85,8 +85,8 @@ export function LandingPromoBanner() {
     return (
       <View style={[styles.wrap, styles.inactive]}>
         <Text style={styles.inactiveText}>Launch window closed — create an account to join the platform.</Text>
-        <Pressable onPress={() => router.push("/login")} style={styles.cta}>
-          <Text style={styles.ctaText}>Join or sign in →</Text>
+        <Pressable onPress={() => router.push("/signup")} style={styles.cta}>
+          <Text style={styles.ctaText}>Sign up →</Text>
         </Pressable>
       </View>
     );
@@ -186,7 +186,7 @@ export function LandingPromoBanner() {
 
       <Pressable onPress={join} style={styles.cta}>
         <Text style={styles.ctaText}>
-          {parsedRef ? `Join with referral ${parsedRef} →` : "Join or sign in →"}
+          {parsedRef ? `Join with referral ${parsedRef} →` : "Sign up →"}
         </Text>
       </Pressable>
 

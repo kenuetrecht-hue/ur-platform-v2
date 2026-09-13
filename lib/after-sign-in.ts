@@ -4,9 +4,9 @@
  */
 export const AFTER_SIGN_IN_HREF = "/age-verify" as const;
 export const AFTER_ID_PASS_HREF = "/(tabs)" as const;
-/** Returning members: email + password only. New members still use /login for pictures. */
-export const RETURNING_LOGIN_HREF = "/signin" as const;
-export const JOIN_ACCOUNT_HREF = "/login" as const;
+/** Returning members: email + password. New members use /signup for pictures. */
+export const RETURNING_LOGIN_HREF = "/login" as const;
+export const JOIN_ACCOUNT_HREF = "/signup" as const;
 
 /** Already signed in on this phone or computer — open the app. The ID guard still applies. */
 export function hrefWhenAlreadySignedIn(): typeof AFTER_ID_PASS_HREF {

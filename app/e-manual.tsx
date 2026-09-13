@@ -35,7 +35,7 @@ export default function JoinEmanualScreen() {
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top", "left", "right"]}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.topRow}>
-          <Link href={isAuthenticated ? "/(tabs)" : "/welcome"} asChild>
+          <Link href={isAuthenticated ? "/(tabs)" : "/login"} asChild>
             <Pressable>
               <Text style={[styles.back, { color: colors.muted }]}>
                 {isAuthenticated ? "← Home" : "← Homepage"}
@@ -100,7 +100,7 @@ export default function JoinEmanualScreen() {
             onPress={() => router.push("/login")}
             style={[styles.doneBtn, { backgroundColor: colors.primary }]}
           >
-            <Text style={styles.printText}>Join or sign in and get this e-manual</Text>
+            <Text style={styles.printText}>Login and get this e-manual</Text>
           </Pressable>
         )}
       </ScrollView>

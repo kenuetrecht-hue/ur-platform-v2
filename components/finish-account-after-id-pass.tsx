@@ -75,7 +75,7 @@ export function FinishAccountAfterIdPass() {
   const enterApp = useCallback(() => {
     enteredRef.current = true;
     clearJoinAccountDraft();
-    setStatus("Pictures passed — signing you in…");
+    setStatus("Pictures passed — logging you in…");
     router.replace(AFTER_ID_PASS_HREF);
   }, [router]);
 
@@ -87,7 +87,7 @@ export function FinishAccountAfterIdPass() {
     const nameValue = draft.name.trim();
 
     if (!emailValue || !passwordValue) {
-      setError("Pictures passed. Type your email and password above. We will sign you in automatically.");
+      setError("Pictures passed. Type your email and password above. We will log you in automatically.");
       return;
     }
     if (!getAgeKycPassToken()) {
@@ -99,11 +99,11 @@ export function FinishAccountAfterIdPass() {
     setStayLoggedIn(draftRef.current.stayLoggedIn);
     setBusy(true);
     setError(null);
-    setStatus("Pictures passed — signing you in…");
+    setStatus("Pictures passed — logging you in…");
 
     try {
       if (turnstileConfig.data?.required && !draft.turnstileToken.trim()) {
-        throw new Error("Complete the security check, then we will sign you in.");
+        throw new Error("Complete the security check, then we will log you in.");
       }
 
       if (draft.turnstileToken.trim()) {
@@ -125,11 +125,11 @@ export function FinishAccountAfterIdPass() {
         signedIn = true;
       } catch (loginErr) {
         if (!nameValue) {
-          setError("Pictures passed. Type your name above so we can create the account and sign you in.");
+          setError("Pictures passed. Type your name above so we can create the account and log you in.");
           return;
         }
         if (!draft.acceptedTerms) {
-          setError("Pictures passed. Check the box that you agree to the Terms. We will sign you in after that.");
+          setError("Pictures passed. Check the box that you agree to the Terms. We will log you in after that.");
           return;
         }
         try {
@@ -142,7 +142,7 @@ export function FinishAccountAfterIdPass() {
           );
           if (result.needsEmailConfirmation) {
             setError(
-              "Account created. Open the confirmation email, then type your email and password here. We will sign you in.",
+              "Account created. Open the confirmation email, then type your email and password here. We will log you in.",
             );
             setStatus(null);
             return;
@@ -166,12 +166,12 @@ export function FinishAccountAfterIdPass() {
     } catch (err) {
       const msg = explainAuthFailure(err);
       if (msg.toLowerCase().includes("sign in with your email")) {
-        setError("Pictures passed. Keep your email and password filled in — we are signing you in.");
+        setError("Pictures passed. Keep your email and password filled in — we are logging you in.");
         return;
       }
       setError(msg);
       setStatus(null);
-      showUserMessage("Sign in", msg);
+      showUserMessage("Login", msg);
     } finally {
       inFlightRef.current = false;
       setBusy(false);
@@ -220,7 +220,7 @@ export function FinishAccountAfterIdPass() {
         1. Name, email, and password
       </Text>
       <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>
-        Fill these in first. After the pictures pass, we sign you in automatically.
+        Fill these in first. After the pictures pass, we log you in automatically.
       </Text>
 
       <Text style={{ color: colors.foreground, fontWeight: "600" }}>Name</Text>
@@ -341,7 +341,7 @@ export function FinishAccountAfterIdPass() {
 
       {picturesPassed ? (
         <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 15 }}>
-          Pictures passed. Signing you in with the email and password above…
+          Pictures passed. Logging you in with the email and password above…
         </Text>
       ) : null}
 
@@ -353,8 +353,8 @@ export function FinishAccountAfterIdPass() {
       ) : null}
 
       <PrimaryActionButton
-        label="Sign me in now"
-        loadingLabel="Signing you in…"
+        label="Login now"
+        loadingLabel="Logging you in…"
         loading={busy}
         onPress={() => void enterAfterPictures()}
         backgroundColor={colors.primary}

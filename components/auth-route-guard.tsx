@@ -115,8 +115,8 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     const hasPhotoPass = hasAgeKycPassToken();
 
     if (isAuthenticated && inAuthRoute) {
-      const onReturningLogin = segments.includes("signin");
-      if (!onReturningLogin && shouldKeepCredentialFormVisible({ hasPhotoPass, kycVerified })) {
+      const onJoinPictures = segments.join("/").includes("signup");
+      if (onJoinPictures && shouldKeepCredentialFormVisible({ hasPhotoPass, kycVerified })) {
         return;
       }
       router.replace(AFTER_ID_PASS_HREF);

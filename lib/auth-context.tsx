@@ -282,7 +282,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           options: captchaToken ? { captchaToken } : undefined,
         }),
         15_000,
-        "Sign in",
+        "Login",
       );
 
       if (error) {
@@ -362,14 +362,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 options: captchaToken ? { captchaToken } : undefined,
               }),
               15_000,
-              "Sign in",
+              "Login",
             );
             if (existing.error) {
               throw new Error(explainAuthFailure(existing.error));
             }
             if (!existing.data.session?.access_token || !existing.data.user) {
               throw new Error(
-                "That email is already on UR. Type the same password you used before. We will sign you in.",
+                "That email is already on UR. Type the same password you used before. We will log you in.",
               );
             }
             const existingUser = mapSupabaseUser(existing.data.user);

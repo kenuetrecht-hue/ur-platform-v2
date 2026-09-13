@@ -8,7 +8,7 @@ import { PrimaryActionButton } from "@/components/primary-action-button";
 import { AFTER_ID_PASS_HREF } from "@/lib/after-sign-in";
 import { FinishAccountAfterIdPass } from "@/components/finish-account-after-id-pass";
 
-/** Leftover address — same join form as /login so people are never stuck on a second path. */
+/** Leftover address — same join form as /signup so people are never stuck on a second path. */
 export default function AgeVerifyScreen() {
   const colors = useColors();
   const router = useRouter();
@@ -29,10 +29,10 @@ export default function AgeVerifyScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 24 }}>
-            Join or sign in
+            Sign up
           </Text>
           <Text style={{ color: colors.muted, fontSize: 15, lineHeight: 22 }}>
-            Same page as login. Name, email, and password first. Then the three pictures.
+            Same page as Sign up. Name, email, and password first. Then the three pictures.
           </Text>
 
           {verified ? (

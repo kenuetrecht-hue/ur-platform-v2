@@ -14,9 +14,9 @@ describe("explainAuthFailure", () => {
     );
   });
 
-  it("rewrites Please login (10001) into a sign-in hint", () => {
+  it("rewrites Please login (10001) into a login hint", () => {
     const msg = explainAuthFailure(new Error("Please login (10001)"));
-    expect(msg.toLowerCase()).toContain("sign in");
+    expect(msg.toLowerCase()).toContain("login");
     expect(msg.toLowerCase()).toContain("email and password");
     expect(msg).not.toContain("10001");
   });
@@ -29,7 +29,7 @@ describe("explainAuthFailure", () => {
 
   it("does not leave people stuck on User already registered", () => {
     const msg = explainAuthFailure(new Error("User already registered"));
-    expect(msg.toLowerCase()).toContain("signing you in");
+    expect(msg.toLowerCase()).toContain("logging you in");
     expect(msg.toLowerCase()).not.toContain("user already registered");
   });
 

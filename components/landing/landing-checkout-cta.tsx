@@ -46,7 +46,7 @@ export function LandingCheckoutCta() {
 
   const handlePurchase = () => {
     if (!isAuthenticated) {
-      setError("Sign in first. Checkout is closed to unsigned visitors.");
+      setError("Login first. Checkout is closed to unsigned visitors.");
       return;
     }
     const trimmed = email.trim();
@@ -96,7 +96,7 @@ export function LandingCheckoutCta() {
             {!isAuthenticated ? (
               <Link href="/login" asChild>
                 <Pressable style={styles.stripeBtn}>
-                  <Text style={styles.stripeBtnText}>Sign in to check out</Text>
+                  <Text style={styles.stripeBtnText}>Login to check out</Text>
                 </Pressable>
               </Link>
             ) : (
@@ -133,7 +133,7 @@ export function LandingCheckoutCta() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <Text style={styles.note}>
-          Adults 18+ only. Sign in, photograph ID front and back plus a matching selfie (fraud
+          Adults 18+ only. Login or Sign up, photograph ID front and back plus a matching selfie (fraud
           protection — UR does not keep the pictures), then purchase. Sales tax and Stripe’s 2.9% +
           $0.30 are added to your card — not taken from UR or from a creator. AI output is educational
           and entertainment only.
