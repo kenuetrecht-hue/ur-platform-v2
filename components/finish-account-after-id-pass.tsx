@@ -14,6 +14,11 @@ import {
   saveJoinAccountDraft,
 } from "@/lib/join-account-draft";
 import { getStayLoggedIn, setStayLoggedIn } from "@/lib/stay-logged-in";
+import { getSupabaseClientAsync } from "@/lib/supabase";
+import { persistJoinPassword } from "@/lib/persist-join-password";
+import { EXISTING_ACCOUNT_LOGIN_HINT } from "@/lib/existing-join-login";
+import { explainAuthFailure } from "@/lib/auth-network-error";
+import { readWebTextInputValue } from "@/lib/read-web-input-value";
 
 /** Sign up page 1: name, email, password, terms. No cameras. */
 export function FinishAccountAfterIdPass() {
@@ -28,6 +33,7 @@ export function FinishAccountAfterIdPass() {
   const [turnstileToken, setTurnstileToken] = useState(saved.turnstileToken);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [stayLoggedIn, setStayLoggedInBox] = useState(() => getStayLoggedIn());
 
   useEffect(() => {
@@ -35,18 +41,31 @@ export function FinishAccountAfterIdPass() {
   }, [name, email, password, confirmPassword, acceptedTerms, turnstileToken]);
 
   const onContinueToId = () => {
-    const draft = { name, email, password, confirmPassword, acceptedTerms, turnstileToken };
+    const emptyRef = { current: null };
+    const emailValue = (email.trim() || readWebTextInputValue(emptyRef, "login-email")).trim();
+    const passwordValue = (
+      password.trim() || readWebTextInputValue(emptyRef, "login-password")
+    ).trim();
+    const confirmValue = confirmPassword.trim() || passwordValue;
+    const draft = {
+      name: name.trim(),
+      email: emailValue,
+      password: passwordValue,
+      confirmPassword: confirmValue,
+      acceptedTerms,
+      turnstileToken,
+    };
     saveJoinAccountDraft(draft);
     if (!canContinueToIdPictures(draft)) {
-      if (!name.trim() || !email.trim() || !password.trim()) {
+      if (!draft.name || !draft.email || !draft.password) {
         setError("Type your name, email, and password first.");
         return;
       }
-      if (password.trim().length < 6) {
+      if (draft.password.length < 6) {
         setError("Password needs at least 6 characters.");
         return;
       }
-      if (password !== confirmPassword) {
+      if (draft.password !== draft.confirmPassword) {
         setError("The two password lines must match.");
         return;
       }
@@ -54,7 +73,27 @@ export function FinishAccountAfterIdPass() {
       return;
     }
     setError(null);
-    router.replace(JOIN_ID_PHOTOS_HREF);
+    setBusy(true);
+    void (async () => {
+      try {
+        const supabase = await getSupabaseClientAsync();
+        const saved = await persistJoinPassword({
+          supabase,
+          email: draft.email,
+          password: draft.password,
+          name: draft.name,
+        });
+        if (saved.status === "wrong_password") {
+          setError(EXISTING_ACCOUNT_LOGIN_HINT);
+          return;
+        }
+        router.replace(JOIN_ID_PHOTOS_HREF);
+      } catch (err) {
+        setError(explainAuthFailure(err));
+      } finally {
+        setBusy(false);
+      }
+    })();
   };
 
   const inputStyle = {
@@ -75,7 +114,7 @@ export function FinishAccountAfterIdPass() {
         Name, email, and password
       </Text>
       <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>
-        Fill these in first. Pictures are on the next pages. After they pass, we log you in.
+        Fill these in first. We save this email and password now, then pictures are on the next pages. After they pass, we log you in.
       </Text>
 
       <Text style={{ color: colors.foreground, fontWeight: "600" }}>Name</Text>
@@ -85,6 +124,7 @@ export function FinishAccountAfterIdPass() {
         placeholder="Your name"
         placeholderTextColor={colors.muted}
         autoCapitalize="words"
+        editable={!busy}
         style={inputStyle}
         testID="finish-account-name"
       />
@@ -101,6 +141,7 @@ export function FinishAccountAfterIdPass() {
         textContentType="username"
         autoCorrect={false}
         nativeID="login-email"
+        editable={!busy}
         style={inputStyle}
         testID="login-email"
       />
@@ -128,6 +169,7 @@ export function FinishAccountAfterIdPass() {
         autoComplete="new-password"
         textContentType="newPassword"
         nativeID="login-password"
+        editable={!busy}
         style={inputStyle}
         testID="login-password"
       />
@@ -140,6 +182,7 @@ export function FinishAccountAfterIdPass() {
         secureTextEntry={!showPassword}
         autoComplete="new-password"
         textContentType="newPassword"
+        editable={!busy}
         style={inputStyle}
         testID="confirm-password"
       />
@@ -198,6 +241,8 @@ export function FinishAccountAfterIdPass() {
 
       <PrimaryActionButton
         label="Continue to ID pictures"
+        loadingLabel="Saving your email and password…"
+        loading={busy}
         onPress={onContinueToId}
         backgroundColor={colors.primary}
         testID="finish-account-create"

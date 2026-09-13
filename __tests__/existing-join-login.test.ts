@@ -10,7 +10,7 @@ import {
 describe("existing email after pictures", () => {
   it("sends people to Login with a first-password hint and a reset button", () => {
     expect(loginHrefForExistingAccount()).toBe("/login?existing=1");
-    expect(EXISTING_ACCOUNT_AFTER_PICTURES.toLowerCase()).toContain("first password");
+    expect(EXISTING_ACCOUNT_AFTER_PICTURES.toLowerCase()).toContain("already joined");
     expect(EXISTING_ACCOUNT_LOGIN_HINT.toLowerCase()).toContain("send a new password");
     expect(isExistingAccountJoinError(EXISTING_ACCOUNT_AFTER_PICTURES)).toBe(true);
     const login = readFileSync("components/returning-account-login.tsx", "utf8");

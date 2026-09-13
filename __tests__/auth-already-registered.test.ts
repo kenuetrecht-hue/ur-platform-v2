@@ -12,13 +12,15 @@ describe("already-registered after pictures pass", () => {
   });
 
   it("signs in instead of stopping on the Join page when the email already exists", () => {
-    const join = readFileSync("components/finish-account-after-id-pass.tsx", "utf8");
+    const hook = readFileSync("hooks/use-enter-app-after-pictures.ts", "utf8");
+    const persist = readFileSync("lib/persist-join-password.ts", "utf8");
     const auth = readFileSync("lib/auth-context.tsx", "utf8");
-    expect(join).toContain("isAlreadyRegisteredAuthError");
-    expect(join).toContain("pendingEnterRef");
-    expect(join).toContain("shouldEnterAppAfterMemberSignIn");
-    expect(join).toContain("getStatus.fetch");
-    expect(join).not.toMatch(/action:\s*"login"/);
+    expect(persist).toContain("isAlreadyRegisteredAuthError");
+    expect(persist).toContain("signInWithPassword");
+    expect(hook).toContain("isAlreadyRegisteredAuthError");
+    expect(hook).toContain("pendingEnterRef");
+    expect(hook).toContain("shouldEnterAppAfterMemberSignIn");
+    expect(hook).toContain("getStatus.fetch");
     expect(auth).toContain("isAlreadyRegisteredAuthError");
     expect(auth).toContain("signInWithPassword");
   });

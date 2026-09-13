@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/lib/auth-context";
+import { getSupabaseClientAsync } from "@/lib/supabase";
+import { persistJoinPassword } from "@/lib/persist-join-password";
 import { trpc } from "@/lib/trpc";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { claimStoredAgeKycPass } from "@/lib/claim-stored-age-kyc-pass";
@@ -20,7 +22,7 @@ function wait(ms: number): Promise<void> {
 /** After the three pictures pass: register first when needed, then stay logged in. */
 export function useEnterAppAfterPictures() {
   const router = useRouter();
-  const { login, register, isAuthenticated } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const claimPass = trpc.ageKyc.claimPass.useMutation();
   const kycUtils = trpc.useUtils();
   const verifyTurnstile = trpc.auth.verifyTurnstile.useMutation();
@@ -96,59 +98,46 @@ export function useEnterAppAfterPictures() {
         }
       }
 
-      let signedIn = isAuthenticated;
-      if (!signedIn && nameValue && draft.acceptedTerms) {
-        try {
-          const result = await register(
-            emailValue,
-            passwordValue,
-            nameValue,
-            "creator",
-            draft.turnstileToken || undefined,
-          );
-          if (result.needsEmailConfirmation) {
-            setError(
-              "Account created. Open the confirmation email, then type your email and password on Sign up. We will log you in.",
-            );
-            setStatus(null);
-            return;
-          }
-          signedIn = true;
-        } catch (registerErr) {
-          if (!isAlreadyRegisteredAuthError(registerErr) && !isInvalidLoginAuthError(registerErr)) {
-            throw registerErr;
-          }
-        }
-      }
-
-      if (!signedIn) {
-        try {
-          await login(emailValue, passwordValue, draft.turnstileToken || undefined);
-          signedIn = true;
-        } catch (loginErr) {
-          if (isInvalidLoginAuthError(loginErr) || isAlreadyRegisteredAuthError(loginErr)) {
-            hardStopRef.current = true;
-            setError(EXISTING_ACCOUNT_AFTER_PICTURES);
-            setStatus(null);
-            return;
-          }
-          throw loginErr;
-        }
-      }
-
-      if (!signedIn) {
+      if (!nameValue || !draft.acceptedTerms) {
         if (!nameValue) {
           setError("Pictures passed. Type your name on Sign up so we can create the account and log you in.");
           return;
         }
-        if (!draft.acceptedTerms) {
-          setError("Pictures passed. Check the box on Sign up that you agree to the Terms. We will log you in after that.");
-          return;
-        }
+        setError("Pictures passed. Tap OK on the Terms on Sign up. We will log you in after that.");
+        return;
+      }
+
+      const supabase = await getSupabaseClientAsync();
+      const saved = await persistJoinPassword({
+        supabase,
+        email: emailValue,
+        password: passwordValue,
+        name: nameValue,
+      });
+      if (saved.status === "needs_confirm") {
+        setError(
+          "Account created. Open the confirmation email, then type this same email and password on Login.",
+        );
+        setStatus(null);
+        return;
+      }
+      if (saved.status === "wrong_password") {
         hardStopRef.current = true;
         setError(EXISTING_ACCOUNT_AFTER_PICTURES);
         setStatus(null);
         return;
+      }
+
+      try {
+        await login(emailValue, passwordValue);
+      } catch (loginErr) {
+        if (isInvalidLoginAuthError(loginErr) || isAlreadyRegisteredAuthError(loginErr)) {
+          hardStopRef.current = true;
+          setError(EXISTING_ACCOUNT_AFTER_PICTURES);
+          setStatus(null);
+          return;
+        }
+        throw loginErr;
       }
 
       pendingEnterRef.current = true;
@@ -191,7 +180,7 @@ export function useEnterAppAfterPictures() {
       inFlightRef.current = false;
       setBusy(false);
     }
-  }, [claimWithRetry, enterApp, isAuthenticated, kycUtils, login, register, turnstileConfig.data?.required, verifyTurnstile]);
+  }, [claimWithRetry, enterApp, isAuthenticated, kycUtils, login, turnstileConfig.data?.required, verifyTurnstile]);
 
   useEffect(() => {
     if (!pendingEnterRef.current || !isAuthenticated || enteredRef.current) return;

@@ -348,7 +348,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           password: password.trim(),
           options: {
             data: { name, role },
-            ...(captchaToken ? { captchaToken } : {}),
           },
         });
 
