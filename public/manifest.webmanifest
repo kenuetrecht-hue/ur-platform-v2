@@ -3,7 +3,7 @@
   "name": "UR Platform",
   "short_name": "UR",
   "description": "Install UR from this website — no App Store or Google Play required.",
-  "start_url": "/login",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",

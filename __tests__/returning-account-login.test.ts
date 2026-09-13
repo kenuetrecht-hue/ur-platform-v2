@@ -52,7 +52,7 @@ describe("returning account login", () => {
     expect(ageVerify).toContain("JOIN_ACCOUNT_HREF");
     expect(ageVerify).toContain("Redirect");
     expect(ageVerify).not.toContain("FinishAccountAfterIdPass");
-    expect(manifest).toContain('"/login"');
+    expect(manifest).toContain('"start_url": "/"');
     expect(signin).toContain("./login");
   });
 

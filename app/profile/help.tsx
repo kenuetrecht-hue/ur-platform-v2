@@ -14,7 +14,7 @@ import { TapToRead } from "@/components/tap-to-read";
 const FAQ = [
   {
     q: "Where is the free e-manual I got when I joined?",
-    a: "Every new member receives the UR Platform e-manual. Open Home and tap Your free join e-manual, or go to /e-manual. Use Print / Save as PDF. It shows the exact taps to write your own e-manual with Author Muse and list it for sale on your shop.",
+    a: "Every new member receives the UR Platform e-manual. Open Home and tap Your free join e-manual, or go to /e-manual. Tap Download to this phone. The file is UR-Platform-e-manual.pdf in Files or Downloads. It shows the exact taps to write your own e-manual with Author Muse and list it for sale on your shop.",
   },
   {
     q: "How do I earn loyalty points?",

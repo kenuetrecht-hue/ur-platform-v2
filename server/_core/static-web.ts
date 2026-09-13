@@ -70,7 +70,7 @@ export function registerStaticWeb(app: express.Application): boolean {
 
   // SPA fallback — client routes (Expo Router) not served as static files
   app.get("*", (req, res, next) => {
-    if (req.path.startsWith("/api")) {
+    if (req.path.startsWith("/api") || req.path === "/e-manual.pdf") {
       next();
       return;
     }

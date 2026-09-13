@@ -13,7 +13,9 @@ import {
   AFTER_ID_PASS_HREF,
   JOIN_ACCOUNT_HREF,
   isJoinFlowPath,
+  isLoginDoorPath,
   isLoginOrSignupDoorPath,
+  shouldResumeHomeFromLoginDoor,
   RETURNING_LOGIN_HREF,
   hrefForSignedOutUser,
   isKycStatusKnown,
@@ -142,7 +144,18 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       if (isNewPasswordPath(segments.join("/"))) {
         return;
       }
-      if (isLoginOrSignupDoorPath(segments.join("/"))) {
+      const doorPath = segments.join("/");
+      if (
+        shouldResumeHomeFromLoginDoor({
+          isAuthenticated,
+          kycVerified,
+          onLoginDoor: isLoginDoorPath(doorPath),
+        })
+      ) {
+        router.replace(AFTER_ID_PASS_HREF);
+        return;
+      }
+      if (isLoginOrSignupDoorPath(doorPath) && kycVerified !== true) {
         return;
       }
       const onJoinPictures = isJoinFlowPath(segments.join("/"));

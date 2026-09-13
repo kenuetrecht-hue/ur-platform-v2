@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
 import { clearGiveJoinEmanual } from "@/lib/join-emanual-handoff";
+import { downloadJoinEmanual } from "@/lib/join-emanual-download";
 import {
   JOIN_EMANUAL_GIFT_LINE,
   JOIN_EMANUAL_MONEY_NOTES,
@@ -27,10 +28,20 @@ export default function JoinEmanualScreen() {
   const { isAuthenticated } = useAuth();
   const params = useLocalSearchParams<{ joined?: string }>();
   const justJoined = params.joined === "1";
+  const [downloadNote, setDownloadNote] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     clearGiveJoinEmanual();
   }, []);
+
+  const onDownload = () => {
+    setSaving(true);
+    setDownloadNote("Saving the e-manual to this phone…");
+    void downloadJoinEmanual()
+      .then((result) => setDownloadNote(result.detail))
+      .finally(() => setSaving(false));
+  };
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top", "left", "right"]}>
@@ -43,18 +54,40 @@ export default function JoinEmanualScreen() {
               </Text>
             </Pressable>
           </Link>
-          <Pressable
-            onPress={printManual}
-            style={[styles.printBtn, { backgroundColor: colors.primary }]}
-          >
-            <Text style={styles.printText}>Print / Save as PDF</Text>
-          </Pressable>
+          <View style={styles.actions}>
+            <Pressable
+              onPress={onDownload}
+              disabled={saving}
+              testID="download-join-emanual"
+              style={[styles.printBtn, { backgroundColor: colors.primary }]}
+            >
+              <Text style={styles.printText}>{saving ? "Saving…" : "Download to this phone"}</Text>
+            </Pressable>
+            <Pressable
+              onPress={printManual}
+              style={[styles.printBtn, { backgroundColor: colors.muted }]}
+            >
+              <Text style={styles.printText}>Print / Save as PDF</Text>
+            </Pressable>
+          </View>
         </View>
+        {downloadNote ? (
+          <Text style={[styles.body, { color: colors.foreground }]} testID="download-join-emanual-note">
+            {downloadNote}
+          </Text>
+        ) : null}
 
         {justJoined ? (
           <View style={[styles.gift, { borderColor: colors.primary, backgroundColor: `${colors.primary}12` }]}>
             <Text style={[styles.giftTitle, { color: colors.foreground }]}>Welcome — this is yours</Text>
             <Text style={[styles.body, { color: colors.muted }]}>{JOIN_EMANUAL_GIFT_LINE}</Text>
+            <Pressable
+              onPress={onDownload}
+              disabled={saving}
+              style={[styles.printBtn, { backgroundColor: colors.primary, alignSelf: "flex-start" }]}
+            >
+              <Text style={styles.printText}>{saving ? "Saving…" : "Download to this phone"}</Text>
+            </Pressable>
           </View>
         ) : null}
 
@@ -112,7 +145,8 @@ export default function JoinEmanualScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { padding: 20, paddingBottom: 48, gap: 14, maxWidth: 720, width: "100%", alignSelf: "center" },
-  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
+  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" },
+  actions: { flexDirection: "column", alignItems: "flex-end", gap: 8 },
   back: { fontSize: 14, fontWeight: "600" },
   printBtn: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 },
   printText: { color: "#fff", fontWeight: "800", fontSize: 14 },

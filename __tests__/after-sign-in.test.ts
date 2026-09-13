@@ -9,6 +9,7 @@ import {
   RETURNING_LOGIN_HREF,
   isJoinFlowPath,
   isLoginOrSignupDoorPath,
+  shouldResumeHomeFromLoginDoor,
   hrefAfterSignIn,
   hrefForSignedOutUser,
   hrefWhenAlreadySignedIn,
@@ -127,5 +128,24 @@ describe("after sign-in", () => {
     expect(RETURNING_LOGIN_HREF).toBe("/login");
     expect(hrefForSignedOutUser()).toBe("/login");
     expect(hrefWhenAlreadySignedIn()).toBe(AFTER_ID_PASS_HREF);
+  });
+
+  it("sends a signed-in member from Login back into Home when they reopen the app", () => {
+    expect(
+      shouldResumeHomeFromLoginDoor({
+        isAuthenticated: true,
+        kycVerified: true,
+        onLoginDoor: true,
+      }),
+    ).toBe(true);
+    expect(
+      shouldResumeHomeFromLoginDoor({
+        isAuthenticated: false,
+        kycVerified: true,
+        onLoginDoor: true,
+      }),
+    ).toBe(false);
+    expect(readFileSync("public/manifest.webmanifest", "utf8")).toContain('"start_url": "/"');
+    expect(readFileSync("components/auth-route-guard.tsx", "utf8")).toContain("shouldResumeHomeFromLoginDoor");
   });
 });

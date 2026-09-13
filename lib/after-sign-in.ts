@@ -20,11 +20,26 @@ export function isJoinFlowPath(path: string): boolean {
   return path.includes("signup") && !isLoginOrSignupDoorPath(path);
 }
 
-/** Typed /login or /signup in the address bar — always show that door. */
+/** Typed /login or /signup in the address bar — show that door when signed out. */
 export function isLoginOrSignupDoorPath(path: string): boolean {
   const normalized = path.replace(/^\//, "").toLowerCase();
   const last = normalized.split("/").filter(Boolean).pop() ?? "";
   return last === "login" || last === "signup" || last === "signin";
+}
+
+export function isLoginDoorPath(path: string): boolean {
+  const normalized = path.replace(/^\//, "").toLowerCase();
+  const last = normalized.split("/").filter(Boolean).pop() ?? "";
+  return last === "login" || last === "signin";
+}
+
+/** Already signed in with ID passed — do not leave them on Login after they reopen the app. */
+export function shouldResumeHomeFromLoginDoor(params: {
+  isAuthenticated: boolean;
+  kycVerified: boolean;
+  onLoginDoor: boolean;
+}): boolean {
+  return params.isAuthenticated && params.kycVerified && params.onLoginDoor;
 }
 
 /** Already signed in on this phone or computer — open the app. The ID guard still applies. */

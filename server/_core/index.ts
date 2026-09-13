@@ -26,6 +26,7 @@ import { isSupabaseConfiguredOnServer, isSupabaseAuthReachable } from "../supaba
 import { resolveSupabasePublicConfig, supabaseUnreachableHint } from "../../shared/supabase-config";
 import * as db from "../db";
 import { registerStaticWeb } from "./static-web";
+import { registerJoinEmanualPdfRoute } from "./join-emanual-pdf-route";
 import {
   getCommerceMode,
   isSimulatedCommerceMode,
@@ -231,6 +232,7 @@ async function startServer() {
     }),
   );
 
+  registerJoinEmanualPdfRoute(app);
   registerStaticWeb(app);
 
   app.use((

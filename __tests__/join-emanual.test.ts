@@ -33,6 +33,7 @@ describe("join e-manual", () => {
     expect(hook).toContain("AFTER_JOIN_WELCOME_HREF");
     expect(hook).toContain("markGiveJoinEmanual");
     expect(manual).toContain("AFTER_ID_PASS_HREF");
+    expect(manual).toContain("Download to this phone");
     expect(manual).not.toContain('replace("/(tabs)")');
   });
 });

@@ -73,7 +73,7 @@ export default function HomeScreen() {
               📘 Your free join e-manual
             </Text>
             <Text pointerEvents="none" style={{ fontSize: 13, color: colors.muted, lineHeight: 18 }}>
-              Every member gets this. Print it, write your own with Author Muse, and sell it from your shop.
+              Every member gets this. Download it to your phone, write your own with Author Muse, and sell it from your shop.
             </Text>
           </AppPressable>
         </View>

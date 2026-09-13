@@ -15,10 +15,12 @@ import {
   clearAuthStorage,
   getAccessToken,
   getRefreshToken,
+  getStoredUserJson,
   setAccessToken,
   setRefreshToken,
   setStoredUserJson,
 } from "./auth-storage";
+import { isUnrecoverableSessionError, shouldClearStoredSessionAfterRestore } from "./auth-session-restore";
 
 export type UserRole = "creator" | "worker" | "admin" | "3d-user" | "affiliate";
 
@@ -125,7 +127,7 @@ const AUTH_SESSION_TIMEOUT_MS = 5_000;
 
 async function persistSessionSafe(session: Session, user: AuthUser): Promise<void> {
   try {
-    await withTimeout(persistSession(session, user), 3_000, "Auth storage persist");
+    await persistSession(session, user);
   } catch (error) {
     console.warn("[Auth] Could not persist session locally:", error);
   }
@@ -158,6 +160,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const restoreSession = async () => {
       try {
+        const storedAccess = await withTimeout(getAccessToken(), 2_000, "Cached token read").catch(
+          () => null,
+        );
+        const storedRefresh = await withTimeout(getRefreshToken(), 2_000, "Cached refresh read").catch(
+          () => null,
+        );
+        const storedUserJson = await withTimeout(getStoredUserJson(), 2_000, "Cached user read").catch(
+          () => null,
+        );
+        if (storedAccess && storedUserJson && mounted) {
+          try {
+            const cachedUser = JSON.parse(storedUserJson) as AuthUser;
+            if (cachedUser?.id) {
+              dispatch({
+                type: "LOGIN_SUCCESS",
+                payload: { user: cachedUser, accessToken: storedAccess },
+              });
+            }
+          } catch {
+            /* ignore a broken cache and keep trying the sign-in service */
+          }
+        }
+
         const supabase: SupabaseClient = await getSupabaseClientAsync();
         const {
           data: { session },
@@ -179,12 +204,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           return;
         }
 
-        const storedAccess = await withTimeout(getAccessToken(), 2_000, "Cached token read").catch(
-          () => null,
-        );
-        const storedRefresh = await withTimeout(getRefreshToken(), 2_000, "Cached refresh read").catch(
-          () => null,
-        );
         if (storedAccess && storedRefresh) {
           const restored = await withTimeout(
             supabase.auth.setSession({
@@ -204,10 +223,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             });
             return;
           }
-        }
-
-        if (storedAccess || storedRefresh) {
-          await clearAuthStorage();
+          if (
+            shouldClearStoredSessionAfterRestore({
+              unrecoverable: isUnrecoverableSessionError(restored.error),
+            })
+          ) {
+            await clearAuthStorage();
+            if (mounted) dispatch({ type: "LOGOUT" });
+          }
         }
       } catch (error) {
         console.error("[Auth] Session restore failed:", error);
