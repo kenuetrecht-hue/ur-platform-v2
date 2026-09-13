@@ -34,6 +34,8 @@ function passJson() {
     isGovernmentIdBack: true,
     dateOfBirth: "1990-05-20",
     documentExpired: false,
+    issuingPlace: "Ohio",
+    portraitOnFront: true,
     faceMatch: true,
     faceMatchScore: 92,
     selfieLooksLive: true,
@@ -93,7 +95,7 @@ describe("age KYC precheck before sign-in", () => {
     expect(claimed.verified).toBe(true);
   });
 
-  it("checks all three pictures in one call so the live site does not drop the response", async () => {
+  it("checks the ID first, then the selfie face match, in two calls", async () => {
     vi.mocked(generateGoogleChatReply).mockResolvedValue({ reply: passJson(), model: "test" });
     await precheckAgeKyc({
       ip: "203.0.113.15",
@@ -102,11 +104,13 @@ describe("age KYC precheck before sign-in", () => {
       idBack: PHOTO,
       selfie: PHOTO,
     });
-    expect(generateGoogleChatReply).toHaveBeenCalledTimes(1);
-    const input = vi.mocked(generateGoogleChatReply).mock.calls[0]?.[0];
-    expect(input?.attachments).toHaveLength(3);
-    expect(input?.mediaResolution).toBe("MEDIA_RESOLUTION_MEDIUM");
-    expect(input?.thinkingLevel).toBe("MINIMAL");
+    expect(generateGoogleChatReply).toHaveBeenCalledTimes(2);
+    const documentCall = vi.mocked(generateGoogleChatReply).mock.calls[0]?.[0];
+    const selfieCall = vi.mocked(generateGoogleChatReply).mock.calls[1]?.[0];
+    expect(documentCall?.attachments).toHaveLength(2);
+    expect(selfieCall?.attachments).toHaveLength(2);
+    expect(documentCall?.systemPrompt).toMatch(/document-authentication/i);
+    expect(selfieCall?.systemPrompt).toMatch(/face-match/i);
   });
 
   it("still passes when the checker adds leftover notes on a readable ID", async () => {

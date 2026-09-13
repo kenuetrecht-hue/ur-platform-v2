@@ -8,7 +8,8 @@ import { TurnstileWidget } from "@/components/turnstile-widget";
 import { TapToRead } from "@/components/tap-to-read";
 import { JOIN_ID_PHOTOS_HREF } from "@/lib/after-sign-in";
 import { countFilledAgeKycSlots, prepareAgeKycPhoto, type AgeKycPickedPhoto } from "@/lib/age-kyc-photo-picker";
-import { fastPrecheckAgeKyc } from "@/lib/age-kyc-fast-precheck";
+import { fastCheckSelfieMatch } from "@/lib/age-kyc-fast-precheck";
+import { getAgeKycDocumentToken } from "@/lib/age-kyc-document-token-store";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { loadAgeKycDraft, saveAgeKycDraftSlot } from "@/lib/age-kyc-draft-store";
 import { clearAgeKycPassToken, getAgeKycPassToken, setAgeKycPassToken } from "@/lib/age-kyc-pass-store";
@@ -92,10 +93,14 @@ export function SignupSelfieCheck({ onPassed, onReset }: Props) {
     setChecking(true);
     void (async () => {
       try {
-        const result = await fastPrecheckAgeKyc({
-          documentType: loadAgeKycDraft().documentType,
+        const documentToken = getAgeKycDocumentToken();
+        if (!documentToken) {
+          setError("Check the ID front and back first, then come back for the selfie.");
+          return;
+        }
+        const result = await fastCheckSelfieMatch({
+          documentToken,
           idFront: front,
-          idBack: back,
           selfie,
           turnstileToken: turnstileToken || undefined,
         });
@@ -124,13 +129,7 @@ export function SignupSelfieCheck({ onPassed, onReset }: Props) {
           setError(msg);
           return;
         }
-        precheck.mutate({
-          documentType: loadAgeKycDraft().documentType,
-          idFront: { mimeType: front.mimeType, base64: front.base64 },
-          idBack: { mimeType: back.mimeType, base64: back.base64 },
-          selfie: { mimeType: selfie.mimeType, base64: selfie.base64 },
-          turnstileToken: turnstileToken || undefined,
-        });
+        setError(msg);
       } finally {
         setChecking(false);
       }
@@ -140,7 +139,7 @@ export function SignupSelfieCheck({ onPassed, onReset }: Props) {
   return (
     <View style={{ gap: 14, width: "100%" }} testID="signup-selfie-check">
       <Text style={{ color: colors.foreground, fontSize: 15, lineHeight: 22 }}>
-        This selfie must match the person on the ID. Then tap Check my ID and selfie.
+        We already checked the ID. This selfie must match the face on that ID.
       </Text>
       <TapToRead title="How to line up the yellow box">
         Put your face in the yellow circle. Wait until Take this picture turns on, then tap it
@@ -162,8 +161,8 @@ export function SignupSelfieCheck({ onPassed, onReset }: Props) {
       </Text>
       <TurnstileWidget action="age_kyc" onToken={setTurnstileToken} />
       <PrimaryActionButton
-        label="Check my ID and selfie"
-        loadingLabel="Checking pictures…"
+        label="Check this selfie against the ID"
+        loadingLabel="Matching the face…"
         loading={checking || precheck.isPending}
         onPress={onCheck}
         backgroundColor={colors.primary}

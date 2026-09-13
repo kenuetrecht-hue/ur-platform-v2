@@ -33,6 +33,15 @@ export function canContinueToSelfiePage(draft: { front: unknown; back: unknown }
   return Boolean(draft.front && draft.back);
 }
 
+/** After the ID itself passed — not just that photos exist. */
+export function canOpenSelfieAfterIdCheck(params: {
+  front: unknown;
+  back: unknown;
+  documentChecked: boolean;
+}): boolean {
+  return Boolean(params.front && params.back && params.documentChecked);
+}
+
 export function canOpenPictureReview(draft: { front: unknown; back: unknown; selfie: unknown }): boolean {
   return Boolean(draft.front && draft.back && draft.selfie);
 }

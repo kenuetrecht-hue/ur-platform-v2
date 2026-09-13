@@ -3,7 +3,9 @@
  * When photos already passed, go straight into the app.
  */
 export const AFTER_SIGN_IN_HREF = "/age-verify" as const;
-export const AFTER_ID_PASS_HREF = "/(tabs)" as const;
+/** Concrete Home tab. Bare `/(tabs)` is a layout with no screen — a blank white page on the website. */
+export const AFTER_ID_PASS_HREF = "/(tabs)/index" as const;
+export const AFTER_JOIN_WELCOME_HREF = "/e-manual?joined=1" as const;
 /** Returning members: email + password. New members use /signup, then ID, then selfie. */
 export const RETURNING_LOGIN_HREF = "/login" as const;
 export const JOIN_ACCOUNT_HREF = "/signup" as const;

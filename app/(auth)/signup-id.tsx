@@ -19,7 +19,7 @@ export default function SignupIdScreen() {
   return (
     <SignupDoorShell
       title="ID pictures · Step 2 of 3"
-      lede="Photograph the front of your ID, then the back. One live camera. Then continue to the selfie page."
+      lede="Photograph the front of your ID, then the back. We check that the ID is real and 18+. The selfie is the next page."
       testID="signup-id-form"
       backHref={JOIN_ACCOUNT_HREF}
       backLabel="← Back to Sign up"

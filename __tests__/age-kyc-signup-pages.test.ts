@@ -61,7 +61,7 @@ describe("signup account / ID / selfie pages", () => {
     const idRoute = readFileSync("app/(auth)/signup-id.tsx", "utf8");
     const selfieRoute = readFileSync("app/(auth)/signup-selfie.tsx", "utf8");
     expect(idRoute).toContain("canContinueToIdPictures");
-    expect(selfieRoute).toContain("canContinueToSelfiePage");
+    expect(selfieRoute).toContain("canOpenSelfieAfterIdCheck");
   });
 
   it("keeps Login and Sign up wording", () => {

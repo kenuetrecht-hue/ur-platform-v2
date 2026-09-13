@@ -6,8 +6,9 @@ import { SignupSelfieCheck } from "@/components/signup-selfie-check";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { useEnterAppAfterPictures } from "@/hooks/use-enter-app-after-pictures";
 import { JOIN_ID_PHOTOS_HREF } from "@/lib/after-sign-in";
-import { canContinueToSelfiePage } from "@/lib/age-kyc-wizard";
+import { canOpenSelfieAfterIdCheck } from "@/lib/age-kyc-wizard";
 import { loadAgeKycDraft } from "@/lib/age-kyc-draft-store";
+import { hasAgeKycDocumentToken } from "@/lib/age-kyc-document-token-store";
 import { isExistingAccountJoinError, loginHrefForExistingAccount } from "@/lib/existing-join-login";
 import { loadJoinAccountDraft } from "@/lib/join-account-draft";
 import { sendPasswordResetEmail } from "@/lib/send-password-reset";
@@ -19,7 +20,14 @@ export default function SignupSelfieScreen() {
   const colors = useColors();
   const router = useRouter();
   const { busy, error, status, setError, enterAfterPictures } = useEnterAppAfterPictures();
-  const [allowed] = useState(() => canContinueToSelfiePage(loadAgeKycDraft()));
+  const [allowed] = useState(() => {
+    const draft = loadAgeKycDraft();
+    return canOpenSelfieAfterIdCheck({
+      front: draft.front,
+      back: draft.back,
+      documentChecked: hasAgeKycDocumentToken(),
+    });
+  });
   const existingAccount = Boolean(error && isExistingAccountJoinError(error));
 
   useEffect(() => {
@@ -31,7 +39,7 @@ export default function SignupSelfieScreen() {
   return (
     <SignupDoorShell
       title="Selfie · Step 3 of 3"
-      lede="One live selfie to match the ID. Then review and tap Check my ID and selfie. We log you in after it passes."
+      lede="The ID already passed. One live selfie. We match this face to the face on the ID."
       testID="signup-selfie-form"
       backHref={JOIN_ID_PHOTOS_HREF}
       backLabel="← Back to ID pictures"

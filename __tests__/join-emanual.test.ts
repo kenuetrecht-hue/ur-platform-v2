@@ -1,4 +1,6 @@
+import { readFileSync } from "fs";
 import { describe, expect, it } from "vitest";
+import { AFTER_ID_PASS_HREF, AFTER_JOIN_WELCOME_HREF } from "../lib/after-sign-in";
 import { JOIN_EMANUAL_STEPS, JOIN_EMANUAL_TITLE } from "../lib/join-emanual";
 import { markGiveJoinEmanual, shouldGiveJoinEmanual, clearGiveJoinEmanual } from "../lib/join-emanual-handoff";
 
@@ -21,5 +23,16 @@ describe("join e-manual", () => {
     expect(shouldGiveJoinEmanual()).toBe(true);
     clearGiveJoinEmanual();
     expect(shouldGiveJoinEmanual()).toBe(false);
+  });
+
+  it("opens a real page after pictures, not a blank tab layout", () => {
+    expect(AFTER_JOIN_WELCOME_HREF).toBe("/e-manual?joined=1");
+    expect(AFTER_ID_PASS_HREF).toBe("/(tabs)/index");
+    const hook = readFileSync("hooks/use-enter-app-after-pictures.ts", "utf8");
+    const manual = readFileSync("app/e-manual.tsx", "utf8");
+    expect(hook).toContain("AFTER_JOIN_WELCOME_HREF");
+    expect(hook).toContain("markGiveJoinEmanual");
+    expect(manual).toContain("AFTER_ID_PASS_HREF");
+    expect(manual).not.toContain('replace("/(tabs)")');
   });
 });

@@ -2,3 +2,11 @@
 export function ageKycPrecheckUrlFromTrpc(trpcUrl: string): string {
   return trpcUrl.replace(/\/api\/trpc\/?$/i, "/api/age-kyc/precheck");
 }
+
+export function ageKycDocumentUrlFromTrpc(trpcUrl: string): string {
+  return trpcUrl.replace(/\/api\/trpc\/?$/i, "/api/age-kyc/document");
+}
+
+export function ageKycSelfieMatchUrlFromTrpc(trpcUrl: string): string {
+  return trpcUrl.replace(/\/api\/trpc\/?$/i, "/api/age-kyc/selfie");
+}

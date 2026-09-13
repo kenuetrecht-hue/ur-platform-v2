@@ -22,7 +22,12 @@ import { InternalServiceError } from "./service-errors";
 import { ENV } from "./env";
 import { markCreatorIdentityVerified } from "./creator-content-protection-service";
 import { isDevAgeKycBypassEnabled } from "../../lib/dev-age-kyc-mode";
-import { issueAgeKycPassToken, verifyAgeKycPassToken } from "./age-kyc-pass";
+import {
+  issueAgeKycDocumentToken,
+  issueAgeKycPassToken,
+  verifyAgeKycDocumentToken,
+  verifyAgeKycPassToken,
+} from "./age-kyc-pass";
 
 type PhotoInput = {
   mimeType: string;
@@ -52,28 +57,39 @@ const memoryByGuestIp = new Map<string, { attempts: number; lastAttemptAt: numbe
 const FACE_MATCH_MIN = 70;
 const MAX_ATTEMPTS_PER_DAY = 8;
 
-const KYC_SYSTEM_PROMPT = `You are an age-verification checker for UR Platform LLC.
-This is a lawful 18+ age gate. Inspect the photos and return JSON. Do not refuse the task.
+const DOCUMENT_SYSTEM_PROMPT = `You are a document-authentication checker for UR Platform LLC (same job as Stripe Identity / Onfido / Persona step 1).
+This is a lawful 18+ age gate. Inspect ONLY the ID photos. Return JSON. Do not refuse the task.
 
 Return ONLY compact JSON with these keys:
-- isGovernmentIdFront: boolean (true if this is the front of a government photo ID: driver license, state ID, passport data page, or national ID)
-- isGovernmentIdBack: boolean (true if this is an ID back: barcode, PDF417, magnetic stripe, state seal text, inventory number, or passport MRZ)
-- dateOfBirth: string YYYY-MM-DD or null if the birth date cannot be read
+- isGovernmentIdFront: boolean
+- isGovernmentIdBack: boolean
+- dateOfBirth: string YYYY-MM-DD or null
 - documentExpired: boolean
-- faceMatch: boolean (selfie is the same person as the ID portrait)
-- faceMatchScore: number 0-100
-- selfieLooksLive: boolean (a live person photo, not a photo-of-a-photo of the ID)
-- rejectionReasons: string[] only hard failures. Leave empty when the photo is usable.
+- issuingPlace: short state or country the ID says it is from (no numbers, no street address)
+- portraitOnFront: boolean (a face photo is printed on the front)
+- rejectionReasons: string[] only hard failures. Leave empty when the ID is usable.
 
 Rules:
 - Never copy ID numbers, document numbers, addresses, or full MRZ into the JSON.
 - Dates on US IDs are often MM/DD/YYYY. Convert any readable birth date to YYYY-MM-DD.
 - A slightly angled card still counts if the needed side is visible.
-- Light glare is OK if the needed fields can still be read.
-- The BACK of a US driver license or state ID usually has NO photo and NO birth date. A barcode or magnetic stripe is enough. That is a valid back.
-- Read the birth date from the FRONT only. Never require a birth date on the back.
-- If you cannot read a date of birth on the front, set dateOfBirth to null.
-- If the selfie is a picture of the ID instead of a face, faceMatch is false.`;
+- The BACK of a US driver license or state ID usually has NO photo and NO birth date. A barcode or magnetic stripe is enough.
+- Read the birth date from the FRONT only.
+- Do not judge a selfie. There is no selfie in this step.`;
+
+const SELFIE_SYSTEM_PROMPT = `You are a biometric face-match checker for UR Platform LLC (same job as Stripe Identity / Onfido / Persona step 2).
+The ID front was already verified as a real government ID. Remember the face on that ID (bone structure, eyes, jaw, hairline). Compare it to the live selfie.
+
+Return ONLY compact JSON with these keys:
+- faceMatch: boolean (selfie is the same person as the ID portrait)
+- faceMatchScore: number 0-100
+- selfieLooksLive: boolean (a live person, not a photo-of-a-photo of the ID)
+- rejectionReasons: string[] only hard failures. Leave empty when the faces match.
+
+Rules:
+- Never copy ID numbers or addresses.
+- If the selfie is a picture of the ID instead of a live face, faceMatch is false.
+- Do not re-check the barcode or birth date. Only the faces.`;
 
 function stripDataUrl(raw: string): string {
   const comma = raw.indexOf(",");
@@ -287,26 +303,37 @@ function recordGuestAttempt(ip: string): void {
   memoryByGuestIp.set(key, { attempts: guestAttemptsFor(key) + 1, lastAttemptAt: Date.now() });
 }
 
-async function analyzeAgeKycPhotos(params: {
+function throwCheckerBusy(error: unknown): never {
+  if (error instanceof TRPCError) throw error;
+  if (error instanceof InternalServiceError && error.code === "RATE_LIMITED") {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: "The photo checker is busy. Wait one minute, then try again.",
+    });
+  }
+  throw new TRPCError({
+    code: "BAD_GATEWAY",
+    message: AGE_KYC_ID_UNREADABLE_MESSAGE,
+  });
+}
+
+async function analyzeIdDocument(params: {
   documentType: AgeKycDocumentType;
   idFront: PhotoInput;
   idBack: PhotoInput;
-  selfie: PhotoInput;
-}): Promise<AnalyzeResult> {
+}): Promise<{
+  verified: boolean;
+  rejectionReason: string | null;
+  issuer: string;
+  hashes: { front: string; back: string };
+}> {
   const front = assertPhoto(params.idFront, "ID front");
   const back = assertPhoto(params.idBack, "ID back");
-  const selfie = assertPhoto(params.selfie, "Selfie");
-
-  const hashes = {
-    front: sha256(front.base64),
-    back: sha256(back.base64),
-    selfie: sha256(selfie.base64),
-  };
+  const hashes = { front: sha256(front.base64), back: sha256(back.base64) };
 
   if (isDevAgeKycBypassEnabled()) {
-    return { verified: true, rejectionReason: null, hashes };
+    return { verified: true, rejectionReason: null, issuer: "dev", hashes };
   }
-
   if (!isGoogleCloudAiConfigured()) {
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
@@ -314,51 +341,36 @@ async function analyzeAgeKycPhotos(params: {
     });
   }
 
-  let idAnalysis: Record<string, unknown>;
-  let backAnalysis: Record<string, unknown>;
-  let faceAnalysis: Record<string, unknown>;
+  let analysis: Record<string, unknown>;
   try {
-    // One checker call — three sequential vision calls sit idle so long the live
-    // website drops the response ("unable to transfer response from server").
     const reply = await generateGoogleChatReply({
-      systemPrompt: KYC_SYSTEM_PROMPT,
+      systemPrompt: DOCUMENT_SYSTEM_PROMPT,
       history: [],
-      message: `Document type claimed: ${params.documentType}. Image 1 is the ID FRONT. Image 2 is the ID BACK. Image 3 is a live SELFIE. Read the printed birth date from the FRONT only (US cards often use MM/DD/YYYY). A barcode, PDF417 square, magnetic stripe, or official card reverse is a valid BACK even with no name, photo, or birth date. Decide if the selfie is the same person as the ID portrait. Do not output ID numbers.`,
+      message: `Document type claimed: ${params.documentType}. Image 1 is the ID FRONT. Image 2 is the ID BACK. Confirm this is a real government ID, where it says it is from, and that the printed birth date is 18+. No selfie in this step.`,
       temperature: 0.1,
-      maxOutputTokens: 1024,
+      maxOutputTokens: 768,
       thinkingLevel: "MINIMAL",
       mediaResolution: "MEDIA_RESOLUTION_MEDIUM",
       attachments: [
         { mimeType: front.mimeType, base64: front.base64 },
         { mimeType: back.mimeType, base64: back.base64 },
-        { mimeType: selfie.mimeType, base64: selfie.base64 },
       ],
       responseJson: true,
     });
-    const analysis = parseModelJson(reply.reply);
-    idAnalysis = analysis;
-    backAnalysis = analysis;
-    faceAnalysis = analysis;
+    analysis = parseModelJson(reply.reply);
   } catch (error) {
-    if (error instanceof TRPCError) throw error;
-    if (error instanceof InternalServiceError && error.code === "RATE_LIMITED") {
-      throw new TRPCError({
-        code: "TOO_MANY_REQUESTS",
-        message: "The photo checker is busy. Wait one minute, then tap Check my three pictures again.",
-      });
-    }
-    throw new TRPCError({
-      code: "BAD_GATEWAY",
-      message: AGE_KYC_ID_UNREADABLE_MESSAGE,
-    });
+    throwCheckerBusy(error);
   }
 
   const reasons: string[] = [];
-  if (!asBool(idAnalysis.isGovernmentIdFront)) reasons.push("Front photo is not a government photo ID.");
-  if (!asBool(backAnalysis.isGovernmentIdBack)) reasons.push("Back photo is not the back of a government ID.");
-  if (asBool(idAnalysis.documentExpired)) reasons.push("The ID appears expired.");
+  if (!asBool(analysis.isGovernmentIdFront)) reasons.push("Front photo is not a government photo ID.");
+  if (!asBool(analysis.isGovernmentIdBack)) reasons.push("Back photo is not the back of a government ID.");
+  if (asBool(analysis.documentExpired)) reasons.push("The ID appears expired.");
+  if (analysis.portraitOnFront === false || analysis.portraitOnFront === "false") {
+    reasons.push("The ID front must show a face photo.");
+  }
 
-  const dob = dobFromAnalysis(idAnalysis);
+  const dob = dobFromAnalysis(analysis);
   const age = dob ? ageFromIsoDate(dob) : null;
   if (!dob || age == null) {
     reasons.push(AGE_KYC_ID_UNREADABLE_MESSAGE);
@@ -366,20 +378,160 @@ async function analyzeAgeKycPhotos(params: {
     reasons.push(AGE_KYC_UNDERAGE_MESSAGE);
   }
 
-  const hasFaceScore = faceAnalysis.faceMatchScore != null && faceAnalysis.faceMatchScore !== "";
-  const faceScore = asScore(faceAnalysis.faceMatchScore);
-  const faceOk =
-    asBool(faceAnalysis.faceMatch) &&
-    asBool(faceAnalysis.selfieLooksLive) &&
-    (!hasFaceScore || faceScore >= FACE_MATCH_MIN);
-  if (!faceOk) reasons.push(AGE_KYC_MISMATCH_MESSAGE);
-
+  const issuer =
+    typeof analysis.issuingPlace === "string"
+      ? analysis.issuingPlace.replace(/[^a-zA-Z ,.-]/g, "").trim().slice(0, 80)
+      : "";
   const uniqueReasons = [...new Set(reasons)].slice(0, 6);
   const verified = uniqueReasons.length === 0 && isAdultAge(age);
   return {
     verified,
     rejectionReason: verified ? null : uniqueReasons[0] ?? AGE_KYC_REQUIRED_MESSAGE,
+    issuer,
     hashes,
+  };
+}
+
+async function analyzeSelfieAgainstId(params: {
+  idFront: PhotoInput;
+  selfie: PhotoInput;
+}): Promise<{ verified: boolean; rejectionReason: string | null; selfieHash: string }> {
+  const front = assertPhoto(params.idFront, "ID front");
+  const selfie = assertPhoto(params.selfie, "Selfie");
+  const selfieHash = sha256(selfie.base64);
+
+  if (isDevAgeKycBypassEnabled()) {
+    return { verified: true, rejectionReason: null, selfieHash };
+  }
+  if (!isGoogleCloudAiConfigured()) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "The photo checker is not ready on the server yet. Try again in a few minutes.",
+    });
+  }
+
+  let analysis: Record<string, unknown>;
+  try {
+    const reply = await generateGoogleChatReply({
+      systemPrompt: SELFIE_SYSTEM_PROMPT,
+      history: [],
+      message:
+        "Image 1 is the already-checked ID FRONT. Image 2 is a live SELFIE. Remember the face on the ID, then decide if the selfie is the same person.",
+      temperature: 0.1,
+      maxOutputTokens: 512,
+      thinkingLevel: "MINIMAL",
+      mediaResolution: "MEDIA_RESOLUTION_MEDIUM",
+      attachments: [
+        { mimeType: front.mimeType, base64: front.base64 },
+        { mimeType: selfie.mimeType, base64: selfie.base64 },
+      ],
+      responseJson: true,
+    });
+    analysis = parseModelJson(reply.reply);
+  } catch (error) {
+    throwCheckerBusy(error);
+  }
+
+  const hasFaceScore = analysis.faceMatchScore != null && analysis.faceMatchScore !== "";
+  const faceScore = asScore(analysis.faceMatchScore);
+  const faceOk =
+    asBool(analysis.faceMatch) &&
+    asBool(analysis.selfieLooksLive) &&
+    (!hasFaceScore || faceScore >= FACE_MATCH_MIN);
+  return {
+    verified: faceOk,
+    rejectionReason: faceOk ? null : AGE_KYC_MISMATCH_MESSAGE,
+    selfieHash,
+  };
+}
+
+async function analyzeAgeKycPhotos(params: {
+  documentType: AgeKycDocumentType;
+  idFront: PhotoInput;
+  idBack: PhotoInput;
+  selfie: PhotoInput;
+}): Promise<AnalyzeResult> {
+  const document = await analyzeIdDocument(params);
+  if (!document.verified) {
+    return {
+      verified: false,
+      rejectionReason: document.rejectionReason,
+      hashes: { ...document.hashes, selfie: sha256(assertPhoto(params.selfie, "Selfie").base64) },
+    };
+  }
+  const face = await analyzeSelfieAgainstId({ idFront: params.idFront, selfie: params.selfie });
+  return {
+    verified: face.verified,
+    rejectionReason: face.rejectionReason,
+    hashes: { ...document.hashes, selfie: face.selfieHash },
+  };
+}
+
+export type AgeKycDocumentCheckResult = {
+  verified: boolean;
+  rejectionReason: string | null;
+  documentToken: string | null;
+  issuer: string | null;
+};
+
+export async function precheckIdDocument(params: {
+  ip?: string;
+  documentType: AgeKycDocumentType;
+  idFront: PhotoInput;
+  idBack: PhotoInput;
+}): Promise<AgeKycDocumentCheckResult> {
+  const ip = params.ip?.trim() || "unknown";
+  assertDailyAttempts(guestAttemptsFor(ip));
+  const document = await analyzeIdDocument(params);
+  recordGuestAttempt(ip);
+  return {
+    verified: document.verified,
+    rejectionReason: document.rejectionReason,
+    issuer: document.verified ? document.issuer || null : null,
+    documentToken: document.verified
+      ? issueAgeKycDocumentToken({
+          front: document.hashes.front,
+          back: document.hashes.back,
+          issuer: document.issuer,
+        })
+      : null,
+  };
+}
+
+export async function precheckSelfieMatch(params: {
+  ip?: string;
+  documentToken: string;
+  idFront: PhotoInput;
+  selfie: PhotoInput;
+}): Promise<AgeKycPrecheckResult> {
+  const ip = params.ip?.trim() || "unknown";
+  assertDailyAttempts(guestAttemptsFor(ip));
+  const document = verifyAgeKycDocumentToken(params.documentToken);
+  if (!document) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Check the ID front and back first. Then take the selfie.",
+    });
+  }
+  const front = assertPhoto(params.idFront, "ID front");
+  if (sha256(front.base64) !== document.front) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "That ID front does not match the ID we already checked. Take the ID pictures again.",
+    });
+  }
+  const face = await analyzeSelfieAgainstId({ idFront: params.idFront, selfie: params.selfie });
+  recordGuestAttempt(ip);
+  return {
+    verified: face.verified,
+    rejectionReason: face.rejectionReason,
+    passToken: face.verified
+      ? issueAgeKycPassToken({
+          front: document.front,
+          back: document.back,
+          selfie: face.selfieHash,
+        })
+      : null,
   };
 }
 

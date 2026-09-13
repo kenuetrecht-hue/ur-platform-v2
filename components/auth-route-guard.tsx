@@ -186,7 +186,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       !inDownload &&
       !isEmanualRoute(segments)
     ) {
-      router.replace(canAccessAdminDashboard ? "/(tabs)/admin" : "/(tabs)");
+      router.replace(canAccessAdminDashboard ? "/(tabs)/admin" : AFTER_ID_PASS_HREF);
     }
   }, [
     clientReady,
@@ -212,25 +212,13 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     !isAgeVerifyRoute(segments) &&
     !isAuthRoute(segments) &&
     !isDownloadRoute(segments) &&
-    !isPublicLegalRoute(segments)
+    !isPublicLegalRoute(segments) &&
+    !isEmanualRoute(segments)
   ) {
-    return <UrBootShell label="Checking your pictures…" />;
+    return <UrBootShell label="Opening your account…" />;
   }
 
   const kycVerified = kycQuery.data?.verified === true;
-  if (
-    isAuthenticated &&
-    !kycQuery.isLoading &&
-    kycVerified !== true &&
-    !isAgeVerifyRoute(segments) &&
-    !isAuthRoute(segments) &&
-    !isDownloadRoute(segments) &&
-    !isPublicLegalRoute(segments) &&
-    !isPublicMarketing(segments) &&
-    !isEmanualRoute(segments)
-  ) {
-    return <UrBootShell label="Checking your pictures…" />;
-  }
 
   const inProduct =
     isAuthenticated &&

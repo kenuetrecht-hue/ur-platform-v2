@@ -13,6 +13,7 @@ import {
   JOIN_EMANUAL_TITLE,
 } from "@/lib/join-emanual";
 import { getPlatformPublicOrigin } from "@/lib/platform-urls";
+import { AFTER_ID_PASS_HREF } from "@/lib/after-sign-in";
 
 function printManual() {
   if (Platform.OS === "web" && typeof window !== "undefined") {
@@ -35,7 +36,7 @@ export default function JoinEmanualScreen() {
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top", "left", "right"]}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.topRow}>
-          <Link href={isAuthenticated ? "/(tabs)" : "/login"} asChild>
+          <Link href={isAuthenticated ? AFTER_ID_PASS_HREF : "/login"} asChild>
             <Pressable>
               <Text style={[styles.back, { color: colors.muted }]}>
                 {isAuthenticated ? "← Home" : "← Homepage"}
@@ -90,7 +91,7 @@ export default function JoinEmanualScreen() {
 
         {isAuthenticated ? (
           <Pressable
-            onPress={() => router.replace("/(tabs)")}
+            onPress={() => router.replace(AFTER_ID_PASS_HREF)}
             style={[styles.doneBtn, { backgroundColor: colors.primary }]}
           >
             <Text style={styles.printText}>I have the e-manual — go to Home</Text>

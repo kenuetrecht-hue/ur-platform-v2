@@ -4,7 +4,8 @@ import { useAuth } from "@/lib/auth-context";
 import { trpc } from "@/lib/trpc";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { claimStoredAgeKycPass } from "@/lib/claim-stored-age-kyc-pass";
-import { AFTER_ID_PASS_HREF, shouldEnterAppAfterMemberSignIn } from "@/lib/after-sign-in";
+import { AFTER_JOIN_WELCOME_HREF, shouldEnterAppAfterMemberSignIn } from "@/lib/after-sign-in";
+import { markGiveJoinEmanual } from "@/lib/join-emanual-handoff";
 import { getAgeKycPassToken } from "@/lib/age-kyc-pass-store";
 import { clearJoinAccountDraft, loadJoinAccountDraft } from "@/lib/join-account-draft";
 import { getStayLoggedIn, setStayLoggedIn } from "@/lib/stay-logged-in";
@@ -50,8 +51,9 @@ export function useEnterAppAfterPictures() {
   const enterApp = useCallback(() => {
     enteredRef.current = true;
     clearJoinAccountDraft();
+    markGiveJoinEmanual();
     setStatus("Pictures passed — logging you in…");
-    router.replace(AFTER_ID_PASS_HREF);
+    router.replace(AFTER_JOIN_WELCOME_HREF);
   }, [router]);
 
   const enterAfterPictures = useCallback(async () => {

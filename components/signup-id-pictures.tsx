@@ -7,6 +7,10 @@ import { SignupKycCartoonSample } from "@/components/signup-kyc-cartoon-sample";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { TapToRead } from "@/components/tap-to-read";
 import { JOIN_SELFIE_HREF } from "@/lib/after-sign-in";
+import { TurnstileWidget } from "@/components/turnstile-widget";
+import { fastCheckIdDocument } from "@/lib/age-kyc-fast-precheck";
+import { explainAuthFailure } from "@/lib/auth-network-error";
+import { setAgeKycDocumentToken, hasAgeKycDocumentToken } from "@/lib/age-kyc-document-token-store";
 import {
   loadAgeKycDraft,
   saveAgeKycDocumentType,
@@ -32,6 +36,10 @@ export function SignupIdPictures() {
   const [front, setFront] = useState<AgeKycPickedPhoto | null>(initial.front);
   const [back, setBack] = useState<AgeKycPickedPhoto | null>(initial.back);
   const [error, setError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [idPassed, setIdPassed] = useState(() => hasAgeKycDocumentToken());
+  const [issuer, setIssuer] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   const recordPhoto = (slot: "front" | "back" | "selfie", photo: AgeKycPickedPhoto) => {
     if (slot === "selfie") return;
@@ -48,12 +56,37 @@ export function SignupIdPictures() {
     saveAgeKycDocumentType(id);
   };
 
-  const onContinue = () => {
-    if (!canContinueToSelfiePage({ front, back })) {
+  const onCheckId = () => {
+    if (!canContinueToSelfiePage({ front, back }) || !front || !back) {
       setError("Photograph the ID front and ID back first.");
       return;
     }
-    router.replace(JOIN_SELFIE_HREF);
+    setError(null);
+    setChecking(true);
+    void (async () => {
+      try {
+        const result = await fastCheckIdDocument({
+          documentType,
+          idFront: front,
+          idBack: back,
+          turnstileToken: turnstileToken || undefined,
+        });
+        if (!result.verified || !result.documentToken) {
+          setAgeKycDocumentToken(null);
+          setIdPassed(false);
+          setError(result.rejectionReason ?? "That ID did not pass. Take clearer front and back pictures.");
+          return;
+        }
+        setAgeKycDocumentToken(result.documentToken);
+        setIdPassed(true);
+        setIssuer(result.issuer);
+        router.replace(JOIN_SELFIE_HREF);
+      } catch (err) {
+        setError(explainAuthFailure(err));
+      } finally {
+        setChecking(false);
+      }
+    })();
   };
 
   return (
@@ -95,10 +128,18 @@ export function SignupIdPictures() {
         onPicked={recordPhoto}
         onError={setError}
       />
+      <TurnstileWidget action="age_kyc" onToken={setTurnstileToken} />
+      {idPassed ? (
+        <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>
+          ID passed{issuer ? ` · ${issuer}` : ""}. Next page is the selfie match.
+        </Text>
+      ) : null}
       {error ? <Text style={{ color: "#c0392b", fontSize: 13 }}>{error}</Text> : null}
       <PrimaryActionButton
-        label="Continue to selfie"
-        onPress={onContinue}
+        label="Check this ID"
+        loadingLabel="Checking the ID…"
+        loading={checking}
+        onPress={onCheckId}
         backgroundColor={colors.primary}
         testID="signup-id-continue"
       />

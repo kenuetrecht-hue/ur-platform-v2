@@ -40,7 +40,9 @@ describe("age KYC wizard", () => {
     expect(idPage).not.toContain('phase="selfie"');
     expect(selfie).toContain('phase="selfie"');
     expect(selfie).toContain("notifiedPassRef");
-    expect(selfie).toContain("Check my ID and selfie");
+    expect(selfie).toContain("Check this selfie against the ID");
+    expect(idPage).toContain("Check this ID");
+    expect(idPage).toContain("fastCheckIdDocument");
     expect(finish).not.toContain("AgeKycPhotoCapture");
     expect(finish).not.toContain("IdCheckDuringSignin");
   });

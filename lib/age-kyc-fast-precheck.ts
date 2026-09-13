@@ -2,12 +2,23 @@ import { Platform } from "react-native";
 import type { AgeKycDocumentType } from "@/lib/age-kyc-policy";
 import type { AgeKycPickedPhoto } from "@/lib/age-kyc-photo-helpers";
 import { getTrpcApiUrl } from "@/lib/trpc-url";
-import { ageKycPrecheckUrlFromTrpc } from "@/lib/age-kyc-precheck-url";
+import {
+  ageKycDocumentUrlFromTrpc,
+  ageKycPrecheckUrlFromTrpc,
+  ageKycSelfieMatchUrlFromTrpc,
+} from "@/lib/age-kyc-precheck-url";
 
 export type AgeKycFastPrecheckResult = {
   verified: boolean;
   rejectionReason: string | null;
   passToken: string | null;
+};
+
+export type AgeKycDocumentCheckClientResult = {
+  verified: boolean;
+  rejectionReason: string | null;
+  documentToken: string | null;
+  issuer: string | null;
 };
 
 /** Phone uploads must not spin forever. Keep the photos and let them tap Check again. */
@@ -100,4 +111,89 @@ export async function fastPrecheckAgeKyc(params: {
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function postAgeKycForm(url: string, body: FormData): Promise<Record<string, unknown>> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AGE_KYC_FAST_PRECHECK_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      body,
+      credentials: "include",
+      signal: controller.signal,
+    });
+    const data = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+    if (!data) throw new Error("Unable to transfer response from server");
+    if (!response.ok && typeof data.error === "string") {
+      throw new Error(data.error);
+    }
+    return data;
+  } catch (error) {
+    const raw = error instanceof Error ? error.message : String(error ?? "");
+    const name = error instanceof Error ? error.name : "";
+    if (name === "AbortError" || raw.toLowerCase().includes("abort")) {
+      throw new Error("The picture check did not finish. Keep the pictures and tap Check again.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function appendPhoto(body: FormData, field: string, photo: AgeKycPickedPhoto, name: string): void {
+  if (Platform.OS === "web" && typeof Blob !== "undefined") {
+    body.append(field, photoToBlob(photo), name);
+    return;
+  }
+  const localUri =
+    photo.previewUri.startsWith("file:") || photo.previewUri.startsWith("content:")
+      ? photo.previewUri
+      : `data:${photo.mimeType || "image/jpeg"};base64,${photo.base64}`;
+  body.append(field, {
+    uri: localUri,
+    type: photo.mimeType || "image/jpeg",
+    name,
+  } as unknown as Blob);
+}
+
+/** Step 1 — Stripe / Onfido document check. Front and back only. */
+export async function fastCheckIdDocument(params: {
+  documentType: AgeKycDocumentType;
+  idFront: AgeKycPickedPhoto;
+  idBack: AgeKycPickedPhoto;
+  turnstileToken?: string;
+}): Promise<AgeKycDocumentCheckClientResult> {
+  const body = new FormData();
+  body.append("documentType", params.documentType);
+  if (params.turnstileToken) body.append("turnstileToken", params.turnstileToken);
+  appendPhoto(body, "idFront", params.idFront, "front.jpg");
+  appendPhoto(body, "idBack", params.idBack, "back.jpg");
+  const data = await postAgeKycForm(ageKycDocumentUrlFromTrpc(getTrpcApiUrl()), body);
+  return {
+    verified: data.verified === true,
+    rejectionReason: typeof data.rejectionReason === "string" ? data.rejectionReason : null,
+    documentToken: typeof data.documentToken === "string" ? data.documentToken : null,
+    issuer: typeof data.issuer === "string" ? data.issuer : null,
+  };
+}
+
+/** Step 2 — Face match only. The ID was already verified. */
+export async function fastCheckSelfieMatch(params: {
+  documentToken: string;
+  idFront: AgeKycPickedPhoto;
+  selfie: AgeKycPickedPhoto;
+  turnstileToken?: string;
+}): Promise<AgeKycFastPrecheckResult> {
+  const body = new FormData();
+  body.append("documentToken", params.documentToken);
+  if (params.turnstileToken) body.append("turnstileToken", params.turnstileToken);
+  appendPhoto(body, "idFront", params.idFront, "front.jpg");
+  appendPhoto(body, "selfie", params.selfie, "selfie.jpg");
+  const data = await postAgeKycForm(ageKycSelfieMatchUrlFromTrpc(getTrpcApiUrl()), body);
+  return {
+    verified: data.verified === true,
+    rejectionReason: typeof data.rejectionReason === "string" ? data.rejectionReason : null,
+    passToken: typeof data.passToken === "string" ? data.passToken : null,
+  };
 }

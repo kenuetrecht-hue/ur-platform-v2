@@ -81,6 +81,7 @@ describe("after sign-in", () => {
   });
 
   it("opens the app after the photos already passed", () => {
+    expect(AFTER_ID_PASS_HREF).toBe("/(tabs)/index");
     expect(hrefAfterSignIn(true)).toBe(AFTER_ID_PASS_HREF);
     expect(hrefAfterSignIn(false)).toBe("/signup");
     expect(JOIN_ACCOUNT_HREF).toBe("/signup");

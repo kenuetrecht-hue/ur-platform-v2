@@ -136,7 +136,7 @@ export function resolvePublicLink(slug: string) {
       ? "/signup"
       : profile.role === "creator"
         ? "/creator-dashboard"
-        : "/(tabs)";
+        : "/(tabs)/index";
 
   const signupParams =
     profile.role === "affiliate" || profile.role === "creator"

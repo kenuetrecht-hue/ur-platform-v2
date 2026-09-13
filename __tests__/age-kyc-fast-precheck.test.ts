@@ -1,6 +1,10 @@
 import { readFileSync } from "fs";
 import { describe, expect, it } from "vitest";
-import { ageKycPrecheckUrlFromTrpc } from "../lib/age-kyc-precheck-url";
+import {
+  ageKycDocumentUrlFromTrpc,
+  ageKycPrecheckUrlFromTrpc,
+  ageKycSelfieMatchUrlFromTrpc,
+} from "../lib/age-kyc-precheck-url";
 import { AGE_KYC_SEND_MAX_EDGE, AGE_KYC_SEND_QUALITY } from "../lib/age-kyc-photo-helpers";
 
 describe("fast ID picture check", () => {
@@ -8,8 +12,16 @@ describe("fast ID picture check", () => {
     expect(ageKycPrecheckUrlFromTrpc("https://example.com/api/trpc")).toBe(
       "https://example.com/api/age-kyc/precheck",
     );
+    expect(ageKycDocumentUrlFromTrpc("https://example.com/api/trpc")).toBe(
+      "https://example.com/api/age-kyc/document",
+    );
+    expect(ageKycSelfieMatchUrlFromTrpc("https://example.com/api/trpc")).toBe(
+      "https://example.com/api/age-kyc/selfie",
+    );
     const route = readFileSync("server/_core/age-kyc-fast-route.ts", "utf8");
     expect(route).toContain('app.post("/api/age-kyc/precheck"');
+    expect(route).toContain('app.post("/api/age-kyc/document"');
+    expect(route).toContain('app.post("/api/age-kyc/selfie"');
     expect(route).toContain("multer");
     const googleAi = readFileSync("server/_core/google-ai.ts", "utf8");
     expect(googleAi).toContain(".slice(0, 3)");
@@ -20,8 +32,11 @@ describe("fast ID picture check", () => {
     const precheck = readFileSync("lib/age-kyc-fast-precheck.ts", "utf8");
     expect(precheck).toContain("AbortController");
     expect(precheck).toMatch(/AGE_KYC_FAST_PRECHECK_TIMEOUT_MS = 40_000/);
-    const idCheck = readFileSync("components/signup-selfie-check.tsx", "utf8");
-    expect(idCheck).toContain("did not finish");
+    expect(precheck).toContain("did not finish");
+    expect(readFileSync("components/signup-id-pictures.tsx", "utf8")).toContain("Check this ID");
+    expect(readFileSync("components/signup-selfie-check.tsx", "utf8")).toContain(
+      "Check this selfie against the ID",
+    );
   });
 
   it("sends sharp HD-enough pictures without a giant camera dump", () => {

@@ -11,6 +11,15 @@ export type AgeKycPassPayload = {
   selfie: string;
 };
 
+export type AgeKycDocumentPassPayload = {
+  v: 2;
+  kind: "document";
+  exp: number;
+  front: string;
+  back: string;
+  issuer: string;
+};
+
 function signingSecret(): string {
   const secret = ENV.cookieSecret.trim();
   if (secret.length >= 16) return secret;
@@ -42,6 +51,42 @@ export function issueAgeKycPassToken(hashes: {
   };
   const body = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
   return `${body}.${signBody(body)}`;
+}
+
+export function issueAgeKycDocumentToken(params: {
+  front: string;
+  back: string;
+  issuer: string;
+}): string {
+  const issuer = params.issuer.replace(/[^a-zA-Z ,.-]/g, "").trim().slice(0, 80);
+  const payload: AgeKycDocumentPassPayload = {
+    v: 2,
+    kind: "document",
+    exp: Date.now() + AGE_KYC_PASS_TTL_MS,
+    front: params.front,
+    back: params.back,
+    issuer,
+  };
+  const body = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  return `${body}.${signBody(body)}`;
+}
+
+export function verifyAgeKycDocumentToken(token: string): AgeKycDocumentPassPayload | null {
+  const trimmed = token.trim();
+  const dot = trimmed.lastIndexOf(".");
+  if (dot <= 0) return null;
+  const body = trimmed.slice(0, dot);
+  const sig = trimmed.slice(dot + 1);
+  if (!body || !sig || !safeEqual(sig, signBody(body))) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as AgeKycDocumentPassPayload;
+    if (parsed.v !== 2 || parsed.kind !== "document") return null;
+    if (!Number.isFinite(parsed.exp) || parsed.exp < Date.now()) return null;
+    if (!parsed.front || !parsed.back) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
 }
 
 export function verifyAgeKycPassToken(token: string): AgeKycPassPayload | null {
