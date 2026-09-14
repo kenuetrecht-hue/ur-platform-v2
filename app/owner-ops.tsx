@@ -13,6 +13,7 @@ import { FairShowOwnerPanel } from "@/components/fair-show-owner-panel";
 import { SecurityNoticeOpsPanel } from "@/components/security-notice-ops-panel";
 import { OwnerSigninResetPanel } from "@/components/owner-signin-reset-panel";
 import { FoundingAudienceReviewPanel } from "@/components/founding-audience-review-panel";
+import { OwnerMemberCensusPanel } from "@/components/owner-member-census-panel";
 import { LandingDemoConversionStatsPanel } from "@/components/landing-demo-conversion-stats-panel";
 import { AdminDashboard } from "@/components/admin-dashboard";
 import { AppPressable } from "@/components/app-pressable";
@@ -188,6 +189,7 @@ export default function OwnerOpsScreen() {
               initialAiId={requestedOpsAi}
               focusStewardNonce={stewardFocusNonce}
             />
+            {isPlatformOwner ? <OwnerMemberCensusPanel /> : null}
             {isPlatformOwner ? <OwnerCommandCenterPanel /> : null}
             {isPlatformOwner ? <PlatformConductReviewPanel /> : null}
             {isPlatformOwner ? <FoundingAudienceReviewPanel /> : null}

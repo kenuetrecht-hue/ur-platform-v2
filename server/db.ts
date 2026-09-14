@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { InsertUser, users } from "../drizzle/schema";
@@ -151,6 +151,32 @@ export async function listUsersByEmail(email: string) {
     return await db.select().from(users).where(eq(users.email, normalized));
   } catch (error) {
     logDbFailure("Failed to list users by email", error);
+    return [];
+  }
+}
+
+/** Owner census — names, emails, and last visit. Never expose this to regular members. */
+export async function listJoinedMembers() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot list members: database not available");
+    return [];
+  }
+
+  try {
+    return await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        createdAt: users.createdAt,
+        lastSignedIn: users.lastSignedIn,
+      })
+      .from(users)
+      .orderBy(desc(users.lastSignedIn))
+      .limit(2000);
+  } catch (error) {
+    logDbFailure("Failed to list joined members", error);
     return [];
   }
 }

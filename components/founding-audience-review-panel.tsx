@@ -40,7 +40,7 @@ export function FoundingAudienceReviewPanel() {
   return (
     <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
       <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
-        Content creator roster
+        Enrolled content creators
       </Text>
       <Text style={{ color: colors.foreground, fontSize: 36, fontWeight: "900" }}>
         {creatorCount}
@@ -83,7 +83,8 @@ export function FoundingAudienceReviewPanel() {
                 /{row.customSlug} · enrolled {row.enrolledAt.slice(0, 10)}
               </Text>
               <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "800", marginTop: 4 }}>
-                {row.followerCount.toLocaleString()} followers
+                {Math.max(0, row.followerCount - row.paidSubscriberCount).toLocaleString()} unpaid
+                followers
               </Text>
               {row.followers.length > 0 ? (
                 <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
