@@ -35,7 +35,7 @@ export function PlatformDisclosureBar({
   const content = (
     <Text
       style={[styles.text, { color: withAlpha(colors.muted, 0.92) }]}
-      numberOfLines={compact ? 2 : 4}
+      numberOfLines={compact ? 1 : 3}
     >
       {text}
     </Text>
@@ -49,10 +49,10 @@ export function PlatformDisclosureBar({
         brand,
         position === "top" ? styles.barTop : styles.barBottom,
         position === "top"
-          ? { paddingTop: insets.top + 4, paddingBottom: 5 }
+          ? { paddingTop: insets.top + 2, paddingBottom: 2 }
           : aboveTabBar
-            ? { paddingTop: 6, paddingBottom: 4 }
-            : { paddingTop: 5, paddingBottom: insets.bottom + 4 },
+            ? { paddingTop: 2, paddingBottom: 2 }
+            : { paddingTop: 3, paddingBottom: insets.bottom + 2 },
       ]}
     >
       <View accessibilityRole="text" accessibilityLabel={text}>
@@ -68,7 +68,7 @@ export function PlatformDisclosureBar({
 
 const styles = StyleSheet.create({
   bar: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 10,
   },
   barTop: {
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -77,11 +77,11 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   text: {
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: "400",
-    lineHeight: 14,
+    lineHeight: 11,
     textAlign: "center",
-    letterSpacing: 0.12,
+    letterSpacing: 0.08,
     opacity: 0.78,
   },
 });

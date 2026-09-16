@@ -27,15 +27,15 @@ export function TabBarIcon({ name, focused }: TabBarIconProps) {
       style={{
         alignItems: "center",
         justifyContent: "center",
-        width: 44,
-        height: 30,
-        borderRadius: 15,
+        width: 36,
+        height: 22,
+        borderRadius: 11,
         ...(focused ? active : null),
       }}
     >
       <IconSymbol
         name={name as ComponentProps<typeof IconSymbol>["name"]}
-        size={22}
+        size={18}
         color={focused ? colors.primary : colors.muted}
       />
     </View>

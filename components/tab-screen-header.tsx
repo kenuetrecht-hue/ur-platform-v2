@@ -41,7 +41,7 @@ export function TabScreenHeader({
       ) : null}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         {icon ? <Text style={{ fontSize: compact ? 22 : 28 }}>{icon}</Text> : null}
-        <Text style={[styles.title, compact && styles.titleCompact, { color: colors.foreground }]}>
+        <Text style={[styles.title, compact && styles.titleCompact, { color: colors.gold }]}>
           {title}
         </Text>
       </View>
@@ -78,8 +78,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   wrapCompact: {
-    paddingTop: 4,
-    paddingBottom: 8,
+    paddingTop: 0,
+    paddingBottom: 4,
+    gap: 2,
   },
   title: {
     fontSize: 28,
@@ -87,7 +88,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   titleCompact: {
-    fontSize: 22,
+    fontSize: 18,
   },
   subtitle: {
     fontSize: 15,
@@ -98,10 +99,10 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   accentLine: {
-    height: 3,
-    width: 64,
+    height: 2,
+    width: 48,
     borderRadius: 2,
-    marginTop: 8,
+    marginTop: 4,
     opacity: 0.9,
   },
 });

@@ -8,15 +8,15 @@ import { Platform } from "react-native";
  * - Platform disclosure bars (PlatformDisclosureFrame)
  */
 export const LAYOUT_OVERLAP = {
-  TAB_BAR_CONTENT_HEIGHT: 56,
-  TAB_BAR_TOP_PADDING: 6,
-  TAB_BAR_MIN_BOTTOM_INSET: 8,
+  TAB_BAR_CONTENT_HEIGHT: 42,
+  TAB_BAR_TOP_PADDING: 2,
+  TAB_BAR_MIN_BOTTOM_INSET: 4,
   /** PlatformDisclosureBar content below status inset (top bar). */
-  TOP_DISCLOSURE_CONTENT_HEIGHT: 37,
+  TOP_DISCLOSURE_CONTENT_HEIGHT: 28,
   /** PlatformDisclosureBar content above home indicator (bottom bar on non-tab screens). */
-  BOTTOM_DISCLOSURE_CONTENT_HEIGHT: 37,
-  /** Compact disclosure row above tab bar (2 lines + padding). */
-  BOTTOM_DISCLOSURE_ABOVE_TAB_HEIGHT: 40,
+  BOTTOM_DISCLOSURE_CONTENT_HEIGHT: 28,
+  /** Compact disclosure row above tab bar (1 line + padding). */
+  BOTTOM_DISCLOSURE_ABOVE_TAB_HEIGHT: 26,
   COMPOSER_MIN_PADDING: 8,
   /** Gap so the compose card does not kiss the tab / legal strip. */
   COMPOSER_DOCK_GAP: 10,

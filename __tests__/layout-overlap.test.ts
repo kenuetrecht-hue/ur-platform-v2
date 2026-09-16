@@ -12,6 +12,11 @@ import {
 } from "../lib/layout-overlap";
 
 describe("layout-overlap", () => {
+  it("keeps the tab row and AI warning strip compact so the page scroll is taller", () => {
+    expect(LAYOUT_OVERLAP.TAB_BAR_CONTENT_HEIGHT).toBeLessThanOrEqual(44);
+    expect(LAYOUT_OVERLAP.BOTTOM_DISCLOSURE_ABOVE_TAB_HEIGHT).toBeLessThanOrEqual(28);
+  });
+
   it("counts the legal strip plus the icon row as tab chrome", () => {
     const inset = 0;
     expect(bottomTabChromeHeight(inset)).toBe(

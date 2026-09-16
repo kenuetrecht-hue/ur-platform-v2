@@ -81,13 +81,13 @@ function TabInner({
   colors: ReturnType<typeof useColors>;
 }) {
   const iconColor = active ? "#FFFFFF" : colors.primary;
-  const labelColor = active ? "#FFFFFF" : colors.foreground;
+  const labelColor = active ? "#FFFFFF" : colors.gold;
 
   return (
     <>
       <View style={styles.iconWrap}>
         {tab.emoji ? (
-          <Text style={{ fontSize: 16, lineHeight: 20 }}>{tab.emoji}</Text>
+          <Text style={{ fontSize: 13, lineHeight: 16 }}>{tab.emoji}</Text>
         ) : tab.icon ? (
           <IconSymbol name={tab.icon} size={18} color={iconColor} />
         ) : null}
@@ -112,9 +112,9 @@ function TabInner({
 const styles = StyleSheet.create({
   wrap: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 6,
-    paddingTop: 6,
-    paddingBottom: 8,
+    paddingHorizontal: 4,
+    paddingTop: 2,
+    paddingBottom: 3,
   },
   row: {
     flexDirection: "row",
@@ -126,23 +126,23 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   activePill: {
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
+    borderRadius: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 3,
     alignItems: "center",
-    gap: 3,
+    gap: 1,
   },
   inactivePill: {
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
+    borderRadius: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 3,
     alignItems: "center",
-    gap: 3,
+    gap: 1,
   },
   iconWrap: {
     position: "relative",
-    width: 22,
-    height: 22,
+    width: 18,
+    height: 16,
     alignItems: "center",
     justifyContent: "center",
   },

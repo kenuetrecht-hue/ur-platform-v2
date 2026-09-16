@@ -80,10 +80,10 @@ export default function OwnerOpsScreen() {
 
   const chipStyle = {
     backgroundColor: colors.primary,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    minHeight: 40,
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    minHeight: 28,
     justifyContent: "center" as const,
   };
 
@@ -137,7 +137,6 @@ export default function OwnerOpsScreen() {
           compact
           icon="🏛️"
           title="Administration"
-          subtitle="Tap a tab."
         />
         {access.isLoading ? (
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -145,19 +144,19 @@ export default function OwnerOpsScreen() {
           </View>
         ) : canAccessAdminDashboard ? (
           <View style={{ flex: 1, minHeight: 0 }}>
-            <View style={{ paddingHorizontal: 16, paddingBottom: 8, gap: 8 }}>
-              <Text style={{ color: colors.muted, fontSize: 13 }}>
+            <View style={{ paddingHorizontal: 12, paddingBottom: 4, gap: 4 }}>
+              <Text style={{ color: colors.gold, fontSize: 12, fontWeight: "700" }}>
                 {isPlatformOwner
                   ? ownerDisplayName
                   : `Staff · ${adminRoleLabel ?? "Limited role"}`}
               </Text>
               {ownerQuickActions.length > 0 ? (
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                   {ownerQuickActions.map((action) => {
                     const label = (
                       <Text
                         pointerEvents="none"
-                        style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}
+                        style={{ color: "#fff", fontWeight: "600", fontSize: 11 }}
                       >
                         {action.label}
                       </Text>
