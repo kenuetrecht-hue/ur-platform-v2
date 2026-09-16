@@ -10,6 +10,9 @@ describe("Railway MySQL table setup", () => {
     expect(dockerfile).toContain("COPY --from=builder --chown=nodejs:nodejs /app/scripts ./scripts");
     expect(dockerfile).toContain("COPY --from=builder --chown=nodejs:nodejs /app/drizzle ./drizzle");
     expect(dockerfile).toContain('CMD ["node", "scripts/start-production.js"]');
+    expect(dockerfile).not.toContain("build:web failed");
+    expect(dockerfile).toContain("test -f dist-web/index.html");
+    expect(dockerfile).toContain("GIT_COMMIT_SHA");
     expect(railway).toContain("node scripts/run-all-migrations.js");
     expect(start).toContain("run-all-migrations.js");
     expect(migrate).toContain("drizzle-kit");
@@ -19,6 +22,8 @@ describe("Railway MySQL table setup", () => {
   it("tells Railway to ship main and the three Sign up pages", () => {
     const brief = readFileSync("RAILWAY.md", "utf8");
     expect(brief).toContain("**`main` only**");
+    expect(brief).toContain("https://urplatform.llc/login");
+    expect(brief).toContain("hasWeb");
     expect(brief).toContain("/signup");
     expect(brief).toContain("/signup-id");
     expect(brief).toContain("/signup-selfie");

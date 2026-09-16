@@ -10,12 +10,10 @@ import { Platform } from "react-native";
 export const LAYOUT_OVERLAP = {
   TAB_BAR_CONTENT_HEIGHT: 42,
   TAB_BAR_TOP_PADDING: 2,
-  /** Floor when the OS reports no inset (web, some Androids). */
-  TAB_BAR_MIN_BOTTOM_INSET: 24,
-  /** iPhone / iPad home indicator. */
+  /** Floor when the OS reports no inset (desktop web). */
+  TAB_BAR_MIN_BOTTOM_INSET: 0,
+  /** iPhone / iPad home indicator when native inset is missing. */
   IOS_HOME_INDICATOR_INSET: 34,
-  /** Touch phones/tablets: Safari/Chrome bottom toolbar is taller than the home bar. */
-  WEB_TOUCH_BOTTOM_INSET: 56,
   /** PlatformDisclosureBar content below status inset (top bar). */
   TOP_DISCLOSURE_CONTENT_HEIGHT: 28,
   /** PlatformDisclosureBar content above home indicator (bottom bar on non-tab screens). */
@@ -76,17 +74,6 @@ export function composerDockPadding(args: {
   return visual + android + missingDisclosure;
 }
 
-function isCoarsePointer(): boolean {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-    return false;
-  }
-  try {
-    return window.matchMedia("(pointer: coarse)").matches;
-  } catch {
-    return false;
-  }
-}
-
 function readCssSafeAreaBottom(): number {
   if (typeof document === "undefined") return 0;
   try {
@@ -107,16 +94,13 @@ export function measureWebBottomOcclusion(): number {
   return Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
 }
 
-/** Space under the tab labels so they sit above the phone home bar / Safari toolbar. */
-export function effectiveTabBarBottomInset(safeBottom: number, occlusion = 0): number {
+/** Home-indicator padding inside the real tab bar. Do not invent a second toolbar. */
+export function effectiveTabBarBottomInset(safeBottom: number, _occlusion = 0): number {
   const css = Platform.OS === "web" ? readCssSafeAreaBottom() : 0;
-  const platformFloor =
-    Platform.OS === "ios"
-      ? LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET
-      : Platform.OS === "web" && isCoarsePointer()
-        ? LAYOUT_OVERLAP.WEB_TOUCH_BOTTOM_INSET
-        : LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET;
-  return Math.max(safeBottom, css, platformFloor, occlusion);
+  if (Platform.OS === "ios") {
+    return Math.max(safeBottom, css, LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET);
+  }
+  return Math.max(safeBottom, css, LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET);
 }
 
 export function tabBarTotalHeight(bottomSafeInset: number): number {

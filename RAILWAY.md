@@ -9,10 +9,10 @@ This file is the contract for the **live website**. Railway has been serving an 
 | GitHub repo | `kenuetrecht-hue/ur-platform-v2` (**private** — do not make it public) |
 | Branch Railway must build | **`main` only** |
 | Work branch (same code after we push) | `chat` — we push `chat` then update `main` to match |
-| Live URL | https://ur-platform-v2-production.up.railway.app |
-| Login | https://ur-platform-v2-production.up.railway.app/login |
-| Health | https://ur-platform-v2-production.up.railway.app/api/health |
-| Which Railway box | The **website** service whose public URL is `ur-platform-v2-production.up.railway.app`. Not the MySQL box. |
+| Live URL | https://urplatform.llc |
+| Login | https://urplatform.llc/login |
+| Health | https://urplatform.llc/health — JSON includes `git` (commit SHA) and `hasWeb` (true only if dist-web exists) |
+| Which Railway box | The **website** service whose public domain is **urplatform.llc**. Not the MySQL box. |
 
 **Always deploy the newest commit on `main`.** Do not redeploy an older “Success” build. If `chat` and `main` are the same SHA, you have the right code.
 
@@ -53,8 +53,8 @@ If Sign up still shows cameras on the **same** page as name/email/password, you 
    `node scripts/start-production.js`  
    That runs table setup, then the website. Do not override start to `node dist/index.mjs` only, or tables may never be created.
 4. `preDeployCommand` is `node scripts/run-all-migrations.js`.
-5. Watch the **build log**. If you see `build:web failed — shipping API + fallback page`, the website JS is incomplete. **Fail the deploy** and rebuild. Do not leave testers on a half-built site.
-6. After **Success**, confirm the new commit SHA in the Railway deployment matches GitHub `main`.
+5. Watch the **build log**. `pnpm build:web` must produce `dist-web/index.html`. If that file is missing, the Docker build **fails**. Do not ship an API-only image.
+6. After **Success**, open https://urplatform.llc/health — `git` must match GitHub `main`, and `hasWeb` must be `true`.
 
 ## How to prove the new pages are live
 

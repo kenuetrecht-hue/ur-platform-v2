@@ -26,6 +26,7 @@ import { isSupabaseConfiguredOnServer, isSupabaseAuthReachable } from "../supaba
 import { resolveSupabasePublicConfig, supabaseUnreachableHint } from "../../shared/supabase-config";
 import * as db from "../db";
 import { registerStaticWeb } from "./static-web";
+import { getWebDeployHealth } from "./deploy-info";
 import { registerJoinEmanualPdfRoute } from "./join-emanual-pdf-route";
 import {
   getCommerceMode,
@@ -154,7 +155,7 @@ async function startServer() {
   registerAgeKycFastRoute(app);
 
   app.get("/health", (_req, res) => {
-    res.status(200).json({ ok: true });
+    res.status(200).json({ ok: true, ...getWebDeployHealth() });
   });
 
   app.get("/api/health", async (_req, res) => {
@@ -163,6 +164,7 @@ async function startServer() {
     res.json({
       ok: true,
       timestamp: Date.now(),
+      ...getWebDeployHealth(),
       auth: {
         supabaseConfigured: isSupabaseConfiguredOnServer(),
         supabaseReachable,

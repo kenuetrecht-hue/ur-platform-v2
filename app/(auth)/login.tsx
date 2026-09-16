@@ -11,6 +11,7 @@ import {
   LOGIN_PAYOUT_BANNER_TIPS,
 } from "@/lib/login-payout-banner";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
+import { LandingDeviceDownloadLinks } from "@/components/landing/landing-app-download-link";
 
 /** First door: email, password, Login. Sign up is a bubble. */
 export default function LoginScreen() {
@@ -62,6 +63,7 @@ export default function LoginScreen() {
                 <Text style={styles.signupLabel}>Sign up</Text>
               </LinearGradient>
             </Link>
+            <LandingDeviceDownloadLinks variant="login" />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

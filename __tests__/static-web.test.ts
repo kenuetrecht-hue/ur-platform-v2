@@ -22,6 +22,7 @@ describe("static-web", () => {
     const source = readFileSync("server/_core/static-web.ts", "utf8");
     expect(source).toContain("registerPwaInstallFiles");
     expect(source).toContain("manifest.webmanifest");
-    expect(source).toContain("sw.js");
+    expect(source).toContain("Cache-Control");
+    expect(source).toContain("no-cache");
   });
 });

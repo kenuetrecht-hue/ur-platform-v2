@@ -28,12 +28,15 @@ ENV SUPABASE_URL=$SUPABASE_URL
 ENV CI=1
 ENV EXPO_NO_TELEMETRY=1
 ENV NODE_OPTIONS=--max-old-space-size=4096
+ARG RAILWAY_GIT_COMMIT_SHA=""
+ENV GIT_COMMIT_SHA=$RAILWAY_GIT_COMMIT_SHA
 # NativeWind writes this path during export; Metro SHA-1 fails if it is missing.
 RUN mkdir -p node_modules/react-native-css-interop/.cache \
   && printf '/* nativewind cache seed */\n' > node_modules/react-native-css-interop/.cache/web.css \
   && pnpm run build \
   && mkdir -p dist-web \
-  && (pnpm run build:web || echo "[docker] build:web failed — shipping API + fallback page") \
+  && pnpm run build:web \
+  && test -f dist-web/index.html \
   && cp -f public/manifest.webmanifest public/sw.js dist-web/
 
 FROM node:22-bookworm-slim
@@ -43,6 +46,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV WEB_DIST_PATH=/app/dist-web
+ARG RAILWAY_GIT_COMMIT_SHA=""
+ENV GIT_COMMIT_SHA=$RAILWAY_GIT_COMMIT_SHA
 
 RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 --gid 1001 nodejs

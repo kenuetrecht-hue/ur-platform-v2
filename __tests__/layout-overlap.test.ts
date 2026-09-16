@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { readFileSync } from "fs";
 
 vi.mock("react-native", () => ({
   Platform: { OS: "web", constants: {} },
@@ -61,12 +62,15 @@ describe("layout-overlap", () => {
     expect(padding).toBeLessThan(LAYOUT_OVERLAP.BOTTOM_DISCLOSURE_ABOVE_TAB_HEIGHT + 24);
   });
 
-  it("keeps a floor under the tab labels when the phone reports no inset", () => {
-    expect(effectiveTabBarBottomInset(0)).toBeGreaterThanOrEqual(
-      LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET,
-    );
+  it("pads the real tab bar with the home indicator, not a second toolbar", () => {
+    expect(effectiveTabBarBottomInset(0)).toBe(0);
+    expect(effectiveTabBarBottomInset(0, 70)).toBe(0);
     expect(effectiveTabBarBottomInset(40)).toBe(40);
-    expect(tabBarTotalHeight(0)).toBeGreaterThan(tabBarIconsOnlyHeight());
-    expect(effectiveTabBarBottomInset(0, 70)).toBe(70);
+    expect(tabBarTotalHeight(34)).toBeGreaterThan(tabBarIconsOnlyHeight());
+    expect(LAYOUT_OVERLAP).not.toHaveProperty("WEB_TOUCH_BOTTOM_INSET");
+    expect(readFileSync("components/tab-bar-with-disclosure.tsx", "utf8")).not.toContain(
+      "ur-phone-home-bar-clearance",
+    );
+    expect(readFileSync("global.css", "utf8")).toContain(".ur-tab-dock");
   });
 });

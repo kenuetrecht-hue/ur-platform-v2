@@ -19,11 +19,9 @@ body > div:first-child {
   max-height: 100%;
 }
 
-.ur-phone-home-bar-clearance {
-  width: 100%;
-  flex-shrink: 0;
-  min-height: 56px;
-  height: max(56px, calc(env(safe-area-inset-bottom, 0px) + 24px));
+.ur-tab-dock {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
 }
 
 :root {

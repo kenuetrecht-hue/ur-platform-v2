@@ -39,6 +39,7 @@ describe("home hub", () => {
     expect(home).toContain("HubTabBar");
     expect(home).toContain("HOME_HUB_TAB_ROWS");
     expect(home).toContain("HOME_DOWNLOAD_DOORS");
+    expect(readFileSync("app/(auth)/login.tsx", "utf8")).toContain("LandingDeviceDownloadLinks");
     expect(home).toContain("PasswordRemindBanner");
     expect(home).toContain("DailyLoyaltyBanner");
     expect(home).toContain("AiFreeBoardPanel");

@@ -34,24 +34,33 @@ export function LandingAppDownloadLink({ variant }: { variant: Variant }) {
   );
 }
 
-export function LandingDeviceDownloadLinks({ variant = "hero" }: { variant?: "hero" | "footer" }) {
+export function LandingDeviceDownloadLinks({
+  variant = "hero",
+}: {
+  variant?: "hero" | "footer" | "login";
+}) {
   const items = [
     { surface: "ios" as const, label: IPHONE_DOWNLOAD_LABEL },
     { surface: "android" as const, label: ANDROID_DOWNLOAD_LABEL },
     { surface: "desktop" as const, label: COMPUTER_DOWNLOAD_LABEL },
   ];
+  const rowStyle =
+    variant === "login" ? styles.loginRow : variant === "hero" ? styles.heroRow : styles.footerRow;
+  const btnStyle = variant === "login" ? styles.login : variant === "hero" ? styles.hero : styles.footer;
+  const textStyle =
+    variant === "login" ? styles.loginText : variant === "hero" ? styles.heroText : styles.footerText;
 
   return (
-    <View style={variant === "hero" ? styles.heroRow : styles.footerRow}>
+    <View style={rowStyle}>
       {items.map((item) => (
         <Link key={item.surface} href={downloadPathForSurface(item.surface)} asChild>
           <Pressable
-            style={variant === "hero" ? styles.hero : styles.footer}
+            style={btnStyle}
             accessibilityRole="link"
             accessibilityLabel={item.label}
             testID={`landing-download-${item.surface}`}
           >
-            <Text style={variant === "hero" ? styles.heroText : styles.footerText}>{item.label}</Text>
+            <Text style={textStyle}>{item.label}</Text>
           </Pressable>
         </Link>
       ))}
@@ -94,4 +103,19 @@ const styles = StyleSheet.create({
     gap: 16,
     width: "100%",
   },
+  loginRow: {
+    width: "100%",
+    gap: 8,
+    marginTop: 4,
+  },
+  login: {
+    borderWidth: 1,
+    borderColor: T.gold,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: "center",
+    width: "100%",
+    ...webPointer,
+  },
+  loginText: { color: T.gold, fontWeight: "800", fontSize: 15 },
 });

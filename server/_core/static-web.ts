@@ -78,6 +78,7 @@ export function registerStaticWeb(app: express.Application): boolean {
       next();
       return;
     }
+    res.setHeader("Cache-Control", "no-cache");
     res.sendFile(path.join(distPath, "index.html"));
   });
 
