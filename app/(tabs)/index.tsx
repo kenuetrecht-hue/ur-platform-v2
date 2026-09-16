@@ -21,7 +21,7 @@ import { trpc } from "@/lib/trpc";
 import { HubTabBar } from "@/components/hub-tab-bar";
 import { HubDoorGrid, HubDoorTile } from "@/components/hub-door-tile";
 import {
-  HOME_HUB_TABS,
+  HOME_HUB_TAB_ROWS,
   HOME_MAIN_DOORS,
   HOME_STUDIO_DOORS,
   isHomeHubTabId,
@@ -47,13 +47,16 @@ export default function HomeScreen() {
         icon="🏠"
         title={user?.name ? user.name : "Home"}
       />
-      <HubTabBar
-        tabs={HOME_HUB_TABS}
-        activeId={hubTab}
-        onSelect={(id) => {
-          if (isHomeHubTabId(id)) setHubTab(id);
-        }}
-      />
+      {HOME_HUB_TAB_ROWS.map((row, index) => (
+        <HubTabBar
+          key={`home-row-${index}`}
+          tabs={row}
+          activeId={hubTab}
+          onSelect={(id) => {
+            if (isHomeHubTabId(id)) setHubTab(id);
+          }}
+        />
+      ))}
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 36, gap: 12 }}
         showsVerticalScrollIndicator={false}

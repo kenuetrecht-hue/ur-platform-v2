@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "fs";
 import {
   HOME_HUB_TABS,
+  HOME_HUB_TAB_ROWS,
   HOME_MAIN_DOORS,
   HOME_STUDIO_DOORS,
   isHomeHubTabId,
@@ -18,6 +19,9 @@ describe("home hub", () => {
     ]);
     expect(isHomeHubTabId("studios")).toBe(true);
     expect(isHomeHubTabId("scroll")).toBe(false);
+    expect(HOME_HUB_TABS.find((tab) => tab.id === "daily")?.label).toBe("Why back");
+    expect(HOME_HUB_TABS.find((tab) => tab.id === "board")?.label).toBe("Free board");
+    expect(HOME_HUB_TAB_ROWS).toHaveLength(2);
     expect(HOME_STUDIO_DOORS.some((door) => door.id === "world")).toBe(true);
     expect(HOME_MAIN_DOORS.some((door) => door.label === "AIs")).toBe(true);
 
@@ -27,6 +31,7 @@ describe("home hub", () => {
     const profile = readFileSync("app/(tabs)/profile.tsx", "utf8");
     const social = readFileSync("components/social-hub-tab-bar.tsx", "utf8");
     expect(home).toContain("HubTabBar");
+    expect(home).toContain("HOME_HUB_TAB_ROWS");
     expect(home).toContain("PasswordRemindBanner");
     expect(home).toContain("DailyLoyaltyBanner");
     expect(home).toContain("AiFreeBoardPanel");
@@ -46,6 +51,8 @@ describe("home hub", () => {
     const screen = readFileSync("components/screen-container.tsx", "utf8");
     const login = readFileSync("components/auth-door-stage.tsx", "utf8");
     expect(screen).toContain("BrandColorStage");
+    expect(screen).toContain("withoutPageFill");
+    expect(screen).toContain('backgroundColor: "transparent"');
     expect(login).toContain("BrandColorStage");
 
     const tabs = readFileSync("app/(tabs)/_layout.tsx", "utf8");

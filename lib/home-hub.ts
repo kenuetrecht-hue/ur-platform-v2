@@ -3,10 +3,15 @@ import type { Href } from "expo-router";
 
 export const HOME_HUB_TABS: HubTabItem[] = [
   { id: "start", label: "Start", emoji: "🏠" },
-  { id: "daily", label: "Daily", emoji: "☀️" },
-  { id: "board", label: "Board", emoji: "🆓" },
+  { id: "daily", label: "Why back", emoji: "☀️" },
+  { id: "board", label: "Free board", emoji: "🆓" },
   { id: "studios", label: "Studios", emoji: "🎬" },
   { id: "doors", label: "Doors", emoji: "🚪" },
+];
+
+export const HOME_HUB_TAB_ROWS = [
+  HOME_HUB_TABS.filter((tab) => tab.id === "start" || tab.id === "daily" || tab.id === "board"),
+  HOME_HUB_TABS.filter((tab) => tab.id === "studios" || tab.id === "doors"),
 ];
 
 export type HomeHubTabId = "start" | "daily" | "board" | "studios" | "doors";

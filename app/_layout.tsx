@@ -71,7 +71,12 @@ export default function RootLayout() {
                 <AuthRouteGuard>
                   <PlatformDisclosureFrame>
                     <OwnerEmergencyAlarm />
-                    <Stack screenOptions={{ headerShown: false }} />
+                    <Stack
+                      screenOptions={{
+                        headerShown: false,
+                        contentStyle: { backgroundColor: "transparent" },
+                      }}
+                    />
                   </PlatformDisclosureFrame>
                 </AuthRouteGuard>
               </AuthProvider>
