@@ -17,7 +17,7 @@ import {
 
 describe("layout-overlap", () => {
   it("keeps the tab row and AI warning strip compact so the page scroll is taller", () => {
-    expect(LAYOUT_OVERLAP.TAB_BAR_CONTENT_HEIGHT).toBeLessThanOrEqual(44);
+    expect(LAYOUT_OVERLAP.TAB_BAR_CONTENT_HEIGHT).toBeLessThanOrEqual(56);
     expect(LAYOUT_OVERLAP.BOTTOM_DISCLOSURE_ABOVE_TAB_HEIGHT).toBeLessThanOrEqual(28);
   });
 
@@ -74,6 +74,8 @@ describe("layout-overlap", () => {
     const css = readFileSync("global.css", "utf8");
     expect(tabBar).toContain("useTabBarBottomInset");
     expect(tabBar).toContain("paddingBottom: bottomPad");
+    expect(tabBar).toContain('testID="tab-bar-os-clearance"');
+    expect(tabBar).toContain('Platform.OS === "android"');
     expect(tabBar).toContain('className: "ur-tab-bar-web"');
     expect(tabBar).not.toContain('Platform.OS === "web" ? 0');
     expect(tabBar).not.toContain("WEB_TAB_BAR_BOTTOM_PAD");
@@ -101,7 +103,7 @@ describe("layout-overlap", () => {
       LAYOUT_OVERLAP.ANDROID_GESTURE_INSET + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE,
     );
     expect(resolveTabBarBottomInset({ platform: "android", safeBottom: 48 })).toBe(
-      48 + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE,
+      Math.max(48, LAYOUT_OVERLAP.ANDROID_GESTURE_INSET) + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE,
     );
     expect(resolveTabBarBottomInset({ platform: "web", safeBottom: 0 })).toBe(
       LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD,

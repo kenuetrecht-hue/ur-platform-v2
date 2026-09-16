@@ -8,8 +8,8 @@ import { Platform } from "react-native";
  * - Platform disclosure bars (PlatformDisclosureFrame)
  */
 export const LAYOUT_OVERLAP = {
-  TAB_BAR_CONTENT_HEIGHT: 42,
-  TAB_BAR_TOP_PADDING: 2,
+  TAB_BAR_CONTENT_HEIGHT: 52,
+  TAB_BAR_TOP_PADDING: 4,
   /** Floor when the OS reports no inset (desktop web). */
   TAB_BAR_MIN_BOTTOM_INSET: 0,
   /** iPhone / iPad home indicator when native inset is missing. */
@@ -27,10 +27,10 @@ export const LAYOUT_OVERLAP = {
   ANDROID_NAV_BAR_BUFFER: 6,
   /** Samsung One UI often needs a hair more clearance above the tab bar. */
   SAMSUNG_TAB_BUFFER: 4,
-  /** Gesture / 3-button nav when Android reports 0 (edge-to-edge). */
-  ANDROID_GESTURE_INSET: 48,
+  /** 3-button / gesture nav when Android reports 0 (edge-to-edge). */
+  ANDROID_GESTURE_INSET: 64,
   /** Extra empty pad so tab labels sit above the OS home bar, not on it. */
-  TAB_BAR_HOME_CLEARANCE: 24,
+  TAB_BAR_HOME_CLEARANCE: 48,
   /** Desktop-web floor when there is no home indicator. Phone web uses the OS inset instead. */
   WEB_TAB_BAR_BOTTOM_PAD: 20,
   /** AIs tab chrome above the chat panel (header + mode row + specialist bar). */

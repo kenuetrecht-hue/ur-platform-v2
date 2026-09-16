@@ -49,6 +49,13 @@ export function TabBarWithDisclosure(props: BottomTabBarProps) {
           <BottomTabBar {...props} />
         </BottomTabBarHeightCallbackContext.Provider>
       </View>
+      {Platform.OS === "android" ? (
+        <View
+          testID="tab-bar-os-clearance"
+          pointerEvents="none"
+          style={{ height: bottomPad, width: "100%" }}
+        />
+      ) : null}
     </View>
   );
 }
