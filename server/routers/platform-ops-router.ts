@@ -176,6 +176,10 @@ export const platformOpsRouter = router({
         userEmail: z.string().email().max(320),
         reason: z.string().max(500).optional(),
         expiresAt: z.string().datetime().optional(),
+        features: z
+          .array(z.enum(["ai_chat", "ai_learn", "ai_hive", "ai_sandbox"]))
+          .max(4)
+          .optional(),
       }),
     )
     .mutation(({ input }) =>
@@ -183,6 +187,7 @@ export const platformOpsRouter = router({
         userEmail: input.userEmail,
         reason: input.reason,
         expiresAt: input.expiresAt,
+        features: input.features ?? ["ai_chat"],
       }),
     ),
 

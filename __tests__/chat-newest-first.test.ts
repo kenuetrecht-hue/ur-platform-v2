@@ -22,6 +22,14 @@ describe("newestConversationFirst", () => {
     expect(thread.map((item) => item.text)).toEqual(["hi", "welcome"]);
   });
 
+  it("keeps Steward chat on the Administration Chat tab newest-first", () => {
+    const consoleSource = readFileSync("components/platform-ops-console.tsx", "utf8");
+    const ops = readFileSync("app/owner-ops.tsx", "utf8");
+    expect(consoleSource).toContain("CreatorAIInterface");
+    expect(ops).toContain('useState<OwnerOpsTabId>("chat")');
+    expect(ops).toContain("chatDesk");
+  });
+
   it("uses the same newest-first thread on website and app chats", () => {
     const files = [
       "components/creator-ai-interface.tsx",

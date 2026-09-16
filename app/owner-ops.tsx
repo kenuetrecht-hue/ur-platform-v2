@@ -14,6 +14,7 @@ import { SecurityNoticeOpsPanel } from "@/components/security-notice-ops-panel";
 import { OwnerSigninResetPanel } from "@/components/owner-signin-reset-panel";
 import { FoundingAudienceReviewPanel } from "@/components/founding-audience-review-panel";
 import { OwnerMemberCensusPanel } from "@/components/owner-member-census-panel";
+import { OwnerComplimentaryTextAccessPanel } from "@/components/owner-complimentary-text-access-panel";
 import { LandingDemoConversionStatsPanel } from "@/components/landing-demo-conversion-stats-panel";
 import { AdminDashboard } from "@/components/admin-dashboard";
 import { AppPressable } from "@/components/app-pressable";
@@ -22,8 +23,12 @@ import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { trpc } from "@/lib/trpc";
 import { View, Text, ActivityIndicator, ScrollView } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import { AiHubTabRow } from "@/components/ai-hub-tab-row";
-import { OWNER_OPS_TABS, type OwnerOpsTabId } from "@/lib/owner-ops-tabs";
+import { HubTabBar } from "@/components/hub-tab-bar";
+import {
+  OWNER_OPS_TAB_ROWS,
+  ownerOpsConsoleDesk,
+  type OwnerOpsTabId,
+} from "@/lib/owner-ops-tabs";
 
 export default function OwnerOpsScreen() {
   const colors = useColors();
@@ -38,15 +43,17 @@ export default function OwnerOpsScreen() {
   } = usePlatformOwner();
   const [showAdmin, setShowAdmin] = useState(false);
   const [stewardFocusNonce, setStewardFocusNonce] = useState(0);
-  const [opsTab, setOpsTab] = useState<OwnerOpsTabId>("ais");
+  const [opsTab, setOpsTab] = useState<OwnerOpsTabId>("chat");
   const params = useLocalSearchParams<{ ai?: string }>();
   const requestedOpsAi =
     typeof params.ai === "string" && isOwnerOpsAiId(params.ai) ? params.ai : BUSINESS_STEWARD_AI_ID;
   const access = trpc.platformOps.checkAccess.useQuery(undefined, { retry: 1 });
+  const consoleDesk = ownerOpsConsoleDesk(opsTab);
+  const chatDesk = opsTab === "chat";
 
   const focusBusinessSteward = () => {
     setShowAdmin(false);
-    setOpsTab("ais");
+    setOpsTab("chat");
     setStewardFocusNonce((n) => n + 1);
     router.setParams({ ai: BUSINESS_STEWARD_AI_ID });
   };
@@ -82,113 +89,115 @@ export default function OwnerOpsScreen() {
 
   const denied = !access.isLoading && !canAccessAdminDashboard;
 
+  const deskBody = (
+    <>
+      {consoleDesk ? (
+        <PlatformOpsConsole
+          desk={consoleDesk}
+          isPlatformOwner={isPlatformOwner}
+          initialAiId={requestedOpsAi}
+          focusStewardNonce={stewardFocusNonce}
+        />
+      ) : null}
+      {isPlatformOwner && opsTab === "people" ? (
+        <>
+          <OwnerComplimentaryTextAccessPanel />
+          <OwnerMemberCensusPanel />
+          <FoundingAudienceReviewPanel />
+        </>
+      ) : null}
+      {isPlatformOwner && opsTab === "command" ? <OwnerCommandCenterPanel /> : null}
+      {isPlatformOwner && opsTab === "conduct" ? <PlatformConductReviewPanel /> : null}
+      {isPlatformOwner && opsTab === "money" ? (
+        <>
+          <CommerceTrendOpsPanel />
+          <CommerceOpsPanel />
+        </>
+      ) : null}
+      {isPlatformOwner && opsTab === "security" ? (
+        <>
+          <SecurityNoticeOpsPanel />
+          <OwnerSigninResetPanel />
+        </>
+      ) : null}
+      {isPlatformOwner && opsTab === "more" ? (
+        <>
+          <FairShowOwnerPanel />
+          <LandingDemoConversionStatsPanel />
+        </>
+      ) : null}
+    </>
+  );
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenContainer className="bg-background">
         <TabScreenHeader
+          compact
           icon="🏛️"
           title="Administration"
-          subtitle={isPlatformOwner ? "Tap a tab." : "Staff tools."}
+          subtitle="Tap a tab."
         />
         {access.isLoading ? (
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
             <ActivityIndicator color={colors.primary} />
           </View>
         ) : canAccessAdminDashboard ? (
-          <ScrollView
-            contentContainerStyle={{ paddingBottom: 32 }}
-            keyboardShouldPersistTaps="handled"
-            nestedScrollEnabled
-          >
-            <View style={{ paddingHorizontal: 16, paddingBottom: 12, gap: 10 }}>
+          <View style={{ flex: 1, minHeight: 0 }}>
+            <View style={{ paddingHorizontal: 16, paddingBottom: 8, gap: 8 }}>
               <Text style={{ color: colors.muted, fontSize: 13 }}>
                 {isPlatformOwner
                   ? ownerDisplayName
                   : `Staff · ${adminRoleLabel ?? "Limited role"}`}
               </Text>
               {ownerQuickActions.length > 0 ? (
-                <View
-                  style={{
-                    backgroundColor: `${colors.primary}10`,
-                    borderRadius: 12,
-                    borderWidth: 1,
-                    borderColor: colors.primary,
-                    padding: 14,
-                    gap: 10,
-                  }}
-                >
-                  <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 14 }}>
-                    {isPlatformOwner ? "🔐 Owner control" : "📋 Your admin tools"}
-                  </Text>
-                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                    {ownerQuickActions.map((action) => {
-                      const label = (
-                        <Text
-                          pointerEvents="none"
-                          style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}
-                        >
-                          {action.label}
-                        </Text>
-                      );
-                      if (action.kind === "href") {
-                        return (
-                          <Link key={action.label} href={action.href} asChild>
-                            <AppPressable style={chipStyle}>{label}</AppPressable>
-                          </Link>
-                        );
-                      }
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                  {ownerQuickActions.map((action) => {
+                    const label = (
+                      <Text
+                        pointerEvents="none"
+                        style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}
+                      >
+                        {action.label}
+                      </Text>
+                    );
+                    if (action.kind === "href") {
                       return (
-                        <AppPressable key={action.label} onPress={action.onPress} style={chipStyle}>
-                          {label}
-                        </AppPressable>
+                        <Link key={action.label} href={action.href} asChild>
+                          <AppPressable style={chipStyle}>{label}</AppPressable>
+                        </Link>
                       );
-                    })}
-                  </View>
+                    }
+                    return (
+                      <AppPressable key={action.label} onPress={action.onPress} style={chipStyle}>
+                        {label}
+                      </AppPressable>
+                    );
+                  })}
                 </View>
               ) : null}
             </View>
-            {isPlatformOwner ? (
-              <AiHubTabRow
-                tabs={OWNER_OPS_TABS}
+            {OWNER_OPS_TAB_ROWS.map((row, index) => (
+              <HubTabBar
+                key={`owner-ops-row-${index}`}
+                tabs={[...row]}
                 activeId={opsTab}
                 onSelect={(id) => setOpsTab(id as OwnerOpsTabId)}
               />
-            ) : null}
-            {!isPlatformOwner || opsTab === "ais" ? (
-              <PlatformOpsConsole
-                isPlatformOwner={isPlatformOwner}
-                initialAiId={requestedOpsAi}
-                focusStewardNonce={stewardFocusNonce}
-              />
-            ) : null}
-            {isPlatformOwner && opsTab === "people" ? (
-              <>
-                <OwnerMemberCensusPanel />
-                <FoundingAudienceReviewPanel />
-              </>
-            ) : null}
-            {isPlatformOwner && opsTab === "command" ? <OwnerCommandCenterPanel /> : null}
-            {isPlatformOwner && opsTab === "conduct" ? <PlatformConductReviewPanel /> : null}
-            {isPlatformOwner && opsTab === "commerce" ? (
-              <>
-                <CommerceTrendOpsPanel />
-                <CommerceOpsPanel />
-              </>
-            ) : null}
-            {isPlatformOwner && opsTab === "security" ? (
-              <>
-                <SecurityNoticeOpsPanel />
-                <OwnerSigninResetPanel />
-              </>
-            ) : null}
-            {isPlatformOwner && opsTab === "more" ? (
-              <>
-                <FairShowOwnerPanel />
-                <LandingDemoConversionStatsPanel />
-              </>
-            ) : null}
-          </ScrollView>
+            ))}
+            {chatDesk ? (
+              <View style={{ flex: 1, minHeight: 0 }}>{deskBody}</View>
+            ) : (
+              <ScrollView
+                contentContainerStyle={{ paddingBottom: 32 }}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled
+              >
+                {deskBody}
+              </ScrollView>
+            )}
+          </View>
         ) : denied ? (
           <View style={{ padding: 24, gap: 14 }}>
             <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: "700" }}>

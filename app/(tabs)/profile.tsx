@@ -140,25 +140,6 @@ export default function ProfileScreen() {
                 label="Social"
                 onPress={() => router.push("/(tabs)/messages")}
               />
-              {isPlatformOwner ? (
-                <HubDoorTile
-                  emoji="📋"
-                  label="Business Steward"
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(tabs)/admin",
-                      params: { ai: "platform-business-steward-ai" },
-                    })
-                  }
-                />
-              ) : null}
-              {canAccessAdminDashboard ? (
-                <HubDoorTile
-                  emoji="🏛️"
-                  label="Admin"
-                  onPress={() => router.push("/(tabs)/admin")}
-                />
-              ) : null}
               {!canAccessAdminDashboard ? (
                 <HubDoorTile
                   emoji="🎬"

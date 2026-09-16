@@ -2,6 +2,8 @@ import { View, type ViewProps } from "react-native";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 
 import { cn } from "@/lib/utils";
+import { BrandColorStage } from "@/components/brand-color-stage";
+import { LANDING_THEME as T } from "@/lib/landing-theme";
 
 export interface ScreenContainerProps extends ViewProps {
   /**
@@ -26,17 +28,8 @@ export interface ScreenContainerProps extends ViewProps {
 /**
  * A container component that properly handles SafeArea and background colors.
  *
- * The outer View extends to full screen (including status bar area) with the background color,
- * while the inner SafeAreaView ensures content is within safe bounds.
- *
- * Usage:
- * ```tsx
- * <ScreenContainer className="p-4">
- *   <Text className="text-2xl font-bold text-foreground">
- *     Welcome
- *   </Text>
- * </ScreenContainer>
- * ```
+ * The outer View extends to full screen (including status bar area) with the login
+ * blue-to-purple wash, while the inner SafeAreaView keeps content in safe bounds.
  */
 export function ScreenContainer({
   children,
@@ -49,14 +42,11 @@ export function ScreenContainer({
 }: ScreenContainerProps) {
   return (
     <View
-      className={cn(
-        "flex-1",
-        "bg-background",
-        containerClassName
-      )}
-      style={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+      className={cn("flex-1", containerClassName)}
+      style={{ flex: 1, minHeight: 0, overflow: "hidden", backgroundColor: T.bg }}
       {...props}
     >
+      <BrandColorStage />
       <SafeAreaView
         edges={edges}
         className={cn("flex-1", safeAreaClassName)}

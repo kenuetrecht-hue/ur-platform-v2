@@ -21,22 +21,26 @@ import { PlatformSectionMaintenancePanel } from "@/components/platform-section-m
 import { PlatformContentProtectionPanel } from "@/components/platform-content-protection-panel";
 import { OwnerSocialPublisherPanel } from "@/components/owner-social-publisher-panel";
 import { OwnerPriceCatalogPanel } from "@/components/owner-price-catalog-panel";
+import { OwnerComplimentaryTextAccessPanel } from "@/components/owner-complimentary-text-access-panel";
 import { TransactionHistoryList } from "@/components/transaction-history-list";
 import { BUSINESS_STEWARD_AI_ID, OWNER_PLATFORM_OPS_CATALOG } from "@/lib/owner-platform-ops-catalog";
 import {
   OWNER_REMEDIATION_CONFIRM_PHRASE,
   isOwnerRemediationConfirmed,
 } from "@/lib/platform-ops-remediation-types";
+import { showOwnerOpsDesk, type PlatformOpsDesk } from "@/lib/owner-ops-tabs";
 
 export function PlatformOpsConsole({
   isPlatformOwner: isOwnerProp,
   initialAiId,
   focusStewardNonce = 0,
+  desk = "all",
 }: {
   isPlatformOwner?: boolean;
   initialAiId?: string;
   /** Incremented when the owner taps Business Steward on this page so chat is selected in place. */
   focusStewardNonce?: number;
+  desk?: PlatformOpsDesk;
 }) {
   const colors = useColors();
   const { isPlatformOwner: isOwnerHook, hasAdminPermission } = usePlatformOwner();
@@ -47,13 +51,13 @@ export function PlatformOpsConsole({
       ? initialAiId
       : BUSINESS_STEWARD_AI_ID,
   );
-  const [stewardSurface, setStewardSurface] = useState<"chat" | "learn">("chat");
+  const [stewardSurface, setStewardSurface] = useState<"chat" | "learn" | "assign">("chat");
+  const show = (name: Exclude<PlatformOpsDesk, "all">) => showOwnerOpsDesk(desk, name);
+  const chatDesk = desk === "chat";
   const [rejectNote, setRejectNote] = useState("");
   const [ownerInstructions, setOwnerInstructions] = useState("");
   const [instructionIncidentId, setInstructionIncidentId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [grantEmail, setGrantEmail] = useState("");
-  const [grantReason, setGrantReason] = useState("");
   const [staffEmail, setStaffEmail] = useState("");
   const [staffNote, setStaffNote] = useState("");
   const [staffRole, setStaffRole] = useState<AdminStaffRole>("viewer");
@@ -101,10 +105,6 @@ export function PlatformOpsConsole({
   const notifications = trpc.platformOps.listNotifications.useQuery(undefined, {
     enabled: hasAdminPermission("view_notifications"),
   });
-  const accessGrants = trpc.platformOps.listAccessGrants.useQuery(undefined, {
-    enabled: hasAdminPermission("grant_user_access"),
-  });
-
   const runScan = trpc.platformOps.runHealthScan.useMutation({
     onSuccess: () => {
       void utils.platformOps.listIncidents.invalidate();
@@ -158,14 +158,6 @@ export function PlatformOpsConsole({
     onSuccess: () => void utils.platformOps.listNotifications.invalidate(),
   });
 
-  const grantAccess = trpc.platformOps.grantFreeAccess.useMutation({
-    onSuccess: () => {
-      setGrantEmail("");
-      setGrantReason("");
-      void utils.platformOps.listAccessGrants.invalidate();
-    },
-  });
-
   const ledger = trpc.partnerDashboard.listAllTransactionsAdmin.useQuery(undefined, {
     enabled: hasAdminPermission("manage_ai_sessions"),
   });
@@ -189,10 +181,6 @@ export function PlatformOpsConsole({
     },
   });
 
-  const revokeGrant = trpc.platformOps.revokeFreeAccess.useMutation({
-    onSuccess: () => void utils.platformOps.listAccessGrants.invalidate(),
-  });
-
   const opsAis = OWNER_PLATFORM_OPS_CATALOG.filter((c) => {
     if (c.id === "platform-business-steward-ai" || c.id === "platform-world-director-ai") {
       return isPlatformOwner;
@@ -214,23 +202,25 @@ export function PlatformOpsConsole({
   const opsWelcome = `Owner channel active. I'm ${selectedMeta?.name ?? "Ops AI"}. I can diagnose, isolate a broken section, and draft a fix. Nothing is finalized until you type ${OWNER_REMEDIATION_CONFIRM_PHRASE} in Owner Ops.`;
 
   return (
-    <View style={{ paddingBottom: 32, gap: 16 }}>
-      <View style={[styles.banner, { backgroundColor: `${colors.primary}18`, borderColor: colors.primary }]}>
-        <Text style={[styles.bannerTitle, { color: colors.foreground }]}>
-          🏛️ Administration & ops
-        </Text>
-        <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
-          Business Steward is first — sales, ads, and running the site. World
-          Director sits with you for the city locker. Doctor, Administration, and
-          Security sit beside them. Members never see Steward or World Director.
-        </Text>
-      </View>
+    <View style={chatDesk ? styles.chatDesk : styles.stackDesk}>
+      {desk === "all" ? (
+        <View style={[styles.banner, { backgroundColor: `${colors.primary}18`, borderColor: colors.primary }]}>
+          <Text style={[styles.bannerTitle, { color: colors.foreground }]}>
+            🏛️ Administration & ops
+          </Text>
+          <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+            Business Steward is first — sales, ads, and running the site. World
+            Director sits with you for the city locker. Doctor, Administration, and
+            Security sit beside them. Members never see Steward or World Director.
+          </Text>
+        </View>
+      ) : null}
 
-      {isPlatformOwner ? <PlatformContentProtectionPanel /> : null}
-      {isPlatformOwner ? <OwnerPriceCatalogPanel /> : null}
-      {isPlatformOwner ? <OwnerSocialPublisherPanel /> : null}
+      {show("sections") && isPlatformOwner ? <PlatformContentProtectionPanel /> : null}
+      {show("prices") && isPlatformOwner ? <OwnerPriceCatalogPanel /> : null}
+      {show("posts") && isPlatformOwner ? <OwnerSocialPublisherPanel /> : null}
 
-      {isPlatformOwner ? (
+      {show("staff") && isPlatformOwner ? (
         <View style={{ gap: 10, paddingHorizontal: 16 }}>
           <Text style={[styles.sectionTitle, { color: colors.foreground, paddingHorizontal: 0 }]}>
             Admin staff access
@@ -309,7 +299,7 @@ export function PlatformOpsConsole({
         </View>
       ) : null}
 
-      {hasAdminPermission("view_ops_dashboard") ? (
+      {show("sections") && hasAdminPermission("view_ops_dashboard") ? (
       <View style={styles.statsRow}>
         {[
           { label: "Awaiting you", value: dashboard.data?.awaitingApproval ?? 0 },
@@ -324,7 +314,7 @@ export function PlatformOpsConsole({
       </View>
       ) : null}
 
-      {hasAdminPermission("run_health_scan") ? (
+      {show("sections") && hasAdminPermission("run_health_scan") ? (
       <Pressable
         onPress={() => runScan.mutate()}
         disabled={runScan.isPending}
@@ -338,55 +328,9 @@ export function PlatformOpsConsole({
       </Pressable>
       ) : null}
 
-      {hasAdminPermission("grant_user_access") ? (
-      <View style={{ gap: 10, paddingHorizontal: 16 }}>
-        <Text style={[styles.sectionTitle, { color: colors.foreground, paddingHorizontal: 0 }]}>
-          Complimentary access
-        </Text>
-        <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
-          Grant free AI access to anyone you choose. Everyone else must pay for membership or stamps.
-        </Text>
-        <TextInput
-          value={grantEmail}
-          onChangeText={setGrantEmail}
-          placeholder="User email to grant free access"
-          placeholderTextColor={colors.muted}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          style={[styles.grantInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
-        />
-        <TextInput
-          value={grantReason}
-          onChangeText={setGrantReason}
-          placeholder="Reason (optional)"
-          placeholderTextColor={colors.muted}
-          style={[styles.grantInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
-        />
-        <Pressable
-          onPress={() =>
-            grantAccess.mutate({
-              userEmail: grantEmail.trim(),
-              reason: grantReason.trim() || undefined,
-            })
-          }
-          disabled={grantAccess.isPending || !grantEmail.trim().includes("@")}
-          style={[styles.scanBtn, { marginHorizontal: 0, backgroundColor: grantEmail.trim().includes("@") ? colors.primary : colors.muted }]}
-        >
-          <Text style={styles.scanBtnText}>Grant free AI access</Text>
-        </Pressable>
-        {(accessGrants.data ?? []).filter((g) => !g.revokedAt).slice(0, 5).map((g) => (
-          <View key={g.id} style={[styles.card, { marginHorizontal: 0, backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={{ fontWeight: "700", color: colors.foreground }}>{g.userEmail}</Text>
-            {g.reason ? <Text style={{ color: colors.muted, fontSize: 12 }}>{g.reason}</Text> : null}
-            <Pressable onPress={() => revokeGrant.mutate({ grantId: g.id })} style={{ marginTop: 6 }}>
-              <Text style={{ color: "#dc2626", fontWeight: "600", fontSize: 12 }}>Revoke</Text>
-            </Pressable>
-          </View>
-        ))}
-      </View>
-      ) : null}
+      {show("staff") ? <OwnerComplimentaryTextAccessPanel /> : null}
 
-      {hasAdminPermission("view_notifications") && notifications.data && notifications.data.length > 0 ? (
+      {show("sections") && hasAdminPermission("view_notifications") && notifications.data && notifications.data.length > 0 ? (
         <View style={{ gap: 8 }}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Recent alerts</Text>
@@ -405,11 +349,11 @@ export function PlatformOpsConsole({
         </View>
       ) : null}
 
-      {isPlatformOwner ? (
+      {show("sections") && isPlatformOwner ? (
         <PlatformSectionMaintenancePanel canManage={isPlatformOwner} />
       ) : null}
 
-      {hasAdminPermission("view_incidents") ? (
+      {show("sections") && hasAdminPermission("view_incidents") ? (
       <View style={{ gap: 8 }}>
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Incidents</Text>
         {incidents.isLoading ? <ActivityIndicator color={colors.primary} /> : null}
@@ -609,11 +553,11 @@ export function PlatformOpsConsole({
       </View>
       ) : null}
 
-      {hasAdminPermission("manage_ai_sessions") ? (
+      {show("program") && hasAdminPermission("manage_ai_sessions") ? (
         <AiSessionProgrammingPanel />
       ) : null}
 
-      {hasAdminPermission("manage_ai_sessions") && ledger.data ? (
+      {show("ledger") && hasAdminPermission("manage_ai_sessions") && ledger.data ? (
         <View style={{ paddingHorizontal: 16, gap: 10, paddingBottom: 16 }}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
             Platform transactions ({ledger.data.stats.totalTransactions})
@@ -629,9 +573,11 @@ export function PlatformOpsConsole({
         </View>
       ) : null}
 
-      {hasAdminPermission("chat_ops_ai") ? (
-      <View style={{ gap: 8 }}>
-        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Ops AI chat</Text>
+      {show("chat") && hasAdminPermission("chat_ops_ai") ? (
+      <View style={chatDesk ? styles.chatDeskInner : { gap: 8 }}>
+        {chatDesk ? null : (
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Ops AI chat</Text>
+        )}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {opsAis.map((ai) => (
             <AppPressable
@@ -686,68 +632,12 @@ export function PlatformOpsConsole({
           </View>
         ) : null}
         {isSteward ? (
-          <View
-            style={[
-              styles.banner,
-              { backgroundColor: colors.surface, borderColor: colors.border, gap: 12 },
-            ]}
-          >
-            <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 13 }}>
-              Assign work to other AIs
-            </Text>
-            <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
-              Type below, or tap the microphone and speak any language — we print it here in English.
-              Example: “Have Songwriter write a UR anthem,” “Have Author Muse write an educational
-              ebook,” or “Have Content Helper write a video script.” Steward assigns that AI and saves
-              the draft here. Video files wait until the platform is earning; scripts are ready now.
-            </Text>
-            <VoicePromptField
-              creatorId="platform-business-steward-ai"
-              value={assignBrief}
-              onChangeText={setAssignBrief}
-              disabled={sendAssign.isPending}
-              sending={sendAssign.isPending}
-              sendLabel="Send assignment"
-              placeholder="Type or speak: Have Songwriter write a UR anthem…"
-              onSend={() => {
-                const brief = assignBrief.trim();
-                if (!brief || sendAssign.isPending) return;
-                sendAssign.mutate({
-                  creatorId: BUSINESS_STEWARD_AI_ID,
-                  message: brief,
-                });
-              }}
-            />
-            {assignHint ? (
-              <Text
-                style={{
-                  color: sendAssign.isError ? "#dc2626" : colors.muted,
-                  fontSize: 13,
-                  fontWeight: sendAssign.isError ? "700" : "400",
-                }}
-              >
-                {assignHint}
-              </Text>
-            ) : null}
-            {(stewardJobs.data ?? []).slice(0, 6).map((job) => (
-              <View key={job.id} style={{ gap: 4, paddingTop: 8 }}>
-                <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
-                  {job.specialistName} · {job.kindLabel}
-                </Text>
-                <Text style={{ color: colors.muted, fontSize: 12 }}>{job.title}</Text>
-                <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 17 }} numberOfLines={8}>
-                  {job.body}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-        {isSteward ? (
           <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16 }}>
             {(
               [
                 { id: "chat" as const, label: "💬 Chat" },
-                { id: "learn" as const, label: "📚 Learn the business" },
+                { id: "learn" as const, label: "📚 Learn" },
+                { id: "assign" as const, label: "📌 Assign" },
               ] as const
             ).map((tab) => {
               const active = stewardSurface === tab.id;
@@ -758,7 +648,7 @@ export function PlatformOpsConsole({
                   style={[
                     styles.opsChip,
                     {
-                      minWidth: 140,
+                      minWidth: 96,
                       backgroundColor: active ? colors.primary : colors.surface,
                       borderColor: active ? colors.primary : colors.border,
                     },
@@ -775,17 +665,7 @@ export function PlatformOpsConsole({
             })}
           </View>
         ) : null}
-        <View
-          style={{
-            minHeight: isSteward ? 760 : 480,
-            height: isSteward ? 880 : 480,
-            borderRadius: 14,
-            overflow: "hidden",
-            borderWidth: 1,
-            borderColor: colors.border,
-            marginHorizontal: 16,
-          }}
-        >
+        <View style={[chatDesk ? styles.chatPane : styles.chatPaneFixed, { borderColor: colors.border }]}>
           {isSteward && stewardSurface === "learn" ? (
             <AiLearnSurface
               creatorId={selectedMeta.id}
@@ -793,6 +673,60 @@ export function PlatformOpsConsole({
               creatorAvatar={selectedMeta.avatar}
               overlapOptions={{ reserveTabBar: false, headerChromeHeight: 48 }}
             />
+          ) : isSteward && stewardSurface === "assign" ? (
+            <ScrollView
+              contentContainerStyle={{ padding: 14, gap: 12, paddingBottom: 32 }}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 13 }}>
+                Assign work to other AIs
+              </Text>
+              <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+                Type below, or tap the microphone and speak any language — we print it here in English.
+                Example: “Have Songwriter write a UR anthem,” “Have Author Muse write an educational
+                ebook,” or “Have Content Helper write a video script.” Steward assigns that AI and saves
+                the draft here. Video files wait until the platform is earning; scripts are ready now.
+              </Text>
+              <VoicePromptField
+                creatorId="platform-business-steward-ai"
+                value={assignBrief}
+                onChangeText={setAssignBrief}
+                disabled={sendAssign.isPending}
+                sending={sendAssign.isPending}
+                sendLabel="Send assignment"
+                placeholder="Type or speak: Have Songwriter write a UR anthem…"
+                onSend={() => {
+                  const brief = assignBrief.trim();
+                  if (!brief || sendAssign.isPending) return;
+                  sendAssign.mutate({
+                    creatorId: BUSINESS_STEWARD_AI_ID,
+                    message: brief,
+                  });
+                }}
+              />
+              {assignHint ? (
+                <Text
+                  style={{
+                    color: sendAssign.isError ? "#dc2626" : colors.muted,
+                    fontSize: 13,
+                    fontWeight: sendAssign.isError ? "700" : "400",
+                  }}
+                >
+                  {assignHint}
+                </Text>
+              ) : null}
+              {(stewardJobs.data ?? []).slice(0, 6).map((job) => (
+                <View key={job.id} style={{ gap: 4, paddingTop: 8 }}>
+                  <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
+                    {job.specialistName} · {job.kindLabel}
+                  </Text>
+                  <Text style={{ color: colors.muted, fontSize: 12 }}>{job.title}</Text>
+                  <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 17 }} numberOfLines={8}>
+                    {job.body}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
           ) : (
             <CreatorAIInterface
               key={selectedOpsAi}
@@ -813,6 +747,25 @@ export function PlatformOpsConsole({
 }
 
 const styles = StyleSheet.create({
+  stackDesk: { paddingBottom: 32, gap: 16 },
+  chatDesk: { flex: 1, minHeight: 0, gap: 10, paddingBottom: 8 },
+  chatDeskInner: { flex: 1, minHeight: 0, gap: 8 },
+  chatPane: {
+    flex: 1,
+    minHeight: 0,
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+    marginHorizontal: 16,
+  },
+  chatPaneFixed: {
+    minHeight: 480,
+    height: 560,
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+    marginHorizontal: 16,
+  },
   banner: { marginHorizontal: 16, borderRadius: 14, borderWidth: 1, padding: 14, gap: 6 },
   bannerTitle: { fontSize: 17, fontWeight: "800" },
   statsRow: { flexDirection: "row", gap: 10, paddingHorizontal: 16 },

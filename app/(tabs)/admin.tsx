@@ -3,9 +3,9 @@ import { ActivityIndicator, View } from "react-native";
 import OwnerOpsScreen from "../owner-ops";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 
-/** Administration Dashboard in the tab bar — owner and authorized staff only. */
+/** Administration Dashboard — platform owner only, opened from Home. */
 export default function AdminTabScreen() {
-  const { canAccessAdminDashboard, isLoading } = usePlatformOwner();
+  const { isPlatformOwner, isLoading } = usePlatformOwner();
 
   if (isLoading) {
     return (
@@ -15,7 +15,7 @@ export default function AdminTabScreen() {
     );
   }
 
-  if (!canAccessAdminDashboard) {
+  if (!isPlatformOwner) {
     return <Redirect href="/home" />;
   }
 

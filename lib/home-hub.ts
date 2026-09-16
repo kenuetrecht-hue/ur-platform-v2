@@ -3,12 +3,13 @@ import type { Href } from "expo-router";
 
 export const HOME_HUB_TABS: HubTabItem[] = [
   { id: "start", label: "Start", emoji: "🏠" },
+  { id: "daily", label: "Daily", emoji: "☀️" },
+  { id: "board", label: "Board", emoji: "🆓" },
   { id: "studios", label: "Studios", emoji: "🎬" },
   { id: "doors", label: "Doors", emoji: "🚪" },
-  { id: "today", label: "Today", emoji: "☀️" },
 ];
 
-export type HomeHubTabId = "start" | "studios" | "doors" | "today";
+export type HomeHubTabId = "start" | "daily" | "board" | "studios" | "doors";
 
 export function isHomeHubTabId(value: string): value is HomeHubTabId {
   return HOME_HUB_TABS.some((tab) => tab.id === value);

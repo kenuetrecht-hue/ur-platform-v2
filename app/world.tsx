@@ -165,12 +165,6 @@ export default function UrWorldScreen() {
                 <Text style={[styles.body, { color: colors.muted, marginTop: 8 }]}>
                   Or tap Wear on UR Sheriff in your closet below. Playroom / 3D lab is for builds, not this plaza avatar.
                 </Text>
-                <Pressable
-                  onPress={() => router.push("/owner-ops")}
-                  style={[styles.btn, { backgroundColor: colors.primary, marginTop: 10 }]}
-                >
-                  <Text style={styles.btnText}>Open World Director</Text>
-                </Pressable>
               </View>
             ) : null}
 

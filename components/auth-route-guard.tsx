@@ -1,5 +1,4 @@
 import { useAuth } from "@/lib/auth-context";
-import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
@@ -79,7 +78,6 @@ function isPublicRoute(segments: string[]): boolean {
  */
 export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
-  const { canAccessAdminDashboard } = usePlatformOwner();
   const segments = useSegments();
   const router = useRouter();
   const [clientReady, setClientReady] = useState(false);
@@ -218,7 +216,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       !inDownload &&
       !isEmanualRoute(segments)
     ) {
-      router.replace(canAccessAdminDashboard ? "/(tabs)/admin" : AFTER_ID_PASS_HREF);
+      router.replace(AFTER_ID_PASS_HREF);
     }
   }, [
     clientReady,
@@ -230,7 +228,6 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     kycQuery.isLoading,
     kycQuery.isError,
     kycQuery.data,
-    canAccessAdminDashboard,
   ]);
 
   if (clientReady && isLoading && !isPublicRoute(segments)) {

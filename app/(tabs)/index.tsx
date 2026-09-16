@@ -34,7 +34,7 @@ export default function HomeScreen() {
   const colors = useColors();
   const router = useRouter();
   const dailySignIn = useDailySignIn();
-  const { canAccessAdminDashboard } = usePlatformOwner();
+  const { isPlatformOwner } = usePlatformOwner();
   const kyc = trpc.ageKyc.getStatus.useQuery(undefined, { retry: 0, staleTime: 45_000 });
   const needsIdPhotos = kyc.data?.verified !== true;
   const [hubTab, setHubTab] = useState<HomeHubTabId>("start");
@@ -73,7 +73,7 @@ export default function HomeScreen() {
             ) : null}
             <HubDoorGrid>
               <HubDoorTile emoji="📘" label="E-manual" onPress={() => router.push("/e-manual")} />
-              {canAccessAdminDashboard ? (
+              {isPlatformOwner ? (
                 <HubDoorTile
                   emoji="🏛️"
                   label="Admin"
@@ -97,27 +97,7 @@ export default function HomeScreen() {
           </HubDoorGrid>
         ) : null}
 
-        {hubTab === "doors" ? (
-          <HubDoorGrid>
-            {canAccessAdminDashboard ? (
-              <HubDoorTile
-                emoji="🏛️"
-                label="Admin"
-                onPress={() => router.push(ADMIN_TAB_HREF)}
-              />
-            ) : null}
-            {HOME_MAIN_DOORS.map((door) => (
-              <HubDoorTile
-                key={door.id}
-                emoji={door.emoji}
-                label={door.label}
-                onPress={() => router.push(door.href)}
-              />
-            ))}
-          </HubDoorGrid>
-        ) : null}
-
-        {hubTab === "today" ? (
+        {hubTab === "daily" ? (
           <>
             <DailyLoyaltyBanner
               totalPoints={dailySignIn.totalPoints}
@@ -137,7 +117,6 @@ export default function HomeScreen() {
             ) : null}
             <DailyHubPanel />
             <PlatformSearchPanel compact />
-            <AiFreeBoardPanel compact />
             <AppPressable
               onPress={() => router.push("/(tabs)/messages")}
               style={{
@@ -155,6 +134,22 @@ export default function HomeScreen() {
             <SocialFeedPreview />
           </>
         ) : null}
+
+        {hubTab === "board" ? <AiFreeBoardPanel compact /> : null}
+
+        {hubTab === "doors" ? (
+          <HubDoorGrid>
+            {HOME_MAIN_DOORS.map((door) => (
+              <HubDoorTile
+                key={door.id}
+                emoji={door.emoji}
+                label={door.label}
+                onPress={() => router.push(door.href)}
+              />
+            ))}
+          </HubDoorGrid>
+        ) : null}
+
       </ScrollView>
     </ScreenContainer>
   );
