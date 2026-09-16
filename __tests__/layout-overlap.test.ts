@@ -75,8 +75,11 @@ describe("layout-overlap", () => {
     expect(tabBar).toContain('Platform.OS === "web"');
     expect(tabBar).toContain("WEB_TAB_BAR_BOTTOM_PAD");
     expect(tabBar).toContain("insets.bottom");
+    expect(tabBar).toContain('className: "ur-tab-bar-web"');
     expect(tabBar).not.toContain('Platform.OS === "web" ? 0');
     expect(LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD).toBe(20);
+    expect(readFileSync("global.css", "utf8")).toContain("padding-bottom: 20px");
+    expect(readFileSync("global.css", "utf8")).toContain(".ur-tab-bar-web");
     expect(readFileSync("app/(tabs)/_layout.tsx", "utf8")).toContain('position: "relative"');
     expect(readFileSync("app/(tabs)/_layout.tsx", "utf8")).toContain(
       "safeAreaInsets={{ top: 0, right: 0, bottom: 0, left: 0 }}",

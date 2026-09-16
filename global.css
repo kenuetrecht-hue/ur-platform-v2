@@ -19,6 +19,11 @@ body > div:first-child {
   max-height: 100%;
 }
 
+.ur-tab-bar-web {
+  padding-bottom: 20px;
+  box-sizing: border-box;
+}
+
 :root {
   color: #ffd700;
   --ur-safe-bottom: env(safe-area-inset-bottom, 0px);

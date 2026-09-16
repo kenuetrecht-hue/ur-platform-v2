@@ -60,10 +60,10 @@ export function HomeLaunchPromoBanner() {
   if (!isActive) {
     return (
       <View style={[styles.inactiveWrap, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-        <Text style={[styles.inactiveTitle, { color: colors.foreground }]}>
+        <Text style={[styles.inactiveTitle, { color: colors.onWhite }]}>
           Launch window closed
         </Text>
-        <Text style={[styles.inactiveSub, { color: colors.muted }]}>
+        <Text style={[styles.inactiveSub, { color: colors.secondary }]}>
           The {LAUNCH_SIGNUP_WINDOW_DAYS}-day creator tier promotion has ended. Share UR Platform
           from your affiliate dashboard to keep earning referrals.
         </Text>

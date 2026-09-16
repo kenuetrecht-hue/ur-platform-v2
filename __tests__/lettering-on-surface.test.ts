@@ -35,6 +35,11 @@ describe("lettering on white vs colored backgrounds", () => {
     const tiles = readFileSync("components/hub-door-tile.tsx", "utf8");
     expect(tiles).toContain("colors.onWhite");
 
+    const launch = readFileSync("components/home-launch-promo-banner.tsx", "utf8");
+    expect(launch).toContain("Launch window closed");
+    expect(launch).toContain("colors.onWhite");
+    expect(launch).not.toMatch(/Launch window closed[\s\S]{0,80}colors\.foreground/);
+
     const tabs = readFileSync("app/(tabs)/_layout.tsx", "utf8");
     expect(tabs).toContain("colors.onWhite");
 

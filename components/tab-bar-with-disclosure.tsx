@@ -34,6 +34,7 @@ export function TabBarWithDisclosure(props: BottomTabBarProps) {
 
   return (
     <View
+      {...(Platform.OS === "web" ? { className: "ur-tab-bar-web" } : null)}
       style={[
         styles.wrapper,
         {
