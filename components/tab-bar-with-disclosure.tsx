@@ -1,5 +1,6 @@
 import { useContext, useEffect } from "react";
-import { Platform, View, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   BottomTabBar,
   BottomTabBarHeightCallbackContext,
@@ -7,20 +8,20 @@ import {
 } from "@react-navigation/bottom-tabs";
 import { PlatformDisclosureBar } from "@/components/platform-disclosure-bar";
 import { useColors } from "@/hooks/use-colors";
-import { useTabBarBottomInset } from "@/hooks/use-tab-bar-bottom-inset";
 import { withAlpha } from "@/lib/brand-theme";
 import { bottomDisclaimerAboveTabHeight, tabBarIconsOnlyHeight } from "@/lib/layout-overlap";
 
 /**
- * One tab bar. Icons and labels sit in this bar. Empty space under the labels
- * is the phone home-indicator inset — not a second OS toolbar.
+ * One tab bar. Safe-area inset lifts Home / Admin / AIs / Profile / Social
+ * above the phone OS navigation bar.
  */
 export function TabBarWithDisclosure(props: BottomTabBarProps) {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const onHeightChange = useContext(BottomTabBarHeightCallbackContext);
   const iconRowHeight = tabBarIconsOnlyHeight();
-  const homePad = useTabBarBottomInset();
-  const estimatedHeight = bottomDisclaimerAboveTabHeight() + iconRowHeight + homePad;
+  const bottomPad = insets.bottom;
+  const estimatedHeight = bottomDisclaimerAboveTabHeight() + iconRowHeight + bottomPad;
 
   useEffect(() => {
     onHeightChange?.(estimatedHeight);
@@ -28,12 +29,12 @@ export function TabBarWithDisclosure(props: BottomTabBarProps) {
 
   return (
     <View
-      {...(Platform.OS === "web" ? { className: "ur-tab-dock" } : null)}
       style={[
         styles.wrapper,
         {
           backgroundColor: colors.surface,
           borderTopColor: withAlpha(colors.secondary, 0.28),
+          paddingBottom: bottomPad,
         },
       ]}
       collapsable={false}
@@ -45,12 +46,6 @@ export function TabBarWithDisclosure(props: BottomTabBarProps) {
           <BottomTabBar {...props} />
         </BottomTabBarHeightCallbackContext.Provider>
       </View>
-      <View
-        {...(Platform.OS === "web" ? { className: "ur-tab-home-spacer" } : null)}
-        style={[styles.homeSpacer, { height: homePad, minHeight: homePad }]}
-        pointerEvents="none"
-        collapsable={false}
-      />
     </View>
   );
 }
@@ -66,9 +61,5 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     overflow: "hidden",
     position: "relative",
-  },
-  homeSpacer: {
-    width: "100%",
-    flexShrink: 0,
   },
 });

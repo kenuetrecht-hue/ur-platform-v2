@@ -24,7 +24,7 @@ export function GoToIdPhotosButton({ label = "Open ID photo page" }: { label?: s
       />
       <Link
         href={JOIN_ACCOUNT_HREF}
-        style={{ color: colors.primary, fontWeight: "800", fontSize: 16, textAlign: "center" }}
+        style={{ color: colors.gold, fontWeight: "800", fontSize: 16, textAlign: "center" }}
       >
         If the button does nothing, tap this link
       </Link>
@@ -93,7 +93,7 @@ export function PostSignInAgeVerifyGate() {
       />
       <Link
         href={picturesAlreadyPassed ? AFTER_ID_PASS_HREF : JOIN_ACCOUNT_HREF}
-        style={{ color: colors.primary, fontWeight: "800", fontSize: 16, textAlign: "center" }}
+        style={{ color: colors.gold, fontWeight: "800", fontSize: 16, textAlign: "center" }}
       >
         If nothing happened, tap here
       </Link>

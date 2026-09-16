@@ -36,7 +36,7 @@ export function TabScreenHeader({
           testID="page-back"
           style={styles.backRow}
         >
-          <Text style={[styles.backText, { color: colors.primary }]}>← Back</Text>
+          <Text style={[styles.backText, { color: colors.gold }]}>← Back</Text>
         </Pressable>
       ) : null}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>

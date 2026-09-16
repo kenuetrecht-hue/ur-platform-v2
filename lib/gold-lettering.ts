@@ -1,8 +1,8 @@
 import { Text, TextInput } from "react-native";
 
-/** Gold on the login wash and other colored backgrounds. */
+/** Gold on the login wash and every other colored background. */
 export const LETTERING_ON_COLOR = "#FFD700";
-/** Platform bluish-purple on white cards and other light surfaces. */
+/** Platform bluish-purple on white cards only. */
 export const LETTERING_ON_WHITE = "#4F46E5";
 
 type TextWithDefaults = typeof Text & {
@@ -17,8 +17,8 @@ function applyTo(component: TextWithDefaults, color: string) {
   };
 }
 
-/** Default lettering follows the page: gold on color, bluish-purple on white. */
-export function applyDefaultLettering(color: string) {
+/** Default lettering is always gold. White cards set `colors.onWhite` themselves. */
+export function applyDefaultLettering(color: string = LETTERING_ON_COLOR) {
   applyTo(Text as TextWithDefaults, color);
   applyTo(TextInput as TextWithDefaults, color);
 }

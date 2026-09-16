@@ -36,7 +36,7 @@ export function TabBarIcon({ name, focused }: TabBarIconProps) {
       <IconSymbol
         name={name as ComponentProps<typeof IconSymbol>["name"]}
         size={18}
-        color={colors.foreground}
+        color={colors.onWhite}
       />
     </View>
   );

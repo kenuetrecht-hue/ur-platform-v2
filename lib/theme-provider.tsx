@@ -3,11 +3,7 @@ import { Appearance, View, useColorScheme as useSystemColorScheme } from "react-
 import { colorScheme as nativewindColorScheme } from "nativewind";
 
 import { SchemeColors, type ColorScheme } from "@/constants/theme";
-import {
-  LETTERING_ON_COLOR,
-  LETTERING_ON_WHITE,
-  applyDefaultLettering,
-} from "@/lib/gold-lettering";
+import { LETTERING_ON_COLOR, applyDefaultLettering } from "@/lib/gold-lettering";
 
 type ThemeContextValue = {
   colorScheme: ColorScheme;
@@ -17,14 +13,14 @@ type ThemeContextValue = {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function applyCssColorVars(scheme: ColorScheme) {
-  applyDefaultLettering(scheme === "light" ? LETTERING_ON_WHITE : LETTERING_ON_COLOR);
+  applyDefaultLettering(LETTERING_ON_COLOR);
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   const palette = SchemeColors[scheme];
   for (const [name, value] of Object.entries(palette)) {
     root.style.setProperty(`--color-${name}`, value);
   }
-  root.style.color = palette.foreground;
+  root.style.color = LETTERING_ON_COLOR;
   root.dataset.theme = scheme;
   root.classList.toggle("dark", scheme === "dark");
 }
@@ -65,7 +61,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeContext.Provider value={value}>
-      <View style={{ flex: 1, color: SchemeColors[colorScheme].foreground } as object}>{children}</View>
+      <View style={{ flex: 1, color: LETTERING_ON_COLOR } as object}>{children}</View>
     </ThemeContext.Provider>
   );
 }

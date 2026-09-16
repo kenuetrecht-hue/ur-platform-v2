@@ -21,7 +21,7 @@ export function PageBackButton({ label = "← Back", testID = "page-back" }: Pro
       testID={testID}
       style={styles.row}
     >
-      <Text style={[styles.text, { color: colors.primary }]}>{label}</Text>
+      <Text style={[styles.text, { color: colors.gold }]}>{label}</Text>
     </Pressable>
   );
 }

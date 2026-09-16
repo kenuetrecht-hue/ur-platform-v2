@@ -296,7 +296,7 @@ export function HiveTownHallPanel() {
     >
       <View style={[styles.sessionHeader, { borderColor: colors.border, backgroundColor: colors.surface }]}>
         <Pressable onPress={() => setActiveSessionId(null)} hitSlop={8}>
-          <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>← Back</Text>
+          <Text style={{ color: colors.gold, fontWeight: "700", fontSize: 12 }}>← Back</Text>
         </Pressable>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={{ color: colors.foreground, fontWeight: "700" }} numberOfLines={1}>

@@ -30,7 +30,7 @@ export function HubDoorTile({ emoji, label, onPress, testID }: Props) {
       <Text pointerEvents="none" style={styles.emoji}>
         {emoji}
       </Text>
-      <Text pointerEvents="none" style={[styles.label, { color: colors.foreground }]} numberOfLines={2}>
+      <Text pointerEvents="none" style={[styles.label, { color: colors.onWhite }]} numberOfLines={2}>
         {label}
       </Text>
     </AppPressable>
