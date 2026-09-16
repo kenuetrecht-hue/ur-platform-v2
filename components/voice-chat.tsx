@@ -11,6 +11,8 @@ import {
   type ConversationContext,
   type VoiceMessage,
 } from "@/lib/voice-conversation-service";
+import { newestConversationFirst } from "@/lib/chat-newest-first";
+import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 
 export interface VoiceChatProps {
   creatorId: string;
@@ -25,7 +27,7 @@ export function VoiceChat({ creatorId, aiName, onClose }: VoiceChatProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTranscript, setCurrentTranscript] = useState("");
   const [messages, setMessages] = useState<VoiceMessage[]>([]);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const { ref: scrollViewRef } = useScrollChatToNewest(messages.length);
   const micRef = useRef<any>(null);
 
   // Initialize conversation
@@ -69,11 +71,6 @@ export function VoiceChat({ creatorId, aiName, onClose }: VoiceChatProps) {
         setIsProcessing(false);
         setIsListening(false);
         setCurrentTranscript("");
-
-        // Auto-scroll to bottom
-        setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: true });
-        }, 100);
       }, 1500);
     }
   }, [isListening, context, messages]);
@@ -101,11 +98,6 @@ export function VoiceChat({ creatorId, aiName, onClose }: VoiceChatProps) {
 
       setMessages([...messages, userMessage, aiMessage]);
       setIsProcessing(false);
-
-      // Auto-scroll
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
     },
     [context, messages]
   );
@@ -159,7 +151,9 @@ export function VoiceChat({ creatorId, aiName, onClose }: VoiceChatProps) {
             </Text>
           </View>
         ) : (
-          messages.map((message) => (
+          newestConversationFirst(messages, (message) =>
+            message.speaker === "creator" ? "user" : "ai",
+          ).map((message) => (
             <View
               key={message.id}
               style={{

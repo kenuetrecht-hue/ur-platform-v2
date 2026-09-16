@@ -6,6 +6,7 @@ import { LiveSessionRoomPanel } from "@/components/live-session-room-panel";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/auth-context";
+import { PageBackButton } from "@/components/page-back-button";
 
 export default function LiveSessionScreen() {
   const colors = useColors();
@@ -26,7 +27,10 @@ export default function LiveSessionScreen() {
   if (!id) {
     return (
       <ScreenContainer>
-        <Text style={{ color: colors.foreground, padding: 24 }}>Invalid session.</Text>
+        <View style={{ padding: 16 }}>
+          <PageBackButton />
+          <Text style={{ color: colors.foreground, paddingTop: 12 }}>Invalid session.</Text>
+        </View>
       </ScreenContainer>
     );
   }
@@ -36,6 +40,9 @@ export default function LiveSessionScreen() {
       <>
         <Stack.Screen options={{ title: "Live session" }} />
         <ScreenContainer className="bg-background">
+          <View style={{ padding: 16 }}>
+            <PageBackButton />
+          </View>
           <View style={styles.center}>
             <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 17 }}>Sign in required</Text>
             <Text style={{ color: colors.muted, textAlign: "center" }}>
@@ -62,6 +69,9 @@ export default function LiveSessionScreen() {
         }}
       />
       <ScreenContainer className="bg-background">
+        <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+          <PageBackButton />
+        </View>
         {access.isLoading ? (
           <View style={styles.center}>
             <ActivityIndicator color={colors.primary} />

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { trpc } from "@/lib/trpc";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { ComposerDock } from "@/components/composer-dock";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
+import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 
 type PanelMode = "all_categories" | "category" | "recommended" | "custom";
 
@@ -53,7 +54,6 @@ export function HiveTownHallPanel() {
   const overlap = useOverlapInsets({
     headerChromeHeight: LAYOUT_OVERLAP.AIS_TAB_CHROME_HEIGHT,
   });
-  const scrollRef = useRef<ScrollView>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [title, setTitle] = useState("Hive Town Hall");
   const [seedMessage, setSeedMessage] = useState("");
@@ -72,6 +72,9 @@ export function HiveTownHallPanel() {
   const sessionQuery = trpc.hiveTownHall.getSession.useQuery(
     { sessionId: activeSessionId! },
     { enabled: Boolean(activeSessionId), refetchInterval: activeSessionId ? 30_000 : false },
+  );
+  const { ref: scrollRef } = useScrollChatToNewest(
+    (sessionQuery.data?.turns?.length ?? 0) + (loading ? 1 : 0),
   );
 
   const scheduleMutation = trpc.hiveTownHall.schedule.useMutation({
@@ -142,7 +145,6 @@ export function HiveTownHallPanel() {
         sessionId: activeSessionId,
         message: inputText.trim(),
       });
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Could not send message.";
       setSendError(msg);
@@ -344,7 +346,10 @@ export function HiveTownHallPanel() {
           </Text>
         ) : null}
 
-        {turns.map((turn) => (
+        {(loading || sendMutation.isPending) && (
+          <ActivityIndicator color={colors.primary} style={{ marginVertical: 8 }} />
+        )}
+        {turns.slice().reverse().map((turn) => (
           <View key={turn.id} style={styles.turnBlock}>
             <View style={[styles.userBubble, { backgroundColor: colors.primary }]}>
               <Text style={{ color: "#fff", fontSize: 14 }}>{turn.userMessage}</Text>
@@ -373,8 +378,6 @@ export function HiveTownHallPanel() {
             ))}
           </View>
         ))}
-
-        {(loading || sendMutation.isPending) && <ActivityIndicator color={colors.primary} style={{ marginVertical: 8 }} />}
         {sendError ? (
           <Text style={{ color: "#f87171", fontSize: 12, marginBottom: 8 }}>{sendError}</Text>
         ) : null}

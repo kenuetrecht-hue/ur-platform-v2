@@ -22,6 +22,8 @@ import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { trpc } from "@/lib/trpc";
 import { View, Text, ActivityIndicator, ScrollView } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { AiHubTabRow } from "@/components/ai-hub-tab-row";
+import { OWNER_OPS_TABS, type OwnerOpsTabId } from "@/lib/owner-ops-tabs";
 
 export default function OwnerOpsScreen() {
   const colors = useColors();
@@ -36,6 +38,7 @@ export default function OwnerOpsScreen() {
   } = usePlatformOwner();
   const [showAdmin, setShowAdmin] = useState(false);
   const [stewardFocusNonce, setStewardFocusNonce] = useState(0);
+  const [opsTab, setOpsTab] = useState<OwnerOpsTabId>("ais");
   const params = useLocalSearchParams<{ ai?: string }>();
   const requestedOpsAi =
     typeof params.ai === "string" && isOwnerOpsAiId(params.ai) ? params.ai : BUSINESS_STEWARD_AI_ID;
@@ -43,6 +46,7 @@ export default function OwnerOpsScreen() {
 
   const focusBusinessSteward = () => {
     setShowAdmin(false);
+    setOpsTab("ais");
     setStewardFocusNonce((n) => n + 1);
     router.setParams({ ai: BUSINESS_STEWARD_AI_ID });
   };
@@ -84,12 +88,8 @@ export default function OwnerOpsScreen() {
       <ScreenContainer className="bg-background">
         <TabScreenHeader
           icon="🏛️"
-          title="Administration Dashboard"
-          subtitle={
-            isPlatformOwner
-              ? "Platform owner — full control, staff management, ops AIs, and campaign admin."
-              : "Authorized staff — limited access based on your assigned role."
-          }
+          title="Administration"
+          subtitle={isPlatformOwner ? "Tap a tab." : "Staff tools."}
         />
         {access.isLoading ? (
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -102,10 +102,10 @@ export default function OwnerOpsScreen() {
             nestedScrollEnabled
           >
             <View style={{ paddingHorizontal: 16, paddingBottom: 12, gap: 10 }}>
-              <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>
+              <Text style={{ color: colors.muted, fontSize: 13 }}>
                 {isPlatformOwner
-                  ? `${ownerDisplayName} — you are the only person with full platform owner powers.`
-                  : `Signed in as staff · ${adminRoleLabel ?? "Limited role"}. Some sections are hidden.`}
+                  ? ownerDisplayName
+                  : `Staff · ${adminRoleLabel ?? "Limited role"}`}
               </Text>
               {ownerQuickActions.length > 0 ? (
                 <View
@@ -121,12 +121,6 @@ export default function OwnerOpsScreen() {
                   <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 14 }}>
                     {isPlatformOwner ? "🔐 Owner control" : "📋 Your admin tools"}
                   </Text>
-                  {isPlatformOwner ? (
-                    <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
-                      Talk to Business Steward here — sales, ads, and running the site. Doctor,
-                      Administration, and Security are on the same page. Members never see Steward.
-                    </Text>
-                  ) : null}
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                     {ownerQuickActions.map((action) => {
                       const label = (
@@ -155,50 +149,45 @@ export default function OwnerOpsScreen() {
               ) : null}
             </View>
             {isPlatformOwner ? (
-              <AppPressable
-                onPress={focusBusinessSteward}
-                style={{
-                  marginHorizontal: 16,
-                  marginBottom: 12,
-                  backgroundColor: `${colors.primary}14`,
-                  borderRadius: 14,
-                  borderWidth: 1.5,
-                  borderColor: colors.primary,
-                  padding: 16,
-                  gap: 8,
-                }}
-              >
-                <Text
-                  pointerEvents="none"
-                  style={{ color: colors.foreground, fontWeight: "800", fontSize: 17 }}
-                >
-                  📋 Business Steward
-                </Text>
-                <Text
-                  pointerEvents="none"
-                  style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}
-                >
-                  Tap to open his chat on this page — sales, advertising, and running the website
-                  and app. Use Assign work to other AIs below — type or tap the microphone and
-                  speak any language. Switch to Learn the business for the academy.
-                </Text>
-              </AppPressable>
+              <AiHubTabRow
+                tabs={OWNER_OPS_TABS}
+                activeId={opsTab}
+                onSelect={(id) => setOpsTab(id as OwnerOpsTabId)}
+              />
             ) : null}
-            <PlatformOpsConsole
-              isPlatformOwner={isPlatformOwner}
-              initialAiId={requestedOpsAi}
-              focusStewardNonce={stewardFocusNonce}
-            />
-            {isPlatformOwner ? <OwnerMemberCensusPanel /> : null}
-            {isPlatformOwner ? <OwnerCommandCenterPanel /> : null}
-            {isPlatformOwner ? <PlatformConductReviewPanel /> : null}
-            {isPlatformOwner ? <FoundingAudienceReviewPanel /> : null}
-            {isPlatformOwner ? <FairShowOwnerPanel /> : null}
-            {isPlatformOwner ? <OwnerSigninResetPanel /> : null}
-            {isPlatformOwner ? <SecurityNoticeOpsPanel /> : null}
-            {isPlatformOwner ? <CommerceTrendOpsPanel /> : null}
-            {isPlatformOwner ? <CommerceOpsPanel /> : null}
-            {isPlatformOwner ? <LandingDemoConversionStatsPanel /> : null}
+            {!isPlatformOwner || opsTab === "ais" ? (
+              <PlatformOpsConsole
+                isPlatformOwner={isPlatformOwner}
+                initialAiId={requestedOpsAi}
+                focusStewardNonce={stewardFocusNonce}
+              />
+            ) : null}
+            {isPlatformOwner && opsTab === "people" ? (
+              <>
+                <OwnerMemberCensusPanel />
+                <FoundingAudienceReviewPanel />
+              </>
+            ) : null}
+            {isPlatformOwner && opsTab === "command" ? <OwnerCommandCenterPanel /> : null}
+            {isPlatformOwner && opsTab === "conduct" ? <PlatformConductReviewPanel /> : null}
+            {isPlatformOwner && opsTab === "commerce" ? (
+              <>
+                <CommerceTrendOpsPanel />
+                <CommerceOpsPanel />
+              </>
+            ) : null}
+            {isPlatformOwner && opsTab === "security" ? (
+              <>
+                <SecurityNoticeOpsPanel />
+                <OwnerSigninResetPanel />
+              </>
+            ) : null}
+            {isPlatformOwner && opsTab === "more" ? (
+              <>
+                <FairShowOwnerPanel />
+                <LandingDemoConversionStatsPanel />
+              </>
+            ) : null}
           </ScrollView>
         ) : denied ? (
           <View style={{ padding: 24, gap: 14 }}>

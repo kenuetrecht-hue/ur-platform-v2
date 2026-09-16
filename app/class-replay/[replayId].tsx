@@ -11,6 +11,7 @@ import { buildClassReplayPurchaseSummary } from "@/lib/pricing-disclosures";
 import { MuxVideoPlayer } from "@/components/mux-video-player";
 import { VideoStarRating } from "@/components/video-star-rating";
 import { CREATOR_PAID_VIDEO_NO_SHARE } from "@/lib/creator-free-content-policy";
+import { PageBackButton } from "@/components/page-back-button";
 
 export default function ClassReplayScreen() {
   const colors = useColors();
@@ -66,7 +67,10 @@ export default function ClassReplayScreen() {
   if (!id) {
     return (
       <ScreenContainer>
-        <Text style={{ color: colors.foreground, padding: 24 }}>Invalid replay.</Text>
+        <View style={{ padding: 16 }}>
+          <PageBackButton />
+          <Text style={{ color: colors.foreground, paddingTop: 12 }}>Invalid replay.</Text>
+        </View>
       </ScreenContainer>
     );
   }
@@ -76,6 +80,7 @@ export default function ClassReplayScreen() {
       <Stack.Screen options={{ title: publicReplay.data?.title ?? "Class replay", headerBackTitle: "Back" }} />
       <ScreenContainer className="bg-background">
         <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}>
+          <PageBackButton />
           {publicReplay.isLoading ? <ActivityIndicator color={colors.primary} /> : null}
           <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "800" }}>
             {publicReplay.data?.title ?? "Class replay"}

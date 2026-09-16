@@ -40,6 +40,9 @@ export default function LoginScreen() {
           keyboardDismissMode="on-drag"
         >
           <View style={styles.card} testID="login-form">
+            <Link href="/" style={styles.backHome} testID="login-back-home">
+              ← Back
+            </Link>
             <Text style={styles.brand}>UR</Text>
             <Text style={styles.title}>Login</Text>
             {serviceHint ? (
@@ -100,6 +103,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
+  },
+  backHome: {
+    color: T.muted,
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: 4,
   },
   card: {
     width: "100%",

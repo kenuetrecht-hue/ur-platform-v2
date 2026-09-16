@@ -110,9 +110,6 @@ export default function PlayroomScreen() {
           />
 
           <View style={{ paddingHorizontal: 16, flexDirection: "row", gap: 12 }}>
-            <Pressable onPress={() => router.back()}>
-              <Text style={{ color: colors.primary, fontWeight: "600" }}>← Back</Text>
-            </Pressable>
             <Pressable onPress={() => router.push("/3d-workspace")}>
               <Text style={{ color: colors.muted, fontWeight: "600" }}>Full 3D Lab →</Text>
             </Pressable>

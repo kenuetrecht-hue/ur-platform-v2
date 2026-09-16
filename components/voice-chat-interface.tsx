@@ -4,6 +4,8 @@ import { useColors } from "@/hooks/use-colors";
 import { generateAIVoiceResponse } from "@/lib/ai-voice-responses";
 import { speakText } from "@/lib/azure-tts-service";
 import { androidMicrophoneHandler } from "@/lib/android-microphone-handler";
+import { newestConversationFirst } from "@/lib/chat-newest-first";
+import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 
 interface VoiceChatMessage {
   id: string;
@@ -31,7 +33,7 @@ export function VoiceChatInterface({
   const [error, setError] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<any>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const { ref: scrollViewRef } = useScrollChatToNewest(messages.length);
 
   // Initialize speech recognition with proper error handling
   useEffect(() => {
@@ -251,9 +253,6 @@ export function VoiceChatInterface({
         ref={scrollViewRef}
         className="flex-1 px-4 py-4"
         scrollEnabled={true}
-        onContentSizeChange={() =>
-          scrollViewRef.current?.scrollToEnd({ animated: true })
-        }
       >
         {messages.length === 0 ? (
           <View className="flex-1 items-center justify-center py-12">
@@ -266,7 +265,7 @@ export function VoiceChatInterface({
             </Text>
           </View>
         ) : (
-          messages.map((msg) => (
+          newestConversationFirst(messages, (msg) => msg.type).map((msg) => (
             <View
               key={msg.id}
               className={`mb-4 ${

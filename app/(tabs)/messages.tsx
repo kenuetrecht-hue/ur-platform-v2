@@ -6,11 +6,7 @@ import { SocialHubPanel } from "@/components/social-hub-panel";
 export default function MessagesScreen() {
   return (
     <ScreenContainer className="bg-background">
-      <TabScreenHeader
-        icon="🌐"
-        title="Social Hub"
-        subtitle="Internet Center mail, public feed, friends & creators"
-      />
+      <TabScreenHeader compact icon="🌐" title="Social" />
       <View style={{ flex: 1, minHeight: 0 }}>
         <SocialHubPanel />
       </View>

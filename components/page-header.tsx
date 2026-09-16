@@ -8,6 +8,7 @@ import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { cn } from "@/lib/utils";
+import { goBackOrHome } from "@/lib/page-back";
 
 export interface PageHeaderProps {
   icon: string;
@@ -39,9 +40,9 @@ export function PageHeader({
   const handleBackPress = () => {
     if (onBackPress) {
       onBackPress();
-    } else {
-      router.back();
+      return;
     }
+    goBackOrHome(router);
   };
 
   return (

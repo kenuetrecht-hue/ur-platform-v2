@@ -6,6 +6,7 @@ import { AgeKycPhotoCapture } from "@/components/age-kyc-photo-capture";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { TapToRead } from "@/components/tap-to-read";
+import { SignupKycCartoonSample } from "@/components/signup-kyc-cartoon-sample";
 import { JOIN_ID_PHOTOS_HREF } from "@/lib/after-sign-in";
 import { countFilledAgeKycSlots, prepareAgeKycPhoto, type AgeKycPickedPhoto } from "@/lib/age-kyc-photo-picker";
 import { fastCheckSelfieMatch } from "@/lib/age-kyc-fast-precheck";
@@ -139,8 +140,9 @@ export function SignupSelfieCheck({ onPassed, onReset }: Props) {
   return (
     <View style={{ gap: 14, width: "100%" }} testID="signup-selfie-check">
       <Text style={{ color: colors.foreground, fontSize: 15, lineHeight: 22 }}>
-        We already checked the ID. This selfie must match the face on that ID.
+        This selfie must match the face on that ID.
       </Text>
+      <SignupKycCartoonSample compact />
       <TapToRead title="How to line up the yellow box">
         Put your face in the yellow circle. Wait until Take this picture turns on, then tap it
         once. Review the three pictures, then check them.

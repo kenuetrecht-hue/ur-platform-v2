@@ -144,10 +144,6 @@ export default function CartoonStudioScreen() {
           subtitle="Website and app. Pay first. Draft, Lite, Mid, Cinema, or Premiere 4K. No refunds."
         />
         <View style={{ paddingHorizontal: 16, gap: 12 }}>
-          <Pressable onPress={() => router.back()}>
-            <Text style={{ color: colors.muted, fontWeight: "700" }}>← Back</Text>
-          </Pressable>
-
           <PaymentChannelNotice />
 
           <View style={[styles.billBox, { borderColor: colors.primary, backgroundColor: colors.surface }]}>

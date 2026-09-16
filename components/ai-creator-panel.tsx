@@ -28,6 +28,8 @@ import { AiSpecialistPricingPanel } from "@/components/ai-specialist-pricing-pan
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { ComposerDock } from "@/components/composer-dock";
+import { newestConversationFirst } from "@/lib/chat-newest-first";
+import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 
 import { SpecialistJobToolsPanel } from "@/components/specialist-job-tools-panel";
 import { hasSpecialistJobTools } from "@/lib/specialist-job-tools";
@@ -314,7 +316,6 @@ export function AiLearnSurface({
     reserveTabBar: overlapOptions?.reserveTabBar ?? true,
   });
   const utils = trpc.useUtils();
-  const scrollRef = useRef<ScrollView>(null);
 
   const [level, setLevel] = useState<LearnLevel>("beginner");
   const [learnMode, setLearnMode] = useState<LearnMode>("lesson");
@@ -322,6 +323,7 @@ export function AiLearnSurface({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
+  const { ref: scrollRef } = useScrollChatToNewest(messages.length + (loading ? 1 : 0));
 
   const curriculum = trpc.aiLearning.getCurriculum.useQuery({ creatorId });
   const profile = trpc.aiLearning.getProfile.useQuery({ creatorId });
@@ -383,7 +385,6 @@ export function AiLearnSurface({
         setMessages((prev) => [...prev, { role: "ai", text: msg }]);
       } finally {
         setLoading(false);
-        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
       }
     },
     [activeTopic, creatorId, learnMode, level, loading, messages, teach],
@@ -547,7 +548,8 @@ export function AiLearnSurface({
             {creatorName} — Learn
           </Text>
         </View>
-        {messages.map((msg, i) => (
+        {loading ? <ActivityIndicator color={colors.primary} /> : null}
+        {newestConversationFirst(messages).map((msg, i) => (
           <View
             key={`${i}-${msg.role}`}
             style={[
@@ -567,7 +569,6 @@ export function AiLearnSurface({
             </Text>
           </View>
         ))}
-        {loading ? <ActivityIndicator color={colors.primary} /> : null}
       </ScrollView>
 
       {activeTopic ? (

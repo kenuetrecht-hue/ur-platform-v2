@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
 import { IconSymbol } from './ui/icon-symbol';
 import { useColors } from '@/hooks/use-colors';
 import { cn } from '@/lib/utils';
+import { newestConversationFirst } from '@/lib/chat-newest-first';
+import { useScrollChatToNewest } from '@/hooks/use-scroll-chat-to-newest';
 
 interface Message {
   id: string;
@@ -43,12 +45,7 @@ export function PersonalAIChat({
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
-
-  useEffect(() => {
-    // Auto-scroll to bottom when new messages arrive
-    scrollViewRef.current?.scrollToEnd({ animated: true });
-  }, [messages]);
+  const { ref: scrollViewRef } = useScrollChatToNewest(messages.length);
 
   const parseCommand = (text: string) => {
     const lowerText = text.toLowerCase();
@@ -184,7 +181,7 @@ export function PersonalAIChat({
           className="flex-1 p-4"
           contentContainerStyle={{ paddingBottom: 16 }}
         >
-          {messages.map((message) => (
+          {newestConversationFirst(messages, (message) => message.sender).map((message) => (
             <View
               key={message.id}
               className={cn(

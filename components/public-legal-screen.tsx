@@ -1,5 +1,6 @@
 import { Link } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { PageBackButton } from "@/components/page-back-button";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
 import {
@@ -26,16 +27,7 @@ export function PublicLegalScreen({ kicker, title, lede, effectiveDate, sections
       <SafeAreaView style={styles.safe} edges={["top", "left", "right", "bottom"]}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.page}>
-            <Link href="/signup" asChild>
-              <Pressable accessibilityRole="link">
-                <Text style={styles.back}>← Back to Sign up</Text>
-              </Pressable>
-            </Link>
-            <Link href="/login" asChild>
-              <Pressable accessibilityRole="link">
-                <Text style={styles.back}>← Back to Login</Text>
-              </Pressable>
-            </Link>
+            <PageBackButton />
 
             <Text style={styles.kicker}>{kicker}</Text>
             <Text style={styles.headline}>{title}</Text>

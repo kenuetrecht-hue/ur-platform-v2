@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { PageBackButton } from "@/components/page-back-button";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth-context";
@@ -17,6 +18,7 @@ import {
 } from "@/lib/join-emanual";
 import { getPlatformPublicOrigin } from "@/lib/platform-urls";
 import { AFTER_ID_PASS_HREF } from "@/lib/after-sign-in";
+import { TapToRead } from "@/components/tap-to-read";
 
 function printManual() {
   if (Platform.OS === "web" && typeof window !== "undefined") {
@@ -49,13 +51,7 @@ export default function JoinEmanualScreen() {
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top", "left", "right"]}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.topRow}>
-          <Link href={isAuthenticated ? AFTER_ID_PASS_HREF : "/login"} asChild>
-            <Pressable>
-              <Text style={[styles.back, { color: colors.muted }]}>
-                {isAuthenticated ? "← Home" : "← Homepage"}
-              </Text>
-            </Pressable>
-          </Link>
+          <PageBackButton />
           <View style={styles.actions}>
             <Pressable
               onPress={onDownload}
@@ -105,28 +101,22 @@ export default function JoinEmanualScreen() {
         </Text>
 
         {JOIN_EMANUAL_STEPS.map((step) => (
-          <View
-            key={step.number}
-            style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}
-          >
-            <Text style={[styles.stepNum, { color: colors.primary }]}>Step {step.number}</Text>
-            <Text style={[styles.stepTitle, { color: colors.foreground }]}>{step.title}</Text>
+          <TapToRead key={step.number} title={`Step ${step.number} · ${step.title}`}>
             {step.clicks.map((line) => (
               <Text key={line} style={[styles.bullet, { color: colors.foreground }]}>
                 · {line}
               </Text>
             ))}
-          </View>
+          </TapToRead>
         ))}
 
-        <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-          <Text style={[styles.stepTitle, { color: colors.foreground }]}>Money rules (read these)</Text>
+        <TapToRead title="Money rules">
           {JOIN_EMANUAL_MONEY_NOTES.map((line) => (
             <Text key={line} style={[styles.bullet, { color: colors.foreground }]}>
               · {line}
             </Text>
           ))}
-        </View>
+        </TapToRead>
 
         {isAuthenticated ? (
           <Pressable

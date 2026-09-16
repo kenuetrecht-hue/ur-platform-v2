@@ -29,6 +29,7 @@ import { OWNER_OPS_AI_IDS, isOwnerOpsAiId } from "@/lib/owner-platform-ops-catal
 import { trpc } from "@/lib/trpc";
 import { HiveTownHallPanel } from "@/components/hive-town-hall-panel";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
+import { HubTabBar } from "@/components/hub-tab-bar";
 
 function publicCreatorsOnly(list: AiCreatorCatalogEntry[]): AiCreatorCatalogEntry[] {
   return list.filter((c) => !OWNER_OPS_AI_IDS.includes(c.id));
@@ -154,47 +155,19 @@ export default function AIsScreen() {
     }
   }, [filteredCreators, selectedAiId, params.ai]);
 
-  const totalCount = data?.total ?? AI_CREATOR_CATALOG.length;
-
   return (
     <ScreenContainer className="bg-background" style={styles.screen}>
       <View style={styles.root}>
         <View style={styles.chrome}>
-          <TabScreenHeader
-            compact
-            icon="🤖"
-            title="AI Specialists"
-            subtitle={
-              hubMode === "townHall"
-                ? "Town Hall — talk to the whole panel at once."
-                : `${totalCount} experts — pick one, chat below.`
-            }
+          <TabScreenHeader compact icon="🤖" title="AIs" />
+          <HubTabBar
+            tabs={[
+              { id: "chat", label: "Chat", emoji: "💬" },
+              { id: "townHall", label: "Town Hall", emoji: "🏛️" },
+            ]}
+            activeId={hubMode}
+            onSelect={(id) => setHubMode(id === "townHall" ? "townHall" : "chat")}
           />
-
-          <View style={[styles.modeRow, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-            <Pressable
-              onPress={() => setHubMode("chat")}
-              style={[styles.modeBtn, hubMode === "chat" && { backgroundColor: colors.primary }]}
-            >
-              <Text style={{ color: hubMode === "chat" ? "#fff" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
-                💬 1:1 Chat
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setHubMode("townHall")}
-              style={[styles.modeBtn, hubMode === "townHall" && { backgroundColor: colors.primary }]}
-            >
-              <Text
-                style={{
-                  color: hubMode === "townHall" ? "#fff" : colors.foreground,
-                  fontWeight: "700",
-                  fontSize: 12,
-                }}
-              >
-                🏛️ Town Hall
-              </Text>
-            </Pressable>
-          </View>
 
           {hubMode === "chat" ? (
             <>

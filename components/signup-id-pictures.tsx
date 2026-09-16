@@ -92,14 +92,12 @@ export function SignupIdPictures() {
   return (
     <View style={{ gap: 14, width: "100%" }} testID="signup-id-pictures">
       <Text style={{ color: colors.foreground, fontSize: 15, lineHeight: 22 }}>
-        Prove the ID says you are 18 or older. Front, then back. One live camera at a time.
+        Photograph the ID front, then the back.
       </Text>
+      <SignupKycCartoonSample />
       <TapToRead title="How to line up the yellow box">
         Fit the card in the yellow box. Wait until Take this picture turns on, then tap it once. We
         then open the other side of the ID. The selfie is the next page.
-      </TapToRead>
-      <TapToRead title="Hear Uri walk you through it">
-        <SignupKycCartoonSample />
       </TapToRead>
       <Text style={{ color: colors.foreground, fontWeight: "700" }}>ID type</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>

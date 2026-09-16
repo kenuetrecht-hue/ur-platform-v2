@@ -5,13 +5,15 @@ import {
   scoreSpeechVoice,
   speakPageCopy,
   stopPageCopy,
+  WEB_SPEECH_CANCEL_SETTLE_MS,
 } from "../lib/speak-page-copy";
 
 describe("speak-page-copy", () => {
   it("does not throw when the browser has no voice", async () => {
     expect(canSpeakPageCopy()).toBe(false);
-    await expect(speakPageCopy("Hi — I'm Uri.")).resolves.toBeUndefined();
+    await expect(speakPageCopy("Hi — I'm Uri.")).resolves.toBe(false);
     expect(() => stopPageCopy()).not.toThrow();
+    expect(WEB_SPEECH_CANCEL_SETTLE_MS).toBeGreaterThan(100);
   });
 
   it("prefers a natural English voice over a novelty robot voice", () => {

@@ -1,4 +1,5 @@
 import { Link } from "expo-router";
+import { PageBackButton } from "@/components/page-back-button";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PwaInstallControls } from "@/components/pwa-install-controls";
@@ -20,11 +21,7 @@ export default function DownloadScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.page}>
-            <Link href="/welcome" asChild>
-              <Pressable accessibilityRole="link">
-                <Text style={styles.back}>← Back to homepage</Text>
-              </Pressable>
-            </Link>
+            <PageBackButton />
 
             <Text style={styles.kicker}>INSTALL FROM THIS WEBSITE</Text>
             <Text style={styles.headline}>{APP_DOWNLOAD_HEADLINE}</Text>

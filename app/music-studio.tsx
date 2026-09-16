@@ -72,9 +72,6 @@ export default function MusicStudioScreen() {
               subtitle="Learn the booth, then make a beat — Musician + Songwriter still teach."
             />
             <View style={{ paddingHorizontal: 16, gap: 14 }}>
-              <Pressable onPress={() => router.back()}>
-                <Text style={{ color: colors.primary, fontWeight: "700" }}>← Back</Text>
-              </Pressable>
               <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>{MUSIC_STUDIO_RULE}</Text>
 
               <MusicStudioDesk onProjectChange={setProject} />

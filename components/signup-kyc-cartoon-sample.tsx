@@ -1,14 +1,18 @@
 import { Text, View } from "react-native";
-import { useColors } from "@/hooks/use-colors";
 import { CartoonStudioPlayer } from "@/components/cartoon-studio-player";
+import { TapToRead } from "@/components/tap-to-read";
 import {
+  SIGNUP_KYC_CARTOON_BLURB,
   SIGNUP_KYC_CARTOON_HEADLINE,
   SIGNUP_KYC_CARTOON_QUALITY_NOTE,
   SIGNUP_KYC_CARTOON_SAMPLE,
 } from "@/lib/signup-kyc-cartoon-sample";
 
-export function SignupKycCartoonSample() {
-  const colors = useColors();
+type Props = {
+  compact?: boolean;
+};
+
+export function SignupKycCartoonSample({ compact = false }: Props) {
   return (
     <View
       style={{
@@ -19,20 +23,25 @@ export function SignupKycCartoonSample() {
         padding: 16,
         backgroundColor: "#070b14",
       }}
+      testID={compact ? "uri-cartoon-compact" : "uri-cartoon-signup"}
     >
-      <Text style={{ color: "#fde68a", fontWeight: "800", fontSize: 12, letterSpacing: 1 }}>
-        PREMIERE-STYLE SAMPLE · CARTOON STUDIO
-      </Text>
-      <Text style={{ color: "#fff", fontWeight: "800", fontSize: 20, lineHeight: 26 }}>
-        {SIGNUP_KYC_CARTOON_HEADLINE}
-      </Text>
-      <Text style={{ color: "#fde68a", fontSize: 16, lineHeight: 22, fontWeight: "700" }}>
-        Tap Hear Uri. He talks you through the three pictures. You do not have to read a script.
-      </Text>
+      {compact ? (
+        <Text style={{ color: "#fde68a", fontWeight: "800", fontSize: 15 }}>
+          Hear Uri again if you want
+        </Text>
+      ) : (
+        <Text style={{ color: "#fff", fontWeight: "800", fontSize: 18, lineHeight: 24 }}>
+          {SIGNUP_KYC_CARTOON_HEADLINE}
+        </Text>
+      )}
       <CartoonStudioPlayer project={SIGNUP_KYC_CARTOON_SAMPLE} sample />
-      <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
-        {SIGNUP_KYC_CARTOON_QUALITY_NOTE}
-      </Text>
+      {compact ? null : (
+        <TapToRead title="What this cartoon is">
+          {SIGNUP_KYC_CARTOON_BLURB}
+          {"\n\n"}
+          {SIGNUP_KYC_CARTOON_QUALITY_NOTE}
+        </TapToRead>
+      )}
     </View>
   );
 }

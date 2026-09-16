@@ -194,10 +194,6 @@ export default function Workspace3DScreen() {
             subtitle={UR_3D_WORKSPACE_SUBTITLE}
           />
 
-          <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 16 }}>
-            <Text style={{ color: colors.primary, fontWeight: "600" }}>← Back</Text>
-          </Pressable>
-
           <WorkspaceWebHandoffBanner variant="general" />
 
           <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18, paddingHorizontal: 16 }}>

@@ -106,6 +106,20 @@ function waitForVoices(): Promise<SpeechSynthesisVoice[]> {
   });
 }
 
+/** Chrome often drops the next speak() if it follows cancel() in the same tick. */
+export const WEB_SPEECH_CANCEL_SETTLE_MS = 160;
+
+export async function settleAfterSpeechCancel(): Promise<void> {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  await pause(WEB_SPEECH_CANCEL_SETTLE_MS);
+  try {
+    window.speechSynthesis.resume();
+  } catch {
+    /* some browsers throw if nothing is paused */
+  }
+}
+
 function speakWebUtterance(
   text: string,
   voice: SpeechSynthesisVoice | undefined,
@@ -118,9 +132,20 @@ function speakWebUtterance(
     utterance.pitch = pitch;
     utterance.volume = 1;
     if (voice) utterance.voice = voice;
-    utterance.onend = () => resolve();
-    utterance.onerror = () => resolve();
+    const maxMs = Math.min(20_000, Math.max(4_000, text.length * 80));
+    const timer = window.setTimeout(() => resolve(), maxMs);
+    const finish = () => {
+      window.clearTimeout(timer);
+      resolve();
+    };
+    utterance.onend = finish;
+    utterance.onerror = finish;
     window.speechSynthesis.speak(utterance);
+    try {
+      window.speechSynthesis.resume();
+    } catch {
+      /* ignore */
+    }
   });
 }
 
@@ -131,6 +156,8 @@ function pause(ms: number): Promise<void> {
 async function speakNativeChunks(chunks: string[], generation: number): Promise<void> {
   const Speech = await import("expo-speech");
   await Speech.stop();
+  await pause(WEB_SPEECH_CANCEL_SETTLE_MS);
+  if (generation !== speakGeneration) return;
   const voices = await Speech.getAvailableVoicesAsync().catch(() => []);
   const picked = pickHumanSpeechVoice(
     voices.map((voice) => ({
@@ -147,14 +174,20 @@ async function speakNativeChunks(chunks: string[], generation: number): Promise<
     const rate = ios ? 0.92 : 0.94;
     const pitch = index === 0 ? 1.04 : 1.02;
     await new Promise<void>((resolve) => {
+      const maxMs = Math.min(20_000, Math.max(4_000, chunks[index].length * 80));
+      const timer = setTimeout(resolve, maxMs);
+      const finish = () => {
+        clearTimeout(timer);
+        resolve();
+      };
       Speech.speak(chunks[index], {
         language: "en-US",
         rate,
         pitch,
         voice: picked?.identifier,
-        onDone: resolve,
-        onStopped: resolve,
-        onError: () => resolve(),
+        onDone: finish,
+        onStopped: finish,
+        onError: finish,
       });
     });
     if (generation !== speakGeneration) return;
@@ -162,37 +195,39 @@ async function speakNativeChunks(chunks: string[], generation: number): Promise<
   }
 }
 
-export async function speakPageCopy(text: string): Promise<void> {
+export async function speakPageCopy(text: string): Promise<boolean> {
   const trimmed = text.trim();
-  if (!trimmed) return;
+  if (!trimmed) return false;
 
   const generation = (speakGeneration += 1);
   const chunks = splitSpeechChunks(prepareSpeechForHumanVoice(trimmed));
-  if (chunks.length === 0) return;
+  if (chunks.length === 0) return false;
 
   if (isNativeApp()) {
     try {
       await speakNativeChunks(chunks, generation);
+      return generation === speakGeneration;
     } catch {
-      /* phone speech missing — stay quiet */
+      return false;
     }
-    return;
   }
 
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return false;
 
   const voices = await waitForVoices();
-  if (generation !== speakGeneration) return;
+  if (generation !== speakGeneration) return false;
   const voice = pickHumanSpeechVoice(voices);
 
-  window.speechSynthesis.cancel();
+  await settleAfterSpeechCancel();
+  if (generation !== speakGeneration) return false;
 
   for (let index = 0; index < chunks.length; index += 1) {
-    if (generation !== speakGeneration) return;
+    if (generation !== speakGeneration) return false;
     const rate = index === 0 ? 0.96 : 0.94;
     const pitch = index % 2 === 0 ? 1.03 : 1.01;
     await speakWebUtterance(chunks[index], voice, rate, pitch);
-    if (generation !== speakGeneration) return;
+    if (generation !== speakGeneration) return false;
     if (index < chunks.length - 1) await pause(200);
   }
+  return true;
 }

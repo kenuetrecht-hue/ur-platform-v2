@@ -1,15 +1,13 @@
-import { useEffect, useState } from "react";
-import { InteractionManager, ScrollView, View, Text } from "react-native";
+import { useState } from "react";
+import { ScrollView, View, Text } from "react-native";
 import { useAuth } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
 import { HomeLaunchPromoBanner } from "@/components/home-launch-promo-banner";
 import { DailyLoyaltyBanner } from "@/components/daily-loyalty-banner";
-import { DemoSection } from "@/components/demo-section";
 import { useDailySignIn } from "@/hooks/use-daily-signin";
-import { consolidatedNavigation } from "@/lib/consolidated-navigation";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { DailyHubPanel } from "@/components/daily-hub-panel";
 import { SocialFeedPreview } from "@/components/social-feed-preview";
 import { AiFreeBoardPanel } from "@/components/ai-free-board-panel";
@@ -19,492 +17,144 @@ import { AppPressable } from "@/components/app-pressable";
 import { ADMIN_TAB_HREF } from "@/lib/admin-dashboard-routes";
 import { GoToIdPhotosButton } from "@/components/go-to-id-photos";
 import { PasswordRemindBanner } from "@/components/password-remind-banner";
-import { TapToRead } from "@/components/tap-to-read";
 import { trpc } from "@/lib/trpc";
+import { HubTabBar } from "@/components/hub-tab-bar";
+import { HubDoorGrid, HubDoorTile } from "@/components/hub-door-tile";
+import {
+  HOME_HUB_TABS,
+  HOME_MAIN_DOORS,
+  HOME_STUDIO_DOORS,
+  isHomeHubTabId,
+  type HomeHubTabId,
+} from "@/lib/home-hub";
+import { withAlpha } from "@/lib/brand-theme";
 
 export default function HomeScreen() {
   const { user } = useAuth();
   const colors = useColors();
   const router = useRouter();
   const dailySignIn = useDailySignIn();
-  const homeTab = consolidatedNavigation.getTab("home");
-  const { canAccessAdminDashboard, isPlatformOwner } = usePlatformOwner();
+  const { canAccessAdminDashboard } = usePlatformOwner();
   const kyc = trpc.ageKyc.getStatus.useQuery(undefined, { retry: 0, staleTime: 45_000 });
   const needsIdPhotos = kyc.data?.verified !== true;
-  const [showBelowFold, setShowBelowFold] = useState(false);
-
-  useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => setShowBelowFold(true));
-    return () => task.cancel();
-  }, []);
+  const [hubTab, setHubTab] = useState<HomeHubTabId>("start");
 
   return (
     <ScreenContainer className="bg-background">
+      <TabScreenHeader
+        compact
+        showBack={false}
+        icon="🏠"
+        title={user?.name ? user.name : "Home"}
+      />
+      <HubTabBar
+        tabs={HOME_HUB_TABS}
+        activeId={hubTab}
+        onSelect={(id) => {
+          if (isHomeHubTabId(id)) setHubTab(id);
+        }}
+      />
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 36 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 36, gap: 12 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <HomeLaunchPromoBanner />
-        <PasswordRemindBanner />
-
-        {needsIdPhotos ? (
-          <View style={{ paddingHorizontal: 16, marginTop: 12, gap: 8 }}>
-            <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
-              Finish the three pictures to stay in the app
-            </Text>
-            <GoToIdPhotosButton label="Open the picture page" />
-          </View>
+        {hubTab === "start" ? (
+          <>
+            <HomeLaunchPromoBanner />
+            <PasswordRemindBanner />
+            {needsIdPhotos ? (
+              <View style={{ gap: 8 }}>
+                <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 15 }}>
+                  Finish the three pictures
+                </Text>
+                <GoToIdPhotosButton label="Open the picture page" />
+              </View>
+            ) : null}
+            <HubDoorGrid>
+              <HubDoorTile emoji="📘" label="E-manual" onPress={() => router.push("/e-manual")} />
+              {canAccessAdminDashboard ? (
+                <HubDoorTile
+                  emoji="🏛️"
+                  label="Admin"
+                  onPress={() => router.push(ADMIN_TAB_HREF)}
+                />
+              ) : null}
+            </HubDoorGrid>
+          </>
         ) : null}
 
-        <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
-          <AppPressable
-            onPress={() => router.push("/e-manual")}
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: 14,
-              padding: 16,
-              borderWidth: 1.5,
-              borderColor: colors.primary,
-              gap: 4,
-            }}
-          >
-            <Text pointerEvents="none" style={{ fontSize: 16, fontWeight: "800", color: colors.foreground }}>
-              📘 Your free join e-manual
-            </Text>
-            <Text pointerEvents="none" style={{ fontSize: 13, color: colors.muted, lineHeight: 18 }}>
-              Every member gets this. Download it to your phone, write your own with Author Muse, and sell it from your shop.
-            </Text>
-          </AppPressable>
-        </View>
+        {hubTab === "studios" ? (
+          <HubDoorGrid>
+            {HOME_STUDIO_DOORS.map((door) => (
+              <HubDoorTile
+                key={door.id}
+                emoji={door.emoji}
+                label={door.label}
+                onPress={() => router.push(door.href)}
+              />
+            ))}
+          </HubDoorGrid>
+        ) : null}
 
-        {canAccessAdminDashboard ? (
-          <Link href={ADMIN_TAB_HREF} asChild>
+        {hubTab === "doors" ? (
+          <HubDoorGrid>
+            {canAccessAdminDashboard ? (
+              <HubDoorTile
+                emoji="🏛️"
+                label="Admin"
+                onPress={() => router.push(ADMIN_TAB_HREF)}
+              />
+            ) : null}
+            {HOME_MAIN_DOORS.map((door) => (
+              <HubDoorTile
+                key={door.id}
+                emoji={door.emoji}
+                label={door.label}
+                onPress={() => router.push(door.href)}
+              />
+            ))}
+          </HubDoorGrid>
+        ) : null}
+
+        {hubTab === "today" ? (
+          <>
+            <DailyLoyaltyBanner
+              totalPoints={dailySignIn.totalPoints}
+              pointsEarnedToday={
+                dailySignIn.alreadyClaimedToday
+                  ? 0
+                  : dailySignIn.pointsAwardedToday + dailySignIn.welcomeBonusAwarded
+              }
+              totalSignIns={dailySignIn.totalSignIns}
+              currentStreakDays={dailySignIn.currentStreakDays}
+              milestoneUnlocked={dailySignIn.milestoneUnlocked}
+              nextMilestone={dailySignIn.nextMilestone}
+              alreadyClaimedToday={dailySignIn.alreadyClaimedToday}
+            />
+            {dailySignIn.error ? (
+              <Text style={{ color: colors.muted, fontSize: 13 }}>{dailySignIn.error}</Text>
+            ) : null}
+            <DailyHubPanel />
+            <PlatformSearchPanel compact />
+            <AiFreeBoardPanel compact />
             <AppPressable
+              onPress={() => router.push("/(tabs)/messages")}
               style={{
-                marginHorizontal: 16,
-                marginTop: 12,
-                backgroundColor: `${colors.primary}14`,
+                backgroundColor: colors.surface,
                 borderRadius: 14,
-                borderWidth: 1.5,
-                borderColor: colors.primary,
-                padding: 16,
-                gap: 6,
+                padding: 14,
+                borderWidth: 1,
+                borderColor: withAlpha(colors.primary, 0.42),
               }}
             >
-              <Text
-                pointerEvents="none"
-                style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}
-              >
-                🏛️ Administration Dashboard
-              </Text>
-              <Text
-                pointerEvents="none"
-                style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}
-              >
-                {isPlatformOwner
-                  ? "Business Steward, staff, social posting, and running the site. Also in the Admin tab below."
-                  : "Open your staff admin tools. Also in the Admin tab below."}
+              <Text pointerEvents="none" style={{ color: colors.foreground, fontWeight: "800" }}>
+                Social feed
               </Text>
             </AppPressable>
-          </Link>
-        ) : null}
-
-        <DailyLoyaltyBanner
-          totalPoints={dailySignIn.totalPoints}
-          pointsEarnedToday={
-            dailySignIn.alreadyClaimedToday
-              ? 0
-              : dailySignIn.pointsAwardedToday + dailySignIn.welcomeBonusAwarded
-          }
-          totalSignIns={dailySignIn.totalSignIns}
-          currentStreakDays={dailySignIn.currentStreakDays}
-          milestoneUnlocked={dailySignIn.milestoneUnlocked}
-          nextMilestone={dailySignIn.nextMilestone}
-          alreadyClaimedToday={dailySignIn.alreadyClaimedToday}
-        />
-
-        <TabScreenHeader
-          icon="🏠"
-          title={`Welcome${user?.name ? `, ${user.name}` : ""}`}
-          subtitle="You are in. AIs, Social, and Create are the main doors."
-        />
-
-        <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
-          <AppPressable
-            onPress={() => router.push("/world")}
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: 14,
-              padding: 16,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 14,
-              borderWidth: 1.5,
-              borderColor: colors.primary,
-            }}
-          >
-            <Text pointerEvents="none" style={{ fontSize: 28 }}>
-              🏙️
-            </Text>
-            <View pointerEvents="none" style={{ flex: 1, gap: 2 }}>
-              <Text style={{ fontSize: 17, fontWeight: "800", color: colors.foreground }}>
-                UR World — Civic Plaza
-              </Text>
-              <Text style={{ fontSize: 13, color: colors.muted, lineHeight: 18 }}>
-                Walk your avatar through the night plaza, sit, talk at a desk, and open the locker. Entertainment city — not land.
-              </Text>
-            </View>
-          </AppPressable>
-        </View>
-
-        <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
-          <AppPressable
-            onPress={() => router.push("/music-studio")}
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: 14,
-              padding: 16,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 14,
-              borderWidth: 1.5,
-              borderColor: colors.primary,
-              marginBottom: 12,
-            }}
-          >
-            <Text pointerEvents="none" style={{ fontSize: 28 }}>
-              🎚️
-            </Text>
-            <View pointerEvents="none" style={{ flex: 1, gap: 2 }}>
-              <Text style={{ fontSize: 17, fontWeight: "800", color: colors.foreground }}>
-                Music Studio
-              </Text>
-              <Text style={{ fontSize: 13, color: colors.muted, lineHeight: 18 }}>
-                Two decks, a classroom, and Musician + Songwriter. Learn the booth, then make a beat.
-              </Text>
-            </View>
-          </AppPressable>
-          <AppPressable
-            onPress={() => router.push("/cartoon-studio")}
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: 14,
-              padding: 16,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 14,
-              borderWidth: 1.5,
-              borderColor: colors.primary,
-            }}
-          >
-            <Text pointerEvents="none" style={{ fontSize: 28 }}>
-              🎬
-            </Text>
-            <View pointerEvents="none" style={{ flex: 1, gap: 2 }}>
-              <Text style={{ fontSize: 17, fontWeight: "800", color: colors.foreground }}>
-                Cartoon Studio
-              </Text>
-              <Text style={{ fontSize: 13, color: colors.muted, lineHeight: 18 }}>
-                Cinema and Premiere 4K when you are ready. Tax and card fee on top.
-              </Text>
-            </View>
-          </AppPressable>
-        </View>
-
-        {showBelowFold ? <DailyHubPanel /> : null}
-
-        <View style={{ paddingHorizontal: 16, gap: 12 }}>
-          <DemoSection
-            title="Open a door"
-            description="The six you will use first. Everything else is under More tools."
-            icon="⚡"
-            variant="info"
-          >
-            {(() => {
-              const actions = [
-                ...(canAccessAdminDashboard
-                  ? [
-                      {
-                        label: "Administration Dashboard",
-                        onPress: () => router.push("/(tabs)/admin"),
-                      },
-                    ]
-                  : []),
-                {
-                  label: "All AI Specialists",
-                  onPress: () => router.push("/ais"),
-                },
-                {
-                  label: "UR World",
-                  onPress: () => router.push("/world"),
-                },
-                {
-                  label: "Cartoon Studio",
-                  onPress: () => router.push("/cartoon-studio"),
-                },
-                {
-                  label: "Music Studio",
-                  onPress: () => router.push("/music-studio"),
-                },
-                {
-                  label: "ContentMate",
-                  onPress: () =>
-                    router.push({
-                      pathname: "/ais",
-                      params: { group: "platform", ai: "contentmate" },
-                    }),
-                },
-                {
-                  label: "TechBuilder · Apps",
-                  onPress: () =>
-                    router.push({
-                      pathname: "/ais",
-                      params: { group: "platform", ai: "ai-coder-001", surface: "build" },
-                    }),
-                },
-                {
-                  label: "Join e-manual",
-                  onPress: () => router.push("/e-manual"),
-                },
-                {
-                  label: "Author Muse · Books",
-                  onPress: () =>
-                    router.push({
-                      pathname: "/ais",
-                      params: { group: "creative", ai: "ai-author-001" },
-                    }),
-                },
-                {
-                  label: "Songwriter AI",
-                  onPress: () =>
-                    router.push({
-                      pathname: "/ais",
-                      params: { group: "creative", ai: "ai-songwriter-001" },
-                    }),
-                },
-                {
-                  label: "Musician AI",
-                  onPress: () =>
-                    router.push({
-                      pathname: "/ais",
-                      params: { group: "creative", ai: "ai-musician-001" },
-                    }),
-                },
-                {
-                  label: "Poet AI",
-                  onPress: () =>
-                    router.push({
-                      pathname: "/ais",
-                      params: { group: "creative", ai: "ai-poet-001" },
-                    }),
-                },
-                {
-                  label: "Logo & Brand AI",
-                  onPress: () =>
-                    router.push({
-                      pathname: "/ais",
-                      params: { group: "creative", ai: "ai-logo-brand-001" },
-                    }),
-                },
-                {
-                  label: "GameForge · Games",
-                  onPress: () =>
-                    router.push({
-                      pathname: "/ais",
-                      params: { group: "tech", ai: "ai-game-dev-001", surface: "build" },
-                    }),
-                },
-                {
-                  label: "Legal Masters",
-                  onPress: () =>
-                    router.push({
-                      pathname: "/ais",
-                      params: { group: "legalMasters", ai: "ai-attorney-criminal-001" },
-                    }),
-                },
-                {
-                  label: "Credit Attorney AI",
-                  onPress: () =>
-                    router.push({
-                      pathname: "/ais",
-                      params: { group: "legalMasters", ai: "ai-attorney-credit-001" },
-                    }),
-                },
-                {
-                  label: "Merch 3D Lab",
-                  onPress: () =>
-                    router.push({
-                      pathname: "/3d-workspace",
-                      params: { project: "merchandise" },
-                    }),
-                },
-                {
-                  label: "Create Content",
-                  onPress: () => router.push("/(tabs)/create"),
-                },
-                {
-                  label: "Blueprint Reader AI",
-                  onPress: () =>
-                    router.push({
-                      pathname: "/(tabs)/ais",
-                      params: { ai: "ai-blueprint-reader-001" },
-                    }),
-                },
-                {
-                  label: "Master CNC & Mill AI",
-                  onPress: () =>
-                    router.push({
-                      pathname: "/(tabs)/ais",
-                      params: { ai: "ai-cnc-master-001" },
-                    }),
-                },
-                {
-                  label: "Culinary Arts AI",
-                  onPress: () =>
-                    router.push({
-                      pathname: "/(tabs)/ais",
-                      params: { ai: "ai-culinary-001" },
-                    }),
-                },
-                {
-                  label: "AI Playroom",
-                  onPress: () => router.push("/playroom"),
-                },
-                {
-                  label: "UR 3D Workspace",
-                  onPress: () => router.push("/3d-workspace"),
-                },
-                {
-                  label: "Creator Dashboard",
-                  onPress: () => router.push("/creator-dashboard"),
-                },
-                {
-                  label: "UR Shop",
-                  onPress: () => router.push("/shop"),
-                },
-                {
-                  label: "Jobsite & Office",
-                  onPress: () => router.push("/jobsite"),
-                },
-                {
-                  label: "Social Feed",
-                  onPress: () => router.push("/(tabs)/messages"),
-                },
-                {
-                  label: "Affiliate Dashboard",
-                  onPress: () => router.push("/affiliate-dashboard"),
-                },
-                {
-                  label: "Discover",
-                  onPress: () => router.push("/(tabs)/discover"),
-                },
-              ];
-              const chip = (action: { label: string; onPress: () => void }) => (
-                <AppPressable
-                  key={action.label}
-                  onPress={action.onPress}
-                  style={{
-                    backgroundColor: colors.primary,
-                    borderRadius: 20,
-                    paddingHorizontal: 14,
-                    paddingVertical: 10,
-                    minHeight: 40,
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text
-                    pointerEvents="none"
-                    style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}
-                  >
-                    {action.label}
-                  </Text>
-                </AppPressable>
-              );
-              return (
-                <>
-                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-                    {actions.slice(0, 6).map(chip)}
-                  </View>
-                  <TapToRead title="More tools">
-                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                      {actions.slice(6).map(chip)}
-                    </View>
-                  </TapToRead>
-                </>
-              );
-            })()}
-          </DemoSection>
-
-          {showBelowFold ? (
-            <>
-          <DemoSection
-            title="Search UR"
-            description="Find specialists, creators, videos, posts, and shop items inside this platform. Not the internet."
-            icon="🔍"
-            variant="info"
-          >
-            <PlatformSearchPanel compact />
-          </DemoSection>
-
-          <DemoSection
-            title="UR AI Free Board"
-            description="Free lessons from UR specialists — text and video you can open now."
-            icon="🤖"
-            variant="info"
-          >
-            <AiFreeBoardPanel compact />
-          </DemoSection>
-
-          <DemoSection
-            title="Social Feed"
-            description="Public posts, likes, comments, and trending hashtags — free for everyone."
-            icon="📱"
-            variant="info"
-          >
             <SocialFeedPreview />
-          </DemoSection>
-            </>
-          ) : null}
-
-          <TapToRead title="Trending, following, and shop shortcuts">
-          {homeTab?.subMenu?.map((item) => {
-            const routeById: Record<string, string> = {
-              trending: "/(tabs)/discover",
-              following: "/(tabs)/messages",
-              recommended: "/(tabs)/discover",
-              categories: "/shop",
-            };
-            const target = routeById[item.id] ?? "/(tabs)/discover";
-            return (
-              <DemoSection
-                key={item.id}
-                title={item.label}
-                description={`Explore ${item.label.toLowerCase()} on UR Platform.`}
-                icon="📈"
-              >
-                <AppPressable onPress={() => router.push(target as never)}>
-                  <Text
-                    pointerEvents="none"
-                    style={{ color: colors.primary, fontSize: 14, marginTop: 4, fontWeight: "600" }}
-                  >
-                    Open {item.label} →
-                  </Text>
-                </AppPressable>
-              </DemoSection>
-            );
-          })}
-          </TapToRead>
-
-          {dailySignIn.error ? (
-            <DemoSection
-              title="Loyalty Status"
-              description={dailySignIn.error}
-              icon="🎁"
-              variant="warning"
-            />
-          ) : null}
-        </View>
+          </>
+        ) : null}
       </ScrollView>
     </ScreenContainer>
   );

@@ -21,6 +21,8 @@ import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { ComposerDock } from "@/components/composer-dock";
 import { playExclusiveAudio, stopExclusiveAudio } from "@/lib/exclusive-audio-player";
 import { speakText } from "@/lib/azure-tts-service";
+import { newestConversationFirst } from "@/lib/chat-newest-first";
+import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 
 type LanguageMode = "chat" | "translate" | "learn" | "drill";
 
@@ -75,8 +77,10 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
   const [speechHint, setSpeechHint] = useState<string | null>(null);
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
   const loadingRef = useRef(false);
+  const { ref: scrollViewRef, scrollToNewest: scrollToBottom } = useScrollChatToNewest(
+    messages.length + (loading ? 1 : 0),
+  );
 
   const applySyncedMessages = useCallback(
     (synced: SyncedChatMessage[]) => {
@@ -108,12 +112,6 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
   const translateMutation = trpc.aiLanguage.translate.useMutation();
   const teachMutation = trpc.aiLanguage.teach.useMutation();
   const voiceMutation = trpc.aiCreators.synthesizeVoice.useMutation();
-
-  const scrollToBottom = useCallback(() => {
-    setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-  }, []);
 
   const buildHistory = useCallback(
     () =>
@@ -351,7 +349,26 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {messages.map((msg, idx) => (
+        {loading ? (
+          <View style={styles.messageRowAi}>
+            <View
+              style={[
+                styles.messageBubble,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                },
+              ]}
+            >
+              <ActivityIndicator color="#0d9488" />
+              <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700", marginTop: 8 }}>
+                Heard you — thinking. I'll speak the answer when it's ready.
+              </Text>
+            </View>
+          </View>
+        ) : null}
+        {newestConversationFirst(messages).map((msg, idx) => (
           <View
             key={idx}
             style={[
@@ -382,26 +399,6 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
             </View>
           </View>
         ))}
-
-        {loading ? (
-          <View style={styles.messageRowAi}>
-            <View
-              style={[
-                styles.messageBubble,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                  borderWidth: 1,
-                },
-              ]}
-            >
-              <ActivityIndicator color="#0d9488" />
-              <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700", marginTop: 8 }}>
-                Heard you — thinking. I'll speak the answer when it's ready.
-              </Text>
-            </View>
-          </View>
-        ) : null}
       </ScrollView>
 
       {messages.length <= 2 && mode === "learn" ? (

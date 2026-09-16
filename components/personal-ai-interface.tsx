@@ -18,6 +18,8 @@ import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { useAuth } from "@/lib/auth-context";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { ComposerDock } from "@/components/composer-dock";
+import { newestConversationFirst } from "@/lib/chat-newest-first";
+import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 import { playExclusiveAudio, stopExclusiveAudio, unlockWebAudio } from "@/lib/exclusive-audio-player";
 
 interface ChatMessage {
@@ -55,8 +57,10 @@ export function PersonalAIInterface({
   ]);
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
   const loadingRef = useRef(false);
+  const { ref: scrollViewRef, scrollToNewest: scrollToBottom } = useScrollChatToNewest(
+    messages.length + (loading ? 1 : 0),
+  );
 
   const applySyncedMessages = useCallback(
     (synced: SyncedChatMessage[]) => {
@@ -93,12 +97,6 @@ export function PersonalAIInterface({
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
   const [speechHint, setSpeechHint] = useState<string | null>(null);
   const deskName = creatorId === "platform-business-steward-ai" ? "Business Steward" : "ContentMate";
-
-  const scrollToBottom = useCallback(() => {
-    setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-  }, []);
 
   const sendChatMessage = useCallback(
     async (rawText: string) => {
@@ -267,7 +265,26 @@ export function PersonalAIInterface({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {messages.map((msg, idx) => (
+        {loading ? (
+          <View style={styles.messageRowAi}>
+            <View
+              style={[
+                styles.messageBubble,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                },
+              ]}
+            >
+              <ActivityIndicator color={colors.primary} />
+              <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700", marginTop: 8 }}>
+                Heard you — thinking. I'll speak the answer when it's ready.
+              </Text>
+            </View>
+          </View>
+        ) : null}
+        {newestConversationFirst(messages).map((msg, idx) => (
           <View
             key={msg.id ?? idx}
             style={[
@@ -298,26 +315,6 @@ export function PersonalAIInterface({
             </View>
           </View>
         ))}
-
-        {loading ? (
-          <View style={styles.messageRowAi}>
-            <View
-              style={[
-                styles.messageBubble,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                  borderWidth: 1,
-                },
-              ]}
-            >
-              <ActivityIndicator color={colors.primary} />
-              <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700", marginTop: 8 }}>
-                Heard you — thinking. I'll speak the answer when it's ready.
-              </Text>
-            </View>
-          </View>
-        ) : null}
       </ScrollView>
 
       {messages.length === 1 ? (

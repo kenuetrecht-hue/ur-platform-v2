@@ -1,14 +1,15 @@
-import { ScrollView, View, Text, Pressable } from "react-native";
+import { useState } from "react";
+import { ScrollView } from "react-native";
 import { useRouter } from "expo-router";
-import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
-import { PromotionalBanner } from "@/components/promotional-banner";
 import { consolidatedNavigation } from "@/lib/consolidated-navigation";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { FairShowFeedPanel } from "@/components/fair-show-feed-panel";
 import { AiFreeBoardPanel } from "@/components/ai-free-board-panel";
 import { PlatformSearchPanel } from "@/components/platform-search-panel";
+import { HubTabBar } from "@/components/hub-tab-bar";
+import { HubDoorGrid, HubDoorTile } from "@/components/hub-door-tile";
+import { DISCOVER_HUB_TABS } from "@/lib/home-hub";
 
 const DISCOVER_ICONS: Record<string, string> = {
   creators: "👥",
@@ -22,146 +23,59 @@ const DISCOVER_ICONS: Record<string, string> = {
 };
 
 export default function DiscoverScreen() {
-  const colors = useColors();
   const router = useRouter();
+  const [hubTab, setHubTab] = useState("board");
   const discoverTab = consolidatedNavigation.getTab("discover");
   const subMenu = discoverTab?.subMenu ?? [];
 
   return (
     <ScreenContainer className="bg-background">
+      <TabScreenHeader compact icon="🧭" title="Discover" />
+      <HubTabBar tabs={DISCOVER_HUB_TABS} activeId={hubTab} onSelect={setHubTab} />
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 24, gap: 12 }}
         showsVerticalScrollIndicator={false}
       >
-        <PromotionalBanner fullSize={false} />
+        {hubTab === "board" ? (
+          <>
+            <PlatformSearchPanel compact />
+            <AiFreeBoardPanel compact />
+          </>
+        ) : null}
 
-        <TabScreenHeader
-          icon="🧭"
-          title="Discover"
-          subtitle="AI Free Board stays full. Fair Show is human creator video. Then shop and specialists."
-        />
+        {hubTab === "show" ? <FairShowFeedPanel /> : null}
 
-        <View style={{ paddingHorizontal: 16, marginBottom: 16, gap: 12 }}>
-          <PlatformSearchPanel compact />
-          <AiFreeBoardPanel compact />
-        </View>
-
-        <FairShowFeedPanel />
-
-        <View style={{ paddingHorizontal: 16, marginBottom: 12, gap: 10 }}>
-          <Pressable
-            onPress={() => router.push("/ais")}
-            style={{
-              backgroundColor: colors.primary,
-              borderRadius: 14,
-              padding: 16,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 14,
-            }}
-          >
-            <Text style={{ fontSize: 28 }}>🤖</Text>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={{ fontSize: 17, fontWeight: "700", color: "#fff" }}>
-                AI Hub — All Specialists
-              </Text>
-              <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.85)" }}>
-                Doctor, Security, Administration, construction, creative & more
-              </Text>
-            </View>
-            <IconSymbol name="chevron.right" size={18} color="#fff" />
-          </Pressable>
-          <Pressable
-            onPress={() => router.push("/world")}
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: 14,
-              padding: 16,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 14,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-          >
-            <Text style={{ fontSize: 28 }}>🏙️</Text>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={{ fontSize: 17, fontWeight: "700", color: colors.foreground }}>
-                UR World — Civic Plaza
-              </Text>
-              <Text style={{ fontSize: 13, color: colors.muted }}>
-                Walk your avatar · night plaza, garden, benches · Talk at a desk
-              </Text>
-            </View>
-            <IconSymbol name="chevron.right" size={18} color={colors.muted} />
-          </Pressable>
-        </View>
-
-        <View style={{ paddingHorizontal: 16, gap: 10 }}>
-          {subMenu.map((item) => (
-            <Pressable
-              key={item.id}
-              onPress={() => {
-                if (item.id === "marketplace" || item.id === "affiliates") {
-                  router.push("/shop");
-                } else if (item.id === "search") {
-                  router.push("/discover/search");
-                } else if (item.id === "ai-board") {
-                  router.push("/discover/ai-board");
-                } else if (
-                  item.id === "trending-content" ||
-                  item.id === "trending-creators" ||
-                  item.id === "categories" ||
-                  item.id === "creators"
-                ) {
-                  router.push("/discover/fair-show");
-                } else {
-                  router.push("/ais");
-                }
-              }}
-              style={{
-                backgroundColor: colors.surface,
-                borderRadius: 14,
-                padding: 16,
-                borderWidth: 1,
-                borderColor: colors.border,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 14,
-              }}
-            >
-              <View
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 12,
-                  backgroundColor: `${colors.primary}18`,
-                  alignItems: "center",
-                  justifyContent: "center",
+        {hubTab === "go" ? (
+          <HubDoorGrid>
+            <HubDoorTile emoji="🤖" label="AIs" onPress={() => router.push("/ais")} />
+            <HubDoorTile emoji="🏙️" label="UR World" onPress={() => router.push("/world")} />
+            {subMenu.map((item) => (
+              <HubDoorTile
+                key={item.id}
+                emoji={DISCOVER_ICONS[item.id] ?? "✨"}
+                label={item.label}
+                onPress={() => {
+                  if (item.id === "marketplace" || item.id === "affiliates") {
+                    router.push("/shop");
+                  } else if (item.id === "search") {
+                    router.push("/discover/search");
+                  } else if (item.id === "ai-board") {
+                    router.push("/discover/ai-board");
+                  } else if (
+                    item.id === "trending-content" ||
+                    item.id === "trending-creators" ||
+                    item.id === "categories" ||
+                    item.id === "creators"
+                  ) {
+                    router.push("/discover/fair-show");
+                  } else {
+                    router.push("/ais");
+                  }
                 }}
-              >
-                <Text style={{ fontSize: 24 }}>
-                  {DISCOVER_ICONS[item.id] ?? "✨"}
-                </Text>
-              </View>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: "600",
-                    color: colors.foreground,
-                  }}
-                >
-                  {item.label}
-                </Text>
-                <Text style={{ fontSize: 13, color: colors.muted }}>
-                  Browse {item.label.toLowerCase()}
-                </Text>
-              </View>
-              <IconSymbol name="chevron.right" size={18} color={colors.muted} />
-            </Pressable>
-          ))}
-        </View>
+              />
+            ))}
+          </HubDoorGrid>
+        ) : null}
       </ScrollView>
     </ScreenContainer>
   );

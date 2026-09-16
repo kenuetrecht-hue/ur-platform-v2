@@ -89,10 +89,6 @@ export default function UrWorldScreen() {
               subtitle="Walk the Civic Plaza — blue and purple night city, garden, benches, Glow Bar, fountain, and specialist desks."
             />
 
-            <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 16 }}>
-              <Text style={{ color: colors.primary, fontWeight: "600" }}>← Back</Text>
-            </Pressable>
-
             {Platform.OS !== "web" ? (
               <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
                 <Text style={[styles.cardTitle, { color: colors.foreground }]}>Open in browser</Text>

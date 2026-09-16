@@ -1,7 +1,9 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
+import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { LinearGradient } from "expo-linear-gradient";
 import { brandGradientPair } from "@/lib/brand-theme";
+import { goBackOrHome } from "@/lib/page-back";
 
 interface TabScreenHeaderProps {
   title: string;
@@ -9,14 +11,34 @@ interface TabScreenHeaderProps {
   icon?: string;
   /** Tighter spacing for dense tab screens (e.g. AIs chat). */
   compact?: boolean;
+  /** Hide Back on the starting Home screen only. */
+  showBack?: boolean;
 }
 
-export function TabScreenHeader({ title, subtitle, icon, compact = false }: TabScreenHeaderProps) {
+export function TabScreenHeader({
+  title,
+  subtitle,
+  icon,
+  compact = false,
+  showBack = true,
+}: TabScreenHeaderProps) {
   const colors = useColors();
+  const router = useRouter();
   const [gradStart, gradEnd] = brandGradientPair(colors);
 
   return (
     <View style={[styles.wrap, compact && styles.wrapCompact]}>
+      {showBack ? (
+        <Pressable
+          onPress={() => goBackOrHome(router)}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          testID="page-back"
+          style={styles.backRow}
+        >
+          <Text style={[styles.backText, { color: colors.primary }]}>← Back</Text>
+        </Pressable>
+      ) : null}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         {icon ? <Text style={{ fontSize: compact ? 22 : 28 }}>{icon}</Text> : null}
         <Text style={[styles.title, compact && styles.titleCompact, { color: colors.foreground }]}>
@@ -45,6 +67,15 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 14,
     gap: 4,
+  },
+  backRow: {
+    alignSelf: "flex-start",
+    paddingVertical: 4,
+    marginBottom: 2,
+  },
+  backText: {
+    fontSize: 15,
+    fontWeight: "700",
   },
   wrapCompact: {
     paddingTop: 4,

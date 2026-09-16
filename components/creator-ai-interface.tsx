@@ -38,6 +38,8 @@ import { AiTalkTimePanel } from "@/components/ai-talk-time-panel";
 import { isTalkTimeLowBalance } from "@/lib/ai-talk-time-policy";
 import type { ChatMessageAttachmentPreview, ChatSearchCitation } from "@/lib/chat-attachment-types";
 import { AiChatSearchCitations } from "@/components/ai-chat-search-citations";
+import { newestConversationFirst } from "@/lib/chat-newest-first";
+import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 import { AiChatMessageMedia } from "@/components/ai-chat-message-media";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { ThanksStampsWall } from "@/components/thanks-stamps-wall";
@@ -93,7 +95,6 @@ export function CreatorAIInterface({
   const defaultWelcome =
     welcomeMessage ??
     `Hi! I'm ${creatorName}, an AI assistant on UR Platform.\n\n${AI_WELCOME_DISCLOSURE_SUFFIX}\n\nHow can I help you today?`;
-  const scrollViewRef = useRef<ScrollView>(null);
   const messageSeq = useRef(0);
   const loadingRef = useRef(false);
   const speakReplyRef = useRef<(text: string) => void>(() => undefined);
@@ -292,11 +293,9 @@ export function CreatorAIInterface({
 
   const [sendStatus, setSendStatus] = useState<string | null>(null);
 
-  const scrollToBottom = useCallback(() => {
-    setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-  }, []);
+  const { ref: scrollViewRef, scrollToNewest: scrollToBottom } = useScrollChatToNewest(
+    messages.length + (loading ? 1 : 0),
+  );
 
   const CHAT_TIMEOUT_MS = 90_000;
 
@@ -772,7 +771,15 @@ export function CreatorAIInterface({
           nestedScrollEnabled
           showsVerticalScrollIndicator
         >
-          {messages.map((msg) => (
+          {loading ? (
+            <View style={styles.typingRow}>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "700", flex: 1 }}>
+                Heard you — thinking through this now. I'll speak the answer when it's ready.
+              </Text>
+            </View>
+          ) : null}
+          {newestConversationFirst(messages).map((msg) => (
             <View
               key={msg.id}
               style={[
@@ -799,14 +806,6 @@ export function CreatorAIInterface({
               ) : null}
             </View>
           ))}
-          {loading ? (
-            <View style={styles.typingRow}>
-              <ActivityIndicator color={colors.primary} />
-              <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "700", flex: 1 }}>
-                Heard you — thinking through this now. I'll speak the answer when it's ready.
-              </Text>
-            </View>
-          ) : null}
         </ScrollView>
 
         <ComposerDock paddingBottom={overlap.dockPaddingBottom}>

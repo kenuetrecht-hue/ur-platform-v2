@@ -1,17 +1,21 @@
 import { useState } from "react";
-import { ScrollView, View, Text, Pressable, Modal } from "react-native";
+import { ScrollView, View, Text, Modal } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
-import { DemoSection } from "@/components/demo-section";
 import { PersonalAIChat } from "@/components/personal-ai-chat";
 import { VoiceChatInterface } from "@/components/voice-chat-interface";
 import { consolidatedNavigation } from "@/lib/consolidated-navigation";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { HubTabBar } from "@/components/hub-tab-bar";
+import { HubDoorGrid, HubDoorTile } from "@/components/hub-door-tile";
+import { CREATE_HUB_TABS } from "@/lib/home-hub";
+import { AppPressable } from "@/components/app-pressable";
+import { withAlpha } from "@/lib/brand-theme";
 
 const CREATE_ICONS: Record<string, string> = {
   video: "🎬",
+  cartoon: "🎞️",
   music: "🎚️",
   audio: "🎵",
   image: "🖼️",
@@ -27,107 +31,69 @@ export default function CreateScreen() {
   const router = useRouter();
   const [showAIChat, setShowAIChat] = useState(false);
   const [showVoiceChat, setShowVoiceChat] = useState(false);
+  const [hubTab, setHubTab] = useState("make");
   const createTab = consolidatedNavigation.getTab("create");
   const subMenu = createTab?.subMenu ?? [];
 
   return (
     <ScreenContainer className="bg-background">
+      <TabScreenHeader compact icon="✏️" title="Create" />
+      <HubTabBar tabs={CREATE_HUB_TABS} activeId={hubTab} onSelect={setHubTab} />
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 24, gap: 12 }}
         showsVerticalScrollIndicator={false}
       >
-        <TabScreenHeader
-          icon="✏️"
-          title="Create"
-          subtitle="Produce videos, audio, images, and AI-assisted content."
-        />
-
-        <View style={{ paddingHorizontal: 16, gap: 12 }}>
-          <DemoSection
-            title="AI Tools"
-            description="Launch your creative assistants."
-            icon="🤖"
-            variant="info"
-          >
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
-              <Pressable
-                onPress={() => setShowAIChat(true)}
-                style={{
-                  flex: 1,
-                  backgroundColor: colors.primary,
-                  borderRadius: 12,
-                  padding: 14,
-                  alignItems: "center",
+        {hubTab === "make" ? (
+          <HubDoorGrid>
+            {subMenu.map((item) => (
+              <HubDoorTile
+                key={item.id}
+                emoji={CREATE_ICONS[item.id] ?? "📦"}
+                label={item.label}
+                onPress={() => {
+                  if (item.id === "ai") setShowAIChat(true);
+                  else if (item.route) router.push(item.route as never);
                 }}
-              >
-                <Text style={{ color: "#fff", fontWeight: "600" }}>Text AI</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setShowVoiceChat(true)}
-                style={{
-                  flex: 1,
-                  backgroundColor: colors.surface,
-                  borderRadius: 12,
-                  padding: 14,
-                  alignItems: "center",
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                }}
-              >
-                <Text style={{ color: colors.foreground, fontWeight: "600" }}>
-                  Voice AI
-                </Text>
-              </Pressable>
-            </View>
-          </DemoSection>
+              />
+            ))}
+          </HubDoorGrid>
+        ) : null}
 
-          {subMenu.map((item) => (
-            <Pressable
-              key={item.id}
-              onPress={() => {
-                if (item.id === "ai") setShowAIChat(true);
-                else if (item.route) router.push(item.route as never);
+        {hubTab === "talk" ? (
+          <View style={{ gap: 10 }}>
+            <AppPressable
+              onPress={() => setShowAIChat(true)}
+              style={{
+                backgroundColor: colors.primary,
+                borderRadius: 14,
+                padding: 16,
+                alignItems: "center",
               }}
+            >
+              <Text pointerEvents="none" style={{ color: "#fff", fontWeight: "700" }}>
+                Text AI
+              </Text>
+            </AppPressable>
+            <AppPressable
+              onPress={() => setShowVoiceChat(true)}
               style={{
                 backgroundColor: colors.surface,
                 borderRadius: 14,
                 padding: 16,
-                borderWidth: 1,
-                borderColor: colors.border,
-                flexDirection: "row",
                 alignItems: "center",
-                gap: 14,
+                borderWidth: 1,
+                borderColor: withAlpha(colors.secondary, 0.4),
               }}
             >
-              <Text style={{ fontSize: 28 }}>{CREATE_ICONS[item.id] ?? "📦"}</Text>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: "600",
-                    color: colors.foreground,
-                  }}
-                >
-                  {item.label}
-                </Text>
-                <Text style={{ fontSize: 13, color: colors.muted }}>
-                  Start a new {item.label.toLowerCase()} project
-                </Text>
-              </View>
-              <IconSymbol
-                name="chevron.right"
-                size={18}
-                color={colors.muted}
-              />
-            </Pressable>
-          ))}
-        </View>
+              <Text pointerEvents="none" style={{ color: colors.foreground, fontWeight: "700" }}>
+                Voice AI
+              </Text>
+            </AppPressable>
+          </View>
+        ) : null}
       </ScrollView>
 
-      <PersonalAIChat
-        visible={showAIChat}
-        onClose={() => setShowAIChat(false)}
-      />
+      <PersonalAIChat visible={showAIChat} onClose={() => setShowAIChat(false)} />
 
       <Modal visible={showVoiceChat} animationType="slide">
         <VoiceChatInterface
