@@ -15,14 +15,13 @@ import {
 } from "@/lib/layout-overlap";
 
 /**
- * One tab bar. Bottom pad is the phone OS safe area only — no extra spacer,
- * no invented toolbar. The system nav / home indicator stays the OS bar.
+ * One tab bar. A single OS-bar pad under the icons — no second empty block.
  */
 export function TabBarWithDisclosure(props: BottomTabBarProps) {
   const colors = useColors();
   const onHeightChange = useContext(BottomTabBarHeightCallbackContext);
   const iconRowHeight = tabBarIconsOnlyHeight();
-  const bottomPad = Math.max(props.insets.bottom, useTabBarBottomInset());
+  const bottomPad = useTabBarBottomInset();
   const estimatedHeight = bottomDisclaimerAboveTabHeight() + iconRowHeight + bottomPad;
 
   useEffect(() => {

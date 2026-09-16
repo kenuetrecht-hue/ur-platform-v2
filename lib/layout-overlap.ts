@@ -27,6 +27,10 @@ export const LAYOUT_OVERLAP = {
   ANDROID_NAV_BAR_BUFFER: 6,
   /** Samsung One UI often needs a hair more clearance above the tab bar. */
   SAMSUNG_TAB_BUFFER: 4,
+  /** Native Android / Android-web floor for the system navigation bar. */
+  ANDROID_GESTURE_INSET: 64,
+  /** Extra gap above the OS bar. Keep at 0 — a second block eats screen. */
+  TAB_BAR_HOME_CLEARANCE: 0,
   /** Desktop-web floor when there is no home indicator. Phone web uses the OS inset instead. */
   WEB_TAB_BAR_BOTTOM_PAD: 20,
   /** AIs tab chrome above the chat panel (header + mode row + specialist bar). */
@@ -128,8 +132,8 @@ export function isPhoneWebRuntime(): boolean {
 }
 
 /**
- * Bottom pad for the real tab bar = the OS safe area only.
- * Do not add a second invented toolbar or extra home-bar clearance.
+ * Bottom pad for the real tab bar.
+ * Android: one 64px OS-bar floor. Do not add 48px clearance or a second spacer.
  */
 export function resolveTabBarBottomInset(args: {
   safeBottom: number;
@@ -147,7 +151,7 @@ export function resolveTabBarBottomInset(args: {
     return Math.max(os, LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET);
   }
   if (android) {
-    return os;
+    return Math.max(os, LAYOUT_OVERLAP.ANDROID_GESTURE_INSET);
   }
   if (phone) {
     return os > 0 ? os : LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET;
