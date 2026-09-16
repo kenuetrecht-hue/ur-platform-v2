@@ -7,7 +7,7 @@ import {
   PLATFORM_DISCLOSURE_FULL,
   PLATFORM_DISCLOSURE_TOP,
 } from "@/lib/platform-disclosure-copy";
-import { brandDisclosureSurface, withAlpha } from "@/lib/brand-theme";
+import { brandDisclosureSurface } from "@/lib/brand-theme";
 
 export function PlatformDisclosureBar({
   position,
@@ -34,7 +34,7 @@ export function PlatformDisclosureBar({
 
   const content = (
     <Text
-      style={[styles.text, { color: withAlpha(colors.muted, 0.92) }]}
+      style={[styles.text, { color: colors.gold }]}
       numberOfLines={compact ? 1 : 3}
     >
       {text}

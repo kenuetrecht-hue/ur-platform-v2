@@ -11,6 +11,18 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+function applyCssColorVars(scheme: ColorScheme) {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  const palette = SchemeColors[scheme];
+  for (const [name, value] of Object.entries(palette)) {
+    root.style.setProperty(`--color-${name}`, value);
+  }
+  root.style.color = palette.foreground;
+  root.dataset.theme = scheme;
+  root.classList.toggle("dark", scheme === "dark");
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useSystemColorScheme() ?? "light";
   const [colorScheme, setColorSchemeState] = useState<ColorScheme>(systemScheme);
@@ -22,11 +34,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const applyScheme = useCallback((scheme: ColorScheme) => {
-    if (typeof document !== "undefined") {
-      const root = document.documentElement;
-      root.dataset.theme = scheme;
-      root.classList.toggle("dark", scheme === "dark");
-    }
+    applyCssColorVars(scheme);
   }, []);
 
   const setColorScheme = useCallback((scheme: ColorScheme) => {
@@ -51,7 +59,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeContext.Provider value={value}>
-      <View style={{ flex: 1 }}>{children}</View>
+      <View style={{ flex: 1, color: SchemeColors[colorScheme].foreground } as object}>{children}</View>
     </ThemeContext.Provider>
   );
 }

@@ -54,8 +54,8 @@ export function PageHeader({
             onPress={handleBackPress}
             className="flex-row items-center gap-2 p-2 -ml-2 active:opacity-70"
           >
-            <Text className="text-2xl">←</Text>
-            <Text className="text-sm text-muted">Back</Text>
+            <Text className="text-2xl text-gold">←</Text>
+            <Text className="text-sm text-gold">Back</Text>
           </Pressable>
         )}
         <View className="flex-1" />
@@ -65,8 +65,8 @@ export function PageHeader({
       <View className="flex-row items-start gap-3 mb-2">
         <Text className="text-4xl">{icon}</Text>
         <View className="flex-1">
-          <Text className="text-3xl font-bold text-foreground">{title}</Text>
-          {subtitle && <Text className="text-base text-muted mt-1">{subtitle}</Text>}
+          <Text className="text-3xl font-bold text-gold">{title}</Text>
+          {subtitle && <Text className="text-base text-gold mt-1">{subtitle}</Text>}
         </View>
       </View>
 
@@ -79,7 +79,7 @@ export function PageHeader({
               categoryColors[category]
             )}
           >
-            <Text className="text-xs font-semibold capitalize">
+            <Text className="text-xs font-semibold capitalize text-gold">
               {category.replace(/_/g, " ")}
             </Text>
           </View>

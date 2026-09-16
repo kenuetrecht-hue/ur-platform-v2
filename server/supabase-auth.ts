@@ -131,8 +131,6 @@ export async function syncSupabaseUser(
   // Only the platform owner may receive admin — never trust user_metadata.role
   const role = resolveUserRole(openId, email);
 
-  const existing = await db.getUserByOpenId(openId);
-
   await db.upsertUser({
     openId,
     name: isOwnerEmail(email)
@@ -152,7 +150,7 @@ export async function syncSupabaseUser(
     return null;
   }
 
-  const { registerSocialUser, ensureOwnerWelcomeFriendship } = await import(
+  const { registerSocialUser, ensureOwnerWelcomeFriendship, backfillOwnerWelcomeFriends } = await import(
     "./_core/social-service"
   );
   registerSocialUser({
@@ -160,7 +158,9 @@ export async function syncSupabaseUser(
     email: user.email ?? "",
     displayName: user.name ?? "User",
   });
-  if (!existing && !isOwnerEmail(email)) {
+  if (isOwnerEmail(email)) {
+    await backfillOwnerWelcomeFriends();
+  } else {
     await ensureOwnerWelcomeFriendship({
       userId: String(user.id),
       email: user.email ?? "",

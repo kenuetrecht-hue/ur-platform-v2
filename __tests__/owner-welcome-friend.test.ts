@@ -43,6 +43,55 @@ describe("owner welcome friend", () => {
     expect(inbox[0]?.body).toContain("Friends & Messages");
   });
 
+  it("retries after the owner id was missing on first join", async () => {
+    await ensureOwnerWelcomeFriendship({
+      userId: "member-late",
+      email: "late@ur.test",
+      displayName: "Late",
+    });
+    expect(listFriends("member-late")).toHaveLength(0);
+
+    registerSocialUser({
+      userId: ownerId,
+      email: ownerEmail,
+      displayName: "Platform Owner",
+    });
+
+    await ensureOwnerWelcomeFriendship({
+      userId: "member-late",
+      email: "late@ur.test",
+      displayName: "Late",
+    });
+
+    expect(listFriends("member-late")).toHaveLength(1);
+    expect(listFriends(ownerId)[0]?.peerUserId).toBe("member-late");
+  });
+
+  it("keeps one friendship when join is requested twice at once", async () => {
+    registerSocialUser({
+      userId: ownerId,
+      email: ownerEmail,
+      displayName: "Platform Owner",
+    });
+
+    const [first, second] = await Promise.all([
+      ensureOwnerWelcomeFriendship({
+        userId: "member-race",
+        email: "race@ur.test",
+        displayName: "Race",
+      }),
+      ensureOwnerWelcomeFriendship({
+        userId: "member-race",
+        email: "race@ur.test",
+        displayName: "Race",
+      }),
+    ]);
+
+    expect(first?.id).toBe(second?.id);
+    expect(listFriends(ownerId)).toHaveLength(1);
+    expect(listFriends("member-race")[0]?.peerUserId).toBe(ownerId);
+  });
+
   it("does not friend the platform owner with themselves", async () => {
     registerSocialUser({
       userId: ownerId,

@@ -9,8 +9,11 @@ import {
   translateForMember,
 } from "../_core/world-monitor-service";
 import { requireWorldAccess } from "./conduct-router";
+import { isOwnerEmail } from "../_core/owner-auth";
 import {
   acceptFriendRequest,
+  backfillOwnerWelcomeFriends,
+  ensureOwnerWelcomeFriendship,
   getSocialDashboard,
   listDirectMessages,
   listInboxMail,
@@ -132,13 +135,16 @@ function socialUser(ctx: { user: { id: string | number; email?: string | null; n
 }
 
 export const socialRouter = router({
-  dashboard: secureProcedure("social").query(({ ctx }) => {
+  dashboard: secureProcedure("social").query(async ({ ctx }) => {
     const userId = String(ctx.user.id);
-    registerSocialUser({
-      userId,
-      email: ctx.user.email ?? "",
-      displayName: ctx.user.name ?? "User",
-    });
+    const email = ctx.user.email ?? "";
+    const displayName = ctx.user.name ?? "User";
+    registerSocialUser({ userId, email, displayName });
+    if (isOwnerEmail(email)) {
+      await backfillOwnerWelcomeFriends();
+    } else {
+      await ensureOwnerWelcomeFriendship({ userId, email, displayName });
+    }
     return getSocialDashboard(userId);
   }),
 

@@ -385,8 +385,8 @@ export function PlatformOpsConsole({
               </Pressable>
               {expandedId === inc.id ? (
                 <View style={{ marginTop: 10, gap: 8 }}>
-                  <Text style={{ color: colors.foreground, fontSize: 13 }}><Text style={{ fontWeight: "700" }}>Problem: </Text>{inc.problem}</Text>
-                  <Text style={{ color: colors.foreground, fontSize: 13 }}><Text style={{ fontWeight: "700" }}>Proposed fix: </Text>{inc.proposedFix}</Text>
+                  <Text style={{ color: colors.foreground, fontSize: 13 }}><Text style={{ fontWeight: "700", color: colors.foreground }}>Problem: </Text>{inc.problem}</Text>
+                  <Text style={{ color: colors.foreground, fontSize: 13 }}><Text style={{ fontWeight: "700", color: colors.foreground }}>Proposed fix: </Text>{inc.proposedFix}</Text>
                   {inc.deployProposal?.steps?.length ? (
                     <View style={{ gap: 4 }}>
                       <Text style={{ fontWeight: "700", color: colors.foreground, fontSize: 12 }}>
@@ -401,7 +401,7 @@ export function PlatformOpsConsole({
                   ) : null}
                   {inc.ownerInstructions ? (
                     <Text style={{ color: colors.foreground, fontSize: 12 }}>
-                      <Text style={{ fontWeight: "700" }}>Your instructions: </Text>
+                      <Text style={{ fontWeight: "700", color: colors.foreground }}>Your instructions: </Text>
                       {inc.ownerInstructions}
                     </Text>
                   ) : null}

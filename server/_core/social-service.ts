@@ -7,7 +7,7 @@ import { randomUUID } from "crypto";
 import { TRPCError } from "@trpc/server";
 import { ENV } from "./env";
 import { getPlatformOwnerDisplayName, isOwnerEmail } from "./owner-auth";
-import { getUserByEmail, getUserByOpenId } from "../db";
+import { getUserByEmail, getUserByOpenId, listJoinedMembers } from "../db";
 import { toSupabaseOpenId } from "../supabase-auth";
 import {
   followCreatorChannel,
@@ -72,11 +72,13 @@ export function registerSocialUser(params: {
   email: string;
   displayName: string;
 }): void {
-  emailIndex.set(params.email.toLowerCase().trim(), params.userId);
+  const email = params.email.toLowerCase().trim();
+  if (email) {
+    emailIndex.set(email, params.userId);
+  }
   if (isOwnerEmail(params.email)) {
     cachedOwnerUserId = params.userId;
   }
-  void ensureOwnerWelcomeFriendship(params);
 }
 
 function buildOwnerWelcomeMessage(params: {
@@ -131,7 +133,7 @@ function establishAcceptedFriendship(params: {
 let cachedOwnerUserId: string | null | undefined;
 
 async function resolveOwnerSocialUserId(): Promise<string | null> {
-  if (cachedOwnerUserId !== undefined) {
+  if (cachedOwnerUserId) {
     return cachedOwnerUserId;
   }
 
@@ -165,14 +167,12 @@ async function resolveOwnerSocialUserId(): Promise<string | null> {
     }
   }
 
-  cachedOwnerUserId = null;
   return null;
 }
 
-const welcomeFriendInFlight = new Set<string>();
+const welcomeFriendInFlight = new Map<string, Promise<Friendship | null>>();
 
-/** Platform owner becomes every new member's first accepted friend. */
-export async function ensureOwnerWelcomeFriendship(params: {
+async function createOwnerWelcomeFriendship(params: {
   userId: string;
   email: string;
   displayName: string;
@@ -181,49 +181,82 @@ export async function ensureOwnerWelcomeFriendship(params: {
   if (!memberEmail || isOwnerEmail(memberEmail)) {
     return null;
   }
-  if (welcomeFriendInFlight.has(params.userId)) {
+
+  registerSocialUser(params);
+  const ownerUserId = await resolveOwnerSocialUserId();
+  if (!ownerUserId || ownerUserId === params.userId) {
     return null;
   }
-
-  welcomeFriendInFlight.add(params.userId);
-  try {
-    const ownerUserId = await resolveOwnerSocialUserId();
-    if (!ownerUserId || ownerUserId === params.userId) {
-      return null;
-    }
-    if (friendshipExists(ownerUserId, params.userId)) {
-      return null;
-    }
-
-    const ownerEmail = ENV.platformOwnerEmail.toLowerCase().trim();
-    const ownerName = getPlatformOwnerDisplayName();
-    const friendship = establishAcceptedFriendship({
-      ownerUserId,
-      ownerEmail,
-      ownerName,
-      memberUserId: params.userId,
-      memberEmail,
-      memberName: params.displayName || memberEmail.split("@")[0] || "Friend",
-    });
-
-    const welcome = buildOwnerWelcomeMessage({
-      memberName: params.displayName,
-      ownerName,
-    });
-    sendDirectMessage({
-      senderUserId: ownerUserId,
-      recipientUserId: params.userId,
-      subject: welcome.subject,
-      body: welcome.body,
-      senderEmail: ownerEmail,
-      recipientEmail: memberEmail,
-      requireFriend: false,
-    });
-
-    return friendship;
-  } finally {
-    welcomeFriendInFlight.delete(params.userId);
+  if (friendshipExists(ownerUserId, params.userId)) {
+    return [...friendships.values()].find(
+      (f) =>
+        f.status === "accepted" &&
+        ((f.userId === ownerUserId && f.friendUserId === params.userId) ||
+          (f.userId === params.userId && f.friendUserId === ownerUserId)),
+    ) ?? null;
   }
+
+  const ownerEmail = (ENV.platformOwnerEmail ?? "").toLowerCase().trim();
+  const ownerName = getPlatformOwnerDisplayName();
+  const friendship = establishAcceptedFriendship({
+    ownerUserId,
+    ownerEmail,
+    ownerName,
+    memberUserId: params.userId,
+    memberEmail,
+    memberName: params.displayName || memberEmail.split("@")[0] || "Friend",
+  });
+
+  const welcome = buildOwnerWelcomeMessage({
+    memberName: params.displayName,
+    ownerName,
+  });
+  sendDirectMessage({
+    senderUserId: ownerUserId,
+    recipientUserId: params.userId,
+    subject: welcome.subject,
+    body: welcome.body,
+    senderEmail: ownerEmail,
+    recipientEmail: memberEmail,
+    requireFriend: false,
+  });
+
+  return friendship;
+}
+
+/** Platform owner becomes every member's first accepted friend. */
+export async function ensureOwnerWelcomeFriendship(params: {
+  userId: string;
+  email: string;
+  displayName: string;
+}): Promise<Friendship | null> {
+  const pending = welcomeFriendInFlight.get(params.userId);
+  if (pending) return pending;
+
+  const run = createOwnerWelcomeFriendship(params).finally(() => {
+    if (welcomeFriendInFlight.get(params.userId) === run) {
+      welcomeFriendInFlight.delete(params.userId);
+    }
+  });
+  welcomeFriendInFlight.set(params.userId, run);
+  return run;
+}
+
+/** When the owner opens Social or signs in, friend everyone already in the joined-members table. */
+export async function backfillOwnerWelcomeFriends(): Promise<number> {
+  const rows = await listJoinedMembers();
+  let linked = 0;
+  for (const row of rows) {
+    const email = (row.email ?? "").toLowerCase().trim();
+    if (!email || isOwnerEmail(email)) continue;
+    const result = await ensureOwnerWelcomeFriendship({
+      userId: String(row.id),
+      email,
+      displayName: row.name ?? email.split("@")[0] ?? "Friend",
+    });
+    if (result) linked += 1;
+  }
+  return linked;
 }
 
 export function _resetSocialStateForTests(): void {
@@ -291,11 +324,20 @@ export function listFriends(userId: string): Array<
     )
     .map((f) => {
       const isRequester = f.userId === userId;
+      const peerIsOwner = !isRequester && (f.initiatedBy === f.userId || cachedOwnerUserId === f.userId);
       return {
         ...f,
         peerUserId: isRequester ? f.friendUserId : f.userId,
-        peerEmail: f.friendEmail,
-        peerName: f.friendName,
+        peerEmail: isRequester
+          ? f.friendEmail
+          : peerIsOwner
+            ? (ENV.platformOwnerEmail ?? f.friendEmail)
+            : f.friendEmail,
+        peerName: isRequester
+          ? f.friendName
+          : peerIsOwner
+            ? getPlatformOwnerDisplayName()
+            : f.friendName,
       };
     });
 }

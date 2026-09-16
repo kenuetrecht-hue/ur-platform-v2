@@ -1,4 +1,5 @@
 import "@/global.css";
+import "@/lib/gold-lettering";
 import { Stack } from "expo-router";
 import Head from "expo-router/head";
 import { StatusBar } from "expo-status-bar";
