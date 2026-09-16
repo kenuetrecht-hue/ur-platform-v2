@@ -199,7 +199,7 @@ export default function AIsScreen() {
                 >
                   <View style={styles.catalogBlockInner}>
                   <View style={styles.catalogHeader}>
-                    <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
+                    <Text style={{ color: colors.gold, fontWeight: "700", fontSize: 13 }}>
                       Choose a specialist
                     </Text>
                     {selectedCreator ? (

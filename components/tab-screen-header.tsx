@@ -46,7 +46,7 @@ export function TabScreenHeader({
         </Text>
       </View>
       {subtitle ? (
-        <Text style={[styles.subtitle, compact && styles.subtitleCompact, { color: colors.muted }]}>
+        <Text style={[styles.subtitle, compact && styles.subtitleCompact, { color: colors.gold }]}>
           {subtitle}
         </Text>
       ) : null}

@@ -17,10 +17,10 @@ function applyTo(component: TextWithDefaults, color: string) {
   };
 }
 
-/** Default lettering is always gold. White cards set `colors.onWhite` themselves. */
-export function applyDefaultLettering(color: string = LETTERING_ON_COLOR) {
+/** Default lettering is bluish-purple on white cards. Colored wash sets `colors.gold`. */
+export function applyDefaultLettering(color: string = LETTERING_ON_WHITE) {
   applyTo(Text as TextWithDefaults, color);
   applyTo(TextInput as TextWithDefaults, color);
 }
 
-applyDefaultLettering(LETTERING_ON_COLOR);
+applyDefaultLettering(LETTERING_ON_WHITE);

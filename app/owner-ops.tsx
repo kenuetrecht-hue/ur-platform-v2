@@ -199,10 +199,10 @@ export default function OwnerOpsScreen() {
           </View>
         ) : denied ? (
           <View style={{ padding: 24, gap: 14 }}>
-            <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: "700" }}>
+            <Text style={{ color: colors.gold, fontSize: 17, fontWeight: "700" }}>
               Access denied
             </Text>
-            <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 21 }}>
+            <Text style={{ color: colors.gold, fontSize: 14, lineHeight: 21 }}>
               The Administration Dashboard is private. Only {ownerDisplayName} and staff they
               explicitly authorize can enter. If you were hired to help run the platform, ask the
               owner to grant your email a staff role.

@@ -25,14 +25,14 @@ body > div:first-child {
 }
 
 :root {
-  color: #ffd700;
+  color: #4f46e5;
   --ur-safe-bottom: env(safe-area-inset-bottom, 0px);
   --color-primary: #4f46e5;
   --color-secondary: #7c3aed;
   --color-background: #f4f2fa;
   --color-surface: #ffffff;
-  --color-foreground: #ffd700;
-  --color-muted: #f5d76a;
+  --color-foreground: #4f46e5;
+  --color-muted: #6d28d9;
   --color-onWhite: #4f46e5;
   --color-border: #ddd6fe;
   --color-success: #10b981;
