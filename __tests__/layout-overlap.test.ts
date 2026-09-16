@@ -70,13 +70,13 @@ describe("layout-overlap", () => {
     expect(tabBarTotalHeight(34)).toBeGreaterThan(tabBarIconsOnlyHeight());
     expect(LAYOUT_OVERLAP).not.toHaveProperty("WEB_TOUCH_BOTTOM_INSET");
     const tabBar = readFileSync("components/tab-bar-with-disclosure.tsx", "utf8");
-    expect(tabBar).toContain('useSafeAreaInsets');
+    expect(tabBar).toContain("useSafeAreaInsets");
     expect(tabBar).toContain("paddingBottom: bottomPad");
-    expect(tabBar).toContain("react-native-safe-area-context");
-    expect(tabBar).not.toContain("ur-phone-home-bar-clearance");
-    expect(tabBar).not.toContain("ur-tab-home-spacer");
-    expect(tabBar).not.toContain("ur-tab-dock");
+    expect(tabBar).toContain('Platform.OS === "web"');
+    expect(tabBar).toContain("WEB_TAB_BAR_BOTTOM_PAD");
+    expect(tabBar).toContain("insets.bottom");
     expect(tabBar).not.toContain('Platform.OS === "web" ? 0');
+    expect(LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD).toBe(20);
     expect(readFileSync("app/(tabs)/_layout.tsx", "utf8")).toContain('position: "relative"');
     expect(readFileSync("app/(tabs)/_layout.tsx", "utf8")).toContain(
       "safeAreaInsets={{ top: 0, right: 0, bottom: 0, left: 0 }}",

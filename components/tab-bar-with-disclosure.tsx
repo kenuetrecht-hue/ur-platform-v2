@@ -1,5 +1,5 @@
 import { useContext, useEffect } from "react";
-import { View, StyleSheet } from "react-native";
+import { Platform, View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   BottomTabBar,
@@ -9,18 +9,23 @@ import {
 import { PlatformDisclosureBar } from "@/components/platform-disclosure-bar";
 import { useColors } from "@/hooks/use-colors";
 import { withAlpha } from "@/lib/brand-theme";
-import { bottomDisclaimerAboveTabHeight, tabBarIconsOnlyHeight } from "@/lib/layout-overlap";
+import {
+  LAYOUT_OVERLAP,
+  bottomDisclaimerAboveTabHeight,
+  tabBarIconsOnlyHeight,
+} from "@/lib/layout-overlap";
 
 /**
- * One tab bar. Safe-area inset lifts Home / Admin / AIs / Profile / Social
- * above the phone OS navigation bar.
+ * One tab bar. Native uses the phone safe-area inset. Web uses a fixed pad
+ * so Home / Admin / AIs / Profile / Social labels stay fully visible.
  */
 export function TabBarWithDisclosure(props: BottomTabBarProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const onHeightChange = useContext(BottomTabBarHeightCallbackContext);
   const iconRowHeight = tabBarIconsOnlyHeight();
-  const bottomPad = insets.bottom;
+  const bottomPad =
+    Platform.OS === "web" ? LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD : insets.bottom;
   const estimatedHeight = bottomDisclaimerAboveTabHeight() + iconRowHeight + bottomPad;
 
   useEffect(() => {
@@ -59,7 +64,7 @@ const styles = StyleSheet.create({
   },
   tabBarSlot: {
     flexShrink: 0,
-    overflow: "hidden",
+    overflow: "visible",
     position: "relative",
   },
 });
