@@ -28,6 +28,7 @@ import {
   isHomeHubTabId,
   type HomeHubTabId,
 } from "@/lib/home-hub";
+import { useAppInstallActions } from "@/hooks/use-app-install-actions";
 import { withAlpha } from "@/lib/brand-theme";
 
 export default function HomeScreen() {
@@ -36,6 +37,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const dailySignIn = useDailySignIn();
   const { isPlatformOwner } = usePlatformOwner();
+  const { install } = useAppInstallActions();
   const kyc = trpc.ageKyc.getStatus.useQuery(undefined, { retry: 0, staleTime: 45_000 });
   const needsIdPhotos = kyc.data?.verified !== true;
   const [hubTab, setHubTab] = useState<HomeHubTabId>("start");
@@ -82,7 +84,13 @@ export default function HomeScreen() {
                   emoji={door.emoji}
                   label={door.label}
                   testID={`home-download-${door.id}`}
-                  onPress={() => router.push(door.href)}
+                  onPress={() => {
+                    if (door.installSurface) {
+                      void install(door.installSurface);
+                      return;
+                    }
+                    router.push(door.href);
+                  }}
                 />
               ))}
               <HubDoorTile emoji="📘" label="E-manual" onPress={() => router.push("/e-manual")} />

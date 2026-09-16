@@ -27,6 +27,21 @@ export function hasStaticWebBuild(distPath = resolveWebDistPath()): boolean {
 }
 
 const PWA_INSTALL_FILES = ["manifest.webmanifest", "sw.js"] as const;
+const ANDROID_APK_FILE_NAME = "ur.apk";
+const ANDROID_APK_PUBLIC_PATH = "/downloads/ur.apk";
+
+export function resolveAndroidApkFilePath(): string | null {
+  const distPath = resolveWebDistPath();
+  const candidates = [
+    path.join(process.cwd(), "public", "downloads", ANDROID_APK_FILE_NAME),
+    path.join(distPath, "downloads", ANDROID_APK_FILE_NAME),
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
+}
+
+export function hasHostedAndroidApk(): boolean {
+  return resolveAndroidApkFilePath() !== null;
+}
 
 /** Home-screen wrap files — never fall through to the HTML app shell. */
 export function registerPwaInstallFiles(app: express.Application): void {
@@ -50,8 +65,26 @@ export function registerPwaInstallFiles(app: express.Application): void {
   }
 }
 
+/** Serves a signed .apk when one is uploaded to public/downloads/ur.apk. */
+export function registerAndroidApkDownload(app: express.Application): void {
+  app.get(ANDROID_APK_PUBLIC_PATH, (_req, res, next) => {
+    const target = resolveAndroidApkFilePath();
+    if (!target) {
+      res.status(404).type("text/plain").send("Android installer is not on this server yet.");
+      return;
+    }
+    res.setHeader("Content-Type", "application/vnd.android.package-archive");
+    res.setHeader("Content-Disposition", `attachment; filename="${ANDROID_APK_FILE_NAME}"`);
+    res.setHeader("Cache-Control", "no-store");
+    res.sendFile(path.resolve(target), (error) => {
+      if (error) next(error);
+    });
+  });
+}
+
 export function registerStaticWeb(app: express.Application): boolean {
   registerPwaInstallFiles(app);
+  registerAndroidApkDownload(app);
   const distPath = resolveWebDistPath();
   if (!hasStaticWebBuild(distPath)) {
     console.warn(
@@ -70,7 +103,7 @@ export function registerStaticWeb(app: express.Application): boolean {
 
   // SPA fallback — client routes (Expo Router) not served as static files
   app.get("*", (req, res, next) => {
-    if (req.path.startsWith("/api") || req.path === "/e-manual.pdf") {
+    if (req.path.startsWith("/api") || req.path === "/e-manual.pdf" || req.path.startsWith("/downloads/")) {
       next();
       return;
     }

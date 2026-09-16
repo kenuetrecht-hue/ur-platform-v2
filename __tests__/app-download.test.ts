@@ -1,20 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
-  ANDROID_ADD_TO_HOME_STEPS,
+  ANDROID_APK_PUBLIC_PATH,
   APP_DOWNLOAD_LEDE,
   APP_DOWNLOAD_NO_STORE_LINE,
   APP_DOWNLOAD_PATH,
-  DESKTOP_INSTALL_STEPS,
-  IOS_ADD_TO_HOME_STEPS,
   IOS_NATIVE_NOTE,
+  absoluteAndroidApkUrl,
   buildAppDownloadSummary,
+  chooseInstallPlan,
   detectWebInstallSurface,
   downloadPathForSurface,
   parseDownloadDeviceParam,
   getAndroidApkDownloadUrl,
-  installStepsForSurface,
   isSafeHttpDownloadUrl,
+  isSafeRelativeDownloadPath,
 } from "../lib/app-download";
+import { readFileSync } from "fs";
 
 describe("app website download", () => {
   it("sends visitors to /download and does not require the stores", () => {
@@ -32,18 +33,9 @@ describe("app website download", () => {
     );
   });
 
-  it("teaches store-free home-screen install, not a store listing", () => {
-    const allSteps = [
-      ...IOS_ADD_TO_HOME_STEPS,
-      ...ANDROID_ADD_TO_HOME_STEPS,
-      ...DESKTOP_INSTALL_STEPS,
-    ].join(" ");
-    expect(allSteps).toMatch(/Add to Home Screen/i);
-    expect(allSteps).toMatch(/Safari/i);
-    expect(allSteps).toMatch(/Chrome/i);
-    expect(allSteps).not.toMatch(/open the App Store/i);
-    expect(allSteps).not.toMatch(/open Google Play/i);
+  it("does not use App Store or Play Store as the install path", () => {
     expect(IOS_NATIVE_NOTE).toMatch(/does not let US phones install a native iPhone app from a website/i);
+    expect(IOS_NATIVE_NOTE).not.toMatch(/open the App Store/i);
   });
 
   it("detects phone surfaces from the browser user agent", () => {
@@ -52,16 +44,22 @@ describe("app website download", () => {
     );
     expect(detectWebInstallSurface("Mozilla/5.0 (Linux; Android 14; Pixel 8)")).toBe("android");
     expect(detectWebInstallSurface("Mozilla/5.0 (Windows NT 10.0; Win64; x64)")).toBe("desktop");
-    expect(installStepsForSurface("ios")[2]).toMatch(/Add to Home Screen/i);
   });
 
-  it("only accepts a real http(s) Android installer URL", () => {
+  it("only accepts a real http(s) or /downloads Android installer URL", () => {
     expect(isSafeHttpDownloadUrl("javascript:alert(1)")).toBe(false);
     expect(isSafeHttpDownloadUrl("https://urplatform.llc/downloads/ur.apk")).toBe(true);
-    expect(getAndroidApkDownloadUrl("")).toBeNull();
-    expect(getAndroidApkDownloadUrl("   ")).toBeNull();
+    expect(isSafeRelativeDownloadPath("/downloads/ur.apk")).toBe(true);
+    expect(isSafeRelativeDownloadPath("/etc/passwd")).toBe(false);
+    expect(isSafeRelativeDownloadPath("/downloads/../ur.apk")).toBe(false);
+    expect(getAndroidApkDownloadUrl("")).toBe(ANDROID_APK_PUBLIC_PATH);
+    expect(getAndroidApkDownloadUrl("   ")).toBe(ANDROID_APK_PUBLIC_PATH);
     expect(getAndroidApkDownloadUrl("javascript:alert(1)")).toBeNull();
     expect(getAndroidApkDownloadUrl("https://urplatform.llc/downloads/ur.apk")).toBe(
+      "https://urplatform.llc/downloads/ur.apk",
+    );
+    expect(getAndroidApkDownloadUrl("/downloads/ur.apk")).toBe("/downloads/ur.apk");
+    expect(absoluteAndroidApkUrl("/downloads/ur.apk", "https://urplatform.llc")).toBe(
       "https://urplatform.llc/downloads/ur.apk",
     );
   });
@@ -72,5 +70,58 @@ describe("app website download", () => {
     expect(downloadPathForSurface("desktop")).toBe("/download?device=desktop");
     expect(parseDownloadDeviceParam("ios")).toBe("ios");
     expect(parseDownloadDeviceParam("nope")).toBeNull();
+  });
+
+  it("chooses a real install action, not a tutorial", () => {
+    expect(
+      chooseInstallPlan({
+        surface: "android",
+        hasDeferredPrompt: true,
+        apkUrl: "/downloads/ur.apk",
+        standalone: false,
+        canShare: false,
+      }),
+    ).toBe("prompt");
+    expect(
+      chooseInstallPlan({
+        surface: "android",
+        hasDeferredPrompt: false,
+        apkUrl: "/downloads/ur.apk",
+        standalone: false,
+        canShare: false,
+      }),
+    ).toBe("apk");
+    expect(
+      chooseInstallPlan({
+        surface: "ios",
+        hasDeferredPrompt: false,
+        apkUrl: null,
+        standalone: false,
+        canShare: true,
+      }),
+    ).toBe("share");
+    expect(
+      chooseInstallPlan({
+        surface: "desktop",
+        hasDeferredPrompt: true,
+        apkUrl: null,
+        standalone: false,
+        canShare: false,
+      }),
+    ).toBe("prompt");
+  });
+
+  it("keeps Login download buttons as install actions, not numbered how-to", () => {
+    const login = readFileSync("app/(auth)/login.tsx", "utf8");
+    const buttons = readFileSync("components/landing/landing-app-download-link.tsx", "utf8");
+    expect(login).toContain("LandingDeviceDownloadLinks");
+    expect(buttons).toContain("IPHONE_DOWNLOAD_LABEL");
+    expect(buttons).toContain("ANDROID_DOWNLOAD_LABEL");
+    expect(buttons).toContain("install(item.surface)");
+    expect(buttons).not.toContain("Open this site in Safari");
+    expect(buttons).not.toContain("Tap the Share button");
+    expect(buttons).not.toContain("Add to Home Screen, then Add");
+    expect(login).not.toContain("IOS_ADD_TO_HOME_STEPS");
+    expect(login).not.toContain("Open this site in Safari");
   });
 });

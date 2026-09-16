@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Platform } from "react-native";
 import { isLivePwaHost } from "@/lib/pwa-hosts";
+import { captureWebInstallPrompt } from "@/lib/web-install-prompt";
 
 function ensureHeadLink(rel: string, href: string): void {
   if (typeof document === "undefined") return;
@@ -37,6 +38,8 @@ export function useRegisterPwaServiceWorker(): void {
     ensureHeadMeta("apple-mobile-web-app-capable", "yes");
     ensureHeadMeta("apple-mobile-web-app-title", "UR");
     ensureHeadMeta("apple-mobile-web-app-status-bar-style", "black-translucent");
+
+    captureWebInstallPrompt();
 
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
     if (!isLivePwaHost(window.location.hostname)) return;

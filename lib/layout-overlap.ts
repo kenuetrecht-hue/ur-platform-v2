@@ -27,6 +27,10 @@ export const LAYOUT_OVERLAP = {
   ANDROID_NAV_BAR_BUFFER: 6,
   /** Samsung One UI often needs a hair more clearance above the tab bar. */
   SAMSUNG_TAB_BUFFER: 4,
+  /** Gesture / 3-button nav when Android reports 0 (edge-to-edge). */
+  ANDROID_GESTURE_INSET: 24,
+  /** Extra empty pad so tab labels sit above the OS home bar, not on it. */
+  TAB_BAR_HOME_CLEARANCE: 16,
   /** AIs tab chrome above the chat panel (header + mode row + specialist bar). */
   AIS_TAB_CHROME_HEIGHT: 112,
 } as const;
@@ -94,13 +98,47 @@ export function measureWebBottomOcclusion(): number {
   return Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
 }
 
+export function isIosWebRuntime(): boolean {
+  if (Platform.OS === "ios") return true;
+  if (Platform.OS !== "web" || typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  return /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+}
+
+/**
+ * Home-indicator / nav-bar padding inside the real tab bar.
+ * Used by the native iOS/Android app and by a phone PWA. Do not invent a second toolbar.
+ */
+export function resolveTabBarBottomInset(args: {
+  safeBottom: number;
+  cssSafeBottom?: number;
+  platform: string;
+  iosWeb?: boolean;
+}): number {
+  const css = args.cssSafeBottom ?? 0;
+  const ios = args.platform === "ios" || Boolean(args.iosWeb);
+  if (ios) {
+    return (
+      Math.max(args.safeBottom, css, LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET) +
+      LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE
+    );
+  }
+  if (args.platform === "android") {
+    const gestureFloor = args.safeBottom > 0 ? 0 : LAYOUT_OVERLAP.ANDROID_GESTURE_INSET;
+    return Math.max(args.safeBottom, css, gestureFloor) + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE;
+  }
+  return Math.max(args.safeBottom, css, LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET);
+}
+
 /** Home-indicator padding inside the real tab bar. Do not invent a second toolbar. */
 export function effectiveTabBarBottomInset(safeBottom: number, _occlusion = 0): number {
   const css = Platform.OS === "web" ? readCssSafeAreaBottom() : 0;
-  if (Platform.OS === "ios") {
-    return Math.max(safeBottom, css, LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET);
-  }
-  return Math.max(safeBottom, css, LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET);
+  return resolveTabBarBottomInset({
+    safeBottom,
+    cssSafeBottom: css,
+    platform: Platform.OS,
+    iosWeb: isIosWebRuntime(),
+  });
 }
 
 export function tabBarTotalHeight(bottomSafeInset: number): number {

@@ -1,10 +1,14 @@
 /**
  * Website install path — visitors get UR from this site, not the stores.
- * iOS cannot legally sideload a consumer IPA from a US website; Add to Home Screen is the store-free path.
- * Android can also take a hosted .apk when EXPO_PUBLIC_ANDROID_APK_URL is set.
+ * iOS cannot legally sideload a consumer IPA from a US website.
+ * Android can install the PWA via beforeinstallprompt, and a hosted .apk when present.
  */
 
+import { PLATFORM_PUBLIC_ORIGIN } from "@/lib/platform-urls";
+
 export const APP_DOWNLOAD_PATH = "/download";
+export const ANDROID_APK_PUBLIC_PATH = "/downloads/ur.apk";
+export const ANDROID_APK_FILE_NAME = "ur.apk";
 
 export const IPHONE_DOWNLOAD_LABEL = "iPhone download";
 export const ANDROID_DOWNLOAD_LABEL = "Android download";
@@ -18,28 +22,13 @@ export const APP_DOWNLOAD_LEDE =
 export const APP_DOWNLOAD_NO_STORE_LINE =
   "You do not need the Apple App Store or Google Play to get UR from this website.";
 
-export const IOS_ADD_TO_HOME_STEPS = [
-  "Open this site in Safari on your iPhone or iPad.",
-  "Tap the Share button (the square with an arrow).",
-  "Tap Add to Home Screen, then Add.",
-] as const;
-
-export const ANDROID_ADD_TO_HOME_STEPS = [
-  "Open this site in Chrome on your Android phone.",
-  "Tap Install or Add to Home screen when the prompt appears.",
-  "Or tap the browser menu (⋮) and choose Install app or Add to Home screen.",
-] as const;
-
-export const DESKTOP_INSTALL_STEPS = [
-  "In Chrome or Edge, use Install UR in the address bar, or tap the button on this page.",
-  "UR opens in its own window — no store visit required.",
-] as const;
-
 export const IOS_NATIVE_NOTE =
-  "Apple does not let US phones install a native iPhone app from a website file. The home-screen install above is the store-free iPhone path. It is the same UR website, with an icon on your home screen.";
+  "Apple does not let US phones install a native iPhone app from a website file.";
 
 export const ANDROID_APK_NOTE =
-  "If you download the Android installer file, your phone may ask you to allow installs from this site. That is normal for a website download — you are not being sent to Google Play.";
+  "If you download the Android installer file, your phone may ask you to allow installs from this site.";
+
+export const APP_ALREADY_INSTALLED = "UR is already installed on this device.";
 
 export type WebInstallSurface = "ios" | "android" | "desktop";
 
@@ -50,6 +39,8 @@ export type AppDownloadSummary = {
   iosNativeSideloadAvailable: false;
 };
 
+export type InstallPlan = "prompt" | "apk" | "share" | "already" | "unavailable";
+
 export function isSafeHttpDownloadUrl(raw: string): boolean {
   try {
     const url = new URL(raw);
@@ -59,14 +50,33 @@ export function isSafeHttpDownloadUrl(raw: string): boolean {
   }
 }
 
-/** Optional Android .apk / .aab hosted by UR — empty until a build is uploaded. */
+export function isSafeRelativeDownloadPath(raw: string): boolean {
+  if (!raw.startsWith("/") || raw.startsWith("//")) return false;
+  if (raw.includes("\\") || raw.includes("..")) return false;
+  return /^\/downloads\/[A-Za-z0-9._-]+\.(apk|aab)$/i.test(raw);
+}
+
+/** Android .apk hosted by UR — same-origin slot, or EXPO_PUBLIC_ANDROID_APK_URL. */
 export function getAndroidApkDownloadUrl(
   raw = process.env.EXPO_PUBLIC_ANDROID_APK_URL,
 ): string | null {
   const trimmed = raw?.trim() ?? "";
-  if (!trimmed) return null;
+  if (!trimmed) return ANDROID_APK_PUBLIC_PATH;
+  if (isSafeRelativeDownloadPath(trimmed)) return trimmed;
   if (!isSafeHttpDownloadUrl(trimmed)) return null;
   return new URL(trimmed).toString();
+}
+
+export function absoluteAndroidApkUrl(
+  apkUrl: string | null,
+  origin = PLATFORM_PUBLIC_ORIGIN,
+): string | null {
+  if (!apkUrl) return null;
+  if (isSafeHttpDownloadUrl(apkUrl)) return apkUrl;
+  if (isSafeRelativeDownloadPath(apkUrl)) {
+    return `${origin.replace(/\/+$/, "")}${apkUrl}`;
+  }
+  return null;
 }
 
 export function detectWebInstallSurface(userAgent: string): WebInstallSurface {
@@ -90,10 +100,26 @@ export function parseDownloadDeviceParam(
   return null;
 }
 
-export function installStepsForSurface(surface: WebInstallSurface): readonly string[] {
-  if (surface === "ios") return IOS_ADD_TO_HOME_STEPS;
-  if (surface === "android") return ANDROID_ADD_TO_HOME_STEPS;
-  return DESKTOP_INSTALL_STEPS;
+export function chooseInstallPlan(args: {
+  surface: WebInstallSurface;
+  hasDeferredPrompt: boolean;
+  apkUrl: string | null;
+  standalone: boolean;
+  canShare: boolean;
+}): InstallPlan {
+  if (args.standalone) return "already";
+  if (args.surface === "android") {
+    if (args.hasDeferredPrompt) return "prompt";
+    if (args.apkUrl) return "apk";
+    return "unavailable";
+  }
+  if (args.surface === "ios") {
+    if (args.hasDeferredPrompt) return "prompt";
+    if (args.canShare) return "share";
+    return "unavailable";
+  }
+  if (args.hasDeferredPrompt) return "prompt";
+  return "unavailable";
 }
 
 export function buildAppDownloadSummary(apkUrl: string | null): AppDownloadSummary {

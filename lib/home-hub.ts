@@ -1,5 +1,6 @@
 import type { HubTabItem } from "@/components/hub-tab-bar";
 import type { Href } from "expo-router";
+import type { WebInstallSurface } from "@/lib/app-download";
 
 export const HOME_HUB_TABS: HubTabItem[] = [
   { id: "start", label: "Start", emoji: "🏠" },
@@ -25,6 +26,7 @@ export type HomeDoor = {
   label: string;
   emoji: string;
   href: Href;
+  installSurface?: WebInstallSurface;
 };
 
 export const HOME_DOWNLOAD_DOORS: HomeDoor[] = [
@@ -33,18 +35,21 @@ export const HOME_DOWNLOAD_DOORS: HomeDoor[] = [
     label: "iPhone download",
     emoji: "📱",
     href: "/download?device=ios",
+    installSurface: "ios",
   },
   {
     id: "android-download",
     label: "Android download",
     emoji: "🤖",
     href: "/download?device=android",
+    installSurface: "android",
   },
   {
     id: "computer-download",
     label: "Computer download",
     emoji: "💻",
     href: "/download?device=desktop",
+    installSurface: "desktop",
   },
 ];
 

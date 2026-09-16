@@ -30,6 +30,11 @@ describe("home hub", () => {
       "Android download",
       "Computer download",
     ]);
+    expect(HOME_DOWNLOAD_DOORS.map((door) => door.installSurface)).toEqual([
+      "ios",
+      "android",
+      "desktop",
+    ]);
 
     const home = readFileSync("app/(tabs)/index.tsx", "utf8");
     const create = readFileSync("app/(tabs)/create.tsx", "utf8");
@@ -39,6 +44,8 @@ describe("home hub", () => {
     expect(home).toContain("HubTabBar");
     expect(home).toContain("HOME_HUB_TAB_ROWS");
     expect(home).toContain("HOME_DOWNLOAD_DOORS");
+    expect(home).toContain("useAppInstallActions");
+    expect(home).toContain("installSurface");
     expect(readFileSync("app/(auth)/login.tsx", "utf8")).toContain("LandingDeviceDownloadLinks");
     expect(home).toContain("PasswordRemindBanner");
     expect(home).toContain("DailyLoyaltyBanner");

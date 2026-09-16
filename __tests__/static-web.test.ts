@@ -21,6 +21,9 @@ describe("static-web", () => {
   it("serves the phone wrap files as real files, not the HTML app", () => {
     const source = readFileSync("server/_core/static-web.ts", "utf8");
     expect(source).toContain("registerPwaInstallFiles");
+    expect(source).toContain("registerAndroidApkDownload");
+    expect(source).toContain("Content-Disposition");
+    expect(source).toContain("/downloads/ur.apk");
     expect(source).toContain("manifest.webmanifest");
     expect(source).toContain("Cache-Control");
     expect(source).toContain("no-cache");

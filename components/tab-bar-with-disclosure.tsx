@@ -5,23 +5,22 @@ import {
   BottomTabBarHeightCallbackContext,
   type BottomTabBarProps,
 } from "@react-navigation/bottom-tabs";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PlatformDisclosureBar } from "@/components/platform-disclosure-bar";
 import { useColors } from "@/hooks/use-colors";
+import { useTabBarBottomInset } from "@/hooks/use-tab-bar-bottom-inset";
 import { withAlpha } from "@/lib/brand-theme";
 import { bottomDisclaimerAboveTabHeight, tabBarIconsOnlyHeight } from "@/lib/layout-overlap";
 
 /**
- * One tab bar. Labels sit in this bar. Bottom padding is the phone home-indicator
- * inset inside the same bar — not a second toolbar.
+ * One tab bar. Icons and labels sit in this bar. Empty padding under the labels
+ * is the phone home-indicator inset — not a second OS toolbar.
  */
 export function TabBarWithDisclosure(props: BottomTabBarProps) {
   const colors = useColors();
-  const insets = useSafeAreaInsets();
   const onHeightChange = useContext(BottomTabBarHeightCallbackContext);
   const iconRowHeight = tabBarIconsOnlyHeight();
-  const nativePad = Platform.OS === "web" ? 0 : insets.bottom;
-  const estimatedHeight = bottomDisclaimerAboveTabHeight() + iconRowHeight + nativePad;
+  const homePad = useTabBarBottomInset();
+  const estimatedHeight = bottomDisclaimerAboveTabHeight() + iconRowHeight + homePad;
 
   useEffect(() => {
     onHeightChange?.(estimatedHeight);
@@ -35,7 +34,7 @@ export function TabBarWithDisclosure(props: BottomTabBarProps) {
         {
           backgroundColor: colors.surface,
           borderTopColor: withAlpha(colors.secondary, 0.28),
-          paddingBottom: nativePad,
+          paddingBottom: homePad,
         },
       ]}
       collapsable={false}
@@ -56,10 +55,11 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     width: "100%",
     borderTopWidth: StyleSheet.hairlineWidth,
+    position: "relative",
   },
   tabBarSlot: {
     flexShrink: 0,
-    overflow: "visible",
+    overflow: "hidden",
     position: "relative",
   },
 });

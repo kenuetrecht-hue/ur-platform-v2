@@ -94,3 +94,14 @@ If Login says the email already joined, that account lives in **Supabase** (sign
 ## Owner (Ken) after you show Success
 
 Testers use `/login`. Members type email + password. New people tap Sign up and walk Step 1 → 2 → 3. If a phone icon still shows the old frozen page, delete **only that icon** and add the site again from Login.
+
+## Website download on the phone (Login)
+
+Live Login is https://urplatform.llc/login. **iPhone download** and **Android download** on that page install from this website. They are not App Store or Google Play buttons, and they are not how-to cards.
+
+- Android: Chrome/Edge install prompt when the browser fires it. If a signed `public/downloads/ur.apk` is in the image (or `EXPO_PUBLIC_ANDROID_APK_URL` is a public https URL), the same Android button downloads that file (`Content-Disposition: attachment`).
+- iPhone: the button runs the install action (PWA prompt if present, otherwise the system share sheet with the site URL). Apple does not allow a US consumer site to sideload a `.ipa`.
+
+## Phone app tab bar
+
+The native app tab bar (Home, Admin, AIs, Profile, Social) is padded with the OS home-indicator inset in `components/tab-bar-with-disclosure.tsx` + `lib/layout-overlap.ts`. Empty space under the labels is OK. Do not add a second fake phone toolbar.

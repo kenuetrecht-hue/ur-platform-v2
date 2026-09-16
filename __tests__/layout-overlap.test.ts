@@ -10,6 +10,7 @@ import {
   bottomTabChromeHeight,
   composerDockPadding,
   effectiveTabBarBottomInset,
+  resolveTabBarBottomInset,
   tabBarIconsOnlyHeight,
   tabBarTotalHeight,
 } from "../lib/layout-overlap";
@@ -71,6 +72,28 @@ describe("layout-overlap", () => {
     expect(readFileSync("components/tab-bar-with-disclosure.tsx", "utf8")).not.toContain(
       "ur-phone-home-bar-clearance",
     );
+    expect(readFileSync("components/tab-bar-with-disclosure.tsx", "utf8")).toContain(
+      "useTabBarBottomInset",
+    );
+    expect(readFileSync("components/tab-bar-with-disclosure.tsx", "utf8")).not.toContain(
+      'Platform.OS === "web" ? 0',
+    );
+    expect(readFileSync("app/(tabs)/_layout.tsx", "utf8")).toContain('position: "relative"');
+    expect(readFileSync("app/(tabs)/_layout.tsx", "utf8")).toContain(
+      "safeAreaInsets={{ top: 0, right: 0, bottom: 0, left: 0 }}",
+    );
     expect(readFileSync("global.css", "utf8")).toContain(".ur-tab-dock");
+    expect(resolveTabBarBottomInset({ platform: "ios", safeBottom: 0 })).toBe(
+      LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE,
+    );
+    expect(resolveTabBarBottomInset({ platform: "ios", safeBottom: 34 })).toBe(
+      LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE,
+    );
+    expect(resolveTabBarBottomInset({ platform: "android", safeBottom: 0 })).toBe(
+      LAYOUT_OVERLAP.ANDROID_GESTURE_INSET + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE,
+    );
+    expect(resolveTabBarBottomInset({ platform: "android", safeBottom: 48 })).toBe(
+      48 + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE,
+    );
   });
 });

@@ -21,9 +21,11 @@ COPY . .
 ARG EXPO_PUBLIC_SUPABASE_URL
 ARG EXPO_PUBLIC_SUPABASE_ANON_KEY
 ARG SUPABASE_URL
+ARG EXPO_PUBLIC_ANDROID_APK_URL=""
 ENV EXPO_PUBLIC_SUPABASE_URL=$EXPO_PUBLIC_SUPABASE_URL
 ENV EXPO_PUBLIC_SUPABASE_ANON_KEY=$EXPO_PUBLIC_SUPABASE_ANON_KEY
 ENV SUPABASE_URL=$SUPABASE_URL
+ENV EXPO_PUBLIC_ANDROID_APK_URL=$EXPO_PUBLIC_ANDROID_APK_URL
 
 ENV CI=1
 ENV EXPO_NO_TELEMETRY=1
@@ -37,7 +39,10 @@ RUN mkdir -p node_modules/react-native-css-interop/.cache \
   && mkdir -p dist-web \
   && pnpm run build:web \
   && test -f dist-web/index.html \
-  && cp -f public/manifest.webmanifest public/sw.js dist-web/
+  && cp -f public/manifest.webmanifest public/sw.js dist-web/ \
+  && mkdir -p dist-web/downloads \
+  && cp -f public/pwa-icon-192.png public/pwa-icon-512.png public/apple-touch-icon.png dist-web/ \
+  && if [ -f public/downloads/ur.apk ]; then cp -f public/downloads/ur.apk dist-web/downloads/; fi
 
 FROM node:22-bookworm-slim
 
@@ -54,6 +59,7 @@ RUN addgroup --system --gid 1001 nodejs \
 
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/dist-web ./dist-web
+COPY --from=builder --chown=nodejs:nodejs /app/public ./public
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
 COPY --from=builder --chown=nodejs:nodejs /app/scripts ./scripts
