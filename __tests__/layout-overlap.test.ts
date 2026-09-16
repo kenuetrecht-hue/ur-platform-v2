@@ -8,6 +8,8 @@ import {
   LAYOUT_OVERLAP,
   bottomTabChromeHeight,
   composerDockPadding,
+  effectiveTabBarBottomInset,
+  tabBarIconsOnlyHeight,
   tabBarTotalHeight,
 } from "../lib/layout-overlap";
 
@@ -57,5 +59,13 @@ describe("layout-overlap", () => {
       bottomSafeInset: inset,
     });
     expect(padding).toBeLessThan(LAYOUT_OVERLAP.BOTTOM_DISCLOSURE_ABOVE_TAB_HEIGHT + 24);
+  });
+
+  it("keeps a floor under the tab labels when the phone reports no inset", () => {
+    expect(effectiveTabBarBottomInset(0)).toBeGreaterThanOrEqual(
+      LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET,
+    );
+    expect(effectiveTabBarBottomInset(40)).toBe(40);
+    expect(tabBarTotalHeight(0)).toBeGreaterThan(tabBarIconsOnlyHeight());
   });
 });

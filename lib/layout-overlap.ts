@@ -10,7 +10,12 @@ import { Platform } from "react-native";
 export const LAYOUT_OVERLAP = {
   TAB_BAR_CONTENT_HEIGHT: 42,
   TAB_BAR_TOP_PADDING: 2,
-  TAB_BAR_MIN_BOTTOM_INSET: 4,
+  /** Floor when the OS reports no inset (web, some Androids). */
+  TAB_BAR_MIN_BOTTOM_INSET: 20,
+  /** iPhone / iPad home indicator. */
+  IOS_HOME_INDICATOR_INSET: 34,
+  /** Touch phones/tablets in Safari when CSS safe-area is still 0. */
+  WEB_TOUCH_BOTTOM_INSET: 34,
   /** PlatformDisclosureBar content below status inset (top bar). */
   TOP_DISCLOSURE_CONTENT_HEIGHT: 28,
   /** PlatformDisclosureBar content above home indicator (bottom bar on non-tab screens). */
@@ -33,9 +38,14 @@ export function bottomDisclaimerAboveTabHeight(): number {
   return LAYOUT_OVERLAP.BOTTOM_DISCLOSURE_ABOVE_TAB_HEIGHT;
 }
 
-/** Icon row only — used to style BottomTabBar inside TabBarWithDisclosure. */
-export function tabBarIconRowHeight(bottomSafeInset: number): number {
-  return tabBarTotalHeight(bottomSafeInset);
+/** Icon + label row only — home-bar clearance sits under this, not inside it. */
+export function tabBarIconsOnlyHeight(): number {
+  return LAYOUT_OVERLAP.TAB_BAR_CONTENT_HEIGHT + LAYOUT_OVERLAP.TAB_BAR_TOP_PADDING;
+}
+
+/** @deprecated Use tabBarIconsOnlyHeight — kept so older calls still compile. */
+export function tabBarIconRowHeight(_bottomSafeInset?: number): number {
+  return tabBarIconsOnlyHeight();
 }
 
 /** Total bottom chrome on tab screens: disclaimer + tab bar + home-indicator inset. */
@@ -66,13 +76,44 @@ export function composerDockPadding(args: {
   return visual + android + missingDisclosure;
 }
 
+function isCoarsePointer(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+  try {
+    return window.matchMedia("(pointer: coarse)").matches;
+  } catch {
+    return false;
+  }
+}
+
+function readCssSafeAreaBottom(): number {
+  if (typeof document === "undefined") return 0;
+  try {
+    const raw = getComputedStyle(document.documentElement)
+      .getPropertyValue("--ur-safe-bottom")
+      .trim();
+    const value = Number.parseFloat(raw);
+    return Number.isFinite(value) ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Space under the tab labels so they sit above the phone home bar / Safari toolbar. */
+export function effectiveTabBarBottomInset(safeBottom: number): number {
+  const css = Platform.OS === "web" ? readCssSafeAreaBottom() : 0;
+  const platformFloor =
+    Platform.OS === "ios"
+      ? LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET
+      : Platform.OS === "web" && isCoarsePointer()
+        ? LAYOUT_OVERLAP.WEB_TOUCH_BOTTOM_INSET
+        : LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET;
+  return Math.max(safeBottom, css, platformFloor);
+}
+
 export function tabBarTotalHeight(bottomSafeInset: number): number {
-  const bottom = Math.max(bottomSafeInset, LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET);
-  return (
-    LAYOUT_OVERLAP.TAB_BAR_CONTENT_HEIGHT +
-    LAYOUT_OVERLAP.TAB_BAR_TOP_PADDING +
-    bottom
-  );
+  return tabBarIconsOnlyHeight() + effectiveTabBarBottomInset(bottomSafeInset);
 }
 
 function androidBrandInfo(): { brand: string; manufacturer: string } {

@@ -2,8 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body {
+  height: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  margin: 0;
+}
+
+#root {
+  height: 100%;
+  max-height: 100%;
+}
+
 :root {
   color: #ffd700;
+  --ur-safe-bottom: env(safe-area-inset-bottom, 0px);
   --color-primary: #4f46e5;
   --color-secondary: #7c3aed;
   --color-background: #f4f2fa;

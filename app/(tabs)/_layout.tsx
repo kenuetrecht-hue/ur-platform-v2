@@ -1,21 +1,19 @@
 import { Redirect, Tabs } from "expo-router";
 import { StyleSheet, View } from "react-native";
 import { UrBootShell } from "@/components/ur-boot-shell";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth-context";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { useColors } from "@/hooks/use-colors";
 import { HapticTab } from "@/components/haptic-tab";
 import { TabBarIcon } from "@/components/tab-bar-icon";
 import { TabBarWithDisclosure } from "@/components/tab-bar-with-disclosure";
-import { LAYOUT_OVERLAP, tabBarIconRowHeight } from "@/lib/layout-overlap";
+import { LAYOUT_OVERLAP, tabBarIconsOnlyHeight } from "@/lib/layout-overlap";
 
 export default function TabsLayout() {
   const { isAuthenticated, isLoading } = useAuth();
   const { isPlatformOwner } = usePlatformOwner();
   const colors = useColors();
-  const insets = useSafeAreaInsets();
-  const bottomInset = Math.max(insets.bottom, LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET);
+  const iconRowHeight = tabBarIconsOnlyHeight();
 
   if (isLoading && !isAuthenticated) {
     return <UrBootShell label="Opening UR…" />;
@@ -41,8 +39,8 @@ export default function TabsLayout() {
           tabBarStyle: {
             backgroundColor: colors.surface,
             borderTopWidth: 0,
-            height: tabBarIconRowHeight(insets.bottom),
-            paddingBottom: bottomInset,
+            height: iconRowHeight,
+            paddingBottom: 0,
             paddingTop: LAYOUT_OVERLAP.TAB_BAR_TOP_PADDING,
             elevation: 0,
             shadowOpacity: 0,
