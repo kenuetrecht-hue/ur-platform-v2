@@ -34,7 +34,7 @@ export function PlatformDisclosureBar({
 
   const content = (
     <Text
-      style={[styles.text, { color: colors.gold }]}
+      style={[styles.text, { color: colors.foreground }]}
       numberOfLines={compact ? 1 : 3}
     >
       {text}

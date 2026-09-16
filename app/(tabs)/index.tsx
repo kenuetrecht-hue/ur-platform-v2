@@ -71,7 +71,7 @@ export default function HomeScreen() {
             <PasswordRemindBanner />
             {needsIdPhotos ? (
               <View style={{ gap: 8 }}>
-                <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 15 }}>
+                <Text style={{ color: colors.gold, fontWeight: "800", fontSize: 15 }}>
                   Finish the three pictures
                 </Text>
                 <GoToIdPhotosButton label="Open the picture page" />

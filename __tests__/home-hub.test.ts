@@ -65,10 +65,12 @@ describe("home hub", () => {
 
     const screen = readFileSync("components/screen-container.tsx", "utf8");
     const login = readFileSync("components/auth-door-stage.tsx", "utf8");
+    const tiles = readFileSync("components/hub-door-tile.tsx", "utf8");
     expect(screen).toContain("BrandColorStage");
     expect(screen).toContain("withoutPageFill");
     expect(screen).toContain('backgroundColor: "transparent"');
     expect(login).toContain("BrandColorStage");
+    expect(tiles).toContain("colors.foreground");
 
     const tabs = readFileSync("app/(tabs)/_layout.tsx", "utf8");
     expect(tabs).toContain("href: null");

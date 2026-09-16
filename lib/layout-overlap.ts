@@ -28,9 +28,9 @@ export const LAYOUT_OVERLAP = {
   /** Samsung One UI often needs a hair more clearance above the tab bar. */
   SAMSUNG_TAB_BUFFER: 4,
   /** Gesture / 3-button nav when Android reports 0 (edge-to-edge). */
-  ANDROID_GESTURE_INSET: 24,
+  ANDROID_GESTURE_INSET: 48,
   /** Extra empty pad so tab labels sit above the OS home bar, not on it. */
-  TAB_BAR_HOME_CLEARANCE: 16,
+  TAB_BAR_HOME_CLEARANCE: 24,
   /** AIs tab chrome above the chat panel (header + mode row + specialist bar). */
   AIS_TAB_CHROME_HEIGHT: 112,
 } as const;
@@ -105,6 +105,30 @@ export function isIosWebRuntime(): boolean {
   return /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
 }
 
+export function isAndroidWebRuntime(): boolean {
+  if (Platform.OS === "android") return true;
+  if (Platform.OS !== "web" || typeof navigator === "undefined") return false;
+  return /Android/i.test(navigator.userAgent);
+}
+
+export function isStandaloneWebApp(): boolean {
+  if (typeof window === "undefined") return false;
+  const media = window.matchMedia?.("(display-mode: standalone)");
+  const iosStandalone = Boolean(
+    (window.navigator as Navigator & { standalone?: boolean }).standalone,
+  );
+  return Boolean(media?.matches || iosStandalone);
+}
+
+export function isPhoneWebRuntime(): boolean {
+  if (isIosWebRuntime() || isAndroidWebRuntime()) return true;
+  if (Platform.OS !== "web" || typeof window === "undefined") return false;
+  if (isStandaloneWebApp()) return true;
+  const coarse = window.matchMedia?.("(pointer: coarse)")?.matches;
+  const narrow = window.innerWidth < 900;
+  return Boolean(coarse && narrow);
+}
+
 /**
  * Home-indicator / nav-bar padding inside the real tab bar.
  * Used by the native iOS/Android app and by a phone PWA. Do not invent a second toolbar.
@@ -114,18 +138,34 @@ export function resolveTabBarBottomInset(args: {
   cssSafeBottom?: number;
   platform: string;
   iosWeb?: boolean;
+  androidWeb?: boolean;
+  phoneWeb?: boolean;
 }): number {
   const css = args.cssSafeBottom ?? 0;
   const ios = args.platform === "ios" || Boolean(args.iosWeb);
+  const android = args.platform === "android" || Boolean(args.androidWeb);
+  const phone = ios || android || Boolean(args.phoneWeb);
   if (ios) {
     return (
       Math.max(args.safeBottom, css, LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET) +
       LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE
     );
   }
-  if (args.platform === "android") {
-    const gestureFloor = args.safeBottom > 0 ? 0 : LAYOUT_OVERLAP.ANDROID_GESTURE_INSET;
-    return Math.max(args.safeBottom, css, gestureFloor) + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE;
+  if (android) {
+    return (
+      Math.max(args.safeBottom, css, LAYOUT_OVERLAP.ANDROID_GESTURE_INSET) +
+      LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE
+    );
+  }
+  if (phone) {
+    return (
+      Math.max(
+        args.safeBottom,
+        css,
+        LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET,
+        LAYOUT_OVERLAP.ANDROID_GESTURE_INSET,
+      ) + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE
+    );
   }
   return Math.max(args.safeBottom, css, LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET);
 }
@@ -138,6 +178,8 @@ export function effectiveTabBarBottomInset(safeBottom: number, _occlusion = 0): 
     cssSafeBottom: css,
     platform: Platform.OS,
     iosWeb: isIosWebRuntime(),
+    androidWeb: isAndroidWebRuntime(),
+    phoneWeb: isPhoneWebRuntime(),
   });
 }
 

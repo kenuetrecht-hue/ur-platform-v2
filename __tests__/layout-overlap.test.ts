@@ -83,6 +83,10 @@ describe("layout-overlap", () => {
       "safeAreaInsets={{ top: 0, right: 0, bottom: 0, left: 0 }}",
     );
     expect(readFileSync("global.css", "utf8")).toContain(".ur-tab-dock");
+    expect(readFileSync("global.css", "utf8")).toContain(".ur-tab-home-spacer");
+    expect(readFileSync("components/tab-bar-with-disclosure.tsx", "utf8")).toContain(
+      "ur-tab-home-spacer",
+    );
     expect(resolveTabBarBottomInset({ platform: "ios", safeBottom: 0 })).toBe(
       LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE,
     );
@@ -95,5 +99,14 @@ describe("layout-overlap", () => {
     expect(resolveTabBarBottomInset({ platform: "android", safeBottom: 48 })).toBe(
       48 + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE,
     );
+    expect(
+      resolveTabBarBottomInset({ platform: "web", androidWeb: true, safeBottom: 0 }),
+    ).toBe(LAYOUT_OVERLAP.ANDROID_GESTURE_INSET + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE);
+    expect(
+      resolveTabBarBottomInset({ platform: "web", iosWeb: true, safeBottom: 0 }),
+    ).toBe(LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE);
+    expect(
+      resolveTabBarBottomInset({ platform: "web", phoneWeb: true, safeBottom: 0 }),
+    ).toBeGreaterThan(LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE);
   });
 });

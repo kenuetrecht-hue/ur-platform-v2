@@ -12,7 +12,7 @@ import { withAlpha } from "@/lib/brand-theme";
 import { bottomDisclaimerAboveTabHeight, tabBarIconsOnlyHeight } from "@/lib/layout-overlap";
 
 /**
- * One tab bar. Icons and labels sit in this bar. Empty padding under the labels
+ * One tab bar. Icons and labels sit in this bar. Empty space under the labels
  * is the phone home-indicator inset — not a second OS toolbar.
  */
 export function TabBarWithDisclosure(props: BottomTabBarProps) {
@@ -34,7 +34,6 @@ export function TabBarWithDisclosure(props: BottomTabBarProps) {
         {
           backgroundColor: colors.surface,
           borderTopColor: withAlpha(colors.secondary, 0.28),
-          paddingBottom: homePad,
         },
       ]}
       collapsable={false}
@@ -46,6 +45,12 @@ export function TabBarWithDisclosure(props: BottomTabBarProps) {
           <BottomTabBar {...props} />
         </BottomTabBarHeightCallbackContext.Provider>
       </View>
+      <View
+        {...(Platform.OS === "web" ? { className: "ur-tab-home-spacer" } : null)}
+        style={[styles.homeSpacer, { height: homePad, minHeight: homePad }]}
+        pointerEvents="none"
+        collapsable={false}
+      />
     </View>
   );
 }
@@ -61,5 +66,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     overflow: "hidden",
     position: "relative",
+  },
+  homeSpacer: {
+    width: "100%",
+    flexShrink: 0,
   },
 });

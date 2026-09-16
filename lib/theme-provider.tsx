@@ -3,6 +3,11 @@ import { Appearance, View, useColorScheme as useSystemColorScheme } from "react-
 import { colorScheme as nativewindColorScheme } from "nativewind";
 
 import { SchemeColors, type ColorScheme } from "@/constants/theme";
+import {
+  LETTERING_ON_COLOR,
+  LETTERING_ON_WHITE,
+  applyDefaultLettering,
+} from "@/lib/gold-lettering";
 
 type ThemeContextValue = {
   colorScheme: ColorScheme;
@@ -12,6 +17,7 @@ type ThemeContextValue = {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function applyCssColorVars(scheme: ColorScheme) {
+  applyDefaultLettering(scheme === "light" ? LETTERING_ON_WHITE : LETTERING_ON_COLOR);
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   const palette = SchemeColors[scheme];

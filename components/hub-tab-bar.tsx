@@ -81,7 +81,7 @@ function TabInner({
   colors: ReturnType<typeof useColors>;
 }) {
   const iconColor = active ? "#FFFFFF" : colors.primary;
-  const labelColor = active ? "#FFFFFF" : colors.gold;
+  const labelColor = active ? "#FFFFFF" : colors.foreground;
 
   return (
     <>
