@@ -15,14 +15,14 @@ import {
 } from "@/lib/layout-overlap";
 
 /**
- * One tab bar. Pads the real footer with the home-indicator inset so Home /
- * Admin / AIs / Profile / Social stay above the phone OS bar on native and web.
+ * One tab bar. Bottom pad is the phone OS safe area only — no extra spacer,
+ * no invented toolbar. The system nav / home indicator stays the OS bar.
  */
 export function TabBarWithDisclosure(props: BottomTabBarProps) {
   const colors = useColors();
   const onHeightChange = useContext(BottomTabBarHeightCallbackContext);
   const iconRowHeight = tabBarIconsOnlyHeight();
-  const bottomPad = useTabBarBottomInset();
+  const bottomPad = Math.max(props.insets.bottom, useTabBarBottomInset());
   const estimatedHeight = bottomDisclaimerAboveTabHeight() + iconRowHeight + bottomPad;
 
   useEffect(() => {
@@ -46,16 +46,9 @@ export function TabBarWithDisclosure(props: BottomTabBarProps) {
       <PlatformDisclosureBar position="bottom" compact aboveTabBar />
       <View style={[styles.tabBarSlot, { height: iconRowHeight }]}>
         <BottomTabBarHeightCallbackContext.Provider value={() => undefined}>
-          <BottomTabBar {...props} />
+          <BottomTabBar {...props} insets={{ ...props.insets, bottom: 0 }} />
         </BottomTabBarHeightCallbackContext.Provider>
       </View>
-      {Platform.OS === "android" ? (
-        <View
-          testID="tab-bar-os-clearance"
-          pointerEvents="none"
-          style={{ height: bottomPad, width: "100%" }}
-        />
-      ) : null}
     </View>
   );
 }

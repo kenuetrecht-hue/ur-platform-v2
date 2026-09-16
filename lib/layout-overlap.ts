@@ -27,10 +27,6 @@ export const LAYOUT_OVERLAP = {
   ANDROID_NAV_BAR_BUFFER: 6,
   /** Samsung One UI often needs a hair more clearance above the tab bar. */
   SAMSUNG_TAB_BUFFER: 4,
-  /** 3-button / gesture nav when Android reports 0 (edge-to-edge). */
-  ANDROID_GESTURE_INSET: 64,
-  /** Extra empty pad so tab labels sit above the OS home bar, not on it. */
-  TAB_BAR_HOME_CLEARANCE: 48,
   /** Desktop-web floor when there is no home indicator. Phone web uses the OS inset instead. */
   WEB_TAB_BAR_BOTTOM_PAD: 20,
   /** AIs tab chrome above the chat panel (header + mode row + specialist bar). */
@@ -132,8 +128,8 @@ export function isPhoneWebRuntime(): boolean {
 }
 
 /**
- * Home-indicator / nav-bar padding inside the real tab bar.
- * Used by the native iOS/Android app and by a phone PWA. Do not invent a second toolbar.
+ * Bottom pad for the real tab bar = the OS safe area only.
+ * Do not add a second invented toolbar or extra home-bar clearance.
  */
 export function resolveTabBarBottomInset(args: {
   safeBottom: number;
@@ -143,35 +139,21 @@ export function resolveTabBarBottomInset(args: {
   androidWeb?: boolean;
   phoneWeb?: boolean;
 }): number {
-  const css = args.cssSafeBottom ?? 0;
+  const os = Math.max(0, args.safeBottom, args.cssSafeBottom ?? 0);
   const ios = args.platform === "ios" || Boolean(args.iosWeb);
   const android = args.platform === "android" || Boolean(args.androidWeb);
   const phone = ios || android || Boolean(args.phoneWeb);
   if (ios) {
-    return (
-      Math.max(args.safeBottom, css, LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET) +
-      LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE
-    );
+    return Math.max(os, LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET);
   }
   if (android) {
-    return (
-      Math.max(args.safeBottom, css, LAYOUT_OVERLAP.ANDROID_GESTURE_INSET) +
-      LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE
-    );
+    return os;
   }
   if (phone) {
-    return (
-      Math.max(
-        args.safeBottom,
-        css,
-        LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET,
-        LAYOUT_OVERLAP.ANDROID_GESTURE_INSET,
-      ) + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE
-    );
+    return os > 0 ? os : LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET;
   }
   return Math.max(
-    args.safeBottom,
-    css,
+    os,
     LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET,
     LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD,
   );

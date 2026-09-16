@@ -66,7 +66,7 @@ const config: ExpoConfig = {
       backgroundImage: "./assets/images/android-icon-background.png",
       monochromeImage: "./assets/images/android-icon-monochrome.png",
     },
-    edgeToEdgeEnabled: true,
+    edgeToEdgeEnabled: false,
     predictiveBackGestureEnabled: false,
     package: env.androidPackage,
     permissions: [
@@ -169,6 +169,7 @@ const config: ExpoConfig = {
         android: {
           buildArchs: ["armeabi-v7a", "arm64-v8a"],
           minSdkVersion: 24,
+          usesCleartextTraffic: false,
         },
       },
     ],

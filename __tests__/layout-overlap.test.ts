@@ -63,19 +63,22 @@ describe("layout-overlap", () => {
     expect(padding).toBeLessThan(LAYOUT_OVERLAP.BOTTOM_DISCLOSURE_ABOVE_TAB_HEIGHT + 24);
   });
 
-  it("pads the real tab bar with the home indicator, not a second toolbar", () => {
+  it("pads the real tab bar with the OS safe area, not a second toolbar", () => {
     expect(effectiveTabBarBottomInset(0)).toBe(LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD);
     expect(effectiveTabBarBottomInset(0, 70)).toBe(LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD);
     expect(effectiveTabBarBottomInset(40)).toBe(40);
     expect(tabBarTotalHeight(34)).toBeGreaterThan(tabBarIconsOnlyHeight());
     expect(LAYOUT_OVERLAP).not.toHaveProperty("WEB_TOUCH_BOTTOM_INSET");
+    expect(LAYOUT_OVERLAP).not.toHaveProperty("TAB_BAR_HOME_CLEARANCE");
+    expect(LAYOUT_OVERLAP).not.toHaveProperty("ANDROID_GESTURE_INSET");
     const tabBar = readFileSync("components/tab-bar-with-disclosure.tsx", "utf8");
     const hook = readFileSync("hooks/use-tab-bar-bottom-inset.ts", "utf8");
     const css = readFileSync("global.css", "utf8");
+    const tabsLayout = readFileSync("app/(tabs)/_layout.tsx", "utf8");
     expect(tabBar).toContain("useTabBarBottomInset");
     expect(tabBar).toContain("paddingBottom: bottomPad");
-    expect(tabBar).toContain('testID="tab-bar-os-clearance"');
-    expect(tabBar).toContain('Platform.OS === "android"');
+    expect(tabBar).toContain("props.insets.bottom");
+    expect(tabBar).not.toContain('testID="tab-bar-os-clearance"');
     expect(tabBar).toContain('className: "ur-tab-bar-web"');
     expect(tabBar).not.toContain('Platform.OS === "web" ? 0');
     expect(tabBar).not.toContain("WEB_TAB_BAR_BOTTOM_PAD");
@@ -84,43 +87,32 @@ describe("layout-overlap", () => {
     expect(LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD).toBe(20);
     expect(css).toContain(".ur-tab-bar-web");
     expect(css).toContain("env(safe-area-inset-bottom");
-    expect(css).toContain(`+ ${LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE}px`);
+    expect(css).not.toContain("+ 48px");
     expect(css).toMatch(/padding-bottom:\s*max\(20px/);
     expect(css).not.toContain("box-sizing: border-box");
     expect(css).not.toContain(".ur-tab-home-spacer");
     expect(css).not.toContain(".ur-phone-home-bar-clearance");
-    expect(readFileSync("app/(tabs)/_layout.tsx", "utf8")).toContain('position: "relative"');
-    expect(readFileSync("app/(tabs)/_layout.tsx", "utf8")).toContain(
+    expect(tabsLayout).toContain('position: "relative"');
+    expect(tabsLayout).not.toContain(
       "safeAreaInsets={{ top: 0, right: 0, bottom: 0, left: 0 }}",
     );
     expect(resolveTabBarBottomInset({ platform: "ios", safeBottom: 0 })).toBe(
-      LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE,
+      LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET,
     );
-    expect(resolveTabBarBottomInset({ platform: "ios", safeBottom: 34 })).toBe(
-      LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE,
-    );
-    expect(resolveTabBarBottomInset({ platform: "android", safeBottom: 0 })).toBe(
-      LAYOUT_OVERLAP.ANDROID_GESTURE_INSET + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE,
-    );
-    expect(resolveTabBarBottomInset({ platform: "android", safeBottom: 48 })).toBe(
-      Math.max(48, LAYOUT_OVERLAP.ANDROID_GESTURE_INSET) + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE,
-    );
+    expect(resolveTabBarBottomInset({ platform: "ios", safeBottom: 34 })).toBe(34);
+    expect(resolveTabBarBottomInset({ platform: "android", safeBottom: 0 })).toBe(0);
+    expect(resolveTabBarBottomInset({ platform: "android", safeBottom: 48 })).toBe(48);
     expect(resolveTabBarBottomInset({ platform: "web", safeBottom: 0 })).toBe(
       LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD,
     );
     expect(
       resolveTabBarBottomInset({ platform: "web", safeBottom: 0, iosWeb: true }),
-    ).toBe(LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE);
+    ).toBe(LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET);
     expect(
       resolveTabBarBottomInset({ platform: "web", safeBottom: 0, androidWeb: true }),
-    ).toBe(LAYOUT_OVERLAP.ANDROID_GESTURE_INSET + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE);
+    ).toBe(0);
     expect(
       resolveTabBarBottomInset({ platform: "web", safeBottom: 0, phoneWeb: true }),
-    ).toBe(
-      Math.max(
-        LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET,
-        LAYOUT_OVERLAP.ANDROID_GESTURE_INSET,
-      ) + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE,
-    );
+    ).toBe(LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET);
   });
 });
