@@ -615,7 +615,7 @@ export function ContentCreatorDashboardPanel() {
                   <Pressable
                     key={preset.label}
                     onPress={() => setStartsAt(preset.iso)}
-                    style={[styles.chip, { borderColor: colors.border, backgroundColor: colors.background }]}
+                    style={[styles.chip, { borderColor: colors.border, backgroundColor: colors.surface }]}
                   >
                     <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: "600" }}>
                       {preset.label}
@@ -938,7 +938,7 @@ export function ContentCreatorDashboardPanel() {
                             },
                           ])
                         }
-                        style={[styles.smallBtn, { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border }]}
+                        style={[styles.smallBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
                       >
                         <Text style={[styles.smallBtnText, { color: colors.foreground }]}>Cancel</Text>
                       </Pressable>

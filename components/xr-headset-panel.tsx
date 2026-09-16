@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
+import { brandWhiteChip } from "@/lib/brand-theme";
 import { WorkspaceTapButton } from "@/components/workspace-tap-button";
 import {
   detectXrHeadset,
@@ -41,26 +42,26 @@ export function XrHeadsetPanel({ context }: { context: "world" | "workspace" }) 
       <View style={styles.row}>
         <WorkspaceTapButton
           onPress={() => router.push(otherPath as never)}
-          style={[styles.btn, { borderColor: colors.border }]}
+          style={[styles.btn, brandWhiteChip(colors)]}
         >
-          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
+          <Text style={{ color: colors.onWhite, fontWeight: "700", fontSize: 12, textAlign: "center" }}>
             {context === "world" ? "3D Workspace" : "UR World"}
           </Text>
         </WorkspaceTapButton>
         <WorkspaceTapButton
           onPress={() => router.push(XR_GAME_FORGE_PATH as never)}
-          style={[styles.btn, { borderColor: colors.border }]}
+          style={[styles.btn, brandWhiteChip(colors)]}
         >
-          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>GameForge</Text>
+          <Text style={{ color: colors.onWhite, fontWeight: "700", fontSize: 12, textAlign: "center" }}>GameForge</Text>
         </WorkspaceTapButton>
         <WorkspaceTapButton
           onPress={() => {
             const result = printCurrentDocument();
             setPrintNote(result.detail);
           }}
-          style={[styles.btn, { borderColor: colors.primary }]}
+          style={[styles.btn, brandWhiteChip(colors)]}
         >
-          <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 12 }}>Print this page</Text>
+          <Text style={{ color: colors.onWhite, fontWeight: "800", fontSize: 12, textAlign: "center" }}>Print this page</Text>
         </WorkspaceTapButton>
       </View>
       {printNote ? (

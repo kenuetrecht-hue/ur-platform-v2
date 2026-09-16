@@ -31,7 +31,7 @@ export const LAYOUT_OVERLAP = {
   ANDROID_GESTURE_INSET: 48,
   /** Extra empty pad so tab labels sit above the OS home bar, not on it. */
   TAB_BAR_HOME_CLEARANCE: 24,
-  /** Mobile web has no native home-indicator inset — keep tab labels fully visible. */
+  /** Desktop-web floor when there is no home indicator. Phone web uses the OS inset instead. */
   WEB_TAB_BAR_BOTTOM_PAD: 20,
   /** AIs tab chrome above the chat panel (header + mode row + specialist bar). */
   AIS_TAB_CHROME_HEIGHT: 112,
@@ -169,7 +169,12 @@ export function resolveTabBarBottomInset(args: {
       ) + LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE
     );
   }
-  return Math.max(args.safeBottom, css, LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET);
+  return Math.max(
+    args.safeBottom,
+    css,
+    LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET,
+    LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD,
+  );
 }
 
 /** Home-indicator padding inside the real tab bar. Do not invent a second toolbar. */

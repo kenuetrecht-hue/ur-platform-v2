@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { brandWhiteChip } from "@/lib/brand-theme";
 import { WorkspaceTapButton } from "@/components/workspace-tap-button";
 import type { useWorkspaceDesign } from "@/hooks/use-workspace-design";
 import type { WorkspaceDesignState } from "@/lib/workspace-design-types";
@@ -80,15 +81,15 @@ export function WorkspacePhysicsPanel({ designApi }: { designApi: DesignApi }) {
             if (snapshot.current) loadDesign(snapshot.current);
             setLastNote("Reset to pre-sim pose");
           }}
-          style={[styles.btn, { borderWidth: 1, borderColor: colors.border }]}
+          style={[styles.btn, brandWhiteChip(colors)]}
         >
-          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>Reset</Text>
+          <Text style={{ color: colors.onWhite, fontWeight: "700", fontSize: 12, textAlign: "center" }}>Reset</Text>
         </WorkspaceTapButton>
         <WorkspaceTapButton
           onPress={() => addBuildKit("physics_probe")}
-          style={[styles.btn, { borderWidth: 1, borderColor: colors.border }]}
+          style={[styles.btn, brandWhiteChip(colors)]}
         >
-          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>+ Drop ball</Text>
+          <Text style={{ color: colors.onWhite, fontWeight: "700", fontSize: 12, textAlign: "center" }}>+ Drop ball</Text>
         </WorkspaceTapButton>
       </View>
 
@@ -104,6 +105,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 15, fontWeight: "800", marginBottom: 4 },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
   chip: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
-  btn: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, minWidth: 88, alignItems: "center" },
+  btn: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, minWidth: 88, alignItems: "center" },
   btnText: { color: "#fff", fontWeight: "700", fontSize: 12 },
 });

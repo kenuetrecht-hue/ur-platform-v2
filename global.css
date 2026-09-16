@@ -20,8 +20,9 @@ body > div:first-child {
 }
 
 .ur-tab-bar-web {
-  padding-bottom: 20px;
-  box-sizing: border-box;
+  /* Phone home indicator via env(); desktop floor is 20px. Do not use border-box
+     or padding would steal height from the icon + label row. */
+  padding-bottom: max(20px, calc(env(safe-area-inset-bottom, 0px) + 24px));
 }
 
 :root {

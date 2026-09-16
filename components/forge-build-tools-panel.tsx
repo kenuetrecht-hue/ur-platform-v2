@@ -10,6 +10,7 @@ import {
   Platform,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { brandWhiteChip } from "@/lib/brand-theme";
 import { trpc } from "@/lib/trpc";
 import { isGameForge } from "@/lib/forge-specialists";
 
@@ -243,7 +244,7 @@ export function ForgeBuildToolsPanel({
               setActiveSessionId(null);
             }}
             disabled={endCloudSession.isPending || endAllSessions.isPending}
-            style={[styles.btn, { borderColor: "#ef4444", borderWidth: 1, flex: 1 }]}
+            style={[styles.btn, brandWhiteChip(colors), { borderColor: "#ef4444", borderWidth: 1, flex: 1 }]}
           >
             <Text style={{ color: "#ef4444", fontWeight: "700", textAlign: "center" }}>End & wipe</Text>
           </Pressable>
@@ -313,7 +314,7 @@ export function ForgeBuildToolsPanel({
                 })
               }
               disabled={applyTemplate.isPending}
-              style={[styles.chip, { borderColor: colors.primary }]}
+              style={[styles.chip, brandWhiteChip(colors)]}
             >
               <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: "700" }}>{t.label}</Text>
               <Text style={{ color: colors.muted, fontSize: 9, marginTop: 2 }} numberOfLines={2}>
@@ -365,7 +366,7 @@ export function ForgeBuildToolsPanel({
         <Pressable
           onPress={handleProposePatches}
           disabled={proposePatches.isPending}
-          style={[styles.btn, { borderColor: colors.primary, borderWidth: 1, marginTop: 8 }]}
+          style={[styles.btn, brandWhiteChip(colors), { borderWidth: 1, marginTop: 8 }]}
         >
           <Text style={{ color: colors.primary, fontWeight: "700", textAlign: "center" }}>
             {proposePatches.isPending ? "Generating…" : "Generate patch diff"}
@@ -403,7 +404,7 @@ export function ForgeBuildToolsPanel({
             </Pressable>
             <Pressable
               onPress={() => setPendingPatches(null)}
-              style={[styles.btn, { borderColor: colors.border, borderWidth: 1, flex: 1 }]}
+              style={[styles.btn, brandWhiteChip(colors), { borderWidth: 1, flex: 1 }]}
             >
               <Text style={{ color: colors.foreground, fontWeight: "700", textAlign: "center" }}>Discard</Text>
             </Pressable>
@@ -417,7 +418,7 @@ export function ForgeBuildToolsPanel({
         <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
           <Pressable
             onPress={() => setShowPreview(!showPreview)}
-            style={[styles.btn, { borderColor: colors.primary, borderWidth: 1, flex: 1 }]}
+            style={[styles.btn, brandWhiteChip(colors), { borderWidth: 1, flex: 1 }]}
           >
             <Text style={{ color: colors.primary, fontWeight: "700", textAlign: "center" }}>
               {showPreview ? "Hide preview" : "Show preview"}
@@ -458,7 +459,7 @@ export function ForgeBuildToolsPanel({
         <Pressable
           onPress={() => generateCi.mutate({ creatorId, projectId })}
           disabled={generateCi.isPending}
-          style={[styles.btn, { borderColor: colors.border, borderWidth: 1, marginTop: 8 }]}
+          style={[styles.btn, brandWhiteChip(colors), { borderWidth: 1, marginTop: 8 }]}
         >
           <Text style={{ color: colors.foreground, fontWeight: "600", textAlign: "center" }}>
             {generateCi.isPending ? "Generating CI…" : "Generate GitHub Actions CI"}
@@ -557,7 +558,7 @@ export function ForgeBuildToolsPanel({
               );
             }}
             disabled={exportZip.isPending || !projectId}
-            style={[styles.btn, { borderColor: colors.primary, borderWidth: 1, flex: 1, minWidth: 120 }]}
+            style={[styles.btn, brandWhiteChip(colors), { borderWidth: 1, flex: 1, minWidth: 120 }]}
           >
             <Text style={{ color: colors.primary, fontWeight: "700", textAlign: "center" }}>
               {exportZip.isPending ? "Zipping…" : "Download ZIP"}
@@ -580,7 +581,7 @@ export function ForgeBuildToolsPanel({
               );
             }}
             disabled={createShare.isPending || !projectId}
-            style={[styles.btn, { borderColor: colors.border, borderWidth: 1, flex: 1, minWidth: 120 }]}
+            style={[styles.btn, brandWhiteChip(colors), { borderWidth: 1, flex: 1, minWidth: 120 }]}
           >
             <Text style={{ color: colors.foreground, fontWeight: "700", textAlign: "center" }}>
               {createShare.isPending ? "Creating…" : "Share preview (24h)"}
@@ -625,7 +626,7 @@ export function ForgeBuildToolsPanel({
                 )
               }
               disabled={applyDeploy.isPending || !projectId}
-              style={[styles.chip, { borderColor: colors.border }]}
+              style={[styles.chip, brandWhiteChip(colors)]}
             >
               <Text style={{ color: colors.foreground, fontSize: 10, fontWeight: "700" }}>
                 Deploy: {label}
@@ -648,7 +649,7 @@ export function ForgeBuildToolsPanel({
                   importHive.mutate({ creatorId, projectId, packId: pack.id })
                 }
                 disabled={importHive.isPending || !projectId}
-                style={[styles.chip, { borderColor: colors.primary }]}
+                style={[styles.chip, brandWhiteChip(colors)]}
               >
                 <Text style={{ color: colors.foreground, fontSize: 10, fontWeight: "700" }}>{pack.label}</Text>
                 <Text style={{ color: colors.muted, fontSize: 9 }}>{pack.sourceAi}</Text>
@@ -709,7 +710,7 @@ export function ForgeBuildToolsPanel({
           <Pressable
             onPress={() => githubPull.mutate({ specialist, projectId })}
             disabled={githubPull.isPending}
-            style={[styles.btn, { borderColor: colors.primary, borderWidth: 1, marginTop: 8 }]}
+            style={[styles.btn, brandWhiteChip(colors), { borderWidth: 1, marginTop: 8 }]}
           >
             <Text style={{ color: colors.primary, fontWeight: "700", textAlign: "center" }}>
               {githubPull.isPending ? "Pulling…" : "Pull files from GitHub"}
@@ -749,7 +750,7 @@ export function ForgeBuildToolsPanel({
         <Pressable
           onPress={() => runTestLoop.mutate({ creatorId, projectId })}
           disabled={runTestLoop.isPending}
-          style={[styles.btn, { borderColor: colors.primary, borderWidth: 1, marginTop: 8 }]}
+          style={[styles.btn, brandWhiteChip(colors), { borderWidth: 1, marginTop: 8 }]}
         >
           <Text style={{ color: colors.primary, fontWeight: "700", textAlign: "center" }}>
             {runTestLoop.isPending ? "Testing…" : "Run sandbox test loop"}

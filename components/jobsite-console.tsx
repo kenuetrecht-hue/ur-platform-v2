@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { brandWhiteChip } from "@/lib/brand-theme";
 import { trpc } from "@/lib/trpc";
 
 type Mode = "field" | "office";
@@ -489,11 +490,11 @@ export function JobsiteConsole() {
                 style={inputStyle}
               />
               <View style={{ flexDirection: "row", gap: 8 }}>
-                <Pressable onPress={() => setInviteRole("crew")} style={[styles.chip, { borderColor: colors.border }]}>
-                  <Text style={{ color: colors.foreground }}>{inviteRole === "crew" ? "● crew" : "○ crew"}</Text>
+                <Pressable onPress={() => setInviteRole("crew")} style={[styles.chip, brandWhiteChip(colors)]}>
+                  <Text style={{ color: colors.onWhite, textAlign: "center" }}>{inviteRole === "crew" ? "● crew" : "○ crew"}</Text>
                 </Pressable>
-                <Pressable onPress={() => setInviteRole("office_manager")} style={[styles.chip, { borderColor: colors.border }]}>
-                  <Text style={{ color: colors.foreground }}>
+                <Pressable onPress={() => setInviteRole("office_manager")} style={[styles.chip, brandWhiteChip(colors)]}>
+                  <Text style={{ color: colors.onWhite, textAlign: "center" }}>
                     {inviteRole === "office_manager" ? "● office" : "○ office"}
                   </Text>
                 </Pressable>

@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
+import { brandWhiteChip } from "@/lib/brand-theme";
 import { trpc } from "@/lib/trpc";
 
 const BLUEPRINT_AI_ID = "ai-blueprint-reader-001";
@@ -108,9 +109,9 @@ export function BlueprintReaderPanel({ compact }: { compact?: boolean }) {
               params: { ai: BLUEPRINT_AI_ID },
             })
           }
-          style={[styles.btn, { borderColor: colors.primary, borderWidth: 1 }]}
+          style={[styles.btn, brandWhiteChip(colors), { borderWidth: 1 }]}
         >
-          <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>Chat</Text>
+          <Text style={{ color: colors.onWhite, fontWeight: "700", fontSize: 12, textAlign: "center" }}>Chat</Text>
         </Pressable>
       </View>
 

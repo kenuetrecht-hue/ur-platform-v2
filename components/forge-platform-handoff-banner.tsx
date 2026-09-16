@@ -1,5 +1,6 @@
 import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { brandWhiteChip } from "@/lib/brand-theme";
 import {
   assessForgeProjectScale,
   buildForgeAisWebPath,
@@ -86,9 +87,9 @@ export function ForgePlatformHandoffBanner({
       </Text>
       <Pressable
         onPress={openWebBuild}
-        style={[styles.btnOutline, { borderColor: colors.primary }]}
+        style={[styles.btnOutline, brandWhiteChip(colors)]}
       >
-        <Text style={[styles.btnText, { color: colors.primary }]}>Open full builder on web</Text>
+        <Text style={[styles.btnText, { color: colors.onWhite }]}>Open full builder on web</Text>
       </Pressable>
     </View>
   );

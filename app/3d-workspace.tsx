@@ -26,6 +26,7 @@ import { AiSpecialistPicker } from "@/components/ai-specialist-picker";
 import { Workspace3dPricingPanel } from "@/components/workspace-3d-pricing-panel";
 import { AiHubTabRow } from "@/components/ai-hub-tab-row";
 import { useColors } from "@/hooks/use-colors";
+import { brandWhiteChip } from "@/lib/brand-theme";
 import { useWorkspaceDesign } from "@/hooks/use-workspace-design";
 import { designLayerSummary } from "@/lib/workspace-design-utils";
 import { trpc } from "@/lib/trpc";
@@ -289,23 +290,23 @@ export default function Workspace3DScreen() {
           <View style={{ paddingHorizontal: 16, flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             <WorkspaceTapButton
               onPress={() => setOrthoLock((v) => !v)}
-              style={[styles.chip, { borderColor: orthoLock ? colors.primary : colors.border }]}
+              style={[styles.chip, brandWhiteChip(colors), orthoLock ? { borderColor: colors.primary } : null]}
             >
-              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
+              <Text style={{ color: colors.onWhite, fontWeight: "700", fontSize: 12, textAlign: "center" }}>
                 Ortho {orthoLock ? "on" : "off"}
               </Text>
             </WorkspaceTapButton>
             <WorkspaceTapButton
               onPress={() => setChainFrom(null)}
-              style={[styles.chip, { borderColor: colors.border }]}
+              style={[styles.chip, brandWhiteChip(colors)]}
             >
-              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>Finish chain</Text>
+              <Text style={{ color: colors.onWhite, fontWeight: "700", fontSize: 12, textAlign: "center" }}>Finish chain</Text>
             </WorkspaceTapButton>
             <WorkspaceTapButton
               onPress={() => designApi.loadStarterRoom()}
-              style={[styles.chip, { borderColor: colors.border }]}
+              style={[styles.chip, brandWhiteChip(colors)]}
             >
-              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>Starter 12×12 room</Text>
+              <Text style={{ color: colors.onWhite, fontWeight: "700", fontSize: 12, textAlign: "center" }}>Starter 12×12 room</Text>
             </WorkspaceTapButton>
           </View>
 

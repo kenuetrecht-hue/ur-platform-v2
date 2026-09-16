@@ -10,6 +10,7 @@ import {
   Platform,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { brandWhiteChip } from "@/lib/brand-theme";
 import { trpc } from "@/lib/trpc";
 import { ForgeBuildToolsPanel } from "@/components/forge-build-tools-panel";
 import { ForgePlatformHandoffBanner } from "@/components/forge-platform-handoff-banner";
@@ -309,18 +310,18 @@ export function GameForgeSandboxPanel({
               <Pressable
                 onPress={handleRunTest}
                 disabled={runTest.isPending}
-                style={[styles.btn, { borderColor: colors.border, borderWidth: 1, flex: 1 }]}
+                style={[styles.btn, brandWhiteChip(colors), { borderWidth: 1, flex: 1 }]}
               >
-                <Text style={{ color: colors.foreground, fontWeight: "700", textAlign: "center" }}>
+                <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>
                   {runTest.isPending ? "Testing…" : "Quick test"}
                 </Text>
               </Pressable>
               <Pressable
                 onPress={handleExecuteBuild}
                 disabled={executeBuild.isPending}
-                style={[styles.btn, { borderColor: colors.primary, borderWidth: 1, flex: 1 }]}
+                style={[styles.btn, brandWhiteChip(colors), { borderWidth: 1, flex: 1 }]}
               >
-                <Text style={{ color: colors.primary, fontWeight: "700", textAlign: "center" }}>
+                <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>
                   {executeBuild.isPending ? "Building…" : "Full build"}
                 </Text>
               </Pressable>

@@ -1,10 +1,11 @@
-import { Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
+import { effectiveTabBarBottomInset } from "@/lib/layout-overlap";
 
-/** Native: phone home-indicator inset. Web: fixed pad so tab labels stay visible. */
+/**
+ * Padding inside the real tab bar so Home / Admin / AIs / Profile / Social
+ * sit above the phone home indicator. Same helper on native and mobile web.
+ */
 export function useTabBarBottomInset(): number {
   const insets = useSafeAreaInsets();
-  if (Platform.OS === "web") return LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD;
-  return insets.bottom;
+  return effectiveTabBarBottomInset(insets.bottom);
 }

@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
+import { readFileSync } from "fs";
 import {
   clampCrossfade,
   clampCueStep,
@@ -212,5 +213,18 @@ describe("music studio", () => {
     expect(getMusicStudioLesson("turntable")?.tryNow).toMatch(/Play mix/i);
     expect(getMusicStudioLesson("write-song")?.coach).toBe("ai-songwriter-001");
     expect(getMusicStudioLesson("turntable")?.ask).not.toMatch(/Serato/i);
+  });
+
+  it("puts Copy A → B and Set cue here on white chips with bluish-purple lettering", () => {
+    const booth = readFileSync("components/music-studio-booth.tsx", "utf8");
+    expect(booth).toContain("Copy A → B");
+    expect(booth).toContain("Set cue here");
+    expect(booth).toContain("brandWhiteChip(colors)");
+    expect(booth).toContain("colors.onWhite");
+    expect(booth).not.toMatch(/onCopyAToB[\s\S]{0,120}borderColor: colors\.border \}/);
+
+    const hookups = readFileSync("components/music-studio-hookups.tsx", "utf8");
+    expect(hookups).toContain("Download MIDI");
+    expect(hookups).toContain("brandWhiteChip(colors)");
   });
 });

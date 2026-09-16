@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, Text, Pressable, ActivityIndicator, StyleSheet, Linking, TextInput } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { brandWhiteChip } from "@/lib/brand-theme";
 import { trpc } from "@/lib/trpc";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { OWNER_DIGITAL_KIND_LABEL, OWNER_DIGITAL_KINDS, type OwnerDigitalKind } from "@/lib/affiliate-link-policy";
@@ -79,9 +80,9 @@ export function CommerceOpsPanel() {
             <Pressable
               onPress={() => sync.mutate({ provider: p.id as "printful" | "printify" | "cj_dropshipping" })}
               disabled={sync.isPending}
-              style={[styles.smallBtn, { borderColor: colors.primary }]}
+              style={[styles.smallBtn, brandWhiteChip(colors)]}
             >
-              <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>Sync</Text>
+              <Text style={{ color: colors.onWhite, fontSize: 11, fontWeight: "600", textAlign: "center" }}>Sync</Text>
             </Pressable>
           ) : null}
           {p.docsUrl ? (
@@ -115,7 +116,7 @@ export function CommerceOpsPanel() {
                   styles.chip,
                   {
                     borderColor: listingKind === opt.id ? colors.primary : colors.border,
-                    backgroundColor: listingKind === opt.id ? `${colors.primary}18` : colors.background,
+                    backgroundColor: listingKind === opt.id ? `${colors.primary}18` : colors.surface,
                   },
                 ]}
               >
@@ -133,7 +134,7 @@ export function CommerceOpsPanel() {
                     styles.chip,
                     {
                       borderColor: digitalKind === kind ? colors.primary : colors.border,
-                      backgroundColor: digitalKind === kind ? `${colors.primary}18` : colors.background,
+                      backgroundColor: digitalKind === kind ? `${colors.primary}18` : colors.surface,
                     },
                   ]}
                 >
