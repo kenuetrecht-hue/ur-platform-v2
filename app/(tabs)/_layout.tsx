@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { UrBootShell } from "@/components/ur-boot-shell";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth-context";
+import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { useColors } from "@/hooks/use-colors";
 import { HapticTab } from "@/components/haptic-tab";
 import { TabBarIcon } from "@/components/tab-bar-icon";
@@ -11,6 +12,7 @@ import { LAYOUT_OVERLAP, tabBarIconRowHeight } from "@/lib/layout-overlap";
 
 export default function TabsLayout() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { isPlatformOwner } = usePlatformOwner();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const bottomInset = Math.max(insets.bottom, LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET);
@@ -66,14 +68,14 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          href: "/home",
+          href: null,
         }}
       />
       <Tabs.Screen
         name="admin"
         options={{
           title: "Admin",
-          href: null,
+          href: isPlatformOwner ? "/(tabs)/admin" : null,
           tabBarIcon: ({ focused }) => (
             <TabBarIcon name="shield.fill" focused={focused} />
           ),

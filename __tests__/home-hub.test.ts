@@ -57,6 +57,8 @@ describe("home hub", () => {
 
     const tabs = readFileSync("app/(tabs)/_layout.tsx", "utf8");
     expect(tabs).toContain("href: null");
-    expect(tabs).not.toContain("canAccessAdminDashboard");
+    expect(tabs).toContain("isPlatformOwner");
+    expect(tabs).toContain('title: "Admin"');
+    expect(tabs).toContain('name="index"');
   });
 });

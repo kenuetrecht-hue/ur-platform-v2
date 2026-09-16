@@ -3,7 +3,7 @@ import { ActivityIndicator, View } from "react-native";
 import OwnerOpsScreen from "../owner-ops";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 
-/** Administration Dashboard — platform owner only, opened from Home. */
+/** Administration Dashboard — platform owner only. */
 export default function AdminTabScreen() {
   const { isPlatformOwner, isLoading } = usePlatformOwner();
 
