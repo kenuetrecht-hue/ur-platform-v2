@@ -21,6 +21,7 @@ import { trpc } from "@/lib/trpc";
 import { HubTabBar } from "@/components/hub-tab-bar";
 import { HubDoorGrid, HubDoorTile } from "@/components/hub-door-tile";
 import {
+  HOME_DOWNLOAD_DOORS,
   HOME_HUB_TAB_ROWS,
   HOME_MAIN_DOORS,
   HOME_STUDIO_DOORS,
@@ -75,6 +76,15 @@ export default function HomeScreen() {
               </View>
             ) : null}
             <HubDoorGrid>
+              {HOME_DOWNLOAD_DOORS.map((door) => (
+                <HubDoorTile
+                  key={door.id}
+                  emoji={door.emoji}
+                  label={door.label}
+                  testID={`home-download-${door.id}`}
+                  onPress={() => router.push(door.href)}
+                />
+              ))}
               <HubDoorTile emoji="📘" label="E-manual" onPress={() => router.push("/e-manual")} />
               {isPlatformOwner ? (
                 <HubDoorTile

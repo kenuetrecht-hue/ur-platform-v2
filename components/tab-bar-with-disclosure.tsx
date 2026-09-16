@@ -32,7 +32,7 @@ export function TabBarWithDisclosure(props: BottomTabBarProps) {
       style={[
         styles.wrapper,
         {
-          minHeight: dockHeight,
+          height: dockHeight,
           backgroundColor: colors.surface,
           borderTopColor: withAlpha(colors.secondary, 0.28),
         },
@@ -52,15 +52,9 @@ export function TabBarWithDisclosure(props: BottomTabBarProps) {
         pointerEvents="none"
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
-        style={
-          Platform.OS === "web"
-            ? ({
-                minHeight: bottomInset,
-                height: `max(${bottomInset}px, env(safe-area-inset-bottom, 0px))`,
-                flexShrink: 0,
-              } as object)
-            : { height: bottomInset, flexShrink: 0 }
-        }
+        nativeID="ur-phone-home-bar-clearance"
+        {...(Platform.OS === "web" ? { className: "ur-phone-home-bar-clearance" } : null)}
+        style={styles.clearance}
       />
     </View>
   );
@@ -74,7 +68,13 @@ const styles = StyleSheet.create({
   },
   tabBarSlot: {
     flexShrink: 0,
-    overflow: "hidden",
+    overflow: "visible",
     position: "relative",
+  },
+  clearance: {
+    width: "100%",
+    flexGrow: 1,
+    flexShrink: 0,
+    minHeight: 24,
   },
 });

@@ -27,6 +27,27 @@ export type HomeDoor = {
   href: Href;
 };
 
+export const HOME_DOWNLOAD_DOORS: HomeDoor[] = [
+  {
+    id: "iphone-download",
+    label: "iPhone download",
+    emoji: "📱",
+    href: "/download?device=ios",
+  },
+  {
+    id: "android-download",
+    label: "Android download",
+    emoji: "🤖",
+    href: "/download?device=android",
+  },
+  {
+    id: "computer-download",
+    label: "Computer download",
+    emoji: "💻",
+    href: "/download?device=desktop",
+  },
+];
+
 export const HOME_STUDIO_DOORS: HomeDoor[] = [
   { id: "world", label: "UR World", emoji: "🏙️", href: "/world" },
   { id: "music", label: "Music Studio", emoji: "🎚️", href: "/music-studio" },

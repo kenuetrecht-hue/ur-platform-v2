@@ -1,4 +1,4 @@
-import { Link } from "expo-router";
+import { Link, useLocalSearchParams } from "expo-router";
 import { PageBackButton } from "@/components/page-back-button";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,12 +7,16 @@ import {
   APP_DOWNLOAD_HEADLINE,
   APP_DOWNLOAD_LEDE,
   APP_DOWNLOAD_NO_STORE_LINE,
+  parseDownloadDeviceParam,
 } from "@/lib/app-download";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
 import { PLATFORM_DISCLOSURE_SHORT } from "@/lib/platform-disclosure-copy";
 import { PUBLIC_LEGAL_NAV } from "@/lib/public-legal-routes";
 
 export default function DownloadScreen() {
+  const params = useLocalSearchParams<{ device?: string }>();
+  const preferredSurface = parseDownloadDeviceParam(params.device);
+
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.safe} edges={["top", "left", "right", "bottom"]}>
@@ -28,7 +32,7 @@ export default function DownloadScreen() {
             <Text style={styles.lede}>{APP_DOWNLOAD_LEDE}</Text>
             <Text style={styles.storeFree}>{APP_DOWNLOAD_NO_STORE_LINE}</Text>
 
-            <PwaInstallControls />
+            <PwaInstallControls preferredSurface={preferredSurface} />
 
             <View style={styles.footer}>
               <Link href="/login" asChild>

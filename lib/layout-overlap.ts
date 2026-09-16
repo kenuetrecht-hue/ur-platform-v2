@@ -11,11 +11,11 @@ export const LAYOUT_OVERLAP = {
   TAB_BAR_CONTENT_HEIGHT: 42,
   TAB_BAR_TOP_PADDING: 2,
   /** Floor when the OS reports no inset (web, some Androids). */
-  TAB_BAR_MIN_BOTTOM_INSET: 20,
+  TAB_BAR_MIN_BOTTOM_INSET: 24,
   /** iPhone / iPad home indicator. */
   IOS_HOME_INDICATOR_INSET: 34,
-  /** Touch phones/tablets in Safari when CSS safe-area is still 0. */
-  WEB_TOUCH_BOTTOM_INSET: 34,
+  /** Touch phones/tablets: Safari/Chrome bottom toolbar is taller than the home bar. */
+  WEB_TOUCH_BOTTOM_INSET: 56,
   /** PlatformDisclosureBar content below status inset (top bar). */
   TOP_DISCLOSURE_CONTENT_HEIGHT: 28,
   /** PlatformDisclosureBar content above home indicator (bottom bar on non-tab screens). */
@@ -100,8 +100,15 @@ function readCssSafeAreaBottom(): number {
   }
 }
 
+export function measureWebBottomOcclusion(): number {
+  if (typeof window === "undefined") return 0;
+  const vv = window.visualViewport;
+  if (!vv) return 0;
+  return Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+}
+
 /** Space under the tab labels so they sit above the phone home bar / Safari toolbar. */
-export function effectiveTabBarBottomInset(safeBottom: number): number {
+export function effectiveTabBarBottomInset(safeBottom: number, occlusion = 0): number {
   const css = Platform.OS === "web" ? readCssSafeAreaBottom() : 0;
   const platformFloor =
     Platform.OS === "ios"
@@ -109,7 +116,7 @@ export function effectiveTabBarBottomInset(safeBottom: number): number {
       : Platform.OS === "web" && isCoarsePointer()
         ? LAYOUT_OVERLAP.WEB_TOUCH_BOTTOM_INSET
         : LAYOUT_OVERLAP.TAB_BAR_MIN_BOTTOM_INSET;
-  return Math.max(safeBottom, css, platformFloor);
+  return Math.max(safeBottom, css, platformFloor, occlusion);
 }
 
 export function tabBarTotalHeight(bottomSafeInset: number): number {

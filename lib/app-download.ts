@@ -6,6 +6,10 @@
 
 export const APP_DOWNLOAD_PATH = "/download";
 
+export const IPHONE_DOWNLOAD_LABEL = "iPhone download";
+export const ANDROID_DOWNLOAD_LABEL = "Android download";
+export const COMPUTER_DOWNLOAD_LABEL = "Computer download";
+
 export const APP_DOWNLOAD_HEADLINE = "Get the UR app from this website";
 
 export const APP_DOWNLOAD_LEDE =
@@ -72,6 +76,18 @@ export function detectWebInstallSurface(userAgent: string): WebInstallSurface {
   if (iosDevice || iosIpadOs) return "ios";
   if (ua.includes("android")) return "android";
   return "desktop";
+}
+
+export function downloadPathForSurface(surface: WebInstallSurface): string {
+  return `${APP_DOWNLOAD_PATH}?device=${surface}`;
+}
+
+export function parseDownloadDeviceParam(
+  raw: string | string[] | undefined | null,
+): WebInstallSurface | null {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (value === "ios" || value === "android" || value === "desktop") return value;
+  return null;
 }
 
 export function installStepsForSurface(surface: WebInstallSurface): readonly string[] {

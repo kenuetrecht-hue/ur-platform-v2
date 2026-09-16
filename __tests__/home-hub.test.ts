@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "fs";
 import {
+  HOME_DOWNLOAD_DOORS,
   HOME_HUB_TABS,
   HOME_HUB_TAB_ROWS,
   HOME_MAIN_DOORS,
@@ -24,6 +25,11 @@ describe("home hub", () => {
     expect(HOME_HUB_TAB_ROWS).toHaveLength(2);
     expect(HOME_STUDIO_DOORS.some((door) => door.id === "world")).toBe(true);
     expect(HOME_MAIN_DOORS.some((door) => door.label === "AIs")).toBe(true);
+    expect(HOME_DOWNLOAD_DOORS.map((door) => door.label)).toEqual([
+      "iPhone download",
+      "Android download",
+      "Computer download",
+    ]);
 
     const home = readFileSync("app/(tabs)/index.tsx", "utf8");
     const create = readFileSync("app/(tabs)/create.tsx", "utf8");
@@ -32,6 +38,7 @@ describe("home hub", () => {
     const social = readFileSync("components/social-hub-tab-bar.tsx", "utf8");
     expect(home).toContain("HubTabBar");
     expect(home).toContain("HOME_HUB_TAB_ROWS");
+    expect(home).toContain("HOME_DOWNLOAD_DOORS");
     expect(home).toContain("PasswordRemindBanner");
     expect(home).toContain("DailyLoyaltyBanner");
     expect(home).toContain("AiFreeBoardPanel");

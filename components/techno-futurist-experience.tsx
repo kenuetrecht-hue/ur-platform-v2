@@ -21,7 +21,7 @@ import { LandingDemoChat } from "@/components/landing/landing-demo-chat";
 import { LandingTownHallCarousel } from "@/components/landing/landing-town-hall-carousel";
 import { LandingSocialProof } from "@/components/landing/landing-social-proof";
 import { LandingCheckoutCta } from "@/components/landing/landing-checkout-cta";
-import { LandingAppDownloadLink } from "@/components/landing/landing-app-download-link";
+import { LandingAppDownloadLink, LandingDeviceDownloadLinks } from "@/components/landing/landing-app-download-link";
 import { LandingPromoBanner } from "@/components/landing/landing-promo-banner";
 import { LandingAiCategoryHub } from "@/components/landing/landing-ai-category-hub";
 import { LANDING_DEMO_CREATOR_IDS } from "@/lib/landing-demo-policy";
@@ -114,7 +114,7 @@ export function TechnoFuturistExperience() {
             <HomepageSignIn />
 
             <View style={styles.heroCtaRow}>
-              <LandingAppDownloadLink variant="hero" />
+              <LandingDeviceDownloadLinks variant="hero" />
             </View>
 
             <LandingPromoBanner />
@@ -131,7 +131,7 @@ export function TechnoFuturistExperience() {
             <LandingCheckoutCta />
 
             <View style={styles.footer}>
-              <LandingAppDownloadLink variant="footer" />
+              <LandingDeviceDownloadLinks variant="footer" />
               <Link href="/login" asChild>
                 <Pressable accessibilityRole="link">
                   <Text style={styles.link}>Login</Text>

@@ -9,6 +9,8 @@ import {
   IOS_NATIVE_NOTE,
   buildAppDownloadSummary,
   detectWebInstallSurface,
+  downloadPathForSurface,
+  parseDownloadDeviceParam,
   getAndroidApkDownloadUrl,
   installStepsForSurface,
   isSafeHttpDownloadUrl,
@@ -62,5 +64,13 @@ describe("app website download", () => {
     expect(getAndroidApkDownloadUrl("https://urplatform.llc/downloads/ur.apk")).toBe(
       "https://urplatform.llc/downloads/ur.apk",
     );
+  });
+
+  it("builds iPhone, Android, and computer download links", () => {
+    expect(downloadPathForSurface("ios")).toBe("/download?device=ios");
+    expect(downloadPathForSurface("android")).toBe("/download?device=android");
+    expect(downloadPathForSurface("desktop")).toBe("/download?device=desktop");
+    expect(parseDownloadDeviceParam("ios")).toBe("ios");
+    expect(parseDownloadDeviceParam("nope")).toBeNull();
   });
 });

@@ -25,8 +25,12 @@ function readStandalone(): boolean {
   return Boolean(media?.matches || iosStandalone);
 }
 
-export function PwaInstallControls() {
-  const [surface, setSurface] = useState<WebInstallSurface>("desktop");
+export function PwaInstallControls({
+  preferredSurface,
+}: {
+  preferredSurface?: WebInstallSurface | null;
+}) {
+  const [surface, setSurface] = useState<WebInstallSurface>(preferredSurface ?? "desktop");
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
   const [standalone, setStandalone] = useState(false);
@@ -34,7 +38,7 @@ export function PwaInstallControls() {
 
   useEffect(() => {
     if (Platform.OS !== "web" || typeof window === "undefined") return;
-    setSurface(detectWebInstallSurface(window.navigator.userAgent));
+    setSurface(preferredSurface ?? detectWebInstallSurface(window.navigator.userAgent));
     setStandalone(readStandalone());
 
     const onPrompt = (event: Event) => {
@@ -52,7 +56,7 @@ export function PwaInstallControls() {
       window.removeEventListener("beforeinstallprompt", onPrompt);
       window.removeEventListener("appinstalled", onInstalled);
     };
-  }, []);
+  }, [preferredSurface]);
 
   const steps = installStepsForSurface(surface);
   const alreadyOnHomeScreen = standalone || installed;

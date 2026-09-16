@@ -67,5 +67,6 @@ describe("layout-overlap", () => {
     );
     expect(effectiveTabBarBottomInset(40)).toBe(40);
     expect(tabBarTotalHeight(0)).toBeGreaterThan(tabBarIconsOnlyHeight());
+    expect(effectiveTabBarBottomInset(0, 70)).toBe(70);
   });
 });

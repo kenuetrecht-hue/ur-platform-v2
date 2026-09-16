@@ -1,9 +1,16 @@
 import { Link } from "expo-router";
-import { Platform, Pressable, StyleSheet, Text } from "react-native";
-import { APP_DOWNLOAD_PATH } from "@/lib/app-download";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ANDROID_DOWNLOAD_LABEL,
+  COMPUTER_DOWNLOAD_LABEL,
+  IPHONE_DOWNLOAD_LABEL,
+  downloadPathForSurface,
+} from "@/lib/app-download";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
 
 type Variant = "top" | "hero" | "footer" | "inline";
+
+const webPointer = Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null;
 
 export function LandingAppDownloadLink({ variant }: { variant: Variant }) {
   const label = variant === "top" ? "Download app" : "Download the app";
@@ -15,7 +22,7 @@ export function LandingAppDownloadLink({ variant }: { variant: Variant }) {
   }[variant];
 
   return (
-    <Link href={APP_DOWNLOAD_PATH} asChild>
+    <Link href={downloadPathForSurface("desktop")} asChild>
       <Pressable
         style={styles[variant]}
         accessibilityRole="link"
@@ -27,7 +34,30 @@ export function LandingAppDownloadLink({ variant }: { variant: Variant }) {
   );
 }
 
-const webPointer = Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null;
+export function LandingDeviceDownloadLinks({ variant = "hero" }: { variant?: "hero" | "footer" }) {
+  const items = [
+    { surface: "ios" as const, label: IPHONE_DOWNLOAD_LABEL },
+    { surface: "android" as const, label: ANDROID_DOWNLOAD_LABEL },
+    { surface: "desktop" as const, label: COMPUTER_DOWNLOAD_LABEL },
+  ];
+
+  return (
+    <View style={variant === "hero" ? styles.heroRow : styles.footerRow}>
+      {items.map((item) => (
+        <Link key={item.surface} href={downloadPathForSurface(item.surface)} asChild>
+          <Pressable
+            style={variant === "hero" ? styles.hero : styles.footer}
+            accessibilityRole="link"
+            accessibilityLabel={item.label}
+            testID={`landing-download-${item.surface}`}
+          >
+            <Text style={variant === "hero" ? styles.heroText : styles.footerText}>{item.label}</Text>
+          </Pressable>
+        </Link>
+      ))}
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   top: {
@@ -52,4 +82,16 @@ const styles = StyleSheet.create({
   footerText: { color: T.electric, fontWeight: "700", fontSize: 14 },
   inline: { paddingVertical: 2, ...webPointer },
   inlineText: { color: T.electric, fontWeight: "800", fontSize: 14 },
+  heroRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    width: "100%",
+  },
+  footerRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+    width: "100%",
+  },
 });
