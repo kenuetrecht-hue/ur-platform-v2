@@ -129,7 +129,6 @@ export const loyaltyRouter = router({
     }),
 
   claimDailySignIn: secureProcedure("loyalty").mutation(async ({ ctx }) => {
-    assertNotOwner(ctx);
     return claimDailySignIn(String(ctx.user.id), buildAudit(ctx));
   }),
 
