@@ -11,6 +11,7 @@ import {
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/lib/auth-context";
+import { withAlpha } from "@/lib/brand-theme";
 import { trpc } from "@/lib/trpc";
 import {
   PLATFORM_SEARCH_EMPTY_HINT,
@@ -110,12 +111,19 @@ export function PlatformSearchPanel({ compact = false }: { compact?: boolean }) 
               style={[
                 styles.chip,
                 {
-                  borderColor: active ? colors.primary : colors.border,
-                  backgroundColor: active ? `${colors.primary}20` : colors.background,
+                  borderColor: active ? colors.primary : withAlpha(colors.primary, 0.42),
+                  backgroundColor: colors.surface,
                 },
               ]}
             >
-              <Text style={{ color: active ? colors.primary : colors.foreground, fontWeight: "700", fontSize: 12 }}>
+              <Text
+                style={{
+                  color: colors.onWhite,
+                  fontWeight: "700",
+                  fontSize: 12,
+                  textAlign: "center",
+                }}
+              >
                 {chip.label}
                 {chip.id && results.data?.counts[chip.id] ? ` ${results.data.counts[chip.id]}` : ""}
               </Text>
@@ -135,9 +143,17 @@ export function PlatformSearchPanel({ compact = false }: { compact?: boolean }) 
                   setDraft(starter);
                   setQuery(starter);
                 }}
-                style={[styles.starter, { borderColor: colors.border }]}
+                style={[
+                  styles.starter,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: withAlpha(colors.primary, 0.42),
+                  },
+                ]}
               >
-                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>{starter}</Text>
+                <Text style={{ color: colors.onWhite, fontWeight: "700", fontSize: 12, textAlign: "center" }}>
+                  {starter}
+                </Text>
               </Pressable>
             ))}
           </View>
@@ -204,8 +220,24 @@ const styles = StyleSheet.create({
   box: { borderWidth: 1.5, borderRadius: 16, padding: 12, gap: 8 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, fontSize: 16, fontWeight: "600" },
   chips: { gap: 8, paddingRight: 8 },
-  chip: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 7 },
+  chip: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   starters: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  starter: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6 },
+  starter: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: "30%",
+    flexGrow: 1,
+  },
   hit: { borderWidth: 1, borderRadius: 14, padding: 12, flexDirection: "row", gap: 10, alignItems: "flex-start" },
 });

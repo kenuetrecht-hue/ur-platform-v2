@@ -5,6 +5,7 @@ import { NoRefundPurchaseAck } from "@/components/no-refund-purchase-ack";
 import { PaymentChannelNotice } from "@/components/payment-channel-notice";
 import { PurchaseSummaryCard } from "@/components/purchase-summary-card";
 import { useColors } from "@/hooks/use-colors";
+import { brandWhiteChip } from "@/lib/brand-theme";
 import { useBillingState } from "@/hooks/use-billing-state";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { useAuth } from "@/lib/auth-context";
@@ -112,7 +113,7 @@ export function MusicStudioProPanel({
                   styles.chip,
                   {
                     borderColor: planId === plan.id ? colors.primary : colors.border,
-                    backgroundColor: planId === plan.id ? colors.primary : colors.background,
+                    backgroundColor: planId === plan.id ? colors.primary : colors.surface,
                   },
                 ]}
               >
@@ -161,35 +162,35 @@ export function MusicStudioProPanel({
           {MUSIC_TRACKS.map((track) => (
             <View key={track} style={styles.mixRow}>
               <Text style={{ width: 44, color: colors.muted, fontSize: 11, fontWeight: "700" }}>{track}</Text>
-              <Pressable onPress={() => bump(track, "volume", -5)} style={styles.nudge}>
-                <Text style={{ color: colors.foreground }}>−vol</Text>
+              <Pressable onPress={() => bump(track, "volume", -5)} style={[styles.nudge, brandWhiteChip(colors)]}>
+                <Text style={{ color: colors.onWhite }}>−vol</Text>
               </Pressable>
               <Text style={{ color: colors.foreground, fontSize: 11, width: 28 }}>{mixer[track].volume}</Text>
-              <Pressable onPress={() => bump(track, "volume", 5)} style={styles.nudge}>
-                <Text style={{ color: colors.foreground }}>+vol</Text>
+              <Pressable onPress={() => bump(track, "volume", 5)} style={[styles.nudge, brandWhiteChip(colors)]}>
+                <Text style={{ color: colors.onWhite }}>+vol</Text>
               </Pressable>
-              <Pressable onPress={() => bump(track, "pan", -10)} style={styles.nudge}>
-                <Text style={{ color: colors.foreground }}>L</Text>
+              <Pressable onPress={() => bump(track, "pan", -10)} style={[styles.nudge, brandWhiteChip(colors)]}>
+                <Text style={{ color: colors.onWhite }}>L</Text>
               </Pressable>
               <Text style={{ color: colors.foreground, fontSize: 11, width: 24 }}>{mixer[track].pan}</Text>
-              <Pressable onPress={() => bump(track, "pan", 10)} style={styles.nudge}>
-                <Text style={{ color: colors.foreground }}>R</Text>
+              <Pressable onPress={() => bump(track, "pan", 10)} style={[styles.nudge, brandWhiteChip(colors)]}>
+                <Text style={{ color: colors.onWhite }}>R</Text>
               </Pressable>
               <Pressable
                 onPress={() =>
                   onMixerChange({ ...mixer, [track]: { ...mixer[track], mute: !mixer[track].mute } })
                 }
-                style={styles.nudge}
+                style={[styles.nudge, brandWhiteChip(colors)]}
               >
-                <Text style={{ color: colors.foreground }}>{mixer[track].mute ? "unmute" : "mute"}</Text>
+                <Text style={{ color: colors.onWhite }}>{mixer[track].mute ? "unmute" : "mute"}</Text>
               </Pressable>
               <Pressable
                 onPress={() =>
                   onMixerChange({ ...mixer, [track]: { ...mixer[track], solo: !mixer[track].solo } })
                 }
-                style={styles.nudge}
+                style={[styles.nudge, brandWhiteChip(colors)]}
               >
-                <Text style={{ color: colors.foreground }}>{mixer[track].solo ? "unsolo" : "solo"}</Text>
+                <Text style={{ color: colors.onWhite }}>{mixer[track].solo ? "unsolo" : "solo"}</Text>
               </Pressable>
             </View>
           ))}
@@ -211,9 +212,9 @@ export function MusicStudioProPanel({
               <Pressable
                 key={`${field}-${delta}`}
                 onPress={() => onFxChange({ ...fx, [field]: clampFx(fx[field] + delta) })}
-                style={styles.nudge}
+                style={[styles.nudge, brandWhiteChip(colors)]}
               >
-                <Text style={{ color: colors.foreground, fontSize: 11 }}>
+                <Text style={{ color: colors.onWhite, fontSize: 11 }}>
                   {field} {delta > 0 ? "+" : ""}
                   {delta}
                 </Text>
@@ -226,9 +227,9 @@ export function MusicStudioProPanel({
               onPress={() => {
                 playMusicChord(keyName);
               }}
-              style={[styles.chip, { borderColor: colors.border }]}
+              style={[styles.chip, brandWhiteChip(colors)]}
             >
-              <Text style={{ color: colors.foreground, fontWeight: "700" }}>Play {keyName} chord</Text>
+              <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>Play {keyName} chord</Text>
             </Pressable>
             <Pressable
               onPress={() => {
@@ -241,9 +242,9 @@ export function MusicStudioProPanel({
                   onError: (error) => setNote(error.message),
                 });
               }}
-              style={[styles.chip, { borderColor: colors.primary }]}
+              style={[styles.chip, brandWhiteChip(colors)]}
             >
-              <Text style={{ color: colors.foreground, fontWeight: "700" }}>Export WAV</Text>
+              <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>Export WAV</Text>
             </Pressable>
             <Pressable
               onPress={() => {
@@ -256,9 +257,9 @@ export function MusicStudioProPanel({
                   onError: (error) => setNote(error.message),
                 });
               }}
-              style={[styles.chip, { borderColor: colors.border }]}
+              style={[styles.chip, brandWhiteChip(colors)]}
             >
-              <Text style={{ color: colors.foreground, fontWeight: "700" }}>Vocal take</Text>
+              <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>Vocal take</Text>
             </Pressable>
           </View>
         </>
@@ -286,5 +287,5 @@ const styles = StyleSheet.create({
   chip: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 },
   buy: { borderRadius: 10, padding: 12, alignItems: "center" },
   mixRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 4 },
-  nudge: { borderWidth: 1, borderColor: "#3a3a3a", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 },
+  nudge: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 },
 });

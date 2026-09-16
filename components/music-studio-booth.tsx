@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { MusicStudioTurntable } from "@/components/music-studio-turntable";
-import { brandHighlightSurface } from "@/lib/brand-theme";
+import { brandHighlightSurface, brandWhiteChip } from "@/lib/brand-theme";
 import type { MusicDeckId } from "@/lib/music-studio";
 
 const FADER_STOPS = [0, 25, 50, 75, 100] as const;
@@ -104,8 +104,8 @@ export function MusicStudioBooth({
             {metronome ? "Metronome on" : "Metronome"}
           </Text>
         </Pressable>
-        <Pressable onPress={onCopyAToB} style={[styles.chip, { borderColor: colors.border }]}>
-          <Text style={{ color: colors.foreground, fontWeight: "700" }}>Copy A → B</Text>
+        <Pressable onPress={onCopyAToB} style={[styles.chip, brandWhiteChip(colors)]}>
+          <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>Copy A → B</Text>
         </Pressable>
       </View>
 
@@ -131,8 +131,8 @@ export function MusicStudioBooth({
             </Pressable>
           );
         })}
-        <Pressable onPress={() => onSetCueHere(editDeck)} style={[styles.mini, { borderColor: colors.border }]}>
-          <Text style={{ color: colors.foreground, fontSize: 12 }}>Set cue here</Text>
+        <Pressable onPress={() => onSetCueHere(editDeck)} style={[styles.mini, brandWhiteChip(colors)]}>
+          <Text style={{ color: colors.onWhite, fontSize: 12, textAlign: "center" }}>Set cue here</Text>
         </Pressable>
       </View>
     </View>

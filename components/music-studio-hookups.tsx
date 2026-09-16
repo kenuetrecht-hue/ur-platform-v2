@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { brandWhiteChip } from "@/lib/brand-theme";
 import {
   MUSIC_HOOKUPS,
   MUSIC_USER_STARTS_REMINDER,
@@ -62,29 +63,29 @@ export function MusicStudioHookups({ title, bpm, keyName, kit, lyrics, pattern }
         <Pressable onPress={printChart} style={[styles.chip, { borderColor: colors.primary, backgroundColor: colors.primary }]}>
           <Text style={{ color: "#fff", fontWeight: "700" }}>Print lead sheet</Text>
         </Pressable>
-        <Pressable onPress={saveMidi} style={[styles.chip, { borderColor: colors.border }]}>
-          <Text style={{ color: colors.foreground, fontWeight: "700" }}>Download MIDI</Text>
+        <Pressable onPress={saveMidi} style={[styles.chip, brandWhiteChip(colors)]}>
+          <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>Download MIDI</Text>
         </Pressable>
-        <Pressable onPress={() => void connectMidi()} style={[styles.chip, { borderColor: colors.border }]}>
-          <Text style={{ color: colors.foreground, fontWeight: "700" }}>Connect MIDI</Text>
+        <Pressable onPress={() => void connectMidi()} style={[styles.chip, brandWhiteChip(colors)]}>
+          <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>Connect MIDI</Text>
         </Pressable>
         <Pressable
           onPress={() => {
             const result = downloadUsbDeckPack(pattern, bpm, title, { key: keyName, kit });
             setNote(result.detail);
           }}
-          style={[styles.chip, { borderColor: colors.border }]}
+          style={[styles.chip, brandWhiteChip(colors)]}
         >
-          <Text style={{ color: colors.foreground, fontWeight: "700" }}>USB deck pack</Text>
+          <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>USB deck pack</Text>
         </Pressable>
         <Pressable
           onPress={() => {
             const result = bluetoothPairHelp();
             setNote(result.detail);
           }}
-          style={[styles.chip, { borderColor: colors.border }]}
+          style={[styles.chip, brandWhiteChip(colors)]}
         >
-          <Text style={{ color: colors.foreground, fontWeight: "700" }}>Bluetooth help</Text>
+          <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>Bluetooth help</Text>
         </Pressable>
         <Pressable
           onPress={() => {
@@ -93,9 +94,9 @@ export function MusicStudioHookups({ title, bpm, keyName, kit, lyrics, pattern }
               setNote(result.detail);
             });
           }}
-          style={[styles.chip, { borderColor: colors.border }]}
+          style={[styles.chip, brandWhiteChip(colors)]}
         >
-          <Text style={{ color: colors.foreground, fontWeight: "700" }}>Pick audio in</Text>
+          <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>Pick audio in</Text>
         </Pressable>
       </View>
 

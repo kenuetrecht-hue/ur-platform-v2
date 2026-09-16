@@ -33,6 +33,14 @@ export function brandHighlightSurface(colors: ThemeColorPalette) {
   };
 }
 
+/** White tap-chip with bluish-purple lettering — readable on the colored wash. */
+export function brandWhiteChip(colors: ThemeColorPalette) {
+  return {
+    backgroundColor: colors.surface,
+    borderColor: withAlpha(colors.primary, 0.42),
+  };
+}
+
 export function brandPaySurface(colors: ThemeColorPalette) {
   return {
     backgroundColor: withAlpha(colors.primary, 0.1),
