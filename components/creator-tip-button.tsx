@@ -37,17 +37,17 @@ export function CreatorTipButton({
     <View>
       <Pressable onPress={() => setOpen((v) => !v)} style={styles.tipBtn} hitSlop={4}>
         <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 13 }}>
-          {open ? "Hide tip" : "Tip"}
+          {open ? "Hide" : "Coffee"}
         </Text>
       </Pressable>
       {open ? (
         <View style={[styles.sheet, { borderColor: colors.border, backgroundColor: colors.surface }]}>
           <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 13 }}>
-            Tip {creatorName ?? "this creator"}
+            Buy {creatorName ?? "this creator"} a coffee
           </Text>
           <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
             {catalog.data?.purpose ??
-              "They keep 100% of the tip. You pay the card fee on top. This is money, not a stamp."}
+              "If you'd like to buy this creator a coffee. They keep 100%. You pay the card fee on top."}
           </Text>
           <NoRefundPurchaseAck checked={acceptedNoRefund} onToggle={() => setAcceptedNoRefund((v) => !v)} />
           <BillingStatePicker value={billingState} onChange={setBillingState} />
@@ -63,7 +63,7 @@ export function CreatorTipButton({
                     return;
                   }
                   if (!acceptedNoRefund) {
-                    setNotice("Check the no-refund box before tipping.");
+                    setNotice("Check the no-refund box before sending coffee.");
                     return;
                   }
                   if (!billingState) {
@@ -97,7 +97,7 @@ export function CreatorTipButton({
                         ? billingState
                           ? `You pay ${quote.chargeLabel}`
                           : "Pick state for tax"
-                        : "Tip in browser"}
+                        : "Coffee in browser"}
                     </Text>
                   </>
                 )}

@@ -53,7 +53,7 @@ export function sendCreatorTip(params: {
   if (!creator) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Tips go to enrolled content creators. Casual members pass stamps — like emojis — instead.",
+      message: "Coffee goes to enrolled content creators. Casual members pass stamps — like emojis — instead.",
     });
   }
 
@@ -95,6 +95,6 @@ export function sendCreatorTip(params: {
     creatorGetsCents: checkout.creatorGetsCents,
     chargeCents: checkout.chargeCents,
     feeCents: checkout.feeCents,
-    notice: `${from} tipped ${creator.displayName} ${checkout.creatorLabel}. They keep all of it. You paid ${checkout.chargeLabel} including ${checkout.taxLabel} tax and the ${checkout.feeLabel} card fee. Not a stamp.`,
+    notice: `${from} bought ${creator.displayName} a ${checkout.creatorLabel} coffee. They keep all of it. You paid ${checkout.chargeLabel} including ${checkout.taxLabel} tax and the ${checkout.feeLabel} card fee.`,
   };
 }

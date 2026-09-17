@@ -162,7 +162,7 @@ export function ContentCreatorDashboardPanel() {
               "📣 Share to Facebook & social",
               "✨ ContentMate AI for promo copy",
               "🎬 Cartoon Studio — film your lesson, host a Cartoon Me stand-in. Pay first. No refunds.",
-              "⚡ 85% on classes & merch · 100% of tips (fan pays the card fee)",
+              "⚡ 85% on classes & merch · fans can buy you a coffee (you keep 100%; they pay the card fee)",
               "🎯 2,000 different people in the 30-day launch (1,000 followers + 1,000 paid subs): a full year of 50% off after your launch deal. 4,000 (2,000 + 2,000) in those 30 days: 60% off that year",
             ].map((item) => (
               <Text key={item} style={{ color: colors.foreground, fontSize: 13 }}>

@@ -79,8 +79,7 @@ export function UrWorldLockerPanel({
     <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
       <Text style={[styles.title, { color: colors.foreground }]}>Avatar locker</Text>
       <Text style={[styles.body, { color: colors.muted }]}>
-        Ten looks. Cheap on purpose — they are code, not cotton. Twenty percent of each pack is
-        earmarked as a plaza look tip (helps grow UR Platform’s rooms). Gift unused only. No resale.
+        Ten looks. Cheap on purpose — they are code, not cotton. Gift unused only. No resale.
       </Text>
       <Text style={[styles.body, { color: colors.muted, marginTop: 6 }]}>{UR_WORLD_COSMETIC_LICENSE}</Text>
 

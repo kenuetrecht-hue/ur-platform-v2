@@ -38,8 +38,6 @@ export const UR_WORLD_AD_ALLOWED: readonly string[] = [
   "Hire simulated construction for fun. Builders are not selling you real property.",
   "City Wallet is closed-loop credit for UR World. It is not a bank account and not crypto.",
   "18+ only. Same UR Platform rules and KYC as the rest of the app.",
-  "Tip UR to help the plaza look better. Tips help grow UR Platform. Not a charity gift, not tax-deductible, not an investment.",
-  "When this plaza look is done, tips keep going to the next scene. Every spend is posted in public so you know where your tips went.",
 ];
 
 export const UR_WORLD_AD_FORBIDDEN: readonly string[] = [
@@ -90,7 +88,7 @@ UR World is a 3D entertainment and educational play space. Hard rules:
 - Never pitch plots as an investment, security, ROI, flip, dividend, or “get in early for profit.”
 - Never promise value will go up. If asked about making money from plots, refuse and restate: entertainment only.
 - City Wallet is closed-loop UR credit (Stripe when live). Not a bank. Not crypto. No player cash-out.
-- Plaza look **tips** help grow UR Platform’s rooms. Call them tips, never charity donations. Not tax-deductible. Not an investment. Hitting B/C/D on the board does not auto-buy art.
+- Do not ask members for tips, coffee money, or donations. UR does not run a public tip jar.
 - In-world upkeep is a platform entertainment fee, not IRS/state tax.
 - Approved ad angles: ${UR_WORLD_AD_ALLOWED.join(" / ")}
 - If the owner asks for ads, only use the approved UR World ad kit tone. Do not invent high-return claims even if asked.

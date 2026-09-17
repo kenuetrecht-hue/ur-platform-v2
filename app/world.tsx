@@ -27,7 +27,7 @@ import {
 import { UR_WORLD_PLAN_STATUS } from "@/lib/ur-world-future-plan";
 import { UR_WORLD_LOOK_UPGRADE_PLAN } from "@/lib/ur-world-look-upgrade-plan";
 import { openWebBrowserCheckout } from "@/lib/web-checkout";
-import { UrWorldLookFundPanel } from "@/components/ur-world-look-fund-panel";
+import { UrWorldLockerPanel } from "@/components/ur-world-locker-panel";
 import { XrHeadsetPanel } from "@/components/xr-headset-panel";
 
 export default function UrWorldScreen() {
@@ -237,8 +237,6 @@ export default function UrWorldScreen() {
               )}
             </View>
 
-            <UrWorldLookFundPanel />
-
             <UrWorldLockerPanel
               catalog={snapshot.data?.cosmeticCatalog ?? []}
               owned={snapshot.data?.cosmeticOwned ?? []}
@@ -281,9 +279,8 @@ export default function UrWorldScreen() {
                 <Text style={[styles.body, { color: colors.muted }]}>Now: {UR_WORLD_PLAN_STATUS.now}</Text>
                 {isPlatformOwner ? (
                   <Text style={[styles.body, { color: colors.muted, marginTop: 6 }]}>
-                    Look: Plan A is live ({UR_WORLD_LOOK_UPGRADE_PLAN.tiers.A.costUsd}). Members tip on the plaza look board
-                    (not charity, not an investment). When a bar is funded and Stripe money is real, tell Business Steward
-                    UPGRADE UR WORLD LOOK TO B ({UR_WORLD_LOOK_UPGRADE_PLAN.tiers.B.costUsd}), then C (
+                    Look: Plan A is live ({UR_WORLD_LOOK_UPGRADE_PLAN.tiers.A.costUsd}). When Stripe money is real, tell
+                    Business Steward UPGRADE UR WORLD LOOK TO B ({UR_WORLD_LOOK_UPGRADE_PLAN.tiers.B.costUsd}), then C (
                     {UR_WORLD_LOOK_UPGRADE_PLAN.tiers.C.costUsd}). D stays parked ({UR_WORLD_LOOK_UPGRADE_PLAN.tiers.D.costUsd}).
                   </Text>
                 ) : null}

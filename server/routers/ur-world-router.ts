@@ -196,7 +196,7 @@ export const urWorldRouter = router({
         instance,
         checkout,
         notice:
-          "Simulated apparel purchase in development. You pay sales tax and the Stripe card fee. Locker license — not cotton, not an investment. Twenty percent of the pack price is a plaza look tip.",
+          "Simulated apparel purchase in development. You pay sales tax and the Stripe card fee. Locker license — not cotton, not an investment.",
       };
     }),
 
@@ -306,12 +306,11 @@ export const urWorldRouter = router({
         displayName: ctx.user.name ?? undefined,
         packId: input.packId,
       });
-      const badgeName = result.board.me?.status?.name ?? "Plaza Spark";
       return {
         ...result,
         checkout,
         notice:
-          `Simulated tip in development. You pay sales tax and the Stripe card fee. You’re a ${badgeName}. Share that sticker on socials — tipper, not a donor.`,
+          "Thanks — that’s a coffee for the developer. You pay sales tax and the Stripe card fee.",
       };
     }),
 });

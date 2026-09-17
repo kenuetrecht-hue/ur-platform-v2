@@ -15,6 +15,7 @@ import { useTypewriter } from "@/hooks/use-typewriter";
 import { useStableWindowWidth } from "@/hooks/use-stable-window-width";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
 import { LANDING_PLATFORM_UNITY_LINE } from "@/lib/landing-platform-copy";
+import { LandingWhatWeOffer } from "@/components/landing/landing-what-we-offer";
 import { LandingWebglBackdrop } from "@/components/landing/landing-webgl-backdrop";
 import { LandingBentoGrid } from "@/components/landing/landing-bento-grid";
 import { LandingDemoChat } from "@/components/landing/landing-demo-chat";
@@ -104,6 +105,7 @@ export function TechnoFuturistExperience() {
             <Text style={styles.lede}>
               {LANDING_PLATFORM_UNITY_LINE} For adults 18 and older.
             </Text>
+            <LandingWhatWeOffer />
             <TapToRead title="Why we require ID and a selfie">
               You photograph a government ID (front and back) and a matching selfie before you
               can enter the app, website, or AI demo. That keeps minors and fraud off the site.

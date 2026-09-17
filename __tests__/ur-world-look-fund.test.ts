@@ -104,10 +104,10 @@ describe("UR World plaza look tips", () => {
     expect(UR_WORLD_STORK_SYSTEM_RULE.toLowerCase()).toContain("keep accepting tips");
     expect(UR_WORLD_STORK_SYSTEM_RULE.toLowerCase()).toContain("next scene");
     expect(UR_WORLD_STORK_SYSTEM_RULE).toContain("SET NEXT LOOK SCENE");
-    expect(UR_WORLD_LOOK_FUND_PURPOSE.toLowerCase()).toContain("keep accepting tips");
+    expect(UR_WORLD_LOOK_FUND_PURPOSE.toLowerCase()).toContain("does not ask members for tips");
     expect(UR_WORLD_STORK_SYSTEM_RULE).toContain("Faithful Tipper");
     expect(UR_WORLD_STORK_SYSTEM_RULE.toLowerCase()).toContain("never donor");
-    expect(UR_WORLD_LOOK_FUND_PURPOSE.toLowerCase()).toContain("help grow ur platform");
+    expect(UR_WORLD_LOOK_FUND_PURPOSE.toLowerCase()).not.toContain("help grow ur platform");
     expect(UR_WORLD_LOOK_FUND_STAGES.map((s) => s.id)).toEqual(["B", "C", "D"]);
   });
 

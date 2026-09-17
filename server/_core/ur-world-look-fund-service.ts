@@ -177,7 +177,7 @@ export function chipInLookFund(params: {
   recordTransaction({
     type: "other",
     amountCents: pack.priceCents,
-    description: `UR World plaza look tip ${pack.label} — not a charity donation, not tax-deductible`,
+    description: `Coffee tip ${pack.label} — not a charity donation, not tax-deductible`,
     payerUserId: params.userId,
     payerEmail: params.userEmail,
     metadata: { urWorld: true, lookFund: true, packId: pack.id, entryId: entry.id },
@@ -270,7 +270,7 @@ export function getMyTipperCard(userId: string) {
     chips,
     shareCaption: current
       ? buildTipperShareCaption({ statusName, unlockedNames })
-      : `Tips help grow UR World's Civic Plaza look — not a charity gift, not an investment. https://urplatform.llc/world`,
+      : `https://urplatform.llc/world`,
     license: UR_WORLD_TIPPER_BADGE_LICENSE,
   };
 }

@@ -39,7 +39,7 @@ export const creatorTipsRouter = router({
       if (!creator) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Tips go to enrolled content creators.",
+          message: "Coffee goes to enrolled content creators.",
         });
       }
       assertPaymentChannelAllowed({
@@ -83,7 +83,7 @@ export const creatorTipsRouter = router({
             kind: "tip",
             subtotalCents: pack.priceCents,
             billingStateCode,
-            productName: `Tip for ${creator.displayName} (${pack.label})`,
+            productName: `Coffee for ${creator.displayName} (${pack.label})`,
             successPath: "/messages?tip=paid",
             cancelPath: "/messages?tip=cancel",
             extraMetadata: { packId: input.packId },
@@ -92,7 +92,7 @@ export const creatorTipsRouter = router({
             creatorGetsCents: checkout.split.creatorCents,
             chargeCents: checkout.totalCents,
             feeCents: checkout.totalCents - pack.priceCents - checkout.split.remittableTaxCents,
-            notice: `They keep 100% of the ${pack.label} tip. Finish paying in Stripe. You pay tax and the card fee.`,
+            notice: `They keep 100% of that coffee. Finish paying in Stripe. You pay tax and the card fee.`,
             checkoutUrl: checkout.checkoutUrl,
             sessionId: checkout.sessionId,
             mode: "checkout" as const,

@@ -44,7 +44,7 @@ export function buildTipperShareCaption(params: {
   const unlocked =
     params.unlockedNames.length > 0 ? ` Badges: ${params.unlockedNames.join(", ")}.` : "";
   return (
-    `I'm a ${params.statusName} on UR World. Tips help grow the Civic Plaza look — ` +
+    `I'm a ${params.statusName} on UR World. I bought the developer a coffee — ` +
     `not a charity gift, not tax-deductible, not an investment.${unlocked} ` +
     UR_WORLD_TIP_SHARE_URL
   );

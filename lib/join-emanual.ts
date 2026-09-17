@@ -108,7 +108,7 @@ export const JOIN_EMANUAL_STEPS: JoinEmanualStep[] = [
       "Tap Connect your bank with Stripe.",
       "Finish Stripe’s bank form, then come back here.",
       "Buyers pay Stripe. You get 85% of each class, merch, or e-manual sale. UR keeps 15%.",
-      "Tips to you are 100% yours. The customer pays tax and the card fee.",
+      "If someone buys you a coffee, that amount is 100% yours. The customer pays tax and the card fee.",
     ],
   },
 ];
