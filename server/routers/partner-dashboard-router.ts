@@ -17,8 +17,13 @@ import {
   resolveAffiliateReferralCode,
   getContentCreatorProfile,
   getOwnerCreatorRoster,
+  setCreatorVideoCallPrice,
 } from "../_core/partner-program-service";
 import { getAffiliateReferralProgramInfo } from "../../lib/affiliate-referral-payout-policy";
+import {
+  CREATOR_VIDEO_CALL_MAX_CENTS,
+  CREATOR_VIDEO_CALL_MIN_CENTS,
+} from "../../lib/creator-call-pricing";
 import {
   listLiveSessions,
   scheduleLiveSession,
@@ -184,6 +189,29 @@ export const partnerDashboardRouter = router({
       watch: getMyFairShowAnalytics(userId),
     };
   }),
+
+  setVideoCallPrice: secureProcedure("commerce")
+    .input(
+      z.object({
+        priceCents: z.number().int().min(CREATOR_VIDEO_CALL_MIN_CENTS).max(CREATOR_VIDEO_CALL_MAX_CENTS),
+      }),
+    )
+    .mutation(({ ctx, input }) => {
+      const dash = getCreatorDashboard(String(ctx.user.id));
+      if (!dash.enrolled) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Enroll as a content creator before setting a call price.",
+        });
+      }
+      const profile = setCreatorVideoCallPrice({
+        creatorUserId: String(ctx.user.id),
+        priceCents: input.priceCents,
+      });
+      return {
+        videoCallPriceCents: profile.videoCallPriceCents,
+      };
+    }),
 
   affiliateDashboard: protectedProcedure.query(({ ctx }) => {
     const dash = getAffiliateDashboard(String(ctx.user.id));

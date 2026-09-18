@@ -16,6 +16,7 @@ import {
 import { ENV, isOwnerEmailConfigured, assertProductionOwnerSecurity } from "./env";
 import { assertServerSecretsSafe, redactSecrets } from "./secrets";
 import { getMuxEnginePublicStatus } from "./mux-video-engine";
+import { getTurnPublicStatus } from "./turn-ice-service";
 import { logSocialPublisherStartup } from "./social-publisher-service";
 import { registerMuxWebhook } from "./mux-webhook";
 import { registerStripeWebhook } from "./stripe-webhook";
@@ -189,6 +190,7 @@ async function startServer() {
         hint: ai.hint,
       },
       video: getMuxEnginePublicStatus(),
+      turn: getTurnPublicStatus(),
     });
   });
 

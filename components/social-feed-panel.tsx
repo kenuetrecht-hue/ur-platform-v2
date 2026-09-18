@@ -33,6 +33,7 @@ import { brandDisclosureSurface, brandHighlightSurface, brandGradientPair, withA
 import { ContentProtectionReportSheet } from "@/components/content-protection-report-sheet";
 import { LinearGradient } from "expo-linear-gradient";
 import { CreatorTipButton } from "@/components/creator-tip-button";
+import { CreatorCallButton } from "@/components/creator-call-button";
 import { VideoStarRating } from "@/components/video-star-rating";
 import {
   CREATOR_FREE_CONTENT_INCOME_RULE_SHORT,
@@ -56,6 +57,7 @@ function PostCard({
   myUserId,
   stamps,
   onRefresh,
+  onCallStarted,
 }: {
   post: {
     id: string;
@@ -94,6 +96,7 @@ function PostCard({
   myUserId: string;
   stamps: Array<{ instanceId: string; name: string; mark: string; colorHex: string }>;
   onRefresh: () => void;
+  onCallStarted?: (roomId: string, creatorUserId: string) => void;
 }) {
   const colors = useColors();
   const [commentText, setCommentText] = useState("");
@@ -249,7 +252,14 @@ function PostCard({
           <Text style={{ color: colors.muted, fontSize: 11 }}>Friends-only — not shareable</Text>
         )}
         {post.authorIsCreator && post.authorUserId !== myUserId ? (
-          <CreatorTipButton creatorUserId={post.authorUserId} creatorName={post.authorName} />
+          <>
+            <CreatorTipButton creatorUserId={post.authorUserId} creatorName={post.authorName} />
+            <CreatorCallButton
+              creatorUserId={post.authorUserId}
+              creatorName={post.authorName}
+              onCallStarted={onCallStarted}
+            />
+          </>
         ) : null}
       </View>
 
@@ -321,7 +331,11 @@ function PostCard({
   );
 }
 
-export function SocialFeedPanel() {
+export function SocialFeedPanel({
+  onCallStarted,
+}: {
+  onCallStarted?: (roomId: string, creatorUserId: string) => void;
+}) {
   const colors = useColors();
   const { user } = useAuth();
   const myUserId = user?.id != null ? String(user.id) : "";
@@ -677,6 +691,7 @@ export function SocialFeedPanel() {
               myUserId={myUserId}
               stamps={stampWallet.data?.items ?? []}
               onRefresh={refresh}
+              onCallStarted={onCallStarted}
             />
           ))
         )}

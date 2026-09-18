@@ -49,6 +49,11 @@ import {
   persistContentCreatorProfile,
   type PersistedCreatorProfile,
 } from "./creator-audience-persistence";
+import {
+  loadCreatorVideoCallPrices,
+  persistCreatorVideoCallPrice,
+} from "./creator-call-price-persistence";
+import { assertCreatorCallPriceCents } from "../../lib/creator-call-pricing";
 
 export const AFFILIATE_BONUS_CENTS = AFFILIATE_REFERRAL_BONUS_CENTS;
 export const AFFILIATE_PAYOUT_AFTER_TRANSACTIONS = AFFILIATE_PAYOUT_AFTER_QUALIFYING_TRANSACTIONS;
@@ -75,6 +80,8 @@ export type ContentCreatorProfile = {
   broughtFollowerCount: number;
   paidChannelSubscriberCount: number;
   foundingAudienceVerified: boolean;
+  /** Listed 1-to-1 video call price in cents. Null until the creator sets one. */
+  videoCallPriceCents: number | null;
 };
 
 export type AffiliateProfile = {
@@ -213,6 +220,7 @@ export function enrollContentCreator(params: {
     broughtFollowerCount: 0,
     paidChannelSubscriberCount: 0,
     foundingAudienceVerified: false,
+    videoCallPriceCents: null,
   };
   creators.set(params.userId, profile);
   void persistContentCreatorProfile(profile);
@@ -386,6 +394,7 @@ export function restoreContentCreatorsFromPersistence(rows: PersistedCreatorProf
       broughtFollowerCount: 0,
       paidChannelSubscriberCount: 0,
       foundingAudienceVerified: false,
+      videoCallPriceCents: null,
     };
     creators.set(row.userId, profile);
     if (row.launchSlot && row.launchSlot >= nextLaunchSlot) {
@@ -403,6 +412,64 @@ export async function hydrateCreatorRosterFromDatabase(): Promise<void> {
     follows: data.follows,
     paidSubs: data.paidSubs,
   });
+  const prices = await loadCreatorVideoCallPrices();
+  for (const row of prices) {
+    const creator = creators.get(row.creatorUserId);
+    if (!creator) continue;
+    creator.videoCallPriceCents = row.priceCents;
+    creators.set(row.creatorUserId, creator);
+  }
+}
+
+export function setCreatorVideoCallPrice(params: {
+  creatorUserId: string;
+  priceCents: number;
+}): ContentCreatorProfile {
+  const creator = creators.get(params.creatorUserId);
+  if (!creator) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Enroll as a content creator before setting a call price.",
+    });
+  }
+  try {
+    assertCreatorCallPriceCents(params.priceCents);
+  } catch (error) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: error instanceof Error ? error.message : "That call price is not allowed.",
+    });
+  }
+  creator.videoCallPriceCents = params.priceCents;
+  creators.set(params.creatorUserId, creator);
+  void persistCreatorVideoCallPrice({
+    creatorUserId: params.creatorUserId,
+    priceCents: params.priceCents,
+  });
+  return creator;
+}
+
+export function getCreatorCallOffer(creatorUserId: string): {
+  enrolled: boolean;
+  creatorUserId: string;
+  displayName: string | null;
+  priceCents: number | null;
+} {
+  const creator = creators.get(creatorUserId);
+  if (!creator) {
+    return {
+      enrolled: false,
+      creatorUserId,
+      displayName: null,
+      priceCents: null,
+    };
+  }
+  return {
+    enrolled: true,
+    creatorUserId: creator.userId,
+    displayName: creator.displayName,
+    priceCents: creator.videoCallPriceCents,
+  };
 }
 
 export function creditCreatorTipEarnings(userId: string, amountCents: number): ContentCreatorProfile {

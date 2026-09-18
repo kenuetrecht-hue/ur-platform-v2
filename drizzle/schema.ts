@@ -759,6 +759,13 @@ export const contentCreatorProfiles = mysqlTable("contentCreatorProfiles", {
 
 export type ContentCreatorProfileRow = typeof contentCreatorProfiles.$inferSelect;
 
+/** Creator-set 1-to-1 video call list price (cents). */
+export const creatorVideoCallPrices = mysqlTable("creatorVideoCallPrices", {
+  creatorUserId: varchar("creatorUserId", { length: 128 }).primaryKey(),
+  priceCents: int("priceCents").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 /**
  * Fan → creator follows. Count drops only when that fan unfollows.
  */

@@ -60,6 +60,10 @@ function isAgeVerifyRoute(segments: string[]): boolean {
   return segments[0] === "age-verify";
 }
 
+function isCallRoute(segments: string[]): boolean {
+  return segments[0] === "call";
+}
+
 function isPublicRoute(segments: string[]): boolean {
   return (
     isAuthRoute(segments) ||
@@ -67,6 +71,7 @@ function isPublicRoute(segments: string[]): boolean {
     isAgeVerifyRoute(segments) ||
     isDownloadRoute(segments) ||
     isEmanualRoute(segments) ||
+    isCallRoute(segments) ||
     isPublicLegalRoute(segments)
   );
 }
@@ -193,7 +198,8 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       shouldOpenAgeVerifyPage({ isAuthenticated, kycVerified, hasPhotoPass }) &&
       !inAgeVerify &&
       !inDownload &&
-      !inAuthRoute
+      !inAuthRoute &&
+      !isCallRoute(segments)
     ) {
       router.replace(JOIN_ACCOUNT_HREF);
       return;
@@ -204,7 +210,13 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (isAuthenticated && kycVerified && shouldGiveJoinEmanual() && !isEmanualRoute(segments)) {
+    if (
+      isAuthenticated &&
+      kycVerified &&
+      shouldGiveJoinEmanual() &&
+      !isEmanualRoute(segments) &&
+      !isCallRoute(segments)
+    ) {
       router.replace("/e-manual?joined=1");
       return;
     }
@@ -242,7 +254,8 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     !isAuthRoute(segments) &&
     !isDownloadRoute(segments) &&
     !isPublicLegalRoute(segments) &&
-    !isEmanualRoute(segments)
+    !isEmanualRoute(segments) &&
+    !isCallRoute(segments)
   ) {
     return <UrBootShell label="Opening your account…" />;
   }

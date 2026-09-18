@@ -21,6 +21,15 @@ import { splitCreatorStripeCharge, type CreatorStripeKind } from "../../lib/stri
 import { CREATOR_PAYOUT_SHARE, recordStripeConnectSettlement } from "./creator-payout-service";
 import { getStripeConnectAccount, isStripeConnectReady } from "./stripe-connect-service";
 import { creditCreatorTipEarnings } from "./partner-program-service";
+import { getCallMeter, wasCallAnswered } from "./call-meter-service";
+import {
+  getCreatorCallTicketById,
+  getCreatorCallTicketByPaymentIntent,
+  grantCreatorCallTicket,
+  markCreatorCallTicketCaptured,
+  markCreatorCallTicketVoided,
+} from "./creator-call-ticket-service";
+import { CREATOR_VIDEO_CALL_SKU } from "../../lib/creator-call-pricing";
 
 export const STRIPE_TALK_PACK_KIND = "talk_pack";
 export const STRIPE_CREATOR_SALE_KIND = "creator_sale";
@@ -46,6 +55,8 @@ export type StripeCheckoutSessionCreateParams = {
   transferDestination?: string;
   /** Exact cents the creator’s Connect account receives. */
   transferCents?: number;
+  /** Creator 1-to-1 calls hold the card, then capture after both people connect. */
+  captureMethod?: "automatic" | "manual";
 };
 
 export type StripeCheckoutAdapter = {
@@ -55,21 +66,38 @@ export type StripeCheckoutAdapter = {
   }>;
 };
 
+export type StripePaymentIntentAdapter = {
+  capture: (id: string) => Promise<{ id: string; status: string }>;
+  cancel: (id: string) => Promise<{ id: string; status: string }>;
+};
+
 export type StripeWebhookEvent = {
   type: string;
   data: { object: Record<string, unknown> };
 };
 
 const fulfilledSessionIds = new Set<string>();
+const authorizedCallSessionIds = new Set<string>();
+const capturedCallPaymentIntents = new Set<string>();
+const voidedCallPaymentIntents = new Set<string>();
 let checkoutAdapter: StripeCheckoutAdapter | null = null;
+let paymentIntentAdapter: StripePaymentIntentAdapter | null = null;
 
 export function _resetStripeCheckoutForTests(): void {
   fulfilledSessionIds.clear();
+  authorizedCallSessionIds.clear();
+  capturedCallPaymentIntents.clear();
+  voidedCallPaymentIntents.clear();
   checkoutAdapter = null;
+  paymentIntentAdapter = null;
 }
 
 export function _setStripeCheckoutAdapterForTests(adapter: StripeCheckoutAdapter | null): void {
   checkoutAdapter = adapter;
+}
+
+export function _setStripePaymentIntentAdapterForTests(adapter: StripePaymentIntentAdapter | null): void {
+  paymentIntentAdapter = adapter;
 }
 
 function assertLiveCheckoutAllowed(): void {
@@ -128,6 +156,10 @@ async function createStripeCheckoutSessionViaHttps(
   });
   for (const [key, value] of Object.entries(params.metadata)) {
     body.set(`metadata[${key}]`, value);
+    body.set(`payment_intent_data[metadata][${key}]`, value);
+  }
+  if (params.captureMethod === "manual") {
+    body.set("payment_intent_data[capture_method]", "manual");
   }
   if (
     typeof params.applicationFeeCents === "number" &&
@@ -219,6 +251,7 @@ export async function createCreatorMarketplaceCheckout(params: {
   successPath: string;
   cancelPath: string;
   extraMetadata?: Record<string, string>;
+  captureMethod?: "automatic" | "manual";
 }): Promise<{ checkoutUrl: string; sessionId: string; totalCents: number; split: ReturnType<typeof splitCreatorStripeCharge> }> {
   assertLiveCheckoutAllowed();
   if (!isStripeConnectReady(params.creatorUserId)) {
@@ -263,6 +296,7 @@ export async function createCreatorMarketplaceCheckout(params: {
     applicationFeeCents: split.applicationFeeCents,
     transferDestination: account.stripeAccountId,
     transferCents: split.creatorCents,
+    captureMethod: params.captureMethod,
     metadata: {
       kind: kindMeta,
       userId: params.buyerUserId,
@@ -289,8 +323,14 @@ export async function createCreatorMarketplaceCheckout(params: {
 export function fulfillStripeCheckoutSession(session: {
   id: string;
   payment_status?: string | null;
+  payment_intent?: string | { id?: string } | null;
   metadata?: Record<string, string> | null;
 }): { handled: boolean; ignored: boolean } {
+  const metadata = session.metadata ?? {};
+  if (metadata.sku === CREATOR_VIDEO_CALL_SKU) {
+    return authorizeCreatorCallHold(session);
+  }
+
   if (session.payment_status && session.payment_status !== "paid") {
     return { handled: false, ignored: true };
   }
@@ -298,7 +338,6 @@ export function fulfillStripeCheckoutSession(session: {
     return { handled: true, ignored: false };
   }
 
-  const metadata = session.metadata ?? {};
   if (metadata.kind === STRIPE_CREATOR_SALE_KIND || metadata.kind === STRIPE_CREATOR_TIP_KIND) {
     const creatorUserId = metadata.creatorUserId?.trim();
     const creatorCents = Number.parseInt(metadata.creatorCents ?? "", 10);
@@ -347,6 +386,188 @@ export function fulfillStripeCheckoutSession(session: {
     priceCents,
   });
   fulfilledSessionIds.add(session.id);
+  return { handled: true, ignored: false };
+}
+
+function paymentIntentIdFrom(value: string | { id?: string } | null | undefined): string | undefined {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (value && typeof value === "object" && typeof value.id === "string" && value.id.trim()) {
+    return value.id.trim();
+  }
+  return undefined;
+}
+
+function authorizeCreatorCallHold(session: {
+  id: string;
+  payment_intent?: string | { id?: string } | null;
+  metadata?: Record<string, string> | null;
+}): { handled: boolean; ignored: boolean } {
+  if (authorizedCallSessionIds.has(session.id)) {
+    return { handled: true, ignored: false };
+  }
+  const metadata = session.metadata ?? {};
+  const buyerUserId = metadata.userId?.trim();
+  const creatorUserId = metadata.creatorUserId?.trim();
+  const priceCents = Number.parseInt(metadata.priceCents ?? "", 10);
+  if (!buyerUserId || !creatorUserId || !Number.isFinite(priceCents)) {
+    return { handled: false, ignored: true };
+  }
+  const paymentIntentId = paymentIntentIdFrom(session.payment_intent);
+  if (!paymentIntentId) {
+    if (ENV.isProduction && isStripeLiveCheckoutReady()) {
+      return { handled: false, ignored: true };
+    }
+  }
+  grantCreatorCallTicket({
+    buyerUserId,
+    creatorUserId,
+    priceCents,
+    sourceTransactionId: session.id,
+    paymentIntentId: paymentIntentId ?? `hold_${session.id}`,
+  });
+  authorizedCallSessionIds.add(session.id);
+  return { handled: true, ignored: false };
+}
+
+function bookCreatorCallCapture(params: {
+  paymentIntentId: string;
+  ticketId?: string;
+  connectedMs: number;
+  creatorUserId: string;
+  creatorCents: number;
+  priceCents: number;
+  platformFeeCents: number;
+  buyerUserId?: string;
+}): void {
+  if (capturedCallPaymentIntents.has(params.paymentIntentId)) return;
+  if (params.ticketId) {
+    markCreatorCallTicketCaptured({ ticketId: params.ticketId, connectedMs: params.connectedMs });
+  }
+  recordStripeConnectSettlement({
+    creatorUserId: params.creatorUserId,
+    kind: "sale",
+    grossCents: params.priceCents,
+    netCents: params.creatorCents,
+    platformFeeCents: params.platformFeeCents,
+    sourceTransactionId: params.paymentIntentId,
+  });
+  capturedCallPaymentIntents.add(params.paymentIntentId);
+}
+
+async function stripePaymentIntentAction(
+  id: string,
+  action: "capture" | "cancel",
+): Promise<{ id: string; status: string }> {
+  if (id.startsWith("sim_") || id.startsWith("hold_")) {
+    if (ENV.isProduction && isStripeLiveCheckoutReady()) {
+      throw new InternalServiceError("UPSTREAM_FAILED", "Stripe payment intent is missing.");
+    }
+    return { id, status: action === "capture" ? "succeeded" : "canceled" };
+  }
+  if (paymentIntentAdapter) {
+    return action === "capture" ? paymentIntentAdapter.capture(id) : paymentIntentAdapter.cancel(id);
+  }
+  if (!ENV.isProduction || !isStripeLiveCheckoutReady()) {
+    return { id, status: action === "capture" ? "succeeded" : "canceled" };
+  }
+  const secret = getStripeSecretKey();
+  const response = await fetch(`https://api.stripe.com/v1/payment_intents/${encodeURIComponent(id)}/${action}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${secret}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+  });
+  const json = (await response.json()) as { id?: string; status?: string };
+  if (!response.ok || !json.id) {
+    throw new InternalServiceError("UPSTREAM_FAILED", `Stripe ${action} could not be completed.`);
+  }
+  return { id: json.id, status: json.status ?? "" };
+}
+
+export async function settleCreatorCallOnEnd(params: {
+  roomId: string;
+  kind: string;
+  ticketId?: string;
+  paymentIntentId?: string;
+  callerUserId: string;
+  calleeUserId: string;
+}): Promise<{ action: "captured" | "voided" | "skipped" }> {
+  if (params.kind !== "creator") return { action: "skipped" };
+  const meter = getCallMeter(params.roomId);
+  const answered = meter ? wasCallAnswered(meter) : false;
+  const connectedMs = meter?.connectedMs ?? 0;
+  const ticket = params.ticketId
+    ? getCreatorCallTicketById(params.ticketId)
+    : params.paymentIntentId
+      ? getCreatorCallTicketByPaymentIntent(params.paymentIntentId)
+      : null;
+  const paymentIntentId = ticket?.paymentIntentId ?? params.paymentIntentId;
+  if (!ticket || !paymentIntentId) return { action: "skipped" };
+  if (ticket.buyerUserId !== params.callerUserId || ticket.creatorUserId !== params.calleeUserId) {
+    return { action: "skipped" };
+  }
+  if (ticket.status === "captured") return { action: "captured" };
+  if (ticket.status === "voided") return { action: "voided" };
+
+  if (answered) {
+    await stripePaymentIntentAction(paymentIntentId, "capture");
+    const creatorCents = Math.round(ticket.priceCents * CREATOR_PAYOUT_SHARE);
+    bookCreatorCallCapture({
+      paymentIntentId,
+      ticketId: ticket.id,
+      connectedMs,
+      creatorUserId: ticket.creatorUserId,
+      creatorCents,
+      priceCents: ticket.priceCents,
+      platformFeeCents: ticket.priceCents - creatorCents,
+      buyerUserId: ticket.buyerUserId,
+    });
+    return { action: "captured" };
+  }
+
+  if (voidedCallPaymentIntents.has(paymentIntentId)) return { action: "voided" };
+  await stripePaymentIntentAction(paymentIntentId, "cancel");
+  markCreatorCallTicketVoided({ ticketId: ticket.id });
+  voidedCallPaymentIntents.add(paymentIntentId);
+  return { action: "voided" };
+}
+
+export function fulfillCreatorCallPaymentIntent(params: {
+  id: string;
+  status?: string | null;
+  metadata?: Record<string, string> | null;
+}): { handled: boolean; ignored: boolean } {
+  const metadata = params.metadata ?? {};
+  const ticket = getCreatorCallTicketByPaymentIntent(params.id);
+  if (!ticket) return { handled: false, ignored: true };
+  if (metadata.sku && metadata.sku !== CREATOR_VIDEO_CALL_SKU) {
+    return { handled: false, ignored: true };
+  }
+  if (params.status === "canceled" || params.status === "cancelled") {
+    if (ticket.status !== "captured") {
+      markCreatorCallTicketVoided({ ticketId: ticket.id });
+    }
+    voidedCallPaymentIntents.add(params.id);
+    return { handled: true, ignored: false };
+  }
+  if (params.status && params.status !== "succeeded") {
+    return { handled: false, ignored: true };
+  }
+  if (ticket.status !== "captured") {
+    return { handled: true, ignored: true };
+  }
+  const creatorCents = Math.round(ticket.priceCents * CREATOR_PAYOUT_SHARE);
+  bookCreatorCallCapture({
+    paymentIntentId: params.id,
+    ticketId: ticket.id,
+    connectedMs: ticket.connectedMs ?? 0,
+    creatorUserId: ticket.creatorUserId,
+    creatorCents,
+    priceCents: ticket.priceCents,
+    platformFeeCents: ticket.priceCents - creatorCents,
+    buyerUserId: ticket.buyerUserId,
+  });
   return { handled: true, ignored: false };
 }
 

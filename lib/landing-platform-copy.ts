@@ -20,4 +20,5 @@ export const LANDING_WHAT_WE_OFFER = [
   "Selling digital goods",
   "SaaS (Software as a Service)",
   "Digital AI tools",
+  "1-to-1 video calls",
 ] as const;

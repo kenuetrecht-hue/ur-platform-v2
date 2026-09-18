@@ -27,6 +27,7 @@ import {
 } from "@/lib/ai-session-constants";
 import { TransactionHistoryList, CustomLinkCard } from "@/components/transaction-history-list";
 import { CreatorPayoutSetupPanel } from "@/components/creator-payout-setup-panel";
+import { CreatorVideoCallPricePanel } from "@/components/creator-video-call-price-panel";
 import { CreatorStorePanel } from "@/components/creator-store-panel";
 import { CreatorSocialShareBar, CreatorPromoCard } from "@/components/creator-social-share";
 import { CreatorContentMatePanel } from "@/components/creator-contentmate-panel";
@@ -254,6 +255,7 @@ export function ContentCreatorDashboardPanel() {
               />
             ) : null}
             <CreatorPayoutSetupPanel />
+            <CreatorVideoCallPricePanel />
             <CreatorContentProtectionPanel />
             {analytics ? (
               <View style={styles.statGrid}>

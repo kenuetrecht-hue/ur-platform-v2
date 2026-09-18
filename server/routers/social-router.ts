@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { secureProcedure, router } from "../_core/trpc";
+import { secureProcedure, securePublicProcedure, secureCheckoutProcedure, router } from "../_core/trpc";
 import { assertUserIsAgeVerified } from "../_core/age-kyc-service";
 import {
   getNativeLanguage,
@@ -35,14 +35,37 @@ import {
 import { listAllTransactions, getTransactionStats } from "../_core/transaction-ledger-service";
 import {
   addIceCandidate,
+  createCreatorVideoCall,
   createVideoCall,
   endVideoCall,
   getVideoCallRoom,
+  heartbeatVideoCall,
   joinVideoCall,
   listIncomingCalls,
+  requireLiveCallParticipant,
   setVideoAnswer,
   setVideoOffer,
+  toPublicVideoCall,
 } from "../_core/video-call-service";
+import { issueCallAccessToken, verifyCallAccessToken } from "../_core/call-access-token";
+import { getOpenCreatorCallTicket, grantCreatorCallTicket } from "../_core/creator-call-ticket-service";
+import {
+  getContentCreatorProfile,
+  getCreatorCallOffer,
+} from "../_core/partner-program-service";
+import { getPlatformPublicOrigin } from "../../lib/platform-urls";
+import { assertPaymentChannelAllowed, assertSimulatedPurchaseAllowed } from "../_core/payment-channel-guard";
+import { acceptedNoRefundSchema, assertAndRecordNoRefundAck } from "../_core/conduct-ledger-service";
+import {
+  getCommerceMode,
+  isSimulatedCommerceMode,
+  LIVE_CHECKOUT_UNAVAILABLE_NOTICE,
+} from "../../lib/dev-commerce-mode";
+import { createCreatorMarketplaceCheckout, settleCreatorCallOnEnd } from "../_core/stripe-checkout-service";
+import { isStripeConnectReady } from "../_core/stripe-connect-service";
+import { mapServiceErrorToTrpc } from "../_core/service-errors";
+import { CREATOR_VIDEO_CALL_SKU, creatorCallPriceError } from "../../lib/creator-call-pricing";
+import { getIceServersForCall } from "../_core/turn-ice-service";
 import {
   addPostComment,
   assertVideoPostForRating,
@@ -67,7 +90,6 @@ import {
   type PostTone,
 } from "../_core/social-post-assistant-service";
 import { CONTENT_LICENSE_TYPES } from "../../lib/creator-content-protection-core";
-import { getContentCreatorProfile } from "../_core/partner-program-service";
 import {
   cancelPaidChannelSubscription,
   followCreatorChannel,
@@ -132,6 +154,26 @@ function socialUser(ctx: { user: { id: string | number; email?: string | null; n
     displayName: ctx.user.name ?? "User",
   });
   return userId;
+}
+
+function requireCallAccess(roomId: string, token: string) {
+  const payload = verifyCallAccessToken(token);
+  if (!payload || payload.roomId !== roomId) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "This call link is not valid." });
+  }
+  return payload;
+}
+
+async function settlePublicVideoCall(room: ReturnType<typeof endVideoCall>) {
+  await settleCreatorCallOnEnd({
+    roomId: room.id,
+    kind: room.kind,
+    ticketId: room.ticketId,
+    paymentIntentId: room.paymentIntentId,
+    callerUserId: room.callerUserId,
+    calleeUserId: room.calleeUserId,
+  });
+  return toPublicVideoCall(room);
 }
 
 export const socialRouter = router({
@@ -396,25 +438,43 @@ export const socialRouter = router({
   }),
 
   createVideoCall: secureProcedure("social")
-    .input(z.object({ friendUserId: z.string().min(1) }))
-    .mutation(({ ctx, input }) =>
-      createVideoCall({
-        callerUserId: String(ctx.user.id),
-        calleeUserId: input.friendUserId,
-      }),
-    ),
+    .input(z.object({ friendUserId: z.string().trim().min(1).max(80) }))
+    .mutation(async ({ ctx, input }) => {
+      await assertUserIsAgeVerified(ctx.user.id);
+      return toPublicVideoCall(
+        createVideoCall({
+          callerUserId: String(ctx.user.id),
+          calleeUserId: input.friendUserId,
+        }),
+      );
+    }),
 
   joinVideoCall: secureProcedure("social")
     .input(z.object({ roomId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      await assertUserIsAgeVerified(ctx.user.id);
+      return toPublicVideoCall(joinVideoCall({ roomId: input.roomId, userId: String(ctx.user.id) }));
+    }),
+
+  heartbeatVideoCall: secureProcedure("social")
+    .input(z.object({ roomId: z.string().uuid() }))
     .mutation(({ ctx, input }) =>
-      joinVideoCall({ roomId: input.roomId, userId: String(ctx.user.id) }),
+      toPublicVideoCall(heartbeatVideoCall({ roomId: input.roomId, userId: String(ctx.user.id) })),
     ),
+
+  iceServers: secureProcedure("video")
+    .input(z.object({ roomId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      requireLiveCallParticipant(input.roomId, String(ctx.user.id));
+      return getIceServersForCall({ userId: String(ctx.user.id) });
+    }),
 
   endVideoCall: secureProcedure("social")
     .input(z.object({ roomId: z.string().uuid() }))
-    .mutation(({ ctx, input }) =>
-      endVideoCall({ roomId: input.roomId, userId: String(ctx.user.id) }),
-    ),
+    .mutation(async ({ ctx, input }) => {
+      const room = endVideoCall({ roomId: input.roomId, userId: String(ctx.user.id) });
+      return settlePublicVideoCall(room);
+    }),
 
   getVideoCall: secureProcedure("social")
     .input(z.object({ roomId: z.string().uuid() }))
@@ -423,34 +483,283 @@ export const socialRouter = router({
       if (!room) return null;
       const userId = String(ctx.user.id);
       if (room.callerUserId !== userId && room.calleeUserId !== userId) return null;
-      return room;
+      return toPublicVideoCall(room);
     }),
 
   incomingVideoCalls: secureProcedure("social").query(({ ctx }) =>
-    listIncomingCalls(String(ctx.user.id)),
+    listIncomingCalls(String(ctx.user.id)).map(toPublicVideoCall),
   ),
 
   signalVideoOffer: secureProcedure("social")
-    .input(z.object({ roomId: z.string().uuid(), sdp: z.string().max(50000) }))
-    .mutation(({ ctx, input }) =>
-      setVideoOffer(input.roomId, String(ctx.user.id), input.sdp),
-    ),
+    .input(z.object({ roomId: z.string().uuid(), sdp: z.string().trim().min(1).max(50000) }))
+    .mutation(async ({ ctx, input }) => {
+      await assertUserIsAgeVerified(ctx.user.id);
+      return toPublicVideoCall(setVideoOffer(input.roomId, String(ctx.user.id), input.sdp));
+    }),
 
   signalVideoAnswer: secureProcedure("social")
-    .input(z.object({ roomId: z.string().uuid(), sdp: z.string().max(50000) }))
-    .mutation(({ ctx, input }) =>
-      setVideoAnswer(input.roomId, String(ctx.user.id), input.sdp),
-    ),
+    .input(z.object({ roomId: z.string().uuid(), sdp: z.string().trim().min(1).max(50000) }))
+    .mutation(async ({ ctx, input }) => {
+      await assertUserIsAgeVerified(ctx.user.id);
+      return toPublicVideoCall(setVideoAnswer(input.roomId, String(ctx.user.id), input.sdp));
+    }),
 
   signalIceCandidate: secureProcedure("social")
-    .input(z.object({ roomId: z.string().uuid(), candidate: z.string().max(8000) }))
-    .mutation(({ ctx, input }) =>
-      addIceCandidate({
-        roomId: input.roomId,
-        userId: String(ctx.user.id),
-        candidate: input.candidate,
+    .input(z.object({ roomId: z.string().uuid(), candidate: z.string().trim().min(1).max(8000) }))
+    .mutation(async ({ ctx, input }) => {
+      await assertUserIsAgeVerified(ctx.user.id);
+      return toPublicVideoCall(
+        addIceCandidate({
+          roomId: input.roomId,
+          userId: String(ctx.user.id),
+          candidate: input.candidate,
+        }),
+      );
+    }),
+
+  creatorCallOffer: secureProcedure("social")
+    .input(z.object({ creatorUserId: z.string().trim().min(1).max(80) }))
+    .query(({ input }) => getCreatorCallOffer(input.creatorUserId)),
+
+  buyCreatorCall: secureCheckoutProcedure("commerce")
+    .input(
+      z.object({
+        creatorUserId: z.string().trim().min(1).max(80),
+        clientPlatform: z.enum(["web", "native"]),
+        acceptedNoRefund: acceptedNoRefundSchema,
+        billingStateCode: z.string().trim().length(2).optional(),
       }),
-    ),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await assertUserIsAgeVerified(ctx.user.id);
+      const callerUserId = String(ctx.user.id);
+      if (callerUserId === input.creatorUserId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "You cannot buy a call with yourself." });
+      }
+      const offer = getCreatorCallOffer(input.creatorUserId);
+      if (!offer.enrolled || offer.priceCents == null) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "This creator has not set a 1-to-1 call price yet.",
+        });
+      }
+      const priceError = creatorCallPriceError(offer.priceCents);
+      if (priceError) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: priceError });
+      }
+      assertPaymentChannelAllowed({
+        subtotalCents: offer.priceCents,
+        clientPlatform: input.clientPlatform,
+      });
+      assertAndRecordNoRefundAck({
+        userId: callerUserId,
+        userEmail: ctx.user.email ?? undefined,
+        sku: CREATOR_VIDEO_CALL_SKU,
+        amountCents: offer.priceCents,
+        acceptedNoRefund: true,
+        ipAddress: ctx.ip,
+      });
+
+      const existing = getOpenCreatorCallTicket({
+        buyerUserId: callerUserId,
+        creatorUserId: input.creatorUserId,
+      });
+      if (existing) {
+        const room = createCreatorVideoCall({
+          callerUserId,
+          creatorUserId: input.creatorUserId,
+        });
+        return {
+          mode: "ready" as const,
+          roomId: room.id,
+          priceCents: offer.priceCents,
+            notice: "Your card hold is ready. Connecting now.",
+        };
+      }
+
+      if (!isSimulatedCommerceMode()) {
+        if (getCommerceMode() !== "live") {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: LIVE_CHECKOUT_UNAVAILABLE_NOTICE,
+          });
+        }
+        const billingStateCode = input.billingStateCode?.trim().toUpperCase();
+        if (!billingStateCode || billingStateCode.length !== 2) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Select your billing state so tax and the card fee go on your card.",
+          });
+        }
+        if (!isStripeConnectReady(input.creatorUserId)) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "This creator has not connected a Stripe bank account yet.",
+          });
+        }
+        try {
+          const checkout = await createCreatorMarketplaceCheckout({
+            buyerUserId: callerUserId,
+            buyerEmail: ctx.user.email ?? "",
+            creatorUserId: input.creatorUserId,
+            kind: "sale",
+            subtotalCents: offer.priceCents,
+            billingStateCode,
+            productName: `1-to-1 video call with ${offer.displayName ?? "creator"}`,
+            successPath: `/messages?creatorCall=paid&creator=${encodeURIComponent(input.creatorUserId)}`,
+            cancelPath: "/messages?creatorCall=cancel",
+            extraMetadata: { sku: CREATOR_VIDEO_CALL_SKU },
+            captureMethod: "manual",
+          });
+          return {
+            mode: "checkout" as const,
+            checkoutUrl: checkout.checkoutUrl,
+            sessionId: checkout.sessionId,
+            priceCents: offer.priceCents,
+            creatorGetsCents: checkout.split.creatorCents,
+            platformFeeCents: checkout.split.platformFeeCents,
+            notice: `Card hold only until you both connect. Charged after the call. They keep 85%. UR keeps 15%.`,
+          };
+        } catch (error) {
+          mapServiceErrorToTrpc(error);
+        }
+      }
+
+      assertSimulatedPurchaseAllowed();
+      grantCreatorCallTicket({
+        buyerUserId: callerUserId,
+        creatorUserId: input.creatorUserId,
+        priceCents: offer.priceCents,
+        sourceTransactionId: `sim-call-${Date.now()}`,
+        paymentIntentId: `sim_pi_${callerUserId}_${Date.now()}`,
+      });
+      const room = createCreatorVideoCall({
+        callerUserId,
+        creatorUserId: input.creatorUserId,
+      });
+      return {
+        mode: "simulated" as const,
+        roomId: room.id,
+        priceCents: offer.priceCents,
+        notice: `Card hold simulated. You are charged only after you both connect, timed to the millisecond.`,
+      };
+    }),
+
+  startCreatorCall: secureProcedure("social")
+    .input(z.object({ creatorUserId: z.string().trim().min(1).max(80) }))
+    .mutation(async ({ ctx, input }) => {
+      await assertUserIsAgeVerified(ctx.user.id);
+      return toPublicVideoCall(
+        createCreatorVideoCall({
+          callerUserId: String(ctx.user.id),
+          creatorUserId: input.creatorUserId,
+        }),
+      );
+    }),
+
+  mintCallAccess: secureProcedure("social")
+    .input(z.object({ roomId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      await assertUserIsAgeVerified(ctx.user.id);
+      const userId = String(ctx.user.id);
+      const room = requireLiveCallParticipant(input.roomId, userId);
+      try {
+        const token = issueCallAccessToken({ roomId: room.id, userId });
+        const origin = getPlatformPublicOrigin();
+        return {
+          token,
+          url: `${origin}/call/${room.id}#t=${encodeURIComponent(token)}`,
+        };
+      } catch (error) {
+        mapServiceErrorToTrpc(error);
+      }
+    }),
+
+  accessGetVideoCall: securePublicProcedure("social")
+    .input(z.object({ roomId: z.string().uuid(), token: z.string().trim().min(16).max(2000) }))
+    .query(({ input }) => {
+      const payload = requireCallAccess(input.roomId, input.token);
+      const room = getVideoCallRoom(input.roomId);
+      if (!room || (room.callerUserId !== payload.userId && room.calleeUserId !== payload.userId)) {
+        return null;
+      }
+      return { ...toPublicVideoCall(room), isCaller: room.callerUserId === payload.userId };
+    }),
+
+  accessJoinVideoCall: securePublicProcedure("social")
+    .input(z.object({ roomId: z.string().uuid(), token: z.string().trim().min(16).max(2000) }))
+    .mutation(({ input }) => {
+      const payload = requireCallAccess(input.roomId, input.token);
+      return toPublicVideoCall(joinVideoCall({ roomId: input.roomId, userId: payload.userId }));
+    }),
+
+  accessHeartbeatVideoCall: securePublicProcedure("social")
+    .input(z.object({ roomId: z.string().uuid(), token: z.string().trim().min(16).max(2000) }))
+    .mutation(({ input }) => {
+      const payload = requireCallAccess(input.roomId, input.token);
+      return toPublicVideoCall(heartbeatVideoCall({ roomId: input.roomId, userId: payload.userId }));
+    }),
+
+  accessIceServers: securePublicProcedure("video")
+    .input(z.object({ roomId: z.string().uuid(), token: z.string().trim().min(16).max(2000) }))
+    .mutation(async ({ input }) => {
+      const payload = requireCallAccess(input.roomId, input.token);
+      requireLiveCallParticipant(input.roomId, payload.userId);
+      return getIceServersForCall({ userId: payload.userId });
+    }),
+
+  accessEndVideoCall: securePublicProcedure("social")
+    .input(z.object({ roomId: z.string().uuid(), token: z.string().trim().min(16).max(2000) }))
+    .mutation(async ({ input }) => {
+      const payload = requireCallAccess(input.roomId, input.token);
+      const room = endVideoCall({ roomId: input.roomId, userId: payload.userId });
+      return settlePublicVideoCall(room);
+    }),
+
+  accessSignalVideoOffer: securePublicProcedure("social")
+    .input(
+      z.object({
+        roomId: z.string().uuid(),
+        token: z.string().trim().min(16).max(2000),
+        sdp: z.string().trim().min(1).max(50000),
+      }),
+    )
+    .mutation(({ input }) => {
+      const payload = requireCallAccess(input.roomId, input.token);
+      return toPublicVideoCall(setVideoOffer(input.roomId, payload.userId, input.sdp));
+    }),
+
+  accessSignalVideoAnswer: securePublicProcedure("social")
+    .input(
+      z.object({
+        roomId: z.string().uuid(),
+        token: z.string().trim().min(16).max(2000),
+        sdp: z.string().trim().min(1).max(50000),
+      }),
+    )
+    .mutation(({ input }) => {
+      const payload = requireCallAccess(input.roomId, input.token);
+      return toPublicVideoCall(setVideoAnswer(input.roomId, payload.userId, input.sdp));
+    }),
+
+  accessSignalIceCandidate: securePublicProcedure("social")
+    .input(
+      z.object({
+        roomId: z.string().uuid(),
+        token: z.string().trim().min(16).max(2000),
+        candidate: z.string().trim().min(1).max(8000),
+      }),
+    )
+    .mutation(({ input }) => {
+      const payload = requireCallAccess(input.roomId, input.token);
+      return toPublicVideoCall(
+        addIceCandidate({
+          roomId: input.roomId,
+          userId: payload.userId,
+          candidate: input.candidate,
+        }),
+      );
+    }),
 
   // ── Public feed (Facebook / TikTok-style free posts) ──
 

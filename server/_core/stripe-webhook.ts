@@ -1,7 +1,7 @@
 import express, { type Express, type Request, type Response } from "express";
 import { InternalServiceError } from "./service-errors";
 import { getStripeWebhookSecret, redactSecrets } from "./secrets";
-import { fulfillStripeCheckoutSession, verifyStripeWebhookEvent } from "./stripe-checkout-service";
+import { fulfillStripeCheckoutSession, fulfillCreatorCallPaymentIntent, verifyStripeWebhookEvent } from "./stripe-checkout-service";
 import { applyStripeAccountWebhook } from "./stripe-connect-service";
 import { attachStripeConnectPayout } from "./creator-payout-service";
 
@@ -39,6 +39,24 @@ export function registerStripeWebhook(app: Express): void {
           res.status(200).json({ ok: true, handled: Boolean(account) });
           return;
         }
+        if (event.type === "payment_intent.succeeded" || event.type === "payment_intent.canceled") {
+          const intentUnknown = event.data.object;
+          const intent = {
+            id: typeof intentUnknown.id === "string" ? intentUnknown.id : "",
+            status: typeof intentUnknown.status === "string" ? intentUnknown.status : null,
+            metadata:
+              intentUnknown.metadata && typeof intentUnknown.metadata === "object"
+                ? (intentUnknown.metadata as Record<string, string>)
+                : null,
+          };
+          if (!intent.id) {
+            res.status(400).json({ ok: false });
+            return;
+          }
+          const result = fulfillCreatorCallPaymentIntent(intent);
+          res.status(200).json({ ok: true, handled: result.handled, ignored: result.ignored });
+          return;
+        }
         if (
           event.type !== "checkout.session.completed" &&
           event.type !== "checkout.session.async_payment_succeeded"
@@ -51,6 +69,11 @@ export function registerStripeWebhook(app: Express): void {
           id: typeof sessionUnknown.id === "string" ? sessionUnknown.id : "",
           payment_status:
             typeof sessionUnknown.payment_status === "string" ? sessionUnknown.payment_status : null,
+          payment_intent:
+            typeof sessionUnknown.payment_intent === "string" ||
+            (sessionUnknown.payment_intent && typeof sessionUnknown.payment_intent === "object")
+              ? (sessionUnknown.payment_intent as string | { id?: string })
+              : null,
           metadata:
             sessionUnknown.metadata && typeof sessionUnknown.metadata === "object"
               ? (sessionUnknown.metadata as Record<string, string>)

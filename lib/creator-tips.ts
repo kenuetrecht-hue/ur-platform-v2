@@ -43,7 +43,7 @@ export const CREATOR_TIPS_PURPOSE =
 export const CREATOR_TIPS_STEWARD_NOTES = `
 ## Creator coffee (mandatory — separate from stamps)
 Content creators have a **Coffee** button. Listed amounts: $1, $2, $4, $10, $20, $25. Never $5.00.
-The creator receives **100% of the listed amount**. The fan pays sales tax (if their state taxes digital services) and Stripe’s card fee on top so UR and the creator do not absorb those.
+The creator receives **100% of the listed tip**. The fan pays sales tax (if their state taxes digital services) and Stripe’s card fee on top so UR and the creator do not absorb those.
 UR does not ask members for platform tips. This is coffee for an enrolled content creator only.
 Do not mix this with social stamps. Stamps are emoji stickers and pay the creator nothing.
 Class tickets and creator merch stay 85% creator / 15% UR.

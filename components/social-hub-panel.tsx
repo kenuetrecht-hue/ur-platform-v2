@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Switch,
 } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { TransactionHistoryList } from "@/components/transaction-history-list";
@@ -17,6 +18,7 @@ import { SocialFeedPanel } from "@/components/social-feed-panel";
 import { SocialHubTabBar, type SocialHubTab } from "@/components/social-hub-tab-bar";
 import { InternetCenterMailPanel } from "@/components/internet-center-mail-panel";
 import { CreatorTipButton } from "@/components/creator-tip-button";
+import { CreatorCallButton } from "@/components/creator-call-button";
 import { brandHighlightSurface } from "@/lib/brand-theme";
 
 type Tab = SocialHubTab;
@@ -32,6 +34,8 @@ export function SocialHubPanel() {
   const [videoRoomId, setVideoRoomId] = useState<string | null>(null);
   const [videoFriendId, setVideoFriendId] = useState<string | null>(null);
   const [videoIsCaller, setVideoIsCaller] = useState(true);
+  const params = useLocalSearchParams<{ creatorCall?: string; creator?: string }>();
+  const startedPaidCall = useRef<string | null>(null);
 
   const dash = trpc.social.dashboard.useQuery();
   const incomingCalls = trpc.social.incomingVideoCalls.useQuery(undefined, {
@@ -90,6 +94,34 @@ export function SocialHubPanel() {
   const rideAlong = trpc.social.setRideAlong.useMutation({
     onSuccess: () => void utils.social.dashboard.invalidate(),
   });
+  const startFriendCall = trpc.social.createVideoCall.useMutation({
+    onSuccess: (room, variables) => {
+      setVideoRoomId(room.id);
+      setVideoFriendId(variables.friendUserId);
+      setVideoIsCaller(true);
+    },
+  });
+  const startPaidCreatorCall = trpc.social.startCreatorCall.useMutation({
+    onSuccess: (room, variables) => {
+      setVideoRoomId(room.id);
+      setVideoFriendId(variables.creatorUserId);
+      setVideoIsCaller(true);
+    },
+  });
+
+  useEffect(() => {
+    const creatorId = typeof params.creator === "string" ? params.creator : "";
+    if (params.creatorCall !== "paid" || !creatorId) return;
+    if (startedPaidCall.current === creatorId) return;
+    startedPaidCall.current = creatorId;
+    startPaidCreatorCall.mutate({ creatorUserId: creatorId });
+  }, [params.creatorCall, params.creator]);
+
+  const openCall = (roomId: string, peerUserId: string, asCaller: boolean) => {
+    setVideoRoomId(roomId);
+    setVideoFriendId(peerUserId);
+    setVideoIsCaller(asCaller);
+  };
 
   if (dash.isLoading) {
     return <ActivityIndicator color={colors.primary} style={{ margin: 24 }} />;
@@ -132,7 +164,7 @@ export function SocialHubPanel() {
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colors.foreground, fontWeight: "800" }}>📹 Incoming video call</Text>
                   <Text style={{ color: colors.muted, fontSize: 11 }}>
-                    From friend · tap Answer to join
+                    {call.kind === "creator" ? "Paid 1-to-1 call · tap Answer" : "From a friend · tap Answer"}
                   </Text>
                 </View>
                 <Pressable
@@ -166,7 +198,7 @@ export function SocialHubPanel() {
       ) : null}
 
       {tab === "feed" ? (
-        <SocialFeedPanel />
+        <SocialFeedPanel onCallStarted={(roomId, creatorId) => openCall(roomId, creatorId, true)} />
       ) : tab === "mail" ? (
         <InternetCenterMailPanel
           initialComposeTo={mailComposeTo}
@@ -219,17 +251,28 @@ export function SocialHubPanel() {
               <Text style={{ color: colors.muted }}>No friends yet — invite someone by email.</Text>
             ) : (
               friends.map((f) => (
-                <Pressable
+                <View
                   key={f.id}
-                  onPress={() => {
-                    setMailComposeTo(f.peerEmail);
-                    setTab("mail");
-                  }}
                   style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}
                 >
-                  <Text style={{ color: colors.foreground, fontWeight: "700" }}>{f.peerEmail}</Text>
-                  <Text style={{ color: colors.muted, fontSize: 11 }}>Tap to compose mail</Text>
-                </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      setMailComposeTo(f.peerEmail);
+                      setTab("mail");
+                    }}
+                  >
+                    <Text style={{ color: colors.foreground, fontWeight: "700" }}>{f.peerEmail}</Text>
+                    <Text style={{ color: colors.muted, fontSize: 11 }}>Tap name to compose mail</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => startFriendCall.mutate({ friendUserId: f.peerUserId })}
+                    style={[styles.btn, { backgroundColor: colors.primary, marginTop: 10 }]}
+                  >
+                    <Text style={styles.btnText}>
+                      {startFriendCall.isPending ? "Calling…" : "Video call"}
+                    </Text>
+                  </Pressable>
+                </View>
               ))
             )}
           </>
@@ -294,6 +337,11 @@ export function SocialHubPanel() {
                 <View key={s.id} style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
                   <Text style={{ color: colors.foreground, fontWeight: "700" }}>{s.creatorName}</Text>
                   <CreatorTipButton creatorUserId={s.creatorUserId} creatorName={s.creatorName} />
+                  <CreatorCallButton
+                    creatorUserId={s.creatorUserId}
+                    creatorName={s.creatorName}
+                    onCallStarted={(roomId, creatorId) => openCall(roomId, creatorId, true)}
+                  />
                   <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
                     <Text style={{ color: colors.muted, fontSize: 12 }}>Ride along with AI sessions</Text>
                     <Switch

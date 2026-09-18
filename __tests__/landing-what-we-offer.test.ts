@@ -18,6 +18,7 @@ describe("landing what we offer", () => {
       "Selling digital goods",
       "SaaS (Software as a Service)",
       "Digital AI tools",
+      "1-to-1 video calls",
     ]);
     expect(LANDING_WHAT_WE_OFFER_LEDE.toLowerCase()).toContain("digital community");
     expect(LANDING_WHAT_WE_OFFER_LEDE.toLowerCase()).toContain("saas");
