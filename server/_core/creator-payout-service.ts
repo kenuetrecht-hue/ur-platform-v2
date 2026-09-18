@@ -1,5 +1,5 @@
 /**
- * Creator payouts via Uphold (blockchain) — connect account, instant USDC transfers on each sale.
+ * Creator payouts — connect a bank. Manual pay after each sale.
  */
 
 import { randomUUID } from "crypto";
@@ -199,7 +199,7 @@ function simulateBlockchainTxHash(): string {
 }
 
 /**
- * Instant payout — triggered after each creator sale (85%) or tip (100%) when payout is connected.
+ * Manual pay — recorded after each creator sale (85%) or coffee (100%) when payout is connected.
  */
 export function processInstantCreatorPayout(params: {
   creatorUserId: string;
@@ -261,7 +261,7 @@ export function processInstantCreatorPayout(params: {
   recordTransaction({
     type: "creator_payout",
     amountCents: netCents,
-    description: params.description ?? `Creator instant payout — ${transfer.message}`,
+    description: params.description ?? `Creator manual pay — ${transfer.message}`,
     payeeUserId: params.creatorUserId,
     metadata: {
       payoutId: transfer.id,
@@ -368,7 +368,7 @@ export function getCreatorPayoutDashboard(userId: string) {
     platformFeePercent: saleShareToPercent(1 - saleShare),
     upholdAvailable: true,
     upholdOAuthConfigured: upholdConfigured(),
-    canReceiveInstantPayouts: payout.status === "connected",
+    canReceiveManualPay: payout.status === "connected",
     recentPayouts,
     setupRequired: payout.status !== "connected",
     stripeConnectReady: payout.method === "stripe_connect" && payout.status === "connected",

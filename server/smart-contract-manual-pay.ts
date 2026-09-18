@@ -1,15 +1,11 @@
 /**
- * ============================================================================
- * 🔐 DYNAMIC SMART CONTRACT DIGITAL ESCROW
- * ============================================================================
- * Protects custom transactions between creators and users
- * Milestone-based holds, dispute resolution, and automated payouts
- * ============================================================================
+ * Manual pay records for custom creator work.
+ * Payouts are sent by hand — not an automatic hold or a money-transmitter product.
  */
 
 import { z } from "zod";
 
-export type EscrowStatus =
+export type ManualPayStatus =
   | "pending_acceptance"
   | "active"
   | "milestone_completed"
@@ -23,46 +19,41 @@ export interface Milestone {
   milestoneId: string;
   description: string;
   dueDate: Date;
-  paymentPercentage: number; // 0-100
+  paymentPercentage: number;
   status: MilestoneStatus;
-  completionProof?: string; // URL or description
+  completionProof?: string;
   completedAt?: Date;
 }
 
-export interface EscrowTransaction {
-  escrowId: string;
+export interface ManualPayTransaction {
+  paymentId: string;
   creatorId: string;
   customerId: string;
   totalAmountUSD: number;
   currency: "USD" | "POINTS";
   description: string;
   milestones: Milestone[];
-  status: EscrowStatus;
+  status: ManualPayStatus;
   createdAt: Date;
   updatedAt: Date;
   disputeReason?: string;
   arbitrationNotes?: string;
-  autoReleaseDate?: Date;
 }
 
-/**
- * Creates a new escrow transaction with milestones
- */
-export function createEscrowTransaction(
+export function createManualPayTransaction(
   creatorId: string,
   customerId: string,
   totalAmountUSD: number,
   description: string,
-  milestones: Omit<Milestone, "milestoneId" | "status" | "completedAt">[]
-): EscrowTransaction {
-  // Validate milestone percentages sum to 100
+  milestones: Omit<Milestone, "milestoneId" | "status" | "completedAt">[],
+): ManualPayTransaction {
   const totalPercentage = milestones.reduce((sum, m) => sum + m.paymentPercentage, 0);
   if (totalPercentage !== 100) {
     throw new Error(`Milestone percentages must sum to 100, got ${totalPercentage}`);
   }
 
   return {
-    escrowId: `esc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    paymentId: `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     creatorId,
     customerId,
     totalAmountUSD,
@@ -79,33 +70,27 @@ export function createEscrowTransaction(
   };
 }
 
-/**
- * Accepts escrow transaction (both parties agree)
- */
-export function acceptEscrowTransaction(
-  escrow: EscrowTransaction,
-  acceptedBy: "creator" | "customer"
-): EscrowTransaction {
-  if (escrow.status !== "pending_acceptance") {
-    throw new Error(`Cannot accept escrow in ${escrow.status} status`);
+export function acceptManualPayTransaction(
+  record: ManualPayTransaction,
+  _acceptedBy: "creator" | "customer",
+): ManualPayTransaction {
+  if (record.status !== "pending_acceptance") {
+    throw new Error(`Cannot accept this manual pay in ${record.status} status`);
   }
 
   return {
-    ...escrow,
+    ...record,
     status: "active",
     updatedAt: new Date(),
   };
 }
 
-/**
- * Marks milestone as completed
- */
 export function completeMilestone(
-  escrow: EscrowTransaction,
+  record: ManualPayTransaction,
   milestoneId: string,
-  completionProof: string
-): EscrowTransaction {
-  const updatedMilestones = escrow.milestones.map((m) =>
+  completionProof: string,
+): ManualPayTransaction {
+  const updatedMilestones = record.milestones.map((m) =>
     m.milestoneId === milestoneId
       ? {
           ...m,
@@ -113,76 +98,59 @@ export function completeMilestone(
           completionProof,
           completedAt: new Date(),
         }
-      : m
+      : m,
   );
 
   const allCompleted = updatedMilestones.every((m) => m.status === "completed");
 
   return {
-    ...escrow,
+    ...record,
     milestones: updatedMilestones,
     status: allCompleted ? "completed" : "milestone_completed",
     updatedAt: new Date(),
   };
 }
 
-/**
- * Raises a dispute on the escrow
- */
-export function raiseDispute(
-  escrow: EscrowTransaction,
-  reason: string
-): EscrowTransaction {
-  if (escrow.status === "completed" || escrow.status === "resolved") {
-    throw new Error(`Cannot dispute a ${escrow.status} transaction`);
+export function raiseDispute(record: ManualPayTransaction, reason: string): ManualPayTransaction {
+  if (record.status === "completed" || record.status === "resolved") {
+    throw new Error(`Cannot dispute a ${record.status} transaction`);
   }
 
   return {
-    ...escrow,
+    ...record,
     status: "dispute_raised",
     disputeReason: reason,
     updatedAt: new Date(),
   };
 }
 
-/**
- * Resolves dispute with arbitration
- */
 export function resolveDispute(
-  escrow: EscrowTransaction,
+  record: ManualPayTransaction,
   resolution: "creator_wins" | "customer_wins" | "split_50_50",
-  arbitrationNotes: string
-): EscrowTransaction {
-  if (escrow.status !== "dispute_raised") {
-    throw new Error(`Cannot resolve dispute for ${escrow.status} transaction`);
+  arbitrationNotes: string,
+): ManualPayTransaction {
+  if (record.status !== "dispute_raised") {
+    throw new Error(`Cannot resolve dispute for ${record.status} transaction`);
   }
 
   return {
-    ...escrow,
+    ...record,
     status: "resolved",
     arbitrationNotes: `${resolution}: ${arbitrationNotes}`,
     updatedAt: new Date(),
   };
 }
 
-/**
- * Calculates payout based on completed milestones
- */
-export function calculateEscrowPayout(escrow: EscrowTransaction): {
+export function calculateManualPay(record: ManualPayTransaction): {
   creatorPayout: number;
   customerRefund: number;
   completionPercentage: number;
 } {
-  const completedMilestones = escrow.milestones.filter(
-    (m) => m.status === "completed"
-  );
-  const totalCompleted = completedMilestones.reduce(
-    (sum, m) => sum + m.paymentPercentage,
-    0
-  );
+  const completedMilestones = record.milestones.filter((m) => m.status === "completed");
+  const totalCompleted = completedMilestones.reduce((sum, m) => sum + m.paymentPercentage, 0);
 
-  const creatorPayout = (escrow.totalAmountUSD * totalCompleted) / 100;
-  const customerRefund = escrow.totalAmountUSD - creatorPayout;
+  const creatorPayout = (record.totalAmountUSD * totalCompleted) / 100;
+  const customerRefund = record.totalAmountUSD - creatorPayout;
 
   return {
     creatorPayout: Number(creatorPayout.toFixed(2)),
@@ -191,28 +159,6 @@ export function calculateEscrowPayout(escrow: EscrowTransaction): {
   };
 }
 
-/**
- * Auto-releases funds if auto-release date is reached
- */
-export function checkAutoRelease(escrow: EscrowTransaction): EscrowTransaction {
-  if (!escrow.autoReleaseDate || escrow.status === "completed") {
-    return escrow;
-  }
-
-  if (new Date() >= escrow.autoReleaseDate) {
-    return {
-      ...escrow,
-      status: "completed",
-      updatedAt: new Date(),
-    };
-  }
-
-  return escrow;
-}
-
-/**
- * Zod Schemas for Validation
- */
 export const MilestoneSchema = z.object({
   milestoneId: z.string(),
   description: z.string(),
@@ -223,8 +169,8 @@ export const MilestoneSchema = z.object({
   completedAt: z.date().optional(),
 });
 
-export const EscrowTransactionSchema = z.object({
-  escrowId: z.string(),
+export const ManualPayTransactionSchema = z.object({
+  paymentId: z.string(),
   creatorId: z.string(),
   customerId: z.string(),
   totalAmountUSD: z.number().min(0),
@@ -243,18 +189,13 @@ export const EscrowTransactionSchema = z.object({
   updatedAt: z.date(),
   disputeReason: z.string().optional(),
   arbitrationNotes: z.string().optional(),
-  autoReleaseDate: z.date().optional(),
 });
 
-/**
- * Export smart contract escrow engine
- */
-export const SmartContractEscrow = {
-  createEscrowTransaction,
-  acceptEscrowTransaction,
+export const ManualPay = {
+  createManualPayTransaction,
+  acceptManualPayTransaction,
   completeMilestone,
   raiseDispute,
   resolveDispute,
-  calculateEscrowPayout,
-  checkAutoRelease,
+  calculateManualPay,
 };

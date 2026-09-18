@@ -175,7 +175,7 @@ export const DOMAIN_KEYWORDS: Record<string, string[]> = {
     "defense", "sentencing", "bail", "warrant", "indictment", "dui", "probation",
   ],
   "ai-attorney-realestate-001": [
-    "real estate law", "purchase agreement", "title", "escrow", "closing", "deed",
+    "real estate law", "purchase agreement", "title", "closing", "deed",
     "landlord tenant", "eviction law", "zoning law", "foreclosure law", "easement",
   ],
   "ai-attorney-accountant-001": [

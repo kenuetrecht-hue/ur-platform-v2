@@ -10,11 +10,7 @@ import {
   VideoSegmentationEngine,
   VideoSegmentationResultSchema,
 } from "./video-segmentation-engine";
-import {
-  SmartContractEscrow,
-  EscrowTransactionSchema,
-  MilestoneSchema,
-} from "./smart-contract-escrow";
+import { ManualPay } from "./smart-contract-manual-pay";
 import {
   VoiceDiffusionEngine,
   VoiceAuthenticationTokenSchema,
@@ -136,13 +132,9 @@ export const backgroundEnginesRouter = router({
     }),
 
   /**
-   * ========== SMART CONTRACT ESCROW ==========
+   * Manual pay for custom creator work. Not automatic. Not a hold product.
    */
-
-  /**
-   * Create new escrow transaction
-   */
-  createEscrow: publicProcedure
+  createManualPay: publicProcedure
     .input(
       z.object({
         creatorId: z.string(),
@@ -154,48 +146,38 @@ export const backgroundEnginesRouter = router({
             description: z.string(),
             dueDate: z.date(),
             paymentPercentage: z.number().min(0).max(100),
-          })
+          }),
         ),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
-      const escrow = SmartContractEscrow.createEscrowTransaction(
+      return ManualPay.createManualPayTransaction(
         input.creatorId,
         input.customerId,
         input.totalAmountUSD,
         input.description,
-        input.milestones
+        input.milestones,
       );
-
-      return escrow;
     }),
 
-  /**
-   * Complete milestone in escrow
-   */
   completeMilestone: publicProcedure
     .input(
       z.object({
-        escrowId: z.string(),
+        paymentId: z.string(),
         milestoneId: z.string(),
         completionProof: z.string(),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
-      // In production, fetch escrow from database
-      // For now, return mock response
       return {
         success: true,
-        escrowId: input.escrowId,
+        paymentId: input.paymentId,
         milestoneId: input.milestoneId,
-        message: "Milestone marked as completed",
+        message: "Milestone marked as completed. Payout is manual.",
       };
     }),
 
-  /**
-   * Calculate escrow payout
-   */
-  calculateEscrowPayout: publicProcedure
+  calculateManualPay: publicProcedure
     .input(
       z.object({
         totalAmountUSD: z.number(),
@@ -307,10 +289,10 @@ export const backgroundEnginesRouter = router({
         viralClipGeneration: true,
         supportedPlatforms: ["tiktok", "instagram_reels", "youtube_shorts", "twitter"],
       },
-      smartContractEscrow: {
-        status: "active",
-        milestoneBasedHolds: true,
-        disputeResolution: true,
+      manualPay: {
+        status: "manual",
+        automaticHolds: false,
+        description: "Creator payouts are manual pay through Stripe bank transfer.",
       },
       voiceDiffusionEngine: {
         status: "active",

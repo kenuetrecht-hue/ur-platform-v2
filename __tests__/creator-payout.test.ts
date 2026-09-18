@@ -9,7 +9,7 @@ import {
 import { enrollContentCreator } from "../server/_core/partner-program-service";
 
 describe("Creator Uphold / blockchain payouts", () => {
-  it("requires payout setup before instant transfer", () => {
+  it("requires payout setup before manual pay", () => {
     enrollContentCreator({
       userId: "cr-pay-1",
       userEmail: "c@test.com",
@@ -25,7 +25,7 @@ describe("Creator Uphold / blockchain payouts", () => {
     expect(dash.payout.pendingBalanceCents).toBe(Math.round(1000 * CREATOR_PAYOUT_SHARE));
   });
 
-  it("sends instant USDC payout after Uphold connect", () => {
+  it("records a manual pay after Uphold connect", () => {
     completeUpholdConnection({
       userId: "cr-pay-2",
       upholdEmail: "creator@uphold.com",
@@ -38,7 +38,7 @@ describe("Creator Uphold / blockchain payouts", () => {
     expect(tx?.netCents).toBe(Math.round(2000 * CREATOR_PAYOUT_SHARE));
     expect(tx?.blockchainTxHash).toBeTruthy();
     const dash = getCreatorPayoutDashboard("cr-pay-2");
-    expect(dash.canReceiveInstantPayouts).toBe(true);
+    expect(dash.canReceiveManualPay).toBe(true);
   });
 
   it("supports direct crypto wallet payouts", () => {

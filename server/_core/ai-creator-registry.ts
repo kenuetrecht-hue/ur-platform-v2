@@ -409,7 +409,7 @@ export const CREATOR_AI_REGISTRY: CreatorAiDefinition[] = [
     "Real estate law — purchase agreements, title, leases, zoning, and closing concepts.",
     [
       "Purchase & sale agreement concepts",
-      "Title, escrow & closing overview",
+      "Title and closing overview",
       "Landlord–tenant law basics",
       "Zoning & land use",
       "Foreclosure & short sale concepts",

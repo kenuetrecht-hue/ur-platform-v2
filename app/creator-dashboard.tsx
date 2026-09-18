@@ -11,7 +11,7 @@ export default function CreatorDashboardScreen() {
           <TabScreenHeader
             icon="🎬"
             title="Content Creator Dashboard"
-            subtitle="Schedule classes · ContentMate AI · Facebook promo · instant payouts"
+            subtitle="Schedule classes · ContentMate AI · Facebook promo · manual pay"
           />
           <ContentCreatorDashboardPanel />
       </ScreenContainer>

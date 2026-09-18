@@ -190,7 +190,7 @@ export function CreatorPayoutSetupPanel() {
                 {connectUphold.isPending ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.btnText}>Link Uphold for instant USDC</Text>
+                  <Text style={styles.btnText}>Link Uphold for manual pay</Text>
                 )}
               </Pressable>
             </View>

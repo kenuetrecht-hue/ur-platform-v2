@@ -498,7 +498,7 @@ export function recordCreatorTransaction(params: {
     creatorUserId: params.creatorUserId,
     grossCents: params.amountCents,
     sourceTransactionId: ledgerTx?.id,
-    description: `Instant payout for class sale #${creator.transactionCount}`,
+    description: `Manual pay for class sale #${creator.transactionCount}`,
   });
 
   let affiliateBonusTriggered = false;

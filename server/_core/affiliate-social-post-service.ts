@@ -38,7 +38,7 @@ export function buildAffiliatePostBody(params: {
 }): string {
   const hook =
     params.hook ??
-    "Creators on UR Platform earn 85% on live classes with instant payouts. Join free:";
+    "Creators on UR Platform earn 85% on live classes with manual pay. Join free:";
   return `${hook}\n\n${params.affiliateLink}\n\n${PLATFORM_HASHTAGS[params.platform]}\n\n⚠️ AI-generated promo. UR Platform may earn commission on qualifying sign-ups.`;
 }
 

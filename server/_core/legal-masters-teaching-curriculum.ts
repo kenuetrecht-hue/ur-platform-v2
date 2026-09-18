@@ -47,7 +47,7 @@ const MODULES_BY_CREATOR: Record<string, Omit<LearningModule, "id">[]> = {
   "ai-attorney-realestate-001": [
     ...LEGAL_FOUNDATION_MODULES,
     { title: "Purchase & sale agreements", description: "Contingencies, disclosures, and closing timelines." },
-    { title: "Title, escrow & closing", description: "Title insurance, liens, and settlement statements." },
+    { title: "Title and closing", description: "Title insurance, liens, and settlement statements." },
     { title: "Landlord–tenant law basics", description: "Leases, evictions overview, habitability (educational)." },
     { title: "Zoning & land use", description: "Permits, variances, HOAs, and restrictions." },
     { title: "Foreclosure & short sale concepts", description: "Process overview and homeowner options." },
