@@ -134,7 +134,7 @@ export default function HomeScreen() {
               alreadyClaimedToday={dailySignIn.alreadyClaimedToday}
             />
             {dailySignIn.error ? (
-              <Text style={{ color: colors.muted, fontSize: 13 }}>{dailySignIn.error}</Text>
+              <Text style={{ color: colors.gold, fontSize: 13 }}>{dailySignIn.error}</Text>
             ) : null}
             <DailyHubPanel />
             <PlatformSearchPanel compact />

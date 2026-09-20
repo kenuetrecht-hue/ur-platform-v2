@@ -78,6 +78,7 @@ describe("lettering on white vs colored backgrounds", () => {
     expect(usage).toContain("Platform access active");
     expect(usage).toContain("color: colors.foreground");
     expect(usage).toContain("color: colors.muted");
+    expect(usage).not.toContain("colors.gold");
 
     const creatorPanel = readFileSync("components/ai-creator-panel.tsx", "utf8");
     expect(creatorPanel).toContain("Learn the trade");
@@ -94,5 +95,65 @@ describe("lettering on white vs colored backgrounds", () => {
 
     const emanual = readFileSync("app/e-manual.tsx", "utf8");
     expect(emanual).toContain("color: colors.foreground");
+  });
+
+  it("uses bluish-purple on white cards and gold only on the colored wash", () => {
+    const creatorAi = readFileSync("components/creator-ai-interface.tsx", "utf8");
+    expect(creatorAi).toContain("disclosureBanner");
+    expect(creatorAi).toContain("color: colors.onWhite");
+    expect(creatorAi).toContain("backgroundColor: colors.surface");
+
+    const ais = readFileSync("app/(tabs)/ais.tsx", "utf8");
+    expect(ais).toContain("Done ▲");
+    expect(ais).toMatch(/Done ▲[\s\S]{0,40}colors\.gold|colors\.gold[\s\S]{0,80}Done ▲/);
+
+    const thanks = readFileSync("components/thanks-stamps-wall.tsx", "utf8");
+    expect(thanks).toContain("backgroundColor: colors.surface");
+    expect(thanks).toContain("const washInk = colors.foreground");
+    expect(thanks).not.toContain("colors.gold");
+
+    const purchase = readFileSync("components/purchase-usage-tracker.tsx", "utf8");
+    expect(purchase).toContain("backgroundColor: colors.surface");
+    expect(purchase).toContain("color: colors.foreground");
+    expect(purchase).not.toContain("colors.gold");
+
+    const talk = readFileSync("components/ai-talk-time-tracker.tsx", "utf8");
+    expect(talk).toContain("backgroundColor: colors.surface");
+    expect(talk).toContain("color: colors.foreground");
+    expect(talk).not.toContain("colors.gold");
+
+    const social = readFileSync("components/social-feed-panel.tsx", "utf8");
+    expect(social).toMatch(/PLATFORM_DISCLOSURE_SHORT[\s\S]{0,80}colors\.onWhite|colors\.onWhite[\s\S]{0,80}PLATFORM_DISCLOSURE_SHORT/);
+
+    const warning = readFileSync("components/warning-banner.tsx", "utf8");
+    expect(warning).toContain("color: colors.onWhite");
+    expect(warning).not.toContain("colors.gold");
+
+    const hive = readFileSync("components/hive-town-hall-panel.tsx", "utf8");
+    expect(hive).toMatch(/← Back[\s\S]{0,40}colors\.foreground|colors\.foreground[\s\S]{0,80}← Back/);
+
+    const loyalty = readFileSync("components/daily-loyalty-banner.tsx", "utf8");
+    expect(loyalty).toContain("loyalty points");
+    expect(loyalty).toMatch(/color: colors\.gold[\s\S]{0,80}loyalty points|loyalty points[\s\S]{0,80}color: colors\.gold/);
+  });
+
+  it("uses a readable shared composer on every AI talk and send box", () => {
+    const layout = readFileSync("lib/chat-composer-layout.ts", "utf8");
+    expect(layout).toContain("minHeight: 104");
+    expect(layout).toContain("maxHeight: 220");
+    expect(layout).toContain("fontSize: 17");
+
+    const desks = [
+      "components/creator-ai-interface.tsx",
+      "components/personal-ai-interface.tsx",
+      "components/language-ai-interface.tsx",
+      "components/hive-town-hall-panel.tsx",
+      "components/ai-creator-panel.tsx",
+      "components/tech-builder-learn-panel.tsx",
+      "components/game-forge-learn-panel.tsx",
+    ];
+    for (const file of desks) {
+      expect(readFileSync(file, "utf8")).toContain("CHAT_COMPOSER_INPUT");
+    }
   });
 });

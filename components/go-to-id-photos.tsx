@@ -93,7 +93,7 @@ export function PostSignInAgeVerifyGate() {
       />
       <Link
         href={picturesAlreadyPassed ? AFTER_ID_PASS_HREF : JOIN_ACCOUNT_HREF}
-        style={{ color: colors.gold, fontWeight: "800", fontSize: 16, textAlign: "center" }}
+        style={{ color: colors.foreground, fontWeight: "800", fontSize: 16, textAlign: "center" }}
       >
         If nothing happened, tap here
       </Link>

@@ -5,7 +5,7 @@ import {
   AFFILIATE_LINK_BEFORE_TEXT,
   buildAiChatDisclosure,
 } from "@/lib/platform-disclosure-copy";
-import { brandDisclosureSurface, withAlpha } from "@/lib/brand-theme";
+import { brandDisclosureSurface } from "@/lib/brand-theme";
 
 export interface AIDisclosureWrapperProps {
   children: React.ReactNode;
@@ -43,16 +43,16 @@ export function AIDisclosureWrapper({
   const brand = brandDisclosureSurface(colors);
 
   const noteStyle: TextStyle = {
-    color: withAlpha(colors.muted, 0.92),
+    color: colors.onWhite,
     fontSize: 10,
     lineHeight: 14,
     textAlign: "center",
     letterSpacing: 0.12,
-    opacity: 0.78,
   };
 
   const dividerStyle = {
     ...brand,
+    backgroundColor: colors.surface,
     paddingVertical: 5,
     paddingHorizontal: 14,
   };

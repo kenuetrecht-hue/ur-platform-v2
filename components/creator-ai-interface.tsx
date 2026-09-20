@@ -20,6 +20,7 @@ import { useRouter } from "expo-router";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { ComposerDock } from "@/components/composer-dock";
+import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { useAiTalkMeterPlayback } from "@/hooks/use-ai-talk-meter-playback";
 import { useNetworkConnectivity, isMeteringConnected } from "@/hooks/use-network-connectivity";
 import { openExternalCheckoutUrl } from "@/lib/web-checkout";
@@ -29,7 +30,7 @@ import { useAuth } from "@/lib/auth-context";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { METER_HEARTBEAT_INTERVAL_MS } from "@/lib/ai-metering-policy";
 import { buildAiChatDisclosure, AI_WELCOME_DISCLOSURE_SUFFIX } from "@/lib/platform-disclosure-copy";
-import { brandDisclosureSurface, withAlpha } from "@/lib/brand-theme";
+import { brandDisclosureSurface } from "@/lib/brand-theme";
 import { UsageUpgradePanel } from "@/components/usage-upgrade-panel";
 import { UsageAllowanceBanner } from "@/components/usage-allowance-banner";
 import { UsageTrackerDashboard } from "@/components/usage-tracker-dashboard";
@@ -678,18 +679,18 @@ export function CreatorAIInterface({
         style={[
           styles.disclosureBanner,
           brandDisclosureSurface(colors),
+          { backgroundColor: colors.surface },
         ]}
         accessibilityRole="text"
         accessibilityLabel={buildAiChatDisclosure(creatorName)}
       >
         <Text
           style={{
-            color: withAlpha(colors.muted, 0.92),
+            color: colors.onWhite,
             fontSize: 10,
             lineHeight: 14,
             textAlign: "center",
             letterSpacing: 0.12,
-            opacity: 0.85,
           }}
           numberOfLines={4}
         >
@@ -1158,7 +1159,7 @@ export function CreatorAIInterface({
                         color: colors.foreground,
                         backgroundColor: colors.surface,
                         borderColor: colors.border,
-                        minHeight: 44,
+                        minHeight: CHAT_COMPOSER_INPUT.minHeight,
                       },
                     ]}
                     placeholder="Describe the image to generate…"
@@ -1269,9 +1270,9 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   attachButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -1292,16 +1293,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     flexShrink: 0,
   },
-  input: {
-    flex: 1,
-    minHeight: 44,
-    maxHeight: 120,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-  },
-  sendButton: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 },
-  sendLabel: { color: "#fff", fontWeight: "600", fontSize: 15 },
+  input: { ...CHAT_COMPOSER_INPUT },
+  sendButton: { ...CHAT_COMPOSER_SEND },
+  sendLabel: { color: "#fff", fontWeight: "700", fontSize: 16 },
 });

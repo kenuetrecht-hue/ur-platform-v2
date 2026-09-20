@@ -11,6 +11,7 @@ import {
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { ComposerDock } from "@/components/composer-dock";
+import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 
 type LearnLevel = "beginner" | "intermediate" | "advanced";
 type LearnMode = "lesson" | "practice" | "certification" | "on_the_job" | "conversation";
@@ -339,6 +340,6 @@ const styles = StyleSheet.create({
   aiBubble: { alignSelf: "flex-start", borderWidth: 1 },
   completeBtn: { marginHorizontal: 12, marginBottom: 4, borderWidth: 1, borderRadius: 10, padding: 10 },
   inputRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
-  input: { flex: 1, borderWidth: 1, borderRadius: 12, padding: 10, maxHeight: 100, fontSize: 14 },
-  sendBtn: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 },
+  input: { ...CHAT_COMPOSER_INPUT },
+  sendBtn: { ...CHAT_COMPOSER_SEND },
 });

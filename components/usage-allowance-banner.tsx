@@ -27,7 +27,7 @@ export function UsageAllowanceBanner({ creatorId, creatorName }: Props) {
 
   if (access.data.hasAccess && !sub && access.data.source !== "ai_subscription") {
     return (
-      <View style={[styles.box, { borderColor: colors.primary, backgroundColor: `${colors.primary}10` }]}>
+      <View style={[styles.box, { borderColor: colors.border, backgroundColor: colors.surface }]}>
         <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
           ✓ Platform access active — {creatorName}
         </Text>

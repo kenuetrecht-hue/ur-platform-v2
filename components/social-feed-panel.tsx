@@ -404,15 +404,15 @@ export function SocialFeedPanel({
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={[styles.disclosureBar, brandDisclosureSurface(colors)]}>
-        <Text style={{ color: withAlpha(colors.secondary, 0.85), fontSize: 10, lineHeight: 14 }}>
+      <View style={[styles.disclosureBar, brandDisclosureSurface(colors), { backgroundColor: colors.surface }]}>
+        <Text style={{ color: colors.onWhite, fontSize: 10, lineHeight: 14 }}>
           {PLATFORM_DISCLOSURE_SHORT}
         </Text>
       </View>
 
       {stats.data ? (
         <View style={[styles.statsRow, { borderColor: withAlpha(colors.secondary, 0.15) }]}>
-          <Text style={{ color: colors.muted, fontSize: 11 }}>
+          <Text style={{ color: colors.gold, fontSize: 11 }}>
             {stats.data.postCount} posts · {stats.data.totalLikesReceived} likes · {stats.data.friendCount} friends
           </Text>
         </View>
@@ -441,7 +441,7 @@ export function SocialFeedPanel({
                 </LinearGradient>
               ) : (
                 <View style={styles.sortTabInner}>
-                  <Text style={[styles.sortTabText, { color: colors.foreground }]}>{s.label}</Text>
+                  <Text style={[styles.sortTabText, { color: colors.gold }]}>{s.label}</Text>
                 </View>
               )}
             </Pressable>
@@ -725,7 +725,7 @@ const styles = StyleSheet.create({
   chipRow: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
   chip: { borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 12, paddingVertical: 6 },
   composer: { marginHorizontal: 16, marginBottom: 8, borderRadius: 14, borderWidth: 1, padding: 12, gap: 8 },
-  composerInput: { borderWidth: 1, borderRadius: 10, padding: 12, minHeight: 80, fontSize: 15, textAlignVertical: "top" },
+  composerInput: { borderWidth: 1, borderRadius: 14, padding: 14, minHeight: 104, fontSize: 17, lineHeight: 24, textAlignVertical: "top" },
   urlInput: { borderWidth: 1, borderRadius: 10, padding: 10, fontSize: 13 },
   visibilityRow: { flexDirection: "row", gap: 8 },
   visChip: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 },

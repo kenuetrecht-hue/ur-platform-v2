@@ -19,6 +19,7 @@ import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync"
 import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { ComposerDock } from "@/components/composer-dock";
+import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { playExclusiveAudio, stopExclusiveAudio } from "@/lib/exclusive-audio-player";
 import { speakText } from "@/lib/azure-tts-service";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
@@ -442,7 +443,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
                 backgroundColor: colors.background,
                 borderColor: colors.border,
                 color: colors.foreground,
-                minHeight: 44,
+                minHeight: CHAT_COMPOSER_INPUT.minHeight,
               },
             ]}
             placeholder="Target phrase"
@@ -459,7 +460,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
                 backgroundColor: colors.background,
                 borderColor: colors.border,
                 color: colors.foreground,
-                minHeight: 44,
+                minHeight: CHAT_COMPOSER_INPUT.minHeight,
               },
             ]}
             placeholder={modePlaceholder.drill}
@@ -768,22 +769,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   textInput: {
-    flex: 1,
-    minHeight: 44,
-    maxHeight: 120,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    lineHeight: 22,
+    ...CHAT_COMPOSER_INPUT,
   },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    ...CHAT_COMPOSER_SEND,
+    minWidth: 52,
   },
   sendButtonText: {
     fontSize: 22,

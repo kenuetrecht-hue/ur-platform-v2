@@ -13,6 +13,7 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { ComposerDock } from "@/components/composer-dock";
+import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 
@@ -173,7 +174,7 @@ export function HiveTownHallPanel() {
           </Text>
         </View>
 
-        <Text style={[styles.label, { color: colors.foreground }]}>Meeting title</Text>
+        <Text style={[styles.label, { color: colors.gold }]}>Meeting title</Text>
         <TextInput
           value={title}
           onChangeText={setTitle}
@@ -182,7 +183,7 @@ export function HiveTownHallPanel() {
           style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
         />
 
-        <Text style={[styles.label, { color: colors.foreground }]}>First question (optional — helps pick panel)</Text>
+        <Text style={[styles.label, { color: colors.gold }]}>First question (optional — helps pick panel)</Text>
         <TextInput
           value={seedMessage}
           onChangeText={setSeedMessage}
@@ -192,7 +193,7 @@ export function HiveTownHallPanel() {
           style={[styles.inputMultiline, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
         />
 
-        <Text style={[styles.label, { color: colors.foreground }]}>Panel</Text>
+        <Text style={[styles.label, { color: colors.gold }]}>Panel</Text>
         {PANEL_MODES.map((mode) => (
           <Pressable
             key={mode.id}
@@ -243,7 +244,7 @@ export function HiveTownHallPanel() {
             disabled={loading || scheduleMutation.isPending}
             style={[styles.secondaryBtn, { borderColor: colors.border }]}
           >
-            <Text style={{ color: colors.foreground, fontWeight: "600" }}>Schedule in 1 hour</Text>
+            <Text style={{ color: colors.gold, fontWeight: "600" }}>Schedule in 1 hour</Text>
           </Pressable>
         </View>
 
@@ -255,7 +256,7 @@ export function HiveTownHallPanel() {
 
         {liveSessions.length > 0 ? (
           <View style={styles.sessionList}>
-            <Text style={[styles.label, { color: colors.foreground }]}>Live now</Text>
+            <Text style={[styles.label, { color: colors.gold }]}>Live now</Text>
             {liveSessions.map((s) => (
               <Pressable
                 key={s.id}
@@ -271,7 +272,7 @@ export function HiveTownHallPanel() {
 
         {upcomingSessions.length > 0 ? (
           <View style={styles.sessionList}>
-            <Text style={[styles.label, { color: colors.foreground }]}>Upcoming</Text>
+            <Text style={[styles.label, { color: colors.gold }]}>Upcoming</Text>
             {upcomingSessions.map((s) => (
               <Pressable
                 key={s.id}
@@ -296,7 +297,7 @@ export function HiveTownHallPanel() {
     >
       <View style={[styles.sessionHeader, { borderColor: colors.border, backgroundColor: colors.surface }]}>
         <Pressable onPress={() => setActiveSessionId(null)} hitSlop={8}>
-          <Text style={{ color: colors.gold, fontWeight: "700", fontSize: 12 }}>← Back</Text>
+          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>← Back</Text>
         </Pressable>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={{ color: colors.foreground, fontWeight: "700" }} numberOfLines={1}>
@@ -465,6 +466,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     gap: 8,
   },
-  composerInput: { flex: 1, fontSize: 15, maxHeight: 100, paddingVertical: 8 },
-  sendBtn: { borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10 },
+  composerInput: { ...CHAT_COMPOSER_INPUT },
+  sendBtn: { ...CHAT_COMPOSER_SEND },
 });

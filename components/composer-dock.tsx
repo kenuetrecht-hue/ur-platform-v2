@@ -34,13 +34,13 @@ export function ComposerDock({ children, paddingBottom = 8, style }: ComposerDoc
 const styles = StyleSheet.create({
   dock: {
     flexShrink: 0,
-    marginHorizontal: 10,
-    marginTop: 6,
-    marginBottom: 8,
-    borderRadius: 16,
+    marginHorizontal: 8,
+    marginTop: 8,
+    marginBottom: 10,
+    borderRadius: 18,
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingTop: 8,
+    paddingHorizontal: 12,
+    paddingTop: 12,
     zIndex: 2,
   },
 });

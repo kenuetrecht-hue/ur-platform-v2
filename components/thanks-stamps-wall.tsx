@@ -47,23 +47,31 @@ export function ThanksStampsWall({
   const posts = wall.data?.posts ?? [];
   const bag = wallet.data?.items ?? [];
   const who = targetName ?? (targetType === "ai" ? "this AI" : "this page");
+  const washInk = colors.foreground;
+  const washMuted = colors.muted;
 
   return (
-    <View style={[styles.wrap, compact && styles.compact, { borderColor: colors.border }]}>
+    <View
+      style={[
+        styles.wrap,
+        compact && styles.compact,
+        { borderColor: colors.border, backgroundColor: colors.surface },
+      ]}
+    >
       <Pressable onPress={() => setOpen((v) => !v)} style={styles.header} hitSlop={6}>
-        <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: compact ? 12 : 13 }}>
+        <Text style={{ color: washInk, fontWeight: "800", fontSize: compact ? 12 : 13 }}>
           Thanks wall · {posts.length} stamp{posts.length === 1 ? "" : "s"}
         </Text>
-        <Text style={{ color: colors.muted, fontSize: 11 }}>{open ? "Hide" : "Show"}</Text>
+        <Text style={{ color: washMuted, fontSize: 11 }}>{open ? "Hide" : "Show"}</Text>
       </Pressable>
       {open ? (
         <>
-          <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+          <Text style={{ color: washMuted, fontSize: 11, lineHeight: 16 }}>
             Stickers of appreciation for {who}. Not a tip. Not cash. Creators do not get a payout from stamps.
           </Text>
           {wall.isLoading ? <ActivityIndicator color={colors.primary} /> : null}
           {posts.length === 0 ? (
-            <Text style={{ color: colors.muted, fontSize: 11 }}>No stamps here yet. Be the first to say thanks.</Text>
+            <Text style={{ color: washMuted, fontSize: 11 }}>No stamps here yet. Be the first to say thanks.</Text>
           ) : (
             <View style={styles.row}>
               {posts.map((post) => (
@@ -82,7 +90,7 @@ export function ThanksStampsWall({
           )}
           {bag.length > 0 ? (
             <>
-              <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: "700", marginTop: 4 }}>
+              <Text style={{ color: washInk, fontSize: 11, fontWeight: "700", marginTop: 4 }}>
                 Stick one of yours
               </Text>
               <View style={styles.row}>
@@ -131,11 +139,11 @@ export function ThanksStampsWall({
               ) : null}
             </>
           ) : (
-            <Text style={{ color: colors.muted, fontSize: 11 }}>
+            <Text style={{ color: washMuted, fontSize: 11 }}>
               Buy thanks stamps on Profile — 4 per $1 — then stick one here.
             </Text>
           )}
-          {notice ? <Text style={{ color: colors.muted, fontSize: 11 }}>{notice}</Text> : null}
+          {notice ? <Text style={{ color: washMuted, fontSize: 11 }}>{notice}</Text> : null}
         </>
       ) : null}
     </View>

@@ -18,6 +18,7 @@ import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { useAuth } from "@/lib/auth-context";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { ComposerDock } from "@/components/composer-dock";
+import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
 import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 import { playExclusiveAudio, stopExclusiveAudio, unlockWebAudio } from "@/lib/exclusive-audio-player";
@@ -534,22 +535,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   textInput: {
-    flex: 1,
-    minHeight: 44,
-    maxHeight: 120,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    lineHeight: 22,
+    ...CHAT_COMPOSER_INPUT,
   },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    ...CHAT_COMPOSER_SEND,
+    minWidth: 52,
   },
   sendButtonText: {
     fontSize: 22,

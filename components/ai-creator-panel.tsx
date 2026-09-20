@@ -28,6 +28,7 @@ import { AiSpecialistPricingPanel } from "@/components/ai-specialist-pricing-pan
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { ComposerDock } from "@/components/composer-dock";
+import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
 import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 
@@ -674,6 +675,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   inputRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, flexShrink: 0 },
-  input: { flex: 1, minHeight: 44, maxHeight: 100, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14 },
-  sendBtn: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 },
+  input: { ...CHAT_COMPOSER_INPUT },
+  sendBtn: { ...CHAT_COMPOSER_SEND },
 });

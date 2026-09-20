@@ -204,7 +204,7 @@ export default function AIsScreen() {
                     </Text>
                     {selectedCreator ? (
                       <Pressable onPress={() => setCatalogOpen(false)} hitSlop={8}>
-                        <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>Done ▲</Text>
+                        <Text style={{ color: colors.gold, fontWeight: "700", fontSize: 12 }}>Done ▲</Text>
                       </Pressable>
                     ) : null}
                   </View>
@@ -231,7 +231,7 @@ export default function AIsScreen() {
                   ) : null}
 
                   {isError ? (
-                    <Text style={[styles.hint, { color: colors.muted }]}>
+                    <Text style={[styles.hint, { color: colors.gold }]}>
                       Using offline catalog — chat still works when connected.
                     </Text>
                   ) : null}
@@ -243,7 +243,7 @@ export default function AIsScreen() {
                       onSelect={pickSpecialist}
                     />
                   ) : (
-                    <Text style={[styles.emptyText, { color: colors.muted }]}>
+                    <Text style={[styles.emptyText, { color: colors.gold }]}>
                       No specialists in this category.
                     </Text>
                   )}
@@ -271,7 +271,7 @@ export default function AIsScreen() {
             />
           ) : (
             <View style={[styles.placeholder, { borderColor: colors.border }]}>
-              <Text style={{ color: colors.muted, textAlign: "center" }}>
+              <Text style={{ color: colors.gold, textAlign: "center" }}>
                 Select a specialist to start chatting.
               </Text>
             </View>
@@ -295,8 +295,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     overflow: "hidden",
-    paddingHorizontal: 4,
-    paddingBottom: 2,
+    paddingHorizontal: 8,
+    paddingBottom: 4,
   },
   modeRow: {
     flexDirection: "row",
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   },
   catalogBlock: {
     flexGrow: 0,
-    maxHeight: 320,
+    maxHeight: 260,
     marginBottom: 4,
   },
   catalogBlockInner: {

@@ -112,32 +112,32 @@ function TabInner({
 const styles = StyleSheet.create({
   wrap: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 4,
-    paddingTop: 2,
-    paddingBottom: 3,
+    paddingHorizontal: 6,
+    paddingTop: 4,
+    paddingBottom: 5,
   },
   row: {
     flexDirection: "row",
     alignItems: "stretch",
-    gap: 4,
+    gap: 6,
   },
   tab: {
     flex: 1,
     minWidth: 0,
   },
   activePill: {
-    borderRadius: 10,
-    paddingVertical: 4,
-    paddingHorizontal: 3,
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
     alignItems: "center",
-    gap: 1,
+    gap: 2,
   },
   inactivePill: {
-    borderRadius: 10,
-    paddingVertical: 4,
-    paddingHorizontal: 3,
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
     alignItems: "center",
-    gap: 1,
+    gap: 2,
   },
   iconWrap: {
     position: "relative",
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   label: {
-    fontSize: 9,
+    fontSize: 10,
     letterSpacing: 0.1,
     textAlign: "center",
   },

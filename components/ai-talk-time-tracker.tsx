@@ -37,7 +37,7 @@ export function AiTalkTimeTracker({
 
   if (compact) {
     return (
-      <View style={[styles.compact, { borderColor: colors.primary, backgroundColor: `${colors.primary}12` }]}>
+      <View style={[styles.compact, { borderColor: colors.border, backgroundColor: colors.surface }]}>
         <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 12 }}>
           🎙️ {totalRemainingDisplay ?? nextLoss.remainingDisplay} left
         </Text>
@@ -50,8 +50,8 @@ export function AiTalkTimeTracker({
   }
 
   return (
-    <View style={[styles.box, { borderColor: colors.primary, backgroundColor: `${colors.primary}10` }]}>
-      <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 13 }}>
+    <View style={[styles.box, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+      <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 13 }}>
         {AI_TALK_EXPIRY_TRACKER_HEADLINE}
       </Text>
       <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14, marginTop: 6 }}>

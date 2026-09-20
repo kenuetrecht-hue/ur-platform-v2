@@ -34,7 +34,7 @@ export const LAYOUT_OVERLAP = {
   /** Desktop-web floor when there is no home indicator. Phone web uses the OS inset instead. */
   WEB_TAB_BAR_BOTTOM_PAD: 20,
   /** AIs tab chrome above the chat panel (header + mode row + specialist bar). */
-  AIS_TAB_CHROME_HEIGHT: 112,
+  AIS_TAB_CHROME_HEIGHT: 124,
 } as const;
 
 /** Legal disclaimer strip height when stacked directly above the tab bar. */

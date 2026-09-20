@@ -49,25 +49,25 @@ export function DailyLoyaltyBanner({
 
   return (
     <BrandGradient variant="soft" style={[styles.active, highlight]}>
-      <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14 }}>
+      <Text style={{ color: colors.gold, fontWeight: "700", fontSize: 14 }}>
         +{pointsEarnedToday.toLocaleString()} loyalty points
       </Text>
-      <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4, lineHeight: 16 }}>
+      <Text style={{ color: colors.gold, fontSize: 11, marginTop: 4, lineHeight: 16 }}>
         Balance: {totalPoints.toLocaleString()} LP · Streak: {currentStreakDays} day
         {currentStreakDays === 1 ? "" : "s"} · Sign-ins: {totalSignIns}
       </Text>
       {milestoneUnlocked ? (
-        <Text style={{ color: colors.secondary, fontWeight: "600", fontSize: 11, marginTop: 6 }}>
+        <Text style={{ color: colors.gold, fontWeight: "600", fontSize: 11, marginTop: 6 }}>
           {milestoneUnlocked.label} — claim free text messages from Profile
         </Text>
       ) : null}
       {!milestoneUnlocked && nextMilestone ? (
-        <Text style={{ color: colors.muted, fontSize: 10, marginTop: 4 }}>
+        <Text style={{ color: colors.gold, fontSize: 10, marginTop: 4 }}>
           {nextMilestone.day - currentStreakDays} day(s) until {nextMilestone.freeTextMessages} free
           messages
         </Text>
       ) : null}
-      <Text style={{ color: withAlpha(colors.muted, 0.9), fontSize: 9, marginTop: 6 }}>
+      <Text style={{ color: colors.gold, fontSize: 9, marginTop: 6 }}>
         100 + (streak day × 10) LP per sign-in · Redeem in Profile
       </Text>
     </BrandGradient>

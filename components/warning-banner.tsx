@@ -5,7 +5,7 @@ import {
   PLATFORM_DISCLOSURE_FULL,
   PLATFORM_DISCLOSURE_SHORT,
 } from "@/lib/platform-disclosure-copy";
-import { brandDisclosureSurface, withAlpha } from "@/lib/brand-theme";
+import { brandDisclosureSurface } from "@/lib/brand-theme";
 
 export interface WarningBannerProps {
   variant?: "default" | "compact";
@@ -27,16 +27,16 @@ export function WarningBanner({
     variant === "compact" ? PLATFORM_DISCLOSURE_SHORT : PLATFORM_DISCLOSURE_FULL;
 
   return (
-    <View style={[styles.bar, brand]}>
+    <View style={[styles.bar, brand, { backgroundColor: colors.surface }]}>
       <Text
-        style={[styles.text, { color: withAlpha(colors.muted, 0.92), flex: 1 }]}
+        style={[styles.text, { color: colors.onWhite, flex: 1 }]}
         numberOfLines={3}
       >
         {message}
       </Text>
       {dismissible && onDismiss ? (
         <Pressable onPress={onDismiss} hitSlop={8} accessibilityLabel="Dismiss disclosure">
-          <Text style={[styles.dismiss, { color: colors.muted }]}>×</Text>
+          <Text style={[styles.dismiss, { color: colors.onWhite }]}>×</Text>
         </Pressable>
       ) : null}
     </View>
@@ -126,8 +126,8 @@ export function WebWarningBanner() {
   const brand = brandDisclosureSurface(colors);
 
   return (
-    <View style={[styles.webBar, brand, { paddingTop: insets.top + 4, paddingBottom: 5 }]}>
-      <Text style={[styles.text, { color: withAlpha(colors.muted, 0.92) }]}>
+    <View style={[styles.webBar, brand, { backgroundColor: colors.surface, paddingTop: insets.top + 4, paddingBottom: 5 }]}>
+      <Text style={[styles.text, { color: colors.onWhite }]}>
         {PLATFORM_DISCLOSURE_SHORT}
       </Text>
     </View>

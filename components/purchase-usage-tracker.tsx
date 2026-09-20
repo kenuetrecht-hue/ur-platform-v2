@@ -38,7 +38,7 @@ export function PurchaseUsageTracker({
 
   if (compact) {
     return (
-      <View style={[styles.compact, { borderColor: colors.primary, backgroundColor: `${colors.primary}12` }]}>
+      <View style={[styles.compact, { borderColor: colors.border, backgroundColor: colors.surface }]}>
         <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 12 }}>{title}</Text>
         <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12, marginTop: 3 }}>
           {usedLeft}
@@ -53,8 +53,8 @@ export function PurchaseUsageTracker({
   }
 
   return (
-    <View style={[styles.box, { borderColor: colors.primary, backgroundColor: `${colors.primary}10` }]}>
-      <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 13 }}>
+    <View style={[styles.box, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+      <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 13 }}>
         {USAGE_TRACKER_HEADLINE}
       </Text>
       <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 14, marginTop: 6 }}>
