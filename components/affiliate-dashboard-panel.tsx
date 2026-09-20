@@ -47,12 +47,12 @@ export function AffiliateDashboardPanel() {
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 32 }}>
       <CustomLinkCard customUrl={referralLink} slug={profile.customSlug} label="Your affiliate link" />
-      <View style={[styles.banner, { backgroundColor: `${colors.primary}12`, borderColor: colors.primary }]}>
-        <Text style={[styles.title, { color: colors.foreground }]}>Affiliate Dashboard</Text>
-        <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>
+      <View style={[styles.banner, { backgroundColor: `${colors.primary}12`, borderColor: colors.gold }]}>
+        <Text style={[styles.title, { color: colors.gold }]}>Affiliate Dashboard</Text>
+        <Text style={{ color: colors.gold, fontSize: 13, lineHeight: 19 }}>
           {dash.data.payoutRule}
         </Text>
-        <Text style={{ color: colors.foreground, fontSize: 12, marginTop: 6 }}>
+        <Text style={{ color: colors.gold, fontSize: 12, marginTop: 6 }}>
           {profile.totalReferrals} referrals · {profile.qualifiedReferrals} qualified · $
           {(profile.totalBonusesPaidCents / 100).toFixed(2)} earned
         </Text>

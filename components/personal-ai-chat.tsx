@@ -254,7 +254,7 @@ export function PersonalAIChat({
 
         {/* Input */}
         <View
-          className="flex-row items-center gap-2 p-4 border-t"
+          className="flex-row items-end gap-2 p-4 border-t"
           style={{ borderTopColor: colors.border }}
         >
           <TextInput
@@ -262,7 +262,11 @@ export function PersonalAIChat({
             onChangeText={setInputText}
             placeholder="Ask me anything..."
             placeholderTextColor={colors.muted}
-            className="flex-1 bg-surface text-foreground rounded-full px-4 py-2"
+            className="flex-1 bg-surface text-foreground rounded-xl px-4 py-3"
+            style={{ minHeight: 240, height: 240, maxHeight: 480, textAlignVertical: "top" }}
+            multiline
+            numberOfLines={10}
+            scrollEnabled
             editable={!isLoading}
           />
           <TouchableOpacity

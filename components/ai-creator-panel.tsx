@@ -28,7 +28,7 @@ import { AiSpecialistPricingPanel } from "@/components/ai-specialist-pricing-pan
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { ComposerDock } from "@/components/composer-dock";
-import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
+import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_LINES, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
 import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 
@@ -592,6 +592,8 @@ export function AiLearnSurface({
           placeholderTextColor={colors.muted}
           style={[styles.input, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
           multiline
+          numberOfLines={CHAT_COMPOSER_LINES}
+          scrollEnabled
           maxLength={4000}
         />
         <TouchableOpacity

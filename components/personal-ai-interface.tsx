@@ -18,7 +18,7 @@ import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { useAuth } from "@/lib/auth-context";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { ComposerDock } from "@/components/composer-dock";
-import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
+import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_LINES, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
 import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 import { playExclusiveAudio, stopExclusiveAudio, unlockWebAudio } from "@/lib/exclusive-audio-player";
@@ -386,6 +386,8 @@ export function PersonalAIInterface({
             value={inputText}
             onChangeText={setInputText}
             multiline
+            numberOfLines={CHAT_COMPOSER_LINES}
+            scrollEnabled
             maxLength={2000}
             editable={!loading}
             onSubmitEditing={handleSendMessage}

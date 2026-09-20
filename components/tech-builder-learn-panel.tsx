@@ -11,7 +11,7 @@ import {
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { ComposerDock } from "@/components/composer-dock";
-import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
+import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_LINES, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 
 type LearnLevel = "beginner" | "intermediate" | "advanced";
 type LearnMode = "lesson" | "practice" | "certification" | "on_the_job" | "conversation";
@@ -304,6 +304,8 @@ export function TechBuilderLearnPanel({
           value={inputText}
           onChangeText={setInputText}
           multiline
+          numberOfLines={CHAT_COMPOSER_LINES}
+          scrollEnabled
           maxLength={4000}
           editable={!loading}
         />

@@ -92,6 +92,8 @@ describe("lettering on white vs colored backgrounds", () => {
     expect(ops).toContain("📚 Learn");
     expect(ops).toContain("📌 Assign");
     expect(ops).toContain("active ? \"#fff\" : colors.foreground");
+    expect(ops).toContain("Launch advertising budget");
+    expect(ops).toMatch(/Launch advertising budget[\s\S]{0,280}colors\.gold|colors\.gold[\s\S]{0,200}Launch advertising budget/);
 
     const emanual = readFileSync("app/e-manual.tsx", "utf8");
     expect(emanual).toContain("color: colors.foreground");
@@ -135,12 +137,19 @@ describe("lettering on white vs colored backgrounds", () => {
     const loyalty = readFileSync("components/daily-loyalty-banner.tsx", "utf8");
     expect(loyalty).toContain("loyalty points");
     expect(loyalty).toMatch(/color: colors\.gold[\s\S]{0,80}loyalty points|loyalty points[\s\S]{0,80}color: colors\.gold/);
+
+    const linkCard = readFileSync("components/transaction-history-list.tsx", "utf8");
+    expect(linkCard).toContain("Your custom link");
+    expect(linkCard).toContain("color: colors.gold");
+    expect(linkCard).toContain("customUrl");
   });
 
   it("uses a readable shared composer on every AI talk and send box", () => {
     const layout = readFileSync("lib/chat-composer-layout.ts", "utf8");
-    expect(layout).toContain("minHeight: 104");
-    expect(layout).toContain("maxHeight: 220");
+    expect(layout).toContain("minHeight: 240");
+    expect(layout).toContain("height: 240");
+    expect(layout).toContain("maxHeight: 480");
+    expect(layout).toContain("CHAT_COMPOSER_LINES = 10");
     expect(layout).toContain("fontSize: 17");
 
     const desks = [
@@ -153,7 +162,9 @@ describe("lettering on white vs colored backgrounds", () => {
       "components/game-forge-learn-panel.tsx",
     ];
     for (const file of desks) {
-      expect(readFileSync(file, "utf8")).toContain("CHAT_COMPOSER_INPUT");
+      const src = readFileSync(file, "utf8");
+      expect(src).toContain("CHAT_COMPOSER_INPUT");
+      expect(src).toContain("CHAT_COMPOSER_LINES");
     }
   });
 });

@@ -20,7 +20,7 @@ import { useRouter } from "expo-router";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { ComposerDock } from "@/components/composer-dock";
-import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
+import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_LINES, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { useAiTalkMeterPlayback } from "@/hooks/use-ai-talk-meter-playback";
 import { useNetworkConnectivity, isMeteringConnected } from "@/hooks/use-network-connectivity";
 import { openExternalCheckoutUrl } from "@/lib/web-checkout";
@@ -909,6 +909,8 @@ export function CreatorAIInterface({
               value={inputText}
               onChangeText={setInputText}
               multiline
+              numberOfLines={CHAT_COMPOSER_LINES}
+              scrollEnabled
               maxLength={2000}
               editable
               returnKeyType="send"

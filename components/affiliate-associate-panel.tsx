@@ -53,11 +53,11 @@ export function AffiliateAssociatePanel({ referralLink }: { referralLink: string
 
   return (
     <View style={{ gap: 14 }}>
-      <View style={[styles.banner, { backgroundColor: `${colors.primary}12`, borderColor: colors.primary }]}>
-        <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
+      <View style={[styles.banner, { backgroundColor: `${colors.primary}12`, borderColor: colors.gold }]}>
+        <Text style={{ color: colors.gold, fontWeight: "800", fontSize: 16 }}>
           🔗 Associate AI — your affiliate sales helper
         </Text>
-        <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
+        <Text style={{ color: colors.gold, fontSize: 12, lineHeight: 18 }}>
           Text chat is free. Pay to hear Associate AI speak ($2.99 / 30 min voice pack) when your
           affiliate earnings justify it. Drafts social posts with your UR link and queues automatic sharing.
         </Text>

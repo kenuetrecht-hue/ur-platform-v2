@@ -19,7 +19,7 @@ import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync"
 import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { ComposerDock } from "@/components/composer-dock";
-import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
+import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_LINES, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { playExclusiveAudio, stopExclusiveAudio } from "@/lib/exclusive-audio-player";
 import { speakText } from "@/lib/azure-tts-service";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
@@ -582,6 +582,8 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
             value={inputText}
             onChangeText={setInputText}
             multiline
+            numberOfLines={CHAT_COMPOSER_LINES}
+            scrollEnabled
             maxLength={4000}
             editable={!loading && canChat}
             onSubmitEditing={() => void sendMessage(inputText)}

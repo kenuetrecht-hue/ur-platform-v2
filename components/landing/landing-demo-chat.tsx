@@ -179,6 +179,8 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
         editable={!demoUsed && !loading}
         style={styles.input}
         multiline
+        numberOfLines={10}
+        scrollEnabled
       />
       <Text style={styles.counter}>
         {message.length}/{messageMax}
@@ -277,7 +279,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: T.border,
     borderRadius: 12,
-    minHeight: 104,
+    minHeight: 240,
+    height: 240,
+    maxHeight: 480,
     padding: 14,
     color: T.text,
     fontSize: 17,

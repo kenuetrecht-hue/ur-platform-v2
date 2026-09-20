@@ -185,6 +185,8 @@ export function InternetCenterMailPanel({
             placeholder="Write your message…"
             placeholderTextColor={colors.muted}
             multiline
+            numberOfLines={10}
+            scrollEnabled
             textAlignVertical="top"
             style={[
               styles.bodyField,
@@ -432,7 +434,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 15,
-    minHeight: 160,
+    minHeight: 240,
+    height: 240,
+    maxHeight: 480,
   },
   sendBtn: { marginTop: 16, borderRadius: 12, overflow: "hidden" },
   sendBtnInner: { paddingVertical: 14, alignItems: "center" },

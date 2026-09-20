@@ -204,11 +204,11 @@ export function PlatformOpsConsole({
   return (
     <View style={chatDesk ? styles.chatDesk : styles.stackDesk}>
       {desk === "all" ? (
-        <View style={[styles.banner, { backgroundColor: `${colors.primary}18`, borderColor: colors.primary }]}>
-          <Text style={[styles.bannerTitle, { color: colors.foreground }]}>
+        <View style={[styles.banner, { backgroundColor: `${colors.primary}18`, borderColor: colors.gold }]}>
+          <Text style={[styles.bannerTitle, { color: colors.gold }]}>
             🏛️ Administration & ops
           </Text>
-          <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+          <Text style={{ color: colors.gold, fontSize: 13, lineHeight: 18 }}>
             Business Steward is first — sales, ads, and running the site. World
             Director sits with you for the city locker. Doctor, Administration, and
             Security sit beside them. Members never see Steward or World Director.
@@ -222,10 +222,10 @@ export function PlatformOpsConsole({
 
       {show("staff") && isPlatformOwner ? (
         <View style={{ gap: 10, paddingHorizontal: 16 }}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground, paddingHorizontal: 0 }]}>
+          <Text style={[styles.sectionTitle, { color: colors.gold, paddingHorizontal: 0 }]}>
             Admin staff access
           </Text>
-          <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+          <Text style={{ color: colors.gold, fontSize: 13, lineHeight: 18 }}>
             Hire help with limited roles. Only you can add or remove staff. Staff never get full
             owner platform powers.
           </Text>
@@ -333,9 +333,9 @@ export function PlatformOpsConsole({
       {show("sections") && hasAdminPermission("view_notifications") && notifications.data && notifications.data.length > 0 ? (
         <View style={{ gap: 8 }}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Recent alerts</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gold }]}>Recent alerts</Text>
             <Pressable onPress={() => markRead.mutate()} disabled={!hasAdminPermission("mark_notifications_read")}>
-              <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>Mark read</Text>
+              <Text style={{ color: colors.gold, fontSize: 12, fontWeight: "600" }}>Mark read</Text>
             </Pressable>
           </View>
           {notifications.data.slice(0, 3).map((n) => (
@@ -355,10 +355,10 @@ export function PlatformOpsConsole({
 
       {show("sections") && hasAdminPermission("view_incidents") ? (
       <View style={{ gap: 8 }}>
-        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Incidents</Text>
-        {incidents.isLoading ? <ActivityIndicator color={colors.primary} /> : null}
+        <Text style={[styles.sectionTitle, { color: colors.gold }]}>Incidents</Text>
+        {incidents.isLoading ? <ActivityIndicator color={colors.gold} /> : null}
         {(incidents.data ?? []).length === 0 ? (
-          <Text style={{ color: colors.muted, fontSize: 14 }}>
+          <Text style={{ color: colors.gold, fontSize: 14 }}>
             No incidents yet. Run a health scan or chat with an ops AI about a concern.
           </Text>
         ) : (
@@ -559,10 +559,10 @@ export function PlatformOpsConsole({
 
       {show("ledger") && hasAdminPermission("manage_ai_sessions") && ledger.data ? (
         <View style={{ paddingHorizontal: 16, gap: 10, paddingBottom: 16 }}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+          <Text style={[styles.sectionTitle, { color: colors.gold }]}>
             Platform transactions ({ledger.data.stats.totalTransactions})
           </Text>
-          <Text style={{ color: colors.muted, fontSize: 12, paddingHorizontal: 16 }}>
+          <Text style={{ color: colors.gold, fontSize: 12, paddingHorizontal: 16 }}>
             Every sale, bonus, and comp — ${(ledger.data.stats.totalVolumeCents / 100).toFixed(2)} total
             volume · {ledger.data.links.length} custom links issued
           </Text>
@@ -576,7 +576,7 @@ export function PlatformOpsConsole({
       {show("chat") && hasAdminPermission("chat_ops_ai") ? (
       <View style={chatDesk ? styles.chatDeskInner : { gap: 8 }}>
         {chatDesk ? null : (
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Ops AI chat</Text>
+          <Text style={[styles.sectionTitle, { color: colors.gold }]}>Ops AI chat</Text>
         )}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {opsAis.map((ai) => (
@@ -616,14 +616,26 @@ export function PlatformOpsConsole({
               styles.banner,
               {
                 backgroundColor: stewardAdBudget.data.exhausted ? "#fef2f2" : `${colors.primary}12`,
-                borderColor: stewardAdBudget.data.exhausted ? "#dc2626" : colors.primary,
+                borderColor: stewardAdBudget.data.exhausted ? "#dc2626" : colors.gold,
               },
             ]}
           >
-            <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 13 }}>
+            <Text
+              style={{
+                color: stewardAdBudget.data.exhausted ? colors.foreground : colors.gold,
+                fontWeight: "800",
+                fontSize: 13,
+              }}
+            >
               Launch advertising budget
             </Text>
-            <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+            <Text
+              style={{
+                color: stewardAdBudget.data.exhausted ? colors.muted : colors.gold,
+                fontSize: 13,
+                lineHeight: 18,
+              }}
+            >
               {stewardAdBudget.data.dayUsedUsd} of {stewardAdBudget.data.dayLimitUsd} today ·{" "}
               {stewardAdBudget.data.monthUsedUsd} of {stewardAdBudget.data.monthLimitUsd} this month
               (Indiana time). Text scripts first; still images count against this cap. Video clips wait
