@@ -89,7 +89,9 @@ describe("layout-overlap", () => {
     expect(css).toContain("env(safe-area-inset-bottom");
     expect(css).not.toContain("+ 48px");
     expect(css).toMatch(/padding-bottom:\s*max\(20px/);
-    expect(css).not.toContain("box-sizing: border-box");
+    const tabBarCss = css.match(/\.ur-tab-bar-web\s*\{[\s\S]*?\}/)?.[0] ?? "";
+    expect(tabBarCss).toContain("padding-bottom");
+    expect(tabBarCss).not.toContain("box-sizing: border-box");
     expect(css).not.toContain(".ur-tab-home-spacer");
     expect(css).not.toContain(".ur-phone-home-bar-clearance");
     expect(tabsLayout).toContain('position: "relative"');

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   ScrollView,
-  TextInput,
   ActivityIndicator,
   StyleSheet,
   Pressable,
@@ -20,7 +19,8 @@ import { useRouter } from "expo-router";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { ComposerDock } from "@/components/composer-dock";
-import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_LINES, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
+import { ChatComposerInput } from "@/components/chat-composer-input";
+import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { useAiTalkMeterPlayback } from "@/hooks/use-ai-talk-meter-playback";
 import { useNetworkConnectivity, isMeteringConnected } from "@/hooks/use-network-connectivity";
 import { openExternalCheckoutUrl } from "@/lib/web-checkout";
@@ -895,7 +895,7 @@ export function CreatorAIInterface({
                 <Text style={{ fontSize: 16 }}>🎨</Text>
               </Pressable>
             ) : null}
-            <TextInput
+            <ChatComposerInput
               style={[
                 styles.input,
                 {
@@ -908,13 +908,7 @@ export function CreatorAIInterface({
               placeholderTextColor={colors.muted}
               value={inputText}
               onChangeText={setInputText}
-              multiline
-              numberOfLines={CHAT_COMPOSER_LINES}
-              scrollEnabled
               maxLength={2000}
-              editable
-              returnKeyType="send"
-              blurOnSubmit={false}
               onFocus={() => {
                 if (Platform.OS !== "web") return;
                 requestAnimationFrame(() => {
@@ -1154,14 +1148,13 @@ export function CreatorAIInterface({
 
               {supportsImageGen && showImageGen ? (
                 <View style={{ paddingHorizontal: 4, paddingBottom: 6, gap: 6 }}>
-                  <TextInput
+                  <ChatComposerInput
                     style={[
                       styles.input,
                       {
                         color: colors.foreground,
                         backgroundColor: colors.surface,
                         borderColor: colors.border,
-                        minHeight: CHAT_COMPOSER_INPUT.minHeight,
                       },
                     ]}
                     placeholder="Describe the image to generate…"

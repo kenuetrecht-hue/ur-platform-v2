@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   Modal,
@@ -14,6 +13,7 @@ import { useColors } from '@/hooks/use-colors';
 import { cn } from '@/lib/utils';
 import { newestConversationFirst } from '@/lib/chat-newest-first';
 import { useScrollChatToNewest } from '@/hooks/use-scroll-chat-to-newest';
+import { ChatComposerInput } from '@/components/chat-composer-input';
 
 interface Message {
   id: string;
@@ -257,16 +257,16 @@ export function PersonalAIChat({
           className="flex-row items-end gap-2 p-4 border-t"
           style={{ borderTopColor: colors.border }}
         >
-          <TextInput
+          <ChatComposerInput
             value={inputText}
             onChangeText={setInputText}
             placeholder="Ask me anything..."
             placeholderTextColor={colors.muted}
-            className="flex-1 bg-surface text-foreground rounded-xl px-4 py-3"
-            style={{ minHeight: 240, height: 240, maxHeight: 480, textAlignVertical: "top" }}
-            multiline
-            numberOfLines={10}
-            scrollEnabled
+            style={{
+              color: colors.foreground,
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            }}
             editable={!isLoading}
           />
           <TouchableOpacity

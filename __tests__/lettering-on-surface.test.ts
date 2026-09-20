@@ -146,11 +146,25 @@ describe("lettering on white vs colored backgrounds", () => {
 
   it("uses a readable shared composer on every AI talk and send box", () => {
     const layout = readFileSync("lib/chat-composer-layout.ts", "utf8");
-    expect(layout).toContain("minHeight: 240");
-    expect(layout).toContain("height: 240");
-    expect(layout).toContain("maxHeight: 480");
-    expect(layout).toContain("CHAT_COMPOSER_LINES = 10");
+    expect(layout).toContain("CHAT_COMPOSER_HEIGHT = 300");
+    expect(layout).toContain("CHAT_COMPOSER_MAX_HEIGHT = 600");
+    expect(layout).toContain("CHAT_COMPOSER_FRAME");
+    expect(layout).toContain("minHeight: CHAT_COMPOSER_HEIGHT");
+    expect(layout).toContain("height: CHAT_COMPOSER_HEIGHT");
+    expect(layout).toContain("CHAT_COMPOSER_LINES = 12");
+    expect(layout).toContain("flexShrink: 0");
     expect(layout).toContain("fontSize: 17");
+
+    const composer = readFileSync("components/chat-composer-input.tsx", "utf8");
+    expect(composer).toContain("ur-chat-composer");
+    expect(composer).toContain("<textarea");
+    expect(composer).toContain("CHAT_COMPOSER_FRAME");
+    expect(composer).toContain("underlineColorAndroid");
+    expect(composer).toContain("numberOfLines={CHAT_COMPOSER_LINES}");
+
+    const css = readFileSync("global.css", "utf8");
+    expect(css).toContain("textarea.ur-chat-composer");
+    expect(css).toContain("height: 300px !important");
 
     const desks = [
       "components/creator-ai-interface.tsx",
@@ -160,11 +174,11 @@ describe("lettering on white vs colored backgrounds", () => {
       "components/ai-creator-panel.tsx",
       "components/tech-builder-learn-panel.tsx",
       "components/game-forge-learn-panel.tsx",
+      "components/voice-prompt-field.tsx",
+      "components/live-session-room-panel.tsx",
     ];
     for (const file of desks) {
-      const src = readFileSync(file, "utf8");
-      expect(src).toContain("CHAT_COMPOSER_INPUT");
-      expect(src).toContain("CHAT_COMPOSER_LINES");
+      expect(readFileSync(file, "utf8")).toContain("ChatComposerInput");
     }
   });
 });

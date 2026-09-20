@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import {
   View,
   Text,
-  TextInput,
   Pressable,
   ActivityIndicator,
   ScrollView,
@@ -14,6 +13,7 @@ import { trpc } from "@/lib/trpc";
 import { useBillingState } from "@/hooks/use-billing-state";
 import { BillingStatePicker } from "@/components/billing-state-picker";
 import { getClientPlatform } from "@/lib/web-checkout";
+import { ChatComposerInput } from "@/components/chat-composer-input";
 
 export type LiveSessionRoomPanelProps = {
   sessionId: string;
@@ -251,7 +251,7 @@ export function LiveSessionRoomPanel({ sessionId, creatorName, onLeft }: LiveSes
             </View>
           ))
         )}
-        <TextInput
+        <ChatComposerInput
           value={voiceQuestion}
           onChangeText={setVoiceQuestion}
           placeholder="Your voice question for the AI…"
@@ -298,7 +298,7 @@ export function LiveSessionRoomPanel({ sessionId, creatorName, onLeft }: LiveSes
             </View>
           ))
         )}
-        <TextInput
+        <ChatComposerInput
           value={textQuestion}
           onChangeText={setTextQuestion}
           placeholder="Type your question for the AI…"

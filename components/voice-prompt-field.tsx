@@ -1,9 +1,10 @@
 import { useRef, useState } from "react";
-import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { createVoicePromptSession } from "@/lib/record-voice-prompt";
 import { stopExclusiveAudio } from "@/lib/exclusive-audio-player";
+import { ChatComposerInput } from "@/components/chat-composer-input";
 
 type Props = {
   creatorId: string;
@@ -72,26 +73,18 @@ export function VoicePromptField({
 
   return (
     <View style={{ gap: 10, width: "100%", position: "relative", zIndex: 1 }}>
-      <TextInput
+      <ChatComposerInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={colors.muted}
-        multiline
         maxLength={maxLength}
         editable={!disabled && !listening && !sending}
         style={{
           width: "100%",
-          minHeight: 96,
-          borderWidth: 1,
           borderColor: colors.border,
           backgroundColor: colors.surface,
           color: colors.foreground,
-          borderRadius: 12,
-          paddingHorizontal: 12,
-          paddingVertical: 10,
-          fontSize: 15,
-          textAlignVertical: "top",
         }}
       />
       <View

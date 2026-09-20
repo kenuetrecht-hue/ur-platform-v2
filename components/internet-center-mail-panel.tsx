@@ -14,6 +14,7 @@ import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/lib/auth-context";
 import { trpc } from "@/lib/trpc";
 import { brandGradientPair, brandHighlightSurface, withAlpha } from "@/lib/brand-theme";
+import { ChatComposerInput } from "@/components/chat-composer-input";
 
 type MailFolder = "inbox" | "sent" | "compose" | "read";
 
@@ -179,15 +180,11 @@ export function InternetCenterMailPanel({
             style={[styles.field, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background }]}
           />
           <Text style={[styles.fieldLabel, { color: colors.muted }]}>Message</Text>
-          <TextInput
+          <ChatComposerInput
             value={body}
             onChangeText={setBody}
             placeholder="Write your message…"
             placeholderTextColor={colors.muted}
-            multiline
-            numberOfLines={10}
-            scrollEnabled
-            textAlignVertical="top"
             style={[
               styles.bodyField,
               { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background },
@@ -429,14 +426,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   bodyField: {
-    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 15,
-    minHeight: 240,
-    height: 240,
-    maxHeight: 480,
   },
   sendBtn: { marginTop: 16, borderRadius: 12, overflow: "hidden" },
   sendBtnInner: { paddingVertical: 14, alignItems: "center" },

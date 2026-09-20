@@ -18,6 +18,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Link } from "expo-router";
 import { AGE_KYC_REQUIRED_MESSAGE } from "@/lib/age-kyc-policy";
 import { TurnstileWidget } from "@/components/turnstile-widget";
+import { ChatComposerInput } from "@/components/chat-composer-input";
 
 const DEMO_SPECIALISTS = [
   { id: "ai-coder-001", label: "TechBuilder", avatar: "💻" },
@@ -166,7 +167,7 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
         />
       ) : null}
 
-      <TextInput
+      <ChatComposerInput
         value={message}
         onChangeText={setMessage}
         placeholder={
@@ -178,9 +179,6 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
         maxLength={messageMax}
         editable={!demoUsed && !loading}
         style={styles.input}
-        multiline
-        numberOfLines={10}
-        scrollEnabled
       />
       <Text style={styles.counter}>
         {message.length}/{messageMax}
@@ -276,16 +274,8 @@ const styles = StyleSheet.create({
     opacity: 0,
   },
   input: {
-    borderWidth: 1,
     borderColor: T.border,
-    borderRadius: 12,
-    minHeight: 240,
-    height: 240,
-    maxHeight: 480,
-    padding: 14,
     color: T.text,
-    fontSize: 17,
-    textAlignVertical: "top",
     marginBottom: 4,
   },
   counter: { color: T.muted, fontSize: 11, textAlign: "right", marginBottom: 12 },

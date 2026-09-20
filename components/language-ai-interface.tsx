@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   ActivityIndicator,
   StyleSheet,
   KeyboardAvoidingView,
@@ -19,7 +18,8 @@ import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync"
 import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { ComposerDock } from "@/components/composer-dock";
-import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_LINES, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
+import { ChatComposerInput } from "@/components/chat-composer-input";
+import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { playExclusiveAudio, stopExclusiveAudio } from "@/lib/exclusive-audio-player";
 import { speakText } from "@/lib/azure-tts-service";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
@@ -436,14 +436,13 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
           <Text style={[styles.inputHint, { color: colors.muted }]}>
             Practice score from the words you type or dictate — not a medical speech diagnosis.
           </Text>
-          <TextInput
+          <ChatComposerInput
             style={[
               styles.textInput,
               {
                 backgroundColor: colors.background,
                 borderColor: colors.border,
                 color: colors.foreground,
-                minHeight: CHAT_COMPOSER_INPUT.minHeight,
               },
             ]}
             placeholder="Target phrase"
@@ -453,14 +452,13 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
             maxLength={400}
             editable={canChat}
           />
-          <TextInput
+          <ChatComposerInput
             style={[
               styles.textInput,
               {
                 backgroundColor: colors.background,
                 borderColor: colors.border,
                 color: colors.foreground,
-                minHeight: CHAT_COMPOSER_INPUT.minHeight,
               },
             ]}
             placeholder={modePlaceholder.drill}
@@ -568,7 +566,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
               setSpeechHint(hint || null);
             }}
           />
-          <TextInput
+          <ChatComposerInput
             style={[
               styles.textInput,
               {
@@ -581,9 +579,6 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
             placeholderTextColor={colors.muted}
             value={inputText}
             onChangeText={setInputText}
-            multiline
-            numberOfLines={CHAT_COMPOSER_LINES}
-            scrollEnabled
             maxLength={4000}
             editable={!loading && canChat}
             onSubmitEditing={() => void sendMessage(inputText)}

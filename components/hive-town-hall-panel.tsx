@@ -13,7 +13,8 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { ComposerDock } from "@/components/composer-dock";
-import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_LINES, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
+import { ChatComposerInput } from "@/components/chat-composer-input";
+import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 
@@ -386,15 +387,12 @@ export function HiveTownHallPanel() {
 
       <ComposerDock paddingBottom={overlap.dockPaddingBottom}>
       <View style={styles.composer}>
-        <TextInput
+        <ChatComposerInput
           value={inputText}
           onChangeText={setInputText}
           placeholder={canChat ? "Message the whole panel…" : "Not live yet"}
           placeholderTextColor={colors.muted}
           editable={canChat && !loading}
-          multiline
-          numberOfLines={CHAT_COMPOSER_LINES}
-          scrollEnabled
           style={[styles.composerInput, { color: colors.foreground }]}
         />
         <Pressable

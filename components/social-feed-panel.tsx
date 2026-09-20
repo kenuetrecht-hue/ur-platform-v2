@@ -15,6 +15,7 @@ import {
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/lib/auth-context";
 import { trpc } from "@/lib/trpc";
+import { ChatComposerInput } from "@/components/chat-composer-input";
 import { SOCIAL_POST_DISCLOSURE, PLATFORM_DISCLOSURE_SHORT } from "@/lib/platform-disclosure-copy";
 import {
   CREATOR_CONTENT_PROTECTION_NOTICE,
@@ -493,14 +494,11 @@ export function SocialFeedPanel({
             onAiAssisted={() => setAiAssisted(true)}
           />
 
-          <TextInput
+          <ChatComposerInput
             value={body}
             onChangeText={setBody}
             placeholder="Share an update, project photo, or promo — free for everyone… #hashtags welcome"
             placeholderTextColor={colors.muted}
-            multiline
-            numberOfLines={10}
-            scrollEnabled
             style={[styles.composerInput, { borderColor: colors.border, color: colors.foreground }]}
           />
           <TextInput
@@ -727,7 +725,7 @@ const styles = StyleSheet.create({
   chipRow: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
   chip: { borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 12, paddingVertical: 6 },
   composer: { marginHorizontal: 16, marginBottom: 8, borderRadius: 14, borderWidth: 1, padding: 12, gap: 8 },
-  composerInput: { borderWidth: 1, borderRadius: 14, padding: 14, minHeight: 240, height: 240, maxHeight: 480, fontSize: 17, lineHeight: 24, textAlignVertical: "top" },
+  composerInput: { borderWidth: 1, borderRadius: 14 },
   urlInput: { borderWidth: 1, borderRadius: 10, padding: 10, fontSize: 13 },
   visibilityRow: { flexDirection: "row", gap: 8 },
   visChip: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 },
