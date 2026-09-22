@@ -34,7 +34,7 @@ export function PlatformDisclosureBar({
 
   const content = (
     <Text
-      style={[styles.text, { color: colors.gold }]}
+      style={[styles.text, aboveTabBar ? styles.textAboveTab : null, { color: colors.gold }]}
       numberOfLines={compact ? 1 : 3}
     >
       {text}
@@ -51,7 +51,7 @@ export function PlatformDisclosureBar({
         position === "top"
           ? { paddingTop: insets.top + 2, paddingBottom: 2 }
           : aboveTabBar
-            ? { paddingTop: 2, paddingBottom: 2 }
+            ? { paddingTop: 1, paddingBottom: 1 }
             : { paddingTop: 3, paddingBottom: insets.bottom + 2 },
       ]}
     >
@@ -83,5 +83,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     letterSpacing: 0.08,
     opacity: 0.78,
+  },
+  textAboveTab: {
+    fontSize: 7,
+    lineHeight: 9,
   },
 });

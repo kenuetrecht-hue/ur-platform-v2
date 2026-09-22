@@ -46,9 +46,20 @@ export default function TabsLayout() {
             position: "relative",
           },
           tabBarLabelStyle: {
-            fontSize: 9,
+            fontSize: 8,
             fontWeight: "600",
             letterSpacing: 0.1,
+            marginTop: 0,
+            marginBottom: 0,
+          },
+          tabBarItemStyle: {
+            height: iconRowHeight,
+            paddingTop: 0,
+            paddingBottom: 0,
+          },
+          tabBarIconStyle: {
+            marginTop: 0,
+            marginBottom: 0,
           },
           tabBarButton: HapticTab,
         }}

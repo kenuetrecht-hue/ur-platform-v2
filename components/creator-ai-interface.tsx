@@ -47,6 +47,7 @@ import { ThanksStampsWall } from "@/components/thanks-stamps-wall";
 import { BUSINESS_STEWARD_AI_ID } from "@/lib/owner-platform-ops-catalog";
 import { playExclusiveAudio, stopExclusiveAudio, unlockWebAudio } from "@/lib/exclusive-audio-player";
 import { pickChatAttachments, type PickedChatAttachment } from "@/lib/chat-attachment-picker";
+import { AppPressable } from "@/components/app-pressable";
 
 interface ChatMessage {
   role: "user" | "ai";
@@ -72,6 +73,8 @@ export type CreatorAIInterfaceProps = {
   embedded?: boolean;
   /** Fixed UI height above chat (for keyboard offset). Defaults to AIs tab estimate when embedded. */
   overlapHeaderHeight?: number;
+  /** Sit in the page scroll so the text box and talk controls are reachable. */
+  pageScroll?: boolean;
 };
 
 export function CreatorAIInterface({
@@ -84,6 +87,7 @@ export function CreatorAIInterface({
   hideHeader = false,
   embedded = false,
   overlapHeaderHeight,
+  pageScroll = false,
 }: CreatorAIInterfaceProps) {
   const colors = useColors();
   const router = useRouter();
@@ -652,11 +656,11 @@ export function CreatorAIInterface({
 
   return (
     <KeyboardAvoidingView
-      style={[styles.root, embedded && styles.rootEmbedded]}
+      style={[styles.root, embedded && styles.rootEmbedded, pageScroll && styles.rootPage]}
       behavior={Platform.OS === "ios" ? overlap.keyboardBehavior : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? overlap.keyboardVerticalOffset : 0}
     >
-      <View style={styles.column}>
+      <View style={[styles.column, pageScroll && styles.columnPage]}>
       {!hideHeader ? (
       <View style={[styles.header, { backgroundColor: colors.primary }]}>
         <View style={styles.headerRow}>
@@ -733,6 +737,7 @@ export function CreatorAIInterface({
       <View
         style={[
           styles.chatBody,
+          pageScroll && styles.chatBodyPage,
           embedded && {
             borderWidth: 1,
             borderColor: colors.border,
@@ -762,7 +767,7 @@ export function CreatorAIInterface({
 
         <ScrollView
           ref={scrollViewRef}
-          style={styles.messages}
+          style={[styles.messages, pageScroll && styles.messagesPage]}
           contentContainerStyle={[
             styles.messagesContent,
             { paddingBottom: 16 + overlap.scrollPaddingBottom },
@@ -924,7 +929,8 @@ export function CreatorAIInterface({
                 }
               }}
             />
-            <Pressable
+            <AppPressable
+              testID="ai-chat-send"
               onPress={() => void sendChatMessage(inputText)}
               disabled={loading || (!inputText.trim() && pendingAttachments.length === 0)}
               hitSlop={8}
@@ -943,9 +949,11 @@ export function CreatorAIInterface({
               {loading ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
-                <Text style={styles.sendLabel}>Send</Text>
+                <Text pointerEvents="none" style={styles.sendLabel}>
+                  Send
+                </Text>
               )}
-            </Pressable>
+            </AppPressable>
           </ChatComposerActionRow>
           {speechHint ? (
             <Text style={{ color: colors.muted, fontSize: 11, paddingTop: 6 }}>{speechHint}</Text>
@@ -983,7 +991,8 @@ export function CreatorAIInterface({
 
           <View style={{ paddingHorizontal: 4, paddingBottom: 6, gap: 6 }}>
             <View style={{ flexDirection: "row", gap: 8 }}>
-              <Pressable
+              <AppPressable
+                testID="ai-talk-stop"
                 onPress={() => {
                   stopPlayback();
                   stopExclusiveAudio();
@@ -991,9 +1000,12 @@ export function CreatorAIInterface({
                 }}
                 style={[styles.hiveToggle, { flex: 1, marginHorizontal: 0, marginBottom: 0, borderColor: colors.border, backgroundColor: colors.surface }]}
               >
-                <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "700" }}>⏹ Stop</Text>
-              </Pressable>
-              <Pressable
+                <Text pointerEvents="none" style={{ color: colors.foreground, fontSize: 12, fontWeight: "700" }}>
+                  ⏹ Stop
+                </Text>
+              </AppPressable>
+              <AppPressable
+                testID="ai-talk-hear"
                 onPress={() => {
                   if (!hasTalkTime && !isAssociateAi && !ownerTalkIncluded) {
                     setShowTalkTopUp(true);
@@ -1004,7 +1016,7 @@ export function CreatorAIInterface({
                 disabled={voiceMutation.isPending || buyAffiliateVoice.isPending}
                 style={[styles.hiveToggle, { flex: 2, marginHorizontal: 0, marginBottom: 0, borderColor: colors.primary, backgroundColor: colors.surface }]}
               >
-                <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700" }}>
+                <Text pointerEvents="none" style={{ color: colors.foreground, fontSize: 13, fontWeight: "700" }}>
                   {voiceMutation.isPending || buyAffiliateVoice.isPending
                     ? `🎙️ ${creatorName} is speaking…`
                     : isAssociateAi
@@ -1016,9 +1028,11 @@ export function CreatorAIInterface({
                         : "🎙️ Hear this AI — buy Talk Time"}
                 </Text>
                 {voiceStatus ? (
-                  <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>{voiceStatus}</Text>
+                  <Text pointerEvents="none" style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>
+                    {voiceStatus}
+                  </Text>
                 ) : null}
-              </Pressable>
+              </AppPressable>
             </View>
           </View>
 
@@ -1200,8 +1214,11 @@ export function CreatorAIInterface({
 const styles = StyleSheet.create({
   root: { flex: 1, minHeight: 0, overflow: "hidden" },
   rootEmbedded: { width: "100%" },
+  rootPage: { flex: 0, overflow: "visible", width: "100%" },
   column: { flex: 1, minHeight: 0, overflow: "hidden" },
+  columnPage: { flex: 0, overflow: "visible", width: "100%" },
   chatBody: { flex: 1, minHeight: 0, overflow: "hidden" },
+  chatBodyPage: { flex: 0, overflow: "visible", width: "100%" },
   header: { paddingHorizontal: 16, paddingVertical: 12 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   headerAvatar: { fontSize: 22 },
@@ -1217,6 +1234,7 @@ const styles = StyleSheet.create({
   closeButton: { padding: 4 },
   closePlaceholder: { width: 28 },
   messages: { flex: 1, minHeight: 0 },
+  messagesPage: { flexGrow: 0, flexShrink: 0, minHeight: 180, maxHeight: 280 },
   messagesContent: { padding: 12, paddingBottom: 16, gap: 10 },
   typingRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 4 },
   bubble: { maxWidth: "88%", borderRadius: 16, padding: 12 },

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollView } from "react-native";
+import { TabPageScroll } from "@/components/tab-page-scroll";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
@@ -32,10 +32,7 @@ export default function DiscoverScreen() {
     <ScreenContainer className="bg-background">
       <TabScreenHeader compact icon="🧭" title="Discover" />
       <HubTabBar tabs={DISCOVER_HUB_TABS} activeId={hubTab} onSelect={setHubTab} />
-      <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: 24, gap: 12 }}
-        showsVerticalScrollIndicator={false}
-      >
+      <TabPageScroll>
         {hubTab === "board" ? (
           <>
             <PlatformSearchPanel compact />
@@ -76,7 +73,7 @@ export default function DiscoverScreen() {
             ))}
           </HubDoorGrid>
         ) : null}
-      </ScrollView>
+      </TabPageScroll>
     </ScreenContainer>
   );
 }

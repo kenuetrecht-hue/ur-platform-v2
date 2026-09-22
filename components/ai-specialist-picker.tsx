@@ -1,5 +1,6 @@
-import { Pressable, ScrollView, Text, StyleSheet, ViewStyle } from "react-native";
+import { ScrollView, Text, StyleSheet, ViewStyle } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { AppPressable } from "@/components/app-pressable";
 import type { AiCreatorCatalogEntry } from "@/lib/ai-creator-catalog";
 
 type AiSpecialistPickerProps = {
@@ -33,8 +34,9 @@ export function AiSpecialistPicker({
         const categoryColor = active ? "rgba(255,255,255,0.92)" : colors.muted;
 
         return (
-          <Pressable
+          <AppPressable
             key={specialist.id}
+            testID={`ai-specialist-${specialist.id}`}
             onPress={() => onSelect(specialist.id)}
             style={[
               styles.card,
@@ -44,12 +46,16 @@ export function AiSpecialistPicker({
               },
             ]}
           >
-            <Text style={styles.avatar}>{specialist.avatar}</Text>
-            <Text style={[styles.name, { color: nameColor }]}>{specialist.name}</Text>
-            <Text style={[styles.category, { color: categoryColor }]}>
+            <Text pointerEvents="none" style={styles.avatar}>
+              {specialist.avatar}
+            </Text>
+            <Text pointerEvents="none" style={[styles.name, { color: nameColor }]}>
+              {specialist.name}
+            </Text>
+            <Text pointerEvents="none" style={[styles.category, { color: categoryColor }]}>
               {specialist.category}
             </Text>
-          </Pressable>
+          </AppPressable>
         );
       })}
     </ScrollView>

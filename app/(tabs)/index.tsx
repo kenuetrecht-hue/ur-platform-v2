@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollView, View, Text } from "react-native";
+import { View, Text } from "react-native";
 import { useAuth } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
@@ -20,6 +20,7 @@ import { PasswordRemindBanner } from "@/components/password-remind-banner";
 import { trpc } from "@/lib/trpc";
 import { HubTabBar } from "@/components/hub-tab-bar";
 import { HubDoorGrid, HubDoorTile } from "@/components/hub-door-tile";
+import { TabPageScroll } from "@/components/tab-page-scroll";
 import {
   HOME_DOWNLOAD_DOORS,
   HOME_HUB_TAB_ROWS,
@@ -60,11 +61,7 @@ export default function HomeScreen() {
           }}
         />
       ))}
-      <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: 36, gap: 12 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+      <TabPageScroll>
         {hubTab === "start" ? (
           <>
             <HomeLaunchPromoBanner />
@@ -171,7 +168,7 @@ export default function HomeScreen() {
           </HubDoorGrid>
         ) : null}
 
-      </ScrollView>
+      </TabPageScroll>
     </ScreenContainer>
   );
 }

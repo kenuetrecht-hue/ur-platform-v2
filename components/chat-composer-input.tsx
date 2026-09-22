@@ -52,6 +52,11 @@ export function ChatComposerInput({
           rows={CHAT_COMPOSER_LINES}
           onChange={(event) => onChangeText(event.target.value)}
           onFocus={onFocus}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" || event.shiftKey) return;
+            event.preventDefault();
+            onSubmitEditing?.();
+          }}
           style={{
             display: "block",
             width: "100%",

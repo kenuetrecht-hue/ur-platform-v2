@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   StyleSheet,
   KeyboardAvoidingView,
-  Pressable,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
@@ -17,6 +16,7 @@ import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync";
 import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
+import { AppPressable } from "@/components/app-pressable";
 import { ChatComposerActionRow, ComposerDock } from "@/components/composer-dock";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
@@ -36,6 +36,7 @@ interface ChatMessage {
 
 interface LanguageAIInterfaceProps {
   onClose?: () => void;
+  pageScroll?: boolean;
 }
 
 const POPULAR_LANGUAGES = [
@@ -53,7 +54,7 @@ const POPULAR_LANGUAGES = [
 
 const LEARN_LEVELS = ["beginner", "intermediate", "advanced"] as const;
 
-export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
+export function LanguageAIInterface({ onClose, pageScroll = false }: LanguageAIInterfaceProps) {
   const colors = useColors();
   const overlap = useOverlapInsets({
     headerChromeHeight: LAYOUT_OVERLAP.AIS_TAB_CHROME_HEIGHT + 100,
@@ -234,7 +235,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.root}
+      style={[styles.root, pageScroll && styles.rootPage]}
       behavior={overlap.keyboardBehavior}
       keyboardVerticalOffset={overlap.keyboardVerticalOffset}
     >
@@ -342,7 +343,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
 
       <ScrollView
         ref={scrollViewRef}
-        style={styles.messagesScroll}
+        style={[styles.messagesScroll, pageScroll && styles.messagesScrollPage]}
         contentContainerStyle={[
           styles.messagesContent,
           { paddingBottom: 16 + overlap.scrollPaddingBottom },
@@ -501,7 +502,8 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
         <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 17, marginBottom: 6 }}>
           Text or tap Talk (🎤). Mic uses your text pass. After a reply, tap Hear — that uses Talk Time.
         </Text>
-        <Pressable
+        <AppPressable
+          testID="ai-talk-hear"
           onPress={async () => {
             const lastAi = [...messages].reverse().find((m) => m.role === "ai");
             if (!lastAi) return;
@@ -543,10 +545,10 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
             backgroundColor: colors.background,
           }}
         >
-          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
+          <Text pointerEvents="none" style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
             {voiceMutation.isPending ? "🎙️ LinguaMate is speaking…" : "🎙️ Hear LinguaMate"}
           </Text>
-        </Pressable>
+        </AppPressable>
         {voiceStatus ? (
           <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 6 }}>{voiceStatus}</Text>
         ) : null}
@@ -584,7 +586,8 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
             editable={!loading && canChat}
             onSubmitEditing={() => void sendMessage(inputText)}
           />
-          <TouchableOpacity
+          <AppPressable
+            testID="ai-chat-send"
             onPress={() => void sendMessage(inputText)}
             disabled={loading || !inputText.trim() || !canChat}
             style={[
@@ -595,8 +598,10 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
               },
             ]}
           >
-            <Text style={styles.sendButtonText}>↑</Text>
-          </TouchableOpacity>
+            <Text pointerEvents="none" style={styles.sendButtonText}>
+              ↑
+            </Text>
+          </AppPressable>
         </ChatComposerActionRow>
         <Text style={[styles.inputHint, { color: colors.muted }]}>
           {canChat
@@ -617,6 +622,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.08)",
+  },
+  rootPage: {
+    flex: 0,
+    overflow: "visible",
   },
   header: {
     paddingHorizontal: 16,
@@ -700,6 +709,12 @@ const styles = StyleSheet.create({
   messagesScroll: {
     flex: 1,
     minHeight: 0,
+  },
+  messagesScrollPage: {
+    flexGrow: 0,
+    flexShrink: 0,
+    minHeight: 180,
+    maxHeight: 280,
   },
   messagesContent: {
     padding: 16,

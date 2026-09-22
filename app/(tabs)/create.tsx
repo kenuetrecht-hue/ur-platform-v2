@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollView, View, Text, Modal } from "react-native";
+import { View, Text, Modal } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
@@ -9,6 +9,7 @@ import { VoiceChatInterface } from "@/components/voice-chat-interface";
 import { consolidatedNavigation } from "@/lib/consolidated-navigation";
 import { HubTabBar } from "@/components/hub-tab-bar";
 import { HubDoorGrid, HubDoorTile } from "@/components/hub-door-tile";
+import { TabPageScroll } from "@/components/tab-page-scroll";
 import { CREATE_HUB_TABS } from "@/lib/home-hub";
 import { AppPressable } from "@/components/app-pressable";
 import { withAlpha } from "@/lib/brand-theme";
@@ -39,10 +40,7 @@ export default function CreateScreen() {
     <ScreenContainer className="bg-background">
       <TabScreenHeader compact icon="✏️" title="Create" />
       <HubTabBar tabs={CREATE_HUB_TABS} activeId={hubTab} onSelect={setHubTab} />
-      <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: 24, gap: 12 }}
-        showsVerticalScrollIndicator={false}
-      >
+      <TabPageScroll>
         {hubTab === "make" ? (
           <HubDoorGrid>
             {subMenu.map((item) => (
@@ -91,7 +89,7 @@ export default function CreateScreen() {
             </AppPressable>
           </View>
         ) : null}
-      </ScrollView>
+      </TabPageScroll>
 
       <PersonalAIChat visible={showAIChat} onClose={() => setShowAIChat(false)} />
 

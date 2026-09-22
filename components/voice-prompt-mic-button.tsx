@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
-import { ActivityIndicator, Pressable, Text } from "react-native";
+import { ActivityIndicator, Text } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { AppPressable } from "@/components/app-pressable";
 import { trpc } from "@/lib/trpc";
 import { createVoicePromptSession } from "@/lib/record-voice-prompt";
 
@@ -59,7 +60,8 @@ export function VoicePromptMicButton({
   };
 
   return (
-    <Pressable
+    <AppPressable
+      testID="ai-talk-mic"
       onPress={() => void toggle()}
       disabled={disabled || transcribe.isPending}
       accessibilityLabel={listening ? "Stop talking" : "Talk — speak any language"}
@@ -83,14 +85,19 @@ export function VoicePromptMicButton({
         <ActivityIndicator color={listening ? "#fff" : colors.primary} size="small" />
       ) : (
         <>
-          <Text style={{ fontSize: 18 }}>{listening ? "■" : "🎤"}</Text>
+          <Text pointerEvents="none" style={{ fontSize: 18 }}>
+            {listening ? "■" : "🎤"}
+          </Text>
           {labeled ? (
-            <Text style={{ color: listening ? "#fff" : colors.foreground, fontSize: 11, fontWeight: "800" }}>
+            <Text
+              pointerEvents="none"
+              style={{ color: listening ? "#fff" : colors.foreground, fontSize: 11, fontWeight: "800" }}
+            >
               {listening ? "Stop" : "Talk"}
             </Text>
           ) : null}
         </>
       )}
-    </Pressable>
+    </AppPressable>
   );
 }

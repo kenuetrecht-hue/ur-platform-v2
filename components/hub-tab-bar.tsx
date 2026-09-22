@@ -87,7 +87,9 @@ function TabInner({
     <>
       <View style={styles.iconWrap}>
         {tab.emoji ? (
-          <Text style={{ fontSize: 13, lineHeight: 16 }}>{tab.emoji}</Text>
+          <Text pointerEvents="none" style={{ fontSize: 13, lineHeight: 16 }}>
+            {tab.emoji}
+          </Text>
         ) : tab.icon ? (
           <IconSymbol name={tab.icon} size={18} color={iconColor} />
         ) : null}
@@ -100,6 +102,7 @@ function TabInner({
         ) : null}
       </View>
       <Text
+        pointerEvents="none"
         style={[styles.label, { color: labelColor, fontWeight: active ? "700" : "600" }]}
         numberOfLines={1}
       >

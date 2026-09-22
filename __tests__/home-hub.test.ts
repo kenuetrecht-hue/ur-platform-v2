@@ -42,6 +42,7 @@ describe("home hub", () => {
     const profile = readFileSync("app/(tabs)/profile.tsx", "utf8");
     const social = readFileSync("components/social-hub-tab-bar.tsx", "utf8");
     expect(home).toContain("HubTabBar");
+    expect(home).toContain("TabPageScroll");
     expect(home).toContain("HOME_HUB_TAB_ROWS");
     expect(home).toContain("HOME_DOWNLOAD_DOORS");
     expect(home).toContain("useAppInstallActions");
@@ -66,6 +67,13 @@ describe("home hub", () => {
     const screen = readFileSync("components/screen-container.tsx", "utf8");
     const login = readFileSync("components/auth-door-stage.tsx", "utf8");
     const tiles = readFileSync("components/hub-door-tile.tsx", "utf8");
+    const pageScroll = readFileSync("components/tab-page-scroll.tsx", "utf8");
+    expect(pageScroll).toContain("flex: 1");
+    expect(pageScroll).toContain("showsVerticalScrollIndicator");
+    expect(pageScroll).toContain("ur-page-scroll");
+    expect(readFileSync("global.css", "utf8")).toContain(".ur-page-scroll");
+    expect(readFileSync("app/(tabs)/ais.tsx", "utf8")).toContain("TabPageScroll");
+    expect(readFileSync("app/(tabs)/ais.tsx", "utf8")).toContain("pageScroll");
     expect(screen).toContain("BrandColorStage");
     expect(screen).toContain("withoutPageFill");
     expect(screen).toContain('backgroundColor: "transparent"');

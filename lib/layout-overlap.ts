@@ -8,8 +8,8 @@ import { Platform } from "react-native";
  * - Platform disclosure bars (PlatformDisclosureFrame)
  */
 export const LAYOUT_OVERLAP = {
-  TAB_BAR_CONTENT_HEIGHT: 52,
-  TAB_BAR_TOP_PADDING: 4,
+  TAB_BAR_CONTENT_HEIGHT: 28,
+  TAB_BAR_TOP_PADDING: 0,
   /** Floor when the OS reports no inset (desktop web). */
   TAB_BAR_MIN_BOTTOM_INSET: 0,
   /** iPhone / iPad home indicator when native inset is missing. */
@@ -19,7 +19,7 @@ export const LAYOUT_OVERLAP = {
   /** PlatformDisclosureBar content above home indicator (bottom bar on non-tab screens). */
   BOTTOM_DISCLOSURE_CONTENT_HEIGHT: 28,
   /** Compact disclosure row above tab bar (1 line + padding). */
-  BOTTOM_DISCLOSURE_ABOVE_TAB_HEIGHT: 26,
+  BOTTOM_DISCLOSURE_ABOVE_TAB_HEIGHT: 14,
   COMPOSER_MIN_PADDING: 8,
   /** Gap so the compose card does not kiss the tab / legal strip. */
   COMPOSER_DOCK_GAP: 10,
@@ -28,11 +28,11 @@ export const LAYOUT_OVERLAP = {
   /** Samsung One UI often needs a hair more clearance above the tab bar. */
   SAMSUNG_TAB_BUFFER: 4,
   /** Native Android / Android-web floor for the system navigation bar. */
-  ANDROID_GESTURE_INSET: 64,
+  ANDROID_GESTURE_INSET: 28,
   /** Extra gap above the OS bar. Keep at 0 — a second block eats screen. */
   TAB_BAR_HOME_CLEARANCE: 0,
   /** Desktop-web floor when there is no home indicator. Phone web uses the OS inset instead. */
-  WEB_TAB_BAR_BOTTOM_PAD: 20,
+  WEB_TAB_BAR_BOTTOM_PAD: 8,
   /** AIs tab chrome above the chat panel (header + mode row + specialist bar). */
   AIS_TAB_CHROME_HEIGHT: 124,
 } as const;
@@ -133,7 +133,7 @@ export function isPhoneWebRuntime(): boolean {
 
 /**
  * Bottom pad for the real tab bar.
- * Android: one 64px OS-bar floor. Do not add 48px clearance or a second spacer.
+ * Android: one 28px OS-bar floor. Do not add a second spacer.
  */
 export function resolveTabBarBottomInset(args: {
   safeBottom: number;

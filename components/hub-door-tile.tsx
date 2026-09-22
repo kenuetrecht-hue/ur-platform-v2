@@ -11,7 +11,7 @@ type Props = {
   testID?: string;
 };
 
-/** Compact Social-style door — name only. The page you open explains itself. */
+/** Social-style door — name only. The page you open explains itself. */
 export function HubDoorTile({ emoji, label, onPress, testID }: Props) {
   const colors = useColors();
 

@@ -17,8 +17,8 @@ import {
 
 describe("layout-overlap", () => {
   it("keeps the tab row and AI warning strip compact so the page scroll is taller", () => {
-    expect(LAYOUT_OVERLAP.TAB_BAR_CONTENT_HEIGHT).toBeLessThanOrEqual(56);
-    expect(LAYOUT_OVERLAP.BOTTOM_DISCLOSURE_ABOVE_TAB_HEIGHT).toBeLessThanOrEqual(28);
+    expect(LAYOUT_OVERLAP.TAB_BAR_CONTENT_HEIGHT).toBeLessThanOrEqual(32);
+    expect(LAYOUT_OVERLAP.BOTTOM_DISCLOSURE_ABOVE_TAB_HEIGHT).toBeLessThanOrEqual(16);
   });
 
   it("counts the legal strip plus the icon row as tab chrome", () => {
@@ -63,14 +63,14 @@ describe("layout-overlap", () => {
     expect(padding).toBeLessThan(LAYOUT_OVERLAP.BOTTOM_DISCLOSURE_ABOVE_TAB_HEIGHT + 24);
   });
 
-  it("pads Android with one 64px OS-bar floor and no extra 48px block", () => {
+  it("pads Android with one 28px OS-bar floor and no extra 48px block", () => {
     expect(effectiveTabBarBottomInset(0)).toBe(LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD);
     expect(effectiveTabBarBottomInset(0, 70)).toBe(LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD);
     expect(effectiveTabBarBottomInset(40)).toBe(40);
     expect(tabBarTotalHeight(34)).toBeGreaterThan(tabBarIconsOnlyHeight());
     expect(LAYOUT_OVERLAP).not.toHaveProperty("WEB_TOUCH_BOTTOM_INSET");
     expect(LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE).toBe(0);
-    expect(LAYOUT_OVERLAP.ANDROID_GESTURE_INSET).toBe(64);
+    expect(LAYOUT_OVERLAP.ANDROID_GESTURE_INSET).toBe(28);
     const tabBar = readFileSync("components/tab-bar-with-disclosure.tsx", "utf8");
     const hook = readFileSync("hooks/use-tab-bar-bottom-inset.ts", "utf8");
     const css = readFileSync("global.css", "utf8");
@@ -84,11 +84,11 @@ describe("layout-overlap", () => {
     expect(tabBar).not.toContain("WEB_TAB_BAR_BOTTOM_PAD");
     expect(hook).toContain("effectiveTabBarBottomInset");
     expect(hook).toContain("insets.bottom");
-    expect(LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD).toBe(20);
+    expect(LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD).toBe(8);
     expect(css).toContain(".ur-tab-bar-web");
     expect(css).toContain("env(safe-area-inset-bottom");
     expect(css).not.toContain("+ 48px");
-    expect(css).toMatch(/padding-bottom:\s*max\(20px/);
+    expect(css).toMatch(/padding-bottom:\s*max\(8px/);
     const tabBarCss = css.match(/\.ur-tab-bar-web\s*\{[\s\S]*?\}/)?.[0] ?? "";
     expect(tabBarCss).toContain("padding-bottom");
     expect(tabBarCss).not.toContain("box-sizing: border-box");
@@ -105,9 +105,7 @@ describe("layout-overlap", () => {
     expect(resolveTabBarBottomInset({ platform: "android", safeBottom: 0 })).toBe(
       LAYOUT_OVERLAP.ANDROID_GESTURE_INSET,
     );
-    expect(resolveTabBarBottomInset({ platform: "android", safeBottom: 48 })).toBe(
-      LAYOUT_OVERLAP.ANDROID_GESTURE_INSET,
-    );
+    expect(resolveTabBarBottomInset({ platform: "android", safeBottom: 48 })).toBe(48);
     expect(resolveTabBarBottomInset({ platform: "android", safeBottom: 80 })).toBe(80);
     expect(resolveTabBarBottomInset({ platform: "web", safeBottom: 0 })).toBe(
       LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD,

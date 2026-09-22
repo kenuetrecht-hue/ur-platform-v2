@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollView, View, Text, Pressable } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { useRouter, type Href } from "expo-router";
 import { useAuth } from "@/lib/auth-context";
 import { getPostLogoutHref } from "@/lib/post-auth-redirect";
@@ -15,6 +15,7 @@ import { ThanksStampsPanel } from "@/components/thanks-stamps-panel";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { HubTabBar } from "@/components/hub-tab-bar";
 import { HubDoorGrid, HubDoorTile } from "@/components/hub-door-tile";
+import { TabPageScroll } from "@/components/tab-page-scroll";
 import { PROFILE_HUB_TABS } from "@/lib/home-hub";
 import { withAlpha } from "@/lib/brand-theme";
 
@@ -62,11 +63,7 @@ export default function ProfileScreen() {
     <ScreenContainer className="bg-background">
       <TabScreenHeader compact icon="👤" title="Profile" />
       <HubTabBar tabs={PROFILE_HUB_TABS} activeId={hubTab} onSelect={setHubTab} />
-      <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: 32, gap: 12 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+      <TabPageScroll>
         {hubTab === "you" ? (
           <>
             <View
@@ -194,7 +191,7 @@ export default function ProfileScreen() {
             </Pressable>
           </>
         ) : null}
-      </ScrollView>
+      </TabPageScroll>
     </ScreenContainer>
   );
 }

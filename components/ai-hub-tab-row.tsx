@@ -1,5 +1,6 @@
-import { ScrollView, Pressable, Text, StyleSheet, ViewStyle } from "react-native";
+import { ScrollView, Text, StyleSheet, ViewStyle } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { AppPressable } from "@/components/app-pressable";
 
 type TabItem = {
   id: string;
@@ -37,8 +38,9 @@ export function AiHubTabRow({
         const active = tab.id === activeId;
         const labelColor = active ? "#FFFFFF" : colors.foreground;
         return (
-          <Pressable
+          <AppPressable
             key={tab.id}
+            testID={`ai-hub-tab-${tab.id}`}
             onPress={() => onSelect(tab.id)}
             style={[
               styles.chip,
@@ -48,9 +50,15 @@ export function AiHubTabRow({
               },
             ]}
           >
-            {tab.emoji ? <Text style={styles.chipEmoji}>{tab.emoji}</Text> : null}
-            <Text style={[styles.chipText, { color: labelColor }]}>{tab.label}</Text>
-          </Pressable>
+            {tab.emoji ? (
+              <Text pointerEvents="none" style={styles.chipEmoji}>
+                {tab.emoji}
+              </Text>
+            ) : null}
+            <Text pointerEvents="none" style={[styles.chipText, { color: labelColor }]}>
+              {tab.label}
+            </Text>
+          </AppPressable>
         );
       })}
     </ScrollView>

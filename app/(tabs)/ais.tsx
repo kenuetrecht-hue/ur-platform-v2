@@ -5,7 +5,6 @@ import {
   TextInput,
   ActivityIndicator,
   StyleSheet,
-  Pressable,
   ScrollView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -30,6 +29,8 @@ import { trpc } from "@/lib/trpc";
 import { HiveTownHallPanel } from "@/components/hive-town-hall-panel";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { HubTabBar } from "@/components/hub-tab-bar";
+import { TabPageScroll } from "@/components/tab-page-scroll";
+import { AppPressable } from "@/components/app-pressable";
 
 function publicCreatorsOnly(list: AiCreatorCatalogEntry[]): AiCreatorCatalogEntry[] {
   return list.filter((c) => !OWNER_OPS_AI_IDS.includes(c.id));
@@ -172,15 +173,18 @@ export default function AIsScreen() {
           {hubMode === "chat" ? (
             <>
               {selectedCreator && !catalogOpen ? (
-                <Pressable
+                <AppPressable
                   onPress={() => setCatalogOpen(true)}
+                  testID="ai-browse-specialists"
                   style={[
                     styles.selectedBar,
                     { backgroundColor: colors.surface, borderColor: colors.border },
                   ]}
                 >
-                  <Text style={{ fontSize: 20 }}>{selectedCreator.avatar}</Text>
-                  <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text pointerEvents="none" style={{ fontSize: 20 }}>
+                    {selectedCreator.avatar}
+                  </Text>
+                  <View pointerEvents="none" style={{ flex: 1, minWidth: 0 }}>
                     <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14 }} numberOfLines={1}>
                       {selectedCreator.name}
                     </Text>
@@ -188,8 +192,10 @@ export default function AIsScreen() {
                       Tap to change specialist
                     </Text>
                   </View>
-                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>Browse ▼</Text>
-                </Pressable>
+                  <Text pointerEvents="none" style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>
+                    Browse ▼
+                  </Text>
+                </AppPressable>
               ) : (
                 <ScrollView
                   style={styles.catalogBlock}
@@ -203,9 +209,11 @@ export default function AIsScreen() {
                       Choose a specialist
                     </Text>
                     {selectedCreator ? (
-                      <Pressable onPress={() => setCatalogOpen(false)} hitSlop={8}>
-                        <Text style={{ color: colors.gold, fontWeight: "700", fontSize: 12 }}>Done ▲</Text>
-                      </Pressable>
+                      <AppPressable onPress={() => setCatalogOpen(false)} hitSlop={8}>
+                        <Text pointerEvents="none" style={{ color: colors.gold, fontWeight: "700", fontSize: 12 }}>
+                          Done ▲
+                        </Text>
+                      </AppPressable>
                     ) : null}
                   </View>
 
@@ -254,7 +262,7 @@ export default function AIsScreen() {
           ) : null}
         </View>
 
-        <View style={styles.body}>
+        <TabPageScroll contentContainerStyle={styles.bodyScroll}>
           {hubMode === "townHall" ? (
             <HiveTownHallPanel />
           ) : selectedCreator ? (
@@ -264,6 +272,7 @@ export default function AIsScreen() {
               creatorName={selectedCreator.name}
               creatorAvatar={selectedCreator.avatar}
               hideChatHeader
+              pageScroll
               welcomeMessage={creatorWelcomeMessage}
               initialPrompt={creatorInitialPrompt}
               initialSurface={creatorInitialSurface}
@@ -276,7 +285,7 @@ export default function AIsScreen() {
               </Text>
             </View>
           )}
-        </View>
+        </TabPageScroll>
       </View>
     </ScreenContainer>
   );
@@ -294,9 +303,13 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     minHeight: 0,
-    overflow: "hidden",
     paddingHorizontal: 8,
     paddingBottom: 4,
+  },
+  bodyScroll: {
+    padding: 8,
+    paddingTop: 0,
+    gap: 8,
   },
   modeRow: {
     flexDirection: "row",

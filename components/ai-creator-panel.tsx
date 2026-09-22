@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { AppPressable } from "@/components/app-pressable";
 import { trpc } from "@/lib/trpc";
 import { CreatorAIInterface } from "@/components/creator-ai-interface";
 import { LanguageAIInterface } from "@/components/language-ai-interface";
@@ -53,6 +54,8 @@ export type AiCreatorPanelProps = {
   initialSurface?: SurfaceMode;
   /** Keyboard overlap — parent tab chrome above this panel. */
   overlapHeaderHeight?: number;
+  /** Grow with the page scroll so text and talk sit below the chat, not clipped. */
+  pageScroll?: boolean;
 };
 
 const LEARN_LEVELS: LearnLevel[] = ["beginner", "intermediate", "advanced"];
@@ -72,6 +75,7 @@ export function AiCreatorPanel({
   hideChatHeader = false,
   initialSurface,
   overlapHeaderHeight,
+  pageScroll = false,
 }: AiCreatorPanelProps) {
   const colors = useColors();
   const router = useRouter();
@@ -116,7 +120,7 @@ export function AiCreatorPanel({
 
   if (creatorId === "linguamate") {
     return (
-      <View style={styles.root}>
+      <View style={[styles.root, pageScroll ? styles.rootPage : null]}>
         <SurfaceToggle
           surface={surface}
           onChange={setSurface}
@@ -133,7 +137,7 @@ export function AiCreatorPanel({
             creatorAvatar="🌍"
           />
         ) : (
-          <LanguageAIInterface />
+          <LanguageAIInterface pageScroll={pageScroll} />
         )}
       </View>
     );
@@ -149,7 +153,7 @@ export function AiCreatorPanel({
     (liveEnabled.data?.enabled === true || (upcomingLive.data?.length ?? 0) > 0);
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, pageScroll ? styles.rootPage : null]}>
       {!isOwnerOps ? (
         <SurfaceToggle
           surface={surface}
@@ -184,7 +188,7 @@ export function AiCreatorPanel({
           initialFileContent={sandboxSeed?.content}
         />
       ) : surface === "chat" || isOwnerOps ? (
-        <View style={styles.chatSurface}>
+        <View style={[styles.chatSurface, pageScroll ? styles.chatSurfacePage : null]}>
         <CreatorAIInterface
           creatorId={creatorId}
           creatorName={creatorName}
@@ -193,6 +197,7 @@ export function AiCreatorPanel({
           initialPrompt={initialPrompt}
           hideHeader={hideChatHeader}
           embedded={hideChatHeader}
+          pageScroll={pageScroll}
           overlapHeaderHeight={overlapHeaderHeight}
         />
         </View>
@@ -274,7 +279,7 @@ function SurfaceToggle({
       {tabs.map((tab) => {
         const active = surface === tab.id;
         return (
-          <Pressable
+          <AppPressable
             key={tab.id}
             onPress={() => onChange(tab.id)}
             hitSlop={6}
@@ -287,12 +292,13 @@ function SurfaceToggle({
             ]}
           >
             <Text
+              pointerEvents="none"
               style={{ color: active ? "#fff" : colors.foreground, fontWeight: "700", fontSize: 12 }}
               numberOfLines={1}
             >
               {tab.label}
             </Text>
-          </Pressable>
+          </AppPressable>
         );
       })}
       </View>
@@ -609,7 +615,9 @@ export function AiLearnSurface({
 
 const styles = StyleSheet.create({
   root: { flex: 1, minHeight: 0, overflow: "hidden" },
+  rootPage: { flex: 0, overflow: "visible", width: "100%" },
   chatSurface: { flex: 1, minHeight: 0, overflow: "hidden" },
+  chatSurfacePage: { flex: 0, overflow: "visible", width: "100%" },
   opsBlocked: {
     borderRadius: 14,
     borderWidth: 1,
