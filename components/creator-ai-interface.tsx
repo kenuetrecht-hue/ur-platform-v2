@@ -18,7 +18,7 @@ import { speakText } from "@/lib/azure-tts-service";
 import { useRouter } from "expo-router";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
-import { ComposerDock } from "@/components/composer-dock";
+import { ChatComposerActionRow, ComposerDock } from "@/components/composer-dock";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { useAiTalkMeterPlayback } from "@/hooks/use-ai-talk-meter-playback";
@@ -844,7 +844,7 @@ export function CreatorAIInterface({
             </View>
           ) : null}
 
-          <View style={styles.inputRow}>
+          <ChatComposerActionRow>
             {supportsPhotoAnalysis ? (
               <Pressable
                 onPress={() => void attachFiles()}
@@ -946,7 +946,7 @@ export function CreatorAIInterface({
                 <Text style={styles.sendLabel}>Send</Text>
               )}
             </Pressable>
-          </View>
+          </ChatComposerActionRow>
           {speechHint ? (
             <Text style={{ color: colors.muted, fontSize: 11, paddingTop: 6 }}>{speechHint}</Text>
           ) : (

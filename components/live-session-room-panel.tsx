@@ -14,6 +14,8 @@ import { useBillingState } from "@/hooks/use-billing-state";
 import { BillingStatePicker } from "@/components/billing-state-picker";
 import { getClientPlatform } from "@/lib/web-checkout";
 import { ChatComposerInput } from "@/components/chat-composer-input";
+import { ChatComposerActionRow } from "@/components/composer-dock";
+import { CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 
 export type LiveSessionRoomPanelProps = {
   sessionId: string;
@@ -251,6 +253,7 @@ export function LiveSessionRoomPanel({ sessionId, creatorName, onLeft }: LiveSes
             </View>
           ))
         )}
+        <ChatComposerActionRow>
         <ChatComposerInput
           value={voiceQuestion}
           onChangeText={setVoiceQuestion}
@@ -269,6 +272,7 @@ export function LiveSessionRoomPanel({ sessionId, creatorName, onLeft }: LiveSes
           }
           disabled={busy || voiceQuestion.trim().length < 4 || !data.speak.hasAccess}
           style={[
+            CHAT_COMPOSER_SEND,
             styles.btnOutline,
             {
               borderColor: colors.primary,
@@ -276,8 +280,9 @@ export function LiveSessionRoomPanel({ sessionId, creatorName, onLeft }: LiveSes
             },
           ]}
         >
-          <Text style={{ color: colors.primary, fontWeight: "700" }}>Queue voice question</Text>
+          <Text style={{ color: colors.primary, fontWeight: "700" }}>Queue</Text>
         </Pressable>
+        </ChatComposerActionRow>
       </View>
 
       <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
@@ -298,6 +303,7 @@ export function LiveSessionRoomPanel({ sessionId, creatorName, onLeft }: LiveSes
             </View>
           ))
         )}
+        <ChatComposerActionRow>
         <ChatComposerInput
           value={textQuestion}
           onChangeText={setTextQuestion}
@@ -316,12 +322,14 @@ export function LiveSessionRoomPanel({ sessionId, creatorName, onLeft }: LiveSes
           }
           disabled={busy || textQuestion.trim().length < 4}
           style={[
+            CHAT_COMPOSER_SEND,
             styles.btnOutline,
             { borderColor: colors.primary, opacity: textQuestion.trim().length >= 4 ? 1 : 0.5 },
           ]}
         >
-          <Text style={{ color: colors.primary, fontWeight: "700" }}>Queue text question</Text>
+          <Text style={{ color: colors.primary, fontWeight: "700" }}>Queue</Text>
         </Pressable>
+        </ChatComposerActionRow>
       </View>
 
       {data.myQuestions.some((q) => q.canMarkAnswered) ? (

@@ -65,6 +65,7 @@ export function VoicePromptMicButton({
       accessibilityLabel={listening ? "Stop talking" : "Talk — speak any language"}
       hitSlop={8}
       style={{
+        flexShrink: 0,
         minWidth: labeled ? 72 : 40,
         height: 40,
         paddingHorizontal: labeled ? 8 : 0,

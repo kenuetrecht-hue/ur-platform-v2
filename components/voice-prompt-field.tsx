@@ -5,6 +5,8 @@ import { trpc } from "@/lib/trpc";
 import { createVoicePromptSession } from "@/lib/record-voice-prompt";
 import { stopExclusiveAudio } from "@/lib/exclusive-audio-player";
 import { ChatComposerInput } from "@/components/chat-composer-input";
+import { ChatComposerActionRow, ComposerDock } from "@/components/composer-dock";
+import { CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 
 type Props = {
   creatorId: string;
@@ -72,30 +74,16 @@ export function VoicePromptField({
   };
 
   return (
-    <View style={{ gap: 10, width: "100%", position: "relative", zIndex: 1 }}>
-      <ChatComposerInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.muted}
-        maxLength={maxLength}
-        editable={!disabled && !listening && !sending}
-        style={{
-          width: "100%",
-          borderColor: colors.border,
-          backgroundColor: colors.surface,
-          color: colors.foreground,
-        }}
-      />
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 8,
-          width: "100%",
-          zIndex: 2,
-        }}
-      >
+    <ComposerDock>
+      {hint ? (
+        <Text style={{ color: listening ? "#dc2626" : colors.muted, fontSize: 12, marginBottom: 8 }}>{hint}</Text>
+      ) : (
+        <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 8 }}>
+          Type in the box, or tap the microphone and speak any language. We print it here in English
+          if needed. Then tap {sendLabel}.
+        </Text>
+      )}
+      <ChatComposerActionRow>
         <Pressable
           onPress={() => void toggleMic()}
           disabled={disabled || sending || transcribe.isPending}
@@ -103,7 +91,7 @@ export function VoicePromptField({
           accessibilityLabel={listening ? "Stop microphone" : "Speak any language"}
           style={{
             width: 52,
-            height: 48,
+            minHeight: 52,
             flexShrink: 0,
             borderRadius: 12,
             alignItems: "center",
@@ -117,6 +105,19 @@ export function VoicePromptField({
             <Text style={{ fontSize: 22 }}>{listening ? "■" : "🎤"}</Text>
           )}
         </Pressable>
+        <ChatComposerInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.muted}
+          maxLength={maxLength}
+          editable={!disabled && !listening && !sending}
+          style={{
+            borderColor: colors.border,
+            backgroundColor: colors.surface,
+            color: colors.foreground,
+          }}
+        />
         {onSend ? (
           <Pressable
             onPress={() => {
@@ -126,15 +127,12 @@ export function VoicePromptField({
             disabled={sendDisabled}
             accessibilityRole="button"
             accessibilityLabel={sendLabel}
-            style={{
-              flex: 1,
-              minHeight: 48,
-              borderRadius: 12,
-              paddingVertical: 12,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: sendDisabled ? colors.muted : colors.primary,
-            }}
+            style={[
+              CHAT_COMPOSER_SEND,
+              {
+                backgroundColor: sendDisabled ? colors.muted : colors.primary,
+              },
+            ]}
           >
             {sending ? (
               <ActivityIndicator color="#fff" />
@@ -143,15 +141,7 @@ export function VoicePromptField({
             )}
           </Pressable>
         ) : null}
-      </View>
-      {hint ? (
-        <Text style={{ color: listening ? "#dc2626" : colors.muted, fontSize: 12 }}>{hint}</Text>
-      ) : (
-        <Text style={{ color: colors.muted, fontSize: 12 }}>
-          Type in the box, or tap the microphone and speak any language. We print it here in English
-          if needed. Then tap {sendLabel}.
-        </Text>
-      )}
-    </View>
+      </ChatComposerActionRow>
+    </ComposerDock>
   );
 }

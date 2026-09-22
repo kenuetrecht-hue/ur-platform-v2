@@ -149,10 +149,15 @@ describe("lettering on white vs colored backgrounds", () => {
     expect(layout).toContain("CHAT_COMPOSER_HEIGHT = 300");
     expect(layout).toContain("CHAT_COMPOSER_MAX_HEIGHT = 600");
     expect(layout).toContain("CHAT_COMPOSER_FRAME");
+    expect(layout).toContain("CHAT_COMPOSER_ACTION_ROW");
+    expect(layout).toContain("flexWrap: \"nowrap\"");
     expect(layout).toContain("minHeight: CHAT_COMPOSER_HEIGHT");
     expect(layout).toContain("height: CHAT_COMPOSER_HEIGHT");
     expect(layout).toContain("CHAT_COMPOSER_LINES = 12");
-    expect(layout).toContain("flexShrink: 0");
+    expect(layout).toContain("flexShrink: 1");
+    expect(layout).toContain("minWidth: 72");
+    expect(layout).toMatch(/CHAT_COMPOSER_FRAME:[\s\S]*?flexBasis: 0/);
+    expect(layout).not.toMatch(/CHAT_COMPOSER_FRAME:[\s\S]*?width: "100%"/);
     expect(layout).toContain("fontSize: 17");
 
     const composer = readFileSync("components/chat-composer-input.tsx", "utf8");
@@ -162,9 +167,17 @@ describe("lettering on white vs colored backgrounds", () => {
     expect(composer).toContain("underlineColorAndroid");
     expect(composer).toContain("numberOfLines={CHAT_COMPOSER_LINES}");
 
+    const dock = readFileSync("components/composer-dock.tsx", "utf8");
+    expect(dock).toContain("ChatComposerActionRow");
+    expect(dock).toContain("KeyboardAvoidingView");
+    expect(dock).toContain("useOverlapInsets");
+    expect(dock).toContain("ur-chat-composer-footer");
+
     const css = readFileSync("global.css", "utf8");
     expect(css).toContain("textarea.ur-chat-composer");
     expect(css).toContain("height: 300px !important");
+    expect(css).toContain(".ur-chat-composer-row");
+    expect(css).toContain("flex-wrap: nowrap");
 
     const desks = [
       "components/creator-ai-interface.tsx",
@@ -178,7 +191,9 @@ describe("lettering on white vs colored backgrounds", () => {
       "components/live-session-room-panel.tsx",
     ];
     for (const file of desks) {
-      expect(readFileSync(file, "utf8")).toContain("ChatComposerInput");
+      const src = readFileSync(file, "utf8");
+      expect(src).toContain("ChatComposerInput");
+      expect(src).toContain("ChatComposerActionRow");
     }
   });
 });

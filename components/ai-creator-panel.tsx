@@ -26,7 +26,7 @@ import { AiLiveSessionsPanel } from "@/components/ai-live-sessions-panel";
 import { AiSpecialistPricingPanel } from "@/components/ai-specialist-pricing-panel";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
-import { ComposerDock } from "@/components/composer-dock";
+import { ChatComposerActionRow, ComposerDock } from "@/components/composer-dock";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
@@ -584,7 +584,7 @@ export function AiLearnSurface({
       ) : null}
 
       <ComposerDock paddingBottom={overlap.dockPaddingBottom}>
-        <View style={styles.inputRow}>
+        <ChatComposerActionRow>
         <ChatComposerInput
           value={inputText}
           onChangeText={setInputText}
@@ -600,7 +600,7 @@ export function AiLearnSurface({
         >
           <Text style={{ color: "#fff", fontWeight: "700" }}>Send</Text>
         </TouchableOpacity>
-        </View>
+        </ChatComposerActionRow>
       </ComposerDock>
       </View>
     </KeyboardAvoidingView>

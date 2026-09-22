@@ -17,7 +17,7 @@ import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync";
 import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
-import { ComposerDock } from "@/components/composer-dock";
+import { ChatComposerActionRow, ComposerDock } from "@/components/composer-dock";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { playExclusiveAudio, stopExclusiveAudio } from "@/lib/exclusive-audio-player";
@@ -452,6 +452,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
             maxLength={400}
             editable={canChat}
           />
+          <ChatComposerActionRow>
           <ChatComposerInput
             style={[
               styles.textInput,
@@ -480,7 +481,6 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
               styles.sendButton,
               {
                 backgroundColor: "#0d9488",
-                alignSelf: "flex-end",
                 opacity:
                   !canChat || scoreSpoken.isPending || !drillExpected.trim() || !drillHeard.trim() ? 0.5 : 1,
               },
@@ -488,6 +488,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
           >
             <Text style={styles.sendButtonText}>Score</Text>
           </TouchableOpacity>
+          </ChatComposerActionRow>
           {scoreSpoken.data ? (
             <Text style={[styles.inputHint, { color: colors.foreground }]}>
               {scoreSpoken.data.score}/100 · missed {scoreSpoken.data.missed.join(", ") || "none"} ·{" "}
@@ -552,7 +553,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
         {speechHint ? (
           <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 6 }}>{speechHint}</Text>
         ) : null}
-        <View style={styles.inputRow}>
+        <ChatComposerActionRow>
           <VoicePromptMicButton
             creatorId="linguamate"
             labeled
@@ -596,7 +597,7 @@ export function LanguageAIInterface({ onClose }: LanguageAIInterfaceProps) {
           >
             <Text style={styles.sendButtonText}>↑</Text>
           </TouchableOpacity>
-        </View>
+        </ChatComposerActionRow>
         <Text style={[styles.inputHint, { color: colors.muted }]}>
           {canChat
             ? "Gemini 1.5 Flash · speaks & understands 100+ languages"

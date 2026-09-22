@@ -16,7 +16,7 @@ import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync"
 import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { useAuth } from "@/lib/auth-context";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
-import { ComposerDock } from "@/components/composer-dock";
+import { ChatComposerActionRow, ComposerDock } from "@/components/composer-dock";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
@@ -358,7 +358,7 @@ export function PersonalAIInterface({
         {speechHint ? (
           <Text style={[styles.inputHint, { color: colors.muted }]}>{speechHint}</Text>
         ) : null}
-        <View style={styles.inputRow}>
+        <ChatComposerActionRow>
           <VoicePromptMicButton
             creatorId={creatorId}
             labeled
@@ -402,7 +402,7 @@ export function PersonalAIInterface({
           >
             <Text style={styles.sendButtonText}>↑</Text>
           </TouchableOpacity>
-        </View>
+        </ChatComposerActionRow>
         <Text style={[styles.inputHint, { color: colors.muted }]}>
           Gemini 1.5 Flash · understands 100+ languages
         </Text>

@@ -27,7 +27,8 @@ body > div:first-child {
 /* RN-web TextInput + flex layouts collapse <textarea> to 2 rows. Lock chat boxes. */
 textarea.ur-chat-composer {
   display: block !important;
-  flex: 1 0 auto !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
   width: 100% !important;
   height: 300px !important;
   min-height: 300px !important;
@@ -36,6 +37,21 @@ textarea.ur-chat-composer {
   line-height: 24px !important;
   resize: vertical;
   box-sizing: border-box !important;
+}
+
+.ur-chat-composer-footer {
+  flex-shrink: 0 !important;
+  position: sticky;
+  bottom: 0;
+  z-index: 40;
+}
+
+.ur-chat-composer-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-end !important;
+  width: 100%;
 }
 
 :root {

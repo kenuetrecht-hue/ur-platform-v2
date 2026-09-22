@@ -12,7 +12,7 @@ import {
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
-import { ComposerDock } from "@/components/composer-dock";
+import { ChatComposerActionRow, ComposerDock } from "@/components/composer-dock";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
@@ -386,7 +386,7 @@ export function HiveTownHallPanel() {
       </ScrollView>
 
       <ComposerDock paddingBottom={overlap.dockPaddingBottom}>
-      <View style={styles.composer}>
+      <ChatComposerActionRow>
         <ChatComposerInput
           value={inputText}
           onChangeText={setInputText}
@@ -407,7 +407,7 @@ export function HiveTownHallPanel() {
         >
           <Text style={{ color: "#fff", fontWeight: "700" }}>Send</Text>
         </Pressable>
-      </View>
+      </ChatComposerActionRow>
       </ComposerDock>
     </KeyboardAvoidingView>
   );

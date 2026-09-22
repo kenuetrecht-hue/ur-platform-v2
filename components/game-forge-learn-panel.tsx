@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
-import { ComposerDock } from "@/components/composer-dock";
+import { ChatComposerActionRow, ComposerDock } from "@/components/composer-dock";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 
@@ -298,7 +298,7 @@ export function GameForgeLearnPanel({
       ) : null}
 
       <ComposerDock>
-        <View style={styles.inputRow}>
+        <ChatComposerActionRow>
         <ChatComposerInput
           style={[styles.input, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
           placeholder="Ask how to build your game…"
@@ -315,7 +315,7 @@ export function GameForgeLearnPanel({
         >
           <Text style={{ color: "#fff", fontWeight: "700" }}>Learn</Text>
         </Pressable>
-        </View>
+        </ChatComposerActionRow>
       </ComposerDock>
     </View>
   );

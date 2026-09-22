@@ -55,6 +55,7 @@ export function ChatComposerInput({
           style={{
             display: "block",
             width: "100%",
+            minWidth: 0,
             height: "100%",
             minHeight: height,
             maxHeight,
@@ -97,6 +98,7 @@ export function ChatComposerInput({
           style,
           {
             flex: 1,
+            minWidth: 0,
             width: "100%",
             height: "100%",
             minHeight: height,

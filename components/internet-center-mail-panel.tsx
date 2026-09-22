@@ -15,6 +15,8 @@ import { useAuth } from "@/lib/auth-context";
 import { trpc } from "@/lib/trpc";
 import { brandGradientPair, brandHighlightSurface, withAlpha } from "@/lib/brand-theme";
 import { ChatComposerInput } from "@/components/chat-composer-input";
+import { ChatComposerActionRow } from "@/components/composer-dock";
+import { CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 
 type MailFolder = "inbox" | "sent" | "compose" | "read";
 
@@ -180,6 +182,7 @@ export function InternetCenterMailPanel({
             style={[styles.field, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background }]}
           />
           <Text style={[styles.fieldLabel, { color: colors.muted }]}>Message</Text>
+          <ChatComposerActionRow>
           <ChatComposerInput
             value={body}
             onChangeText={setBody}
@@ -199,12 +202,13 @@ export function InternetCenterMailPanel({
                 body: body.trim(),
               })
             }
-            style={[styles.sendBtn, { opacity: sendMail.isPending ? 0.6 : 1 }]}
+            style={[CHAT_COMPOSER_SEND, styles.sendBtn, { opacity: sendMail.isPending ? 0.6 : 1 }]}
           >
-            <LinearGradient colors={[gradStart, gradEnd]} style={styles.sendBtnInner}>
-              <Text style={styles.sendBtnText}>{sendMail.isPending ? "Sending…" : "Send mail"}</Text>
+            <LinearGradient colors={[gradStart, gradEnd]} style={[styles.sendBtnInner, { minHeight: 52, justifyContent: "center", paddingHorizontal: 12 }]}>
+              <Text style={styles.sendBtnText}>{sendMail.isPending ? "…" : "Send"}</Text>
             </LinearGradient>
           </Pressable>
+          </ChatComposerActionRow>
           {sendMail.error ? (
             <Text style={{ color: colors.error, fontSize: 12, marginTop: 8 }}>{sendMail.error.message}</Text>
           ) : null}

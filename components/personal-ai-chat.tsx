@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { newestConversationFirst } from '@/lib/chat-newest-first';
 import { useScrollChatToNewest } from '@/hooks/use-scroll-chat-to-newest';
 import { ChatComposerInput } from '@/components/chat-composer-input';
+import { ChatComposerActionRow, ComposerDock } from '@/components/composer-dock';
 
 interface Message {
   id: string;
@@ -252,11 +253,8 @@ export function PersonalAIChat({
           </View>
         )}
 
-        {/* Input */}
-        <View
-          className="flex-row items-end gap-2 p-4 border-t"
-          style={{ borderTopColor: colors.border }}
-        >
+        <ComposerDock reserveTabBar={false}>
+          <ChatComposerActionRow>
           <ChatComposerInput
             value={inputText}
             onChangeText={setInputText}
@@ -273,7 +271,7 @@ export function PersonalAIChat({
             onPress={handleSendMessage}
             disabled={!inputText.trim() || isLoading}
             className="bg-primary p-3 rounded-full"
-            style={{ opacity: !inputText.trim() || isLoading ? 0.5 : 1 }}
+            style={{ opacity: !inputText.trim() || isLoading ? 0.5 : 1, flexShrink: 0 }}
           >
             <IconSymbol
               name="paperplane.fill"
@@ -281,7 +279,8 @@ export function PersonalAIChat({
               color={colors.background}
             />
           </TouchableOpacity>
-        </View>
+          </ChatComposerActionRow>
+        </ComposerDock>
       </View>
     </Modal>
   );
