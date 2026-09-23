@@ -25,5 +25,21 @@ describe("AI texting clicks", () => {
     expect(mic).toContain('pointerEvents="none"');
     expect(chat).toContain('testID="ai-talk-hear"');
     expect(chat).toContain('testID="ai-talk-stop"');
+    expect(chat).toContain('testID="ai-text-button"');
+    expect(chat).toContain("onSpokenQuestion");
+    expect(mic).toContain("onSpokenQuestion");
+
+    const language = readFileSync("components/language-ai-interface.tsx", "utf8");
+    const learn = readFileSync("components/ai-creator-panel.tsx", "utf8");
+    const personal = readFileSync("components/personal-ai-interface.tsx", "utf8");
+    const techLearn = readFileSync("components/tech-builder-learn-panel.tsx", "utf8");
+    const gameLearn = readFileSync("components/game-forge-learn-panel.tsx", "utf8");
+    for (const source of [language, learn, personal, techLearn, gameLearn]) {
+      expect(source).toContain('testID="ai-text-button"');
+      expect(source).toContain("onSpokenQuestion");
+    }
+
+    const handler = readFileSync("server/_core/ai-chat-handler.ts", "utf8");
+    expect(handler).toContain("Answer the question they just asked");
   });
 });

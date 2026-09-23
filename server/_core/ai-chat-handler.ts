@@ -470,6 +470,9 @@ export async function handleCreatorAiChat(params: {
         });
       }
 
+      systemPrompt +=
+        "\n\nAnswer the question they just asked. Give the real answer in your specialty, using the tools and knowledge of this role. Do not reply that you are online, working, or available.";
+
       if (commissionedJobs.length > 0) {
         systemPrompt += `\n\n${formatStewardCommissionForPrompt(commissionedJobs)}`;
         hiveConsulted = commissionedJobs.map((job) => ({

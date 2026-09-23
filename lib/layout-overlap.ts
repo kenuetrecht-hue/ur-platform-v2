@@ -12,8 +12,8 @@ export const LAYOUT_OVERLAP = {
   TAB_BAR_TOP_PADDING: 0,
   /** Floor when the OS reports no inset (desktop web). */
   TAB_BAR_MIN_BOTTOM_INSET: 0,
-  /** iPhone / iPad home indicator when native inset is missing. */
-  IOS_HOME_INDICATOR_INSET: 34,
+  /** Compact pad under the tab icons. Clears a thin home indicator without a tall empty band. */
+  IOS_HOME_INDICATOR_INSET: 12,
   /** PlatformDisclosureBar content below status inset (top bar). */
   TOP_DISCLOSURE_CONTENT_HEIGHT: 28,
   /** PlatformDisclosureBar content above home indicator (bottom bar on non-tab screens). */
@@ -27,8 +27,8 @@ export const LAYOUT_OVERLAP = {
   ANDROID_NAV_BAR_BUFFER: 6,
   /** Samsung One UI often needs a hair more clearance above the tab bar. */
   SAMSUNG_TAB_BUFFER: 4,
-  /** Native Android / Android-web floor for the system navigation bar. */
-  ANDROID_GESTURE_INSET: 28,
+  /** Native Android / Android-web floor under the tab icons. */
+  ANDROID_GESTURE_INSET: 12,
   /** Extra gap above the OS bar. Keep at 0 — a second block eats screen. */
   TAB_BAR_HOME_CLEARANCE: 0,
   /** Desktop-web floor when there is no home indicator. Phone web uses the OS inset instead. */
@@ -133,7 +133,7 @@ export function isPhoneWebRuntime(): boolean {
 
 /**
  * Bottom pad for the real tab bar.
- * Android: one 28px OS-bar floor. Do not add a second spacer.
+ * Phones use one short inset under the icons. Do not add a second spacer.
  */
 export function resolveTabBarBottomInset(args: {
   safeBottom: number;
@@ -148,13 +148,13 @@ export function resolveTabBarBottomInset(args: {
   const android = args.platform === "android" || Boolean(args.androidWeb);
   const phone = ios || android || Boolean(args.phoneWeb);
   if (ios) {
-    return Math.max(os, LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET);
+    return LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET;
   }
   if (android) {
-    return Math.max(os, LAYOUT_OVERLAP.ANDROID_GESTURE_INSET);
+    return LAYOUT_OVERLAP.ANDROID_GESTURE_INSET;
   }
   if (phone) {
-    return os > 0 ? os : LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET;
+    return LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET;
   }
   return Math.max(
     os,

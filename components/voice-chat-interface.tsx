@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Platform } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import { generateAIVoiceResponse } from "@/lib/ai-voice-responses";
+import { trpc } from "@/lib/trpc";
 import { speakText } from "@/lib/azure-tts-service";
 import { androidMicrophoneHandler } from "@/lib/android-microphone-handler";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
@@ -17,12 +17,14 @@ interface VoiceChatMessage {
 interface VoiceChatInterfaceProps {
   aiName: string;
   aiCategory: string;
+  creatorId?: string;
   onClose: () => void;
 }
 
 export function VoiceChatInterface({
   aiName,
   aiCategory,
+  creatorId = "contentmate",
   onClose,
 }: VoiceChatInterfaceProps) {
   const colors = useColors();
@@ -32,7 +34,11 @@ export function VoiceChatInterface({
   const [transcript, setTranscript] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [draft, setDraft] = useState("");
+  const sendChat = trpc.aiCreators.sendMessage.useMutation();
+  const textInputRef = useRef<TextInput>(null);
   const recognitionRef = useRef<any>(null);
+  const handleUserMessageRef = useRef<(text: string) => void>(() => undefined);
   const { ref: scrollViewRef } = useScrollChatToNewest(messages.length);
 
   // Initialize speech recognition with proper error handling
@@ -83,7 +89,7 @@ export function VoiceChatInterface({
 
         // Process final transcript
         if (finalTranscript) {
-          handleUserMessage(finalTranscript.trim());
+          handleUserMessageRef.current(finalTranscript.trim());
         }
       };
 
@@ -146,11 +152,19 @@ export function VoiceChatInterface({
 
     try {
       // Generate AI response
-      const aiResponse = generateAIVoiceResponse({
-        aiName,
-        aiCategory,
-        userMessage: userText,
+      const history = messages
+        .filter((m) => m.type === "user" || m.type === "ai")
+        .slice(-10)
+        .map((m) => ({
+          role: m.type === "ai" ? ("assistant" as const) : ("user" as const),
+          content: m.text,
+        }));
+      const result = await sendChat.mutateAsync({
+        creatorId,
+        message: userText.trim().slice(0, 2000),
+        history,
       });
+      const aiResponse = result.reply;
 
       const aiMessage: VoiceChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -176,6 +190,10 @@ export function VoiceChatInterface({
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  handleUserMessageRef.current = (text: string) => {
+    void handleUserMessage(text);
   };
 
   // Start listening for speech
@@ -328,6 +346,45 @@ export function VoiceChatInterface({
 
         {/* Microphone Button */}
         <TouchableOpacity
+          testID="ai-text-button"
+          accessibilityLabel="Text"
+          onPress={() => {
+            const question = draft.trim();
+            if (!question) {
+              textInputRef.current?.focus();
+              return;
+            }
+            setDraft("");
+            void handleUserMessage(question);
+          }}
+          disabled={isProcessing || isSpeaking}
+          className="mb-3 p-3 rounded-xl items-center"
+          style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+        >
+          <Text style={{ color: colors.foreground, fontWeight: "800" }}>Text</Text>
+        </TouchableOpacity>
+        <TextInput
+          ref={textInputRef}
+          testID="ai-voice-text-input"
+          value={draft}
+          onChangeText={setDraft}
+          placeholder={`Ask ${aiName} in text…`}
+          placeholderTextColor={colors.muted}
+          editable={!isProcessing}
+          maxLength={2000}
+          style={{
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 12,
+            padding: 12,
+            color: colors.foreground,
+            marginBottom: 12,
+            backgroundColor: colors.background,
+          }}
+        />
+        <TouchableOpacity
+          testID="ai-talk-mic"
+          accessibilityLabel="Talk"
           onPress={isListening ? stopListening : startListening}
           disabled={isProcessing || isSpeaking}
           className="p-4 rounded-full items-center justify-center"
@@ -340,7 +397,7 @@ export function VoiceChatInterface({
             {isListening ? "🛑" : "🎤"}
           </Text>
           <Text className="text-white font-semibold mt-2">
-            {isListening ? "Stop Listening" : "Start Listening"}
+            {isListening ? "Stop" : "Talk"}
           </Text>
           <Text className="text-white/70 text-xs mt-1">
             {isListening ? "Tap to stop" : "Tap to speak"}

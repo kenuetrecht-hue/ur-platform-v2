@@ -144,6 +144,7 @@ export function CreatorAIInterface({
     { role: "ai", text: defaultWelcome, id: `${creatorId}-welcome` },
   ]);
   const [inputText, setInputText] = useState("");
+  const [textFocusNonce, setTextFocusNonce] = useState(0);
   const [speechHint, setSpeechHint] = useState<string | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<PickedChatAttachment[]>([]);
   const [imageGenPrompt, setImageGenPrompt] = useState("");
@@ -309,7 +310,7 @@ export function CreatorAIInterface({
   const supportsImageGen = Boolean(hiveProfile.data?.capabilities.imageGeneration);
 
   const sendChatMessage = useCallback(
-    async (rawText: string, attachmentOverride?: PickedChatAttachment[]) => {
+    async (rawText: string, attachmentOverride?: PickedChatAttachment[], options?: { speak?: boolean }) => {
       const userMessage = rawText.trim().slice(0, 2000);
       const attachmentsToSend = attachmentOverride ?? pendingAttachments;
       if ((!userMessage && attachmentsToSend.length === 0) || loading) return;
@@ -325,10 +326,10 @@ export function CreatorAIInterface({
       unlockWebAudio();
       const thinkingNote =
         userMessage.length > 80 || hiveMode || attachmentsToSend.length > 0
-          ? `Heard you. Working on that bigger request now — this can take a minute. I'll speak the answer when it's ready.`
-          : `Heard you. Thinking… I'll speak the answer when it's ready.`;
+          ? "Working on that bigger request. The answer will show here, then I'll speak it."
+          : "Working on your question. The answer will show here, then I'll speak it.";
       setSendStatus(thinkingNote);
-      setVoiceStatus("Heard you — thinking. Hear plays the answer when it's ready.");
+      setVoiceStatus("Working on your question. Hear plays the answer when it's ready.");
       const clearedInput = rawText === inputText;
       if (clearedInput) {
         setInputText("");
@@ -431,7 +432,7 @@ export function CreatorAIInterface({
         setAwaitingPitchConsent(Boolean(result.pitchConsentRequest));
         setSendStatus(null);
         void refetchChatThread();
-        if (ownerTalkIncluded || hasTalkTime) {
+        if (options?.speak || ownerTalkIncluded || hasTalkTime) {
           setVoiceStatus("Reply ready — speaking it now.");
           speakReplyRef.current(replyText);
         } else {
@@ -461,6 +462,8 @@ export function CreatorAIInterface({
       loading,
       makeMessage,
       messages,
+      hasTalkTime,
+      ownerTalkIncluded,
       pendingAttachments,
       scrollToBottom,
       refetchChatThread,
@@ -784,7 +787,7 @@ export function CreatorAIInterface({
             <View style={styles.typingRow}>
               <ActivityIndicator color={colors.primary} />
               <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "700", flex: 1 }}>
-                Heard you — thinking through this now. I'll speak the answer when it's ready.
+                Working on your question…
               </Text>
             </View>
           ) : null}
@@ -870,6 +873,26 @@ export function CreatorAIInterface({
                 <Text style={{ fontSize: 18 }}>📎</Text>
               </Pressable>
             ) : null}
+            <AppPressable
+              testID="ai-text-button"
+              accessibilityLabel="Text"
+              onPress={() => setTextFocusNonce((n) => n + 1)}
+              hitSlop={8}
+              style={({ pressed }) => [
+                styles.attachButton,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
+                  opacity: pressed ? 0.85 : 1,
+                  minWidth: 64,
+                  paddingHorizontal: 8,
+                },
+              ]}
+            >
+              <Text pointerEvents="none" style={{ color: colors.foreground, fontSize: 12, fontWeight: "800" }}>
+                Text
+              </Text>
+            </AppPressable>
             <VoicePromptMicButton
               creatorId={creatorId}
               labeled
@@ -881,6 +904,10 @@ export function CreatorAIInterface({
               onTranscript={(text, hint) => {
                 if (text) setInputText(text.slice(0, 2000));
                 setSpeechHint(hint || null);
+              }}
+              onSpokenQuestion={(question) => {
+                setInputText("");
+                void sendChatMessage(question, undefined, { speak: true });
               }}
             />
             {supportsImageGen ? (
@@ -916,6 +943,7 @@ export function CreatorAIInterface({
               placeholderTextColor={colors.muted}
               value={inputText}
               onChangeText={setInputText}
+              focusNonce={textFocusNonce}
               maxLength={2000}
               onFocus={() => {
                 if (Platform.OS !== "web") return;
@@ -986,8 +1014,7 @@ export function CreatorAIInterface({
                   fontWeight: loading ? "700" : "500",
                 }}
               >
-                {sendStatus ??
-                  "Heard you — thinking through this now. I'll speak the answer when it's ready."}
+                {sendStatus ?? "Working on your question…"}
               </Text>
             </View>
           ) : null}

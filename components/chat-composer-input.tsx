@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Platform, StyleSheet, TextInput, View, type StyleProp, type TextStyle } from "react-native";
 import {
   CHAT_COMPOSER_FRAME,
@@ -17,6 +18,8 @@ type ChatComposerInputProps = {
   style?: StyleProp<TextStyle>;
   onSubmitEditing?: () => void;
   onFocus?: () => void;
+  /** Increment to move the cursor into this box (the Text button). */
+  focusNonce?: number;
 };
 
 /**
@@ -34,7 +37,15 @@ export function ChatComposerInput({
   style,
   onSubmitEditing,
   onFocus,
+  focusNonce = 0,
 }: ChatComposerInputProps) {
+  const nativeRef = useRef<TextInput>(null);
+  const webRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (!focusNonce) return;
+    if (Platform.OS === "web") webRef.current?.focus();
+    else nativeRef.current?.focus();
+  }, [focusNonce]);
   const flat = StyleSheet.flatten([CHAT_COMPOSER_INPUT, style]) ?? {};
   const height = typeof flat.height === "number" ? flat.height : CHAT_COMPOSER_HEIGHT;
   const maxHeight = typeof flat.maxHeight === "number" ? flat.maxHeight : CHAT_COMPOSER_MAX_HEIGHT;
@@ -44,6 +55,7 @@ export function ChatComposerInput({
     return (
       <View style={frameStyle}>
         <textarea
+          ref={webRef}
           className="ur-chat-composer"
           value={value}
           placeholder={placeholder}
@@ -87,6 +99,7 @@ export function ChatComposerInput({
   return (
     <View style={frameStyle}>
       <TextInput
+        ref={nativeRef}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}

@@ -96,8 +96,9 @@ export default function CreateScreen() {
 
       <Modal visible={showVoiceChat} animationType="slide">
         <VoiceChatInterface
-          aiName="UR Assistant"
-          aiCategory="Creator"
+          aiName="ContentMate"
+          aiCategory="Platform"
+          creatorId="contentmate"
           onClose={() => setShowVoiceChat(false)}
         />
       </Modal>

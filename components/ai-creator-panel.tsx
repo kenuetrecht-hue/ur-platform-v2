@@ -35,6 +35,8 @@ import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 
 import { SpecialistJobToolsPanel } from "@/components/specialist-job-tools-panel";
 import { hasSpecialistJobTools } from "@/lib/specialist-job-tools";
+import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
+import { speakText } from "@/lib/azure-tts-service";
 import { TabPageScroll } from "@/components/tab-page-scroll";
 
 type SurfaceMode = "chat" | "learn" | "build" | "live" | "pricing" | "tools";
@@ -338,6 +340,7 @@ export function AiLearnSurface({
   const [activeTopic, setActiveTopic] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
+  const [textFocusNonce, setTextFocusNonce] = useState(0);
   const [loading, setLoading] = useState(false);
   const { ref: scrollRef } = useScrollChatToNewest(messages.length + (loading ? 1 : 0));
 
@@ -373,7 +376,7 @@ export function AiLearnSurface({
   }, [creatorId, creatorName, level, learnMode]);
 
   const sendLearnMessage = useCallback(
-    async (raw: string) => {
+    async (raw: string, options?: { speak?: boolean }) => {
       const text = raw.trim().slice(0, 4000);
       if (!text || loading) return;
 
@@ -396,6 +399,14 @@ export function AiLearnSurface({
           topic: activeTopic ?? undefined,
         });
         setMessages((prev) => [...prev, { role: "ai", text: result.lesson }]);
+        if (options?.speak && result.lesson.trim()) {
+          const spoken = result.lesson.replace(/\s+/g, " ").trim().slice(0, 1200);
+          try {
+            await speakText(spoken);
+          } catch {
+            /* The lesson stays on screen if the speaker is busy. */
+          }
+        }
       } catch (error) {
         const msg = error instanceof Error ? error.message : "Lesson unavailable. Try again.";
         setMessages((prev) => [...prev, { role: "ai", text: msg }]);
@@ -600,9 +611,40 @@ export function AiLearnSurface({
 
       <ComposerDock paddingBottom={overlap.dockPaddingBottom}>
         <ChatComposerActionRow>
+        <AppPressable
+          testID="ai-text-button"
+          accessibilityLabel="Text"
+          onPress={() => setTextFocusNonce((n) => n + 1)}
+          hitSlop={8}
+          style={{
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 10,
+            paddingVertical: 10,
+            paddingHorizontal: 12,
+            backgroundColor: colors.surface,
+          }}
+        >
+          <Text pointerEvents="none" style={{ color: colors.foreground, fontWeight: "800", fontSize: 13 }}>
+            Text
+          </Text>
+        </AppPressable>
+        <VoicePromptMicButton
+          creatorId={creatorId}
+          labeled
+          disabled={loading}
+          onTranscript={(text) => {
+            if (text) setInputText(text.slice(0, 4000));
+          }}
+          onSpokenQuestion={(question) => {
+            setInputText("");
+            void sendLearnMessage(question, { speak: true });
+          }}
+        />
         <ChatComposerInput
           value={inputText}
           onChangeText={setInputText}
+          focusNonce={textFocusNonce}
           placeholder="Ask for a lesson, practice quiz, or certification topic…"
           placeholderTextColor={colors.muted}
           style={[styles.input, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}

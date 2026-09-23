@@ -63,14 +63,15 @@ describe("layout-overlap", () => {
     expect(padding).toBeLessThan(LAYOUT_OVERLAP.BOTTOM_DISCLOSURE_ABOVE_TAB_HEIGHT + 24);
   });
 
-  it("pads Android with one 28px OS-bar floor and no extra 48px block", () => {
+  it("pads the phone tab bar with one short bottom inset and no extra block", () => {
     expect(effectiveTabBarBottomInset(0)).toBe(LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD);
     expect(effectiveTabBarBottomInset(0, 70)).toBe(LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD);
     expect(effectiveTabBarBottomInset(40)).toBe(40);
     expect(tabBarTotalHeight(34)).toBeGreaterThan(tabBarIconsOnlyHeight());
     expect(LAYOUT_OVERLAP).not.toHaveProperty("WEB_TOUCH_BOTTOM_INSET");
     expect(LAYOUT_OVERLAP.TAB_BAR_HOME_CLEARANCE).toBe(0);
-    expect(LAYOUT_OVERLAP.ANDROID_GESTURE_INSET).toBe(28);
+    expect(LAYOUT_OVERLAP.ANDROID_GESTURE_INSET).toBe(12);
+    expect(LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET).toBe(12);
     const tabBar = readFileSync("components/tab-bar-with-disclosure.tsx", "utf8");
     const hook = readFileSync("hooks/use-tab-bar-bottom-inset.ts", "utf8");
     const css = readFileSync("global.css", "utf8");
@@ -101,12 +102,18 @@ describe("layout-overlap", () => {
     expect(resolveTabBarBottomInset({ platform: "ios", safeBottom: 0 })).toBe(
       LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET,
     );
-    expect(resolveTabBarBottomInset({ platform: "ios", safeBottom: 34 })).toBe(34);
+    expect(resolveTabBarBottomInset({ platform: "ios", safeBottom: 34 })).toBe(
+      LAYOUT_OVERLAP.IOS_HOME_INDICATOR_INSET,
+    );
     expect(resolveTabBarBottomInset({ platform: "android", safeBottom: 0 })).toBe(
       LAYOUT_OVERLAP.ANDROID_GESTURE_INSET,
     );
-    expect(resolveTabBarBottomInset({ platform: "android", safeBottom: 48 })).toBe(48);
-    expect(resolveTabBarBottomInset({ platform: "android", safeBottom: 80 })).toBe(80);
+    expect(resolveTabBarBottomInset({ platform: "android", safeBottom: 48 })).toBe(
+      LAYOUT_OVERLAP.ANDROID_GESTURE_INSET,
+    );
+    expect(resolveTabBarBottomInset({ platform: "android", safeBottom: 80 })).toBe(
+      LAYOUT_OVERLAP.ANDROID_GESTURE_INSET,
+    );
     expect(resolveTabBarBottomInset({ platform: "web", safeBottom: 0 })).toBe(
       LAYOUT_OVERLAP.WEB_TAB_BAR_BOTTOM_PAD,
     );

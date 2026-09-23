@@ -76,6 +76,7 @@ export function LanguageAIInterface({ onClose, pageScroll = false }: LanguageAII
     },
   ]);
   const [inputText, setInputText] = useState("");
+  const [textFocusNonce, setTextFocusNonce] = useState(0);
   const [speechHint, setSpeechHint] = useState<string | null>(null);
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -128,7 +129,7 @@ export function LanguageAIInterface({ onClose, pageScroll = false }: LanguageAII
   );
 
   const sendMessage = useCallback(
-    async (rawText: string) => {
+    async (rawText: string, options?: { speak?: boolean }) => {
       const userMessage = rawText.trim().slice(0, 4000);
       if (!userMessage || loading || !canChat) return;
 
@@ -185,6 +186,16 @@ export function LanguageAIInterface({ onClose, pageScroll = false }: LanguageAII
         }
 
         setMessages((prev) => [...prev, { role: "ai", text: reply }]);
+        if (options?.speak && reply.trim()) {
+          const spoken = reply.replace(/\s+/g, " ").trim().slice(0, 1200);
+          setVoiceStatus("Speaking the answer…");
+          try {
+            await speakText(spoken);
+            setVoiceStatus("Playback finished.");
+          } catch {
+            setVoiceStatus("Answer is on screen. Tap Hear to play it.");
+          }
+        }
       } catch (error) {
         const message =
           error instanceof Error
@@ -213,6 +224,7 @@ export function LanguageAIInterface({ onClose, pageScroll = false }: LanguageAII
       teachMutation,
       translateMutation,
       canChat,
+      speakText,
     ],
   );
 
@@ -365,7 +377,7 @@ export function LanguageAIInterface({ onClose, pageScroll = false }: LanguageAII
             >
               <ActivityIndicator color="#0d9488" />
               <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700", marginTop: 8 }}>
-                Heard you — thinking. I'll speak the answer when it's ready.
+                Working on your question…
               </Text>
             </View>
           </View>
@@ -556,6 +568,25 @@ export function LanguageAIInterface({ onClose, pageScroll = false }: LanguageAII
           <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 6 }}>{speechHint}</Text>
         ) : null}
         <ChatComposerActionRow>
+          <AppPressable
+            testID="ai-text-button"
+            accessibilityLabel="Text"
+            onPress={() => setTextFocusNonce((n) => n + 1)}
+            disabled={!canChat}
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 10,
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+              backgroundColor: colors.surface,
+              marginRight: 8,
+            }}
+          >
+            <Text pointerEvents="none" style={{ color: colors.foreground, fontWeight: "800", fontSize: 13 }}>
+              Text
+            </Text>
+          </AppPressable>
           <VoicePromptMicButton
             creatorId="linguamate"
             labeled
@@ -567,6 +598,10 @@ export function LanguageAIInterface({ onClose, pageScroll = false }: LanguageAII
             onTranscript={(text, hint) => {
               if (text) setInputText(text.slice(0, 4000));
               setSpeechHint(hint || null);
+            }}
+            onSpokenQuestion={(question) => {
+              setInputText("");
+              void sendMessage(question, { speak: true });
             }}
           />
           <ChatComposerInput
@@ -582,6 +617,7 @@ export function LanguageAIInterface({ onClose, pageScroll = false }: LanguageAII
             placeholderTextColor={colors.muted}
             value={inputText}
             onChangeText={setInputText}
+            focusNonce={textFocusNonce}
             maxLength={4000}
             editable={!loading && canChat}
             onSubmitEditing={() => void sendMessage(inputText)}

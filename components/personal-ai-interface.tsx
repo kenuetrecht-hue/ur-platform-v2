@@ -57,6 +57,7 @@ export function PersonalAIInterface({
     },
   ]);
   const [inputText, setInputText] = useState("");
+  const [textFocusNonce, setTextFocusNonce] = useState(0);
   const [loading, setLoading] = useState(false);
   const loadingRef = useRef(false);
   const { ref: scrollViewRef, scrollToNewest: scrollToBottom } = useScrollChatToNewest(
@@ -100,7 +101,7 @@ export function PersonalAIInterface({
   const deskName = creatorId === "platform-business-steward-ai" ? "Business Steward" : "ContentMate";
 
   const sendChatMessage = useCallback(
-    async (rawText: string) => {
+    async (rawText: string, options?: { speak?: boolean }) => {
       const userMessage = rawText.trim().slice(0, 2000);
       if (!userMessage || loading) return;
 
@@ -148,10 +149,11 @@ export function PersonalAIInterface({
         setMessages((prev) => [...prev, { role: "ai", text: result.reply }]);
         void refetchChatThread();
         const spoken = result.reply.replace(/\s+/g, " ").trim().slice(0, 1200);
-        if (spoken && (premium.data?.creatorVoice || buyVoice.isSuccess)) {
+        const canStudioVoice = Boolean(premium.data?.creatorVoice || buyVoice.isSuccess);
+        if (spoken && (options?.speak || canStudioVoice)) {
           setVoiceStatus("Reply ready — speaking it now.");
           try {
-            if (Platform.OS === "web") {
+            if (canStudioVoice && Platform.OS === "web") {
               const res = await voiceMutation.mutateAsync({
                 creatorId,
                 text: spoken,
@@ -280,7 +282,7 @@ export function PersonalAIInterface({
             >
               <ActivityIndicator color={colors.primary} />
               <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700", marginTop: 8 }}>
-                Heard you — thinking. I'll speak the answer when it's ready.
+                Working on your question…
               </Text>
             </View>
           </View>
@@ -359,6 +361,22 @@ export function PersonalAIInterface({
           <Text style={[styles.inputHint, { color: colors.muted }]}>{speechHint}</Text>
         ) : null}
         <ChatComposerActionRow>
+          <TouchableOpacity
+            testID="ai-text-button"
+            accessibilityLabel="Text"
+            onPress={() => setTextFocusNonce((n) => n + 1)}
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 10,
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+              backgroundColor: colors.surface,
+              marginRight: 8,
+            }}
+          >
+            <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 13 }}>Text</Text>
+          </TouchableOpacity>
           <VoicePromptMicButton
             creatorId={creatorId}
             labeled
@@ -370,6 +388,10 @@ export function PersonalAIInterface({
             onTranscript={(text, hint) => {
               if (text) setInputText(text.slice(0, 2000));
               setSpeechHint(hint || null);
+            }}
+            onSpokenQuestion={(question) => {
+              setInputText("");
+              void sendChatMessage(question, { speak: true });
             }}
           />
           <ChatComposerInput
@@ -385,6 +407,7 @@ export function PersonalAIInterface({
             placeholderTextColor={colors.muted}
             value={inputText}
             onChangeText={setInputText}
+            focusNonce={textFocusNonce}
             maxLength={2000}
             editable={!loading}
             onSubmitEditing={handleSendMessage}

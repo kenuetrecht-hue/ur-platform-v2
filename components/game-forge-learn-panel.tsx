@@ -12,6 +12,9 @@ import { trpc } from "@/lib/trpc";
 import { ChatComposerActionRow, ComposerDock } from "@/components/composer-dock";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
+import { AppPressable } from "@/components/app-pressable";
+import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
+import { speakText } from "@/lib/azure-tts-service";
 
 type LearnLevel = "beginner" | "intermediate" | "advanced";
 type LearnMode = "lesson" | "practice" | "certification" | "on_the_job" | "conversation";
@@ -47,6 +50,7 @@ export function GameForgeLearnPanel({
   const [activeTopic, setActiveTopic] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
+  const [textFocusNonce, setTextFocusNonce] = useState(0);
   const [loading, setLoading] = useState(false);
 
   const curriculum = trpc.aiLearning.getCurriculum.useQuery({ creatorId });
@@ -77,7 +81,7 @@ export function GameForgeLearnPanel({
   }, [creatorName, level, learnMode]);
 
   const sendLearnMessage = useCallback(
-    async (raw: string) => {
+    async (raw: string, options?: { speak?: boolean }) => {
       const text = raw.trim().slice(0, 4000);
       if (!text || loading) return;
 
@@ -100,6 +104,14 @@ export function GameForgeLearnPanel({
           topic: activeTopic ?? undefined,
         });
         setMessages((prev) => [...prev, { role: "ai", text: result.lesson }]);
+        if (options?.speak && result.lesson.trim()) {
+          const spoken = result.lesson.replace(/\s+/g, " ").trim().slice(0, 1200);
+          try {
+            await speakText(spoken);
+          } catch {
+            /* The lesson stays on screen if the speaker is busy. */
+          }
+        }
       } catch (error) {
         const msg = error instanceof Error ? error.message : "Lesson unavailable. Try again.";
         setMessages((prev) => [...prev, { role: "ai", text: msg }]);
@@ -299,12 +311,42 @@ export function GameForgeLearnPanel({
 
       <ComposerDock>
         <ChatComposerActionRow>
+        <AppPressable
+          testID="ai-text-button"
+          accessibilityLabel="Text"
+          onPress={() => setTextFocusNonce((n) => n + 1)}
+          style={{
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 10,
+            paddingVertical: 10,
+            paddingHorizontal: 12,
+            backgroundColor: colors.surface,
+          }}
+        >
+          <Text pointerEvents="none" style={{ color: colors.foreground, fontWeight: "800", fontSize: 13 }}>
+            Text
+          </Text>
+        </AppPressable>
+        <VoicePromptMicButton
+          creatorId={creatorId}
+          labeled
+          disabled={loading}
+          onTranscript={(text) => {
+            if (text) setInputText(text.slice(0, 4000));
+          }}
+          onSpokenQuestion={(question) => {
+            setInputText("");
+            void sendLearnMessage(question, { speak: true });
+          }}
+        />
         <ChatComposerInput
           style={[styles.input, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
           placeholder="Ask how to build your game…"
           placeholderTextColor={colors.muted}
           value={inputText}
           onChangeText={setInputText}
+          focusNonce={textFocusNonce}
           maxLength={4000}
           editable={!loading}
         />

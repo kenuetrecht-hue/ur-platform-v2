@@ -69,10 +69,11 @@ const styles = StyleSheet.create({
     width: "100%",
     borderTopWidth: StyleSheet.hairlineWidth,
     position: "relative",
+    overflow: "hidden",
   },
   tabBarSlot: {
     flexShrink: 0,
-    overflow: "visible",
+    overflow: "hidden",
     position: "relative",
   },
 });

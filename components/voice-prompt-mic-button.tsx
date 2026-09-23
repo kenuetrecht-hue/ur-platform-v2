@@ -12,6 +12,8 @@ type Props = {
   labeled?: boolean;
   /** Stop AI playback before the mic opens so it does not hear itself. */
   onBeforeListen?: () => void;
+  /** Fired with the printed question after Talk finishes, so the AI can answer it. */
+  onSpokenQuestion?: (text: string) => void;
 };
 
 export function VoicePromptMicButton({
@@ -20,6 +22,7 @@ export function VoicePromptMicButton({
   disabled,
   labeled = false,
   onBeforeListen,
+  onSpokenQuestion,
 }: Props) {
   const colors = useColors();
   const [listening, setListening] = useState(false);
@@ -35,9 +38,11 @@ export function VoicePromptMicButton({
         setListening(false);
         const result = await transcribe.mutateAsync({ ...clip, creatorId });
         const hint = result.translated
-          ? `Heard ${result.language} — printed in English`
-          : `Heard ${result.language}`;
+          ? `Heard ${result.language} — answering that now`
+          : `Heard ${result.language} — answering that now`;
         onTranscript(result.printedText, hint);
+        const question = result.printedText.trim();
+        if (question) onSpokenQuestion?.(question);
       } catch {
         sessionRef.current = null;
         setListening(false);
