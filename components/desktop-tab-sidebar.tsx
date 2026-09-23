@@ -29,6 +29,7 @@ export function DesktopTabSidebar({ state, descriptors, navigation }: BottomTabB
     >
       <Text style={[styles.brand, { color: colors.gold }]}>UR</Text>
       <ScrollView
+        {...(Platform.OS === "web" ? { className: "ur-desktop-nav" } : null)}
         style={styles.navScroll}
         contentContainerStyle={styles.nav}
         showsVerticalScrollIndicator={false}
@@ -80,8 +81,11 @@ export function DesktopTabSidebar({ state, descriptors, navigation }: BottomTabB
 
 const styles = StyleSheet.create({
   rail: {
+    flexDirection: "column",
     flexShrink: 0,
+    flexGrow: 0,
     alignSelf: "stretch",
+    height: "100%",
     borderRightWidth: StyleSheet.hairlineWidth,
   },
   brand: {
@@ -96,6 +100,8 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   nav: {
+    flexDirection: "column",
+    alignItems: "stretch",
     paddingHorizontal: 10,
     paddingBottom: 12,
     gap: 6,

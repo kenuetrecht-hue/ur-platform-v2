@@ -1,5 +1,5 @@
 import { Redirect, Tabs } from "expo-router";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { UrBootShell } from "@/components/ur-boot-shell";
 import { useAuth } from "@/lib/auth-context";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
@@ -8,6 +8,7 @@ import { HapticTab } from "@/components/haptic-tab";
 import { TabBarIcon } from "@/components/tab-bar-icon";
 import { TabBarWithDisclosure } from "@/components/tab-bar-with-disclosure";
 import { useWideDashboard } from "@/hooks/use-wide-dashboard";
+import { DASHBOARD_SIDEBAR_WIDTH } from "@/lib/dashboard-layout";
 import { LAYOUT_OVERLAP, tabBarIconsOnlyHeight } from "@/lib/layout-overlap";
 
 export default function TabsLayout() {
@@ -26,7 +27,10 @@ export default function TabsLayout() {
   }
 
   return (
-    <View style={styles.shell}>
+    <View
+      {...(wide && Platform.OS === "web" ? { className: "ur-app-shell-row" } : null)}
+      style={[styles.shell, wide ? styles.shellRow : null]}
+    >
       <Tabs
         tabBar={(props) => <TabBarWithDisclosure {...props} />}
         screenOptions={{
@@ -35,19 +39,31 @@ export default function TabsLayout() {
           tabBarActiveTintColor: wide ? colors.gold : colors.onWhite,
           tabBarInactiveTintColor: wide ? colors.gold : colors.onWhite,
           sceneStyle: {
+            flex: 1,
+            minWidth: 0,
             backgroundColor: "transparent",
             overflow: "hidden",
           },
-          tabBarStyle: {
-            backgroundColor: colors.surface,
-            borderTopWidth: 0,
-            height: iconRowHeight,
-            paddingBottom: 0,
-            paddingTop: LAYOUT_OVERLAP.TAB_BAR_TOP_PADDING,
-            elevation: 0,
-            shadowOpacity: 0,
-            position: "relative",
-          },
+          tabBarStyle: wide
+            ? {
+                width: DASHBOARD_SIDEBAR_WIDTH,
+                flexDirection: "column",
+                backgroundColor: "transparent",
+                borderTopWidth: 0,
+                elevation: 0,
+                shadowOpacity: 0,
+                position: "relative",
+              }
+            : {
+                backgroundColor: colors.surface,
+                borderTopWidth: 0,
+                height: iconRowHeight,
+                paddingBottom: 0,
+                paddingTop: LAYOUT_OVERLAP.TAB_BAR_TOP_PADDING,
+                elevation: 0,
+                shadowOpacity: 0,
+                position: "relative",
+              },
           tabBarLabelStyle: {
             fontSize: 8,
             fontWeight: "600",
@@ -131,5 +147,13 @@ const styles = StyleSheet.create({
   shell: {
     flex: 1,
     minHeight: 0,
+    minWidth: 0,
+    width: "100%",
+    height: "100%",
+  },
+  /** Sidebar on the left, page content in the remaining space. */
+  shellRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
   },
 });

@@ -63,9 +63,42 @@ textarea.ur-chat-composer {
   width: 100%;
 }
 
+.ur-app-shell-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.ur-app-shell-row > div {
+  display: flex !important;
+  flex-direction: row !important;
+  flex: 1 1 auto !important;
+  align-items: stretch !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
 .ur-desktop-sidebar {
-  overflow-x: hidden;
-  overflow-y: auto;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 0 0 220px !important;
+  width: 220px !important;
+  max-width: 220px !important;
+  height: 100% !important;
+  align-self: stretch !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+.ur-desktop-nav {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  width: 100% !important;
 }
 
 .ur-floating-card {

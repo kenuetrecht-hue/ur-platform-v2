@@ -17,7 +17,11 @@ describe("dashboard layout", () => {
     const scroll = readFileSync("components/tab-page-scroll.tsx", "utf8");
     const ais = readFileSync("app/(tabs)/ais.tsx", "utf8");
 
+    expect(layout).toContain('flexDirection: "row"');
     expect(layout).toContain('tabBarPosition: wide ? "left" : "bottom"');
+    expect(readFileSync("components/desktop-tab-sidebar.tsx", "utf8")).toContain(
+      'flexDirection: "column"',
+    );
     expect(bar).toContain("DesktopTabSidebar");
     expect(bar).toContain("useTabBarBottomInset");
     expect(pills).toContain("horizontal");
