@@ -5,9 +5,11 @@ import {
   BottomTabBarHeightCallbackContext,
   type BottomTabBarProps,
 } from "@react-navigation/bottom-tabs";
+import { DesktopTabSidebar } from "@/components/desktop-tab-sidebar";
 import { PlatformDisclosureBar } from "@/components/platform-disclosure-bar";
 import { useColors } from "@/hooks/use-colors";
 import { useTabBarBottomInset } from "@/hooks/use-tab-bar-bottom-inset";
+import { useWideDashboard } from "@/hooks/use-wide-dashboard";
 import { withAlpha } from "@/lib/brand-theme";
 import {
   bottomDisclaimerAboveTabHeight,
@@ -18,6 +20,15 @@ import {
  * One tab bar. A single OS-bar pad under the icons — no second empty block.
  */
 export function TabBarWithDisclosure(props: BottomTabBarProps) {
+  const wide = useWideDashboard();
+  if (wide) {
+    return <DesktopTabSidebar {...props} />;
+  }
+
+  return <PhoneTabBar {...props} />;
+}
+
+function PhoneTabBar(props: BottomTabBarProps) {
   const colors = useColors();
   const onHeightChange = useContext(BottomTabBarHeightCallbackContext);
   const iconRowHeight = tabBarIconsOnlyHeight();

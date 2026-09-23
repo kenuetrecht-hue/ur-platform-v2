@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TabPageScroll } from "@/components/tab-page-scroll";
+import { DashboardScreen } from "@/components/dashboard-screen";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
@@ -30,9 +30,10 @@ export default function DiscoverScreen() {
 
   return (
     <ScreenContainer className="bg-background">
-      <TabScreenHeader compact icon="🧭" title="Discover" />
-      <HubTabBar tabs={DISCOVER_HUB_TABS} activeId={hubTab} onSelect={setHubTab} />
-      <TabPageScroll>
+      <DashboardScreen
+        header={<TabScreenHeader compact icon="🧭" title="Discover" />}
+        subnav={<HubTabBar tabs={DISCOVER_HUB_TABS} activeId={hubTab} onSelect={setHubTab} />}
+      >
         {hubTab === "board" ? (
           <>
             <PlatformSearchPanel compact />
@@ -73,7 +74,7 @@ export default function DiscoverScreen() {
             ))}
           </HubDoorGrid>
         ) : null}
-      </TabPageScroll>
+      </DashboardScreen>
     </ScreenContainer>
   );
 }

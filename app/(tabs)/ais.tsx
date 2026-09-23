@@ -5,7 +5,6 @@ import {
   TextInput,
   ActivityIndicator,
   StyleSheet,
-  ScrollView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
@@ -170,122 +169,107 @@ export default function AIsScreen() {
             onSelect={(id) => setHubMode(id === "townHall" ? "townHall" : "chat")}
           />
 
-          {hubMode === "chat" ? (
-            <>
-              {selectedCreator && !catalogOpen ? (
-                <AppPressable
-                  onPress={() => setCatalogOpen(true)}
-                  testID="ai-browse-specialists"
-                  style={[
-                    styles.selectedBar,
-                    { backgroundColor: colors.surface, borderColor: colors.border },
-                  ]}
-                >
-                  <Text pointerEvents="none" style={{ fontSize: 20 }}>
-                    {selectedCreator.avatar}
-                  </Text>
-                  <View pointerEvents="none" style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14 }} numberOfLines={1}>
-                      {selectedCreator.name}
-                    </Text>
-                    <Text style={{ color: colors.muted, fontSize: 11 }} numberOfLines={1}>
-                      Tap to change specialist
-                    </Text>
-                  </View>
-                  <Text pointerEvents="none" style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>
-                    Browse ▼
-                  </Text>
-                </AppPressable>
-              ) : (
-                <ScrollView
-                  style={styles.catalogBlock}
-                  nestedScrollEnabled
-                  keyboardShouldPersistTaps="handled"
-                  showsVerticalScrollIndicator
-                >
-                  <View style={styles.catalogBlockInner}>
-                  <View style={styles.catalogHeader}>
-                    <Text style={{ color: colors.gold, fontWeight: "700", fontSize: 13 }}>
-                      Choose a specialist
-                    </Text>
-                    {selectedCreator ? (
-                      <AppPressable onPress={() => setCatalogOpen(false)} hitSlop={8}>
-                        <Text pointerEvents="none" style={{ color: colors.gold, fontWeight: "700", fontSize: 12 }}>
-                          Done ▲
-                        </Text>
-                      </AppPressable>
-                    ) : null}
-                  </View>
-
-                  <TextInput
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholder="Search specialists…"
-                    placeholderTextColor={colors.muted}
-                    style={[
-                      styles.search,
-                      {
-                        backgroundColor: colors.surface,
-                        borderColor: colors.border,
-                        color: colors.foreground,
-                      },
-                    ]}
-                  />
-
-                  <AiHubTabRow tabs={categoryTabs} activeId={categoryGroup} onSelect={selectCategory} />
-
-                  {isLoading && !data ? (
-                    <ActivityIndicator style={{ marginVertical: 8 }} color={colors.primary} />
-                  ) : null}
-
-                  {isError ? (
-                    <Text style={[styles.hint, { color: colors.gold }]}>
-                      Using offline catalog — chat still works when connected.
-                    </Text>
-                  ) : null}
-
-                  {filteredCreators.length > 0 ? (
-                    <AiSpecialistPicker
-                      specialists={filteredCreators}
-                      selectedId={selectedAiId}
-                      onSelect={pickSpecialist}
-                    />
-                  ) : (
-                    <Text style={[styles.emptyText, { color: colors.gold }]}>
-                      No specialists in this category.
-                    </Text>
-                  )}
-                  </View>
-                </ScrollView>
-              )}
-            </>
+          {hubMode === "chat" && selectedCreator && !catalogOpen ? (
+            <AppPressable
+              onPress={() => setCatalogOpen(true)}
+              testID="ai-browse-specialists"
+              style={[
+                styles.selectedBar,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
+              <Text pointerEvents="none" style={{ fontSize: 20 }}>
+                {selectedCreator.avatar}
+              </Text>
+              <View pointerEvents="none" style={{ flex: 1, minWidth: 0 }}>
+                <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14 }} numberOfLines={1}>
+                  {selectedCreator.name}
+                </Text>
+                <Text style={{ color: colors.muted, fontSize: 11 }} numberOfLines={1}>
+                  Tap to change specialist
+                </Text>
+              </View>
+              <Text pointerEvents="none" style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>
+                Browse ▼
+              </Text>
+            </AppPressable>
           ) : null}
         </View>
 
-        <TabPageScroll contentContainerStyle={styles.bodyScroll}>
-          {hubMode === "townHall" ? (
+        {hubMode === "townHall" ? (
+          <View style={styles.fill}>
             <HiveTownHallPanel />
-          ) : selectedCreator ? (
+          </View>
+        ) : catalogOpen || !selectedCreator ? (
+          <TabPageScroll contentContainerStyle={styles.bodyScroll}>
+            <View style={styles.catalogHeader}>
+              <Text style={{ color: colors.gold, fontWeight: "700", fontSize: 13 }}>
+                Choose a specialist
+              </Text>
+              {selectedCreator ? (
+                <AppPressable onPress={() => setCatalogOpen(false)} hitSlop={8}>
+                  <Text pointerEvents="none" style={{ color: colors.gold, fontWeight: "700", fontSize: 12 }}>
+                    Done ▲
+                  </Text>
+                </AppPressable>
+              ) : null}
+            </View>
+
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search specialists…"
+              placeholderTextColor={colors.muted}
+              style={[
+                styles.search,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  color: colors.foreground,
+                },
+              ]}
+            />
+
+            <AiHubTabRow tabs={categoryTabs} activeId={categoryGroup} onSelect={selectCategory} />
+
+            {isLoading && !data ? (
+              <ActivityIndicator style={{ marginVertical: 8 }} color={colors.primary} />
+            ) : null}
+
+            {isError ? (
+              <Text style={[styles.hint, { color: colors.gold }]}>
+                Using offline catalog — chat still works when connected.
+              </Text>
+            ) : null}
+
+            {filteredCreators.length > 0 ? (
+              <AiSpecialistPicker
+                specialists={filteredCreators}
+                selectedId={selectedAiId}
+                onSelect={pickSpecialist}
+              />
+            ) : (
+              <Text style={[styles.emptyText, { color: colors.gold }]}>
+                No specialists in this category.
+              </Text>
+            )}
+          </TabPageScroll>
+        ) : (
+          <View style={styles.fill}>
             <AiCreatorPanel
               key={selectedCreator.id}
               creatorId={selectedCreator.id}
               creatorName={selectedCreator.name}
               creatorAvatar={selectedCreator.avatar}
               hideChatHeader
-              pageScroll
+              pageScroll={false}
               welcomeMessage={creatorWelcomeMessage}
               initialPrompt={creatorInitialPrompt}
               initialSurface={creatorInitialSurface}
               overlapHeaderHeight={LAYOUT_OVERLAP.AIS_TAB_CHROME_HEIGHT}
             />
-          ) : (
-            <View style={[styles.placeholder, { borderColor: colors.border }]}>
-              <Text style={{ color: colors.gold, textAlign: "center" }}>
-                Select a specialist to start chatting.
-              </Text>
-            </View>
-          )}
-        </TabPageScroll>
+          </View>
+        )}
       </View>
     </ScreenContainer>
   );
@@ -297,14 +281,12 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
   },
-  chrome: {
-    flexShrink: 0,
-  },
-  body: {
+  fill: {
     flex: 1,
     minHeight: 0,
-    paddingHorizontal: 8,
-    paddingBottom: 4,
+  },
+  chrome: {
+    flexShrink: 0,
   },
   bodyScroll: {
     padding: 8,
@@ -336,14 +318,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
-  },
-  catalogBlock: {
-    flexGrow: 0,
-    maxHeight: 260,
-    marginBottom: 4,
-  },
-  catalogBlockInner: {
-    paddingBottom: 8,
   },
   catalogHeader: {
     flexDirection: "row",

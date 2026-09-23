@@ -63,6 +63,15 @@ textarea.ur-chat-composer {
   width: 100%;
 }
 
+.ur-desktop-sidebar {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.ur-floating-card {
+  box-shadow: 0 10px 28px rgba(30, 27, 75, 0.18);
+}
+
 :root {
   color: #4f46e5;
   --ur-safe-bottom: env(safe-area-inset-bottom, 0px);

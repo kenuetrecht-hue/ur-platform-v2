@@ -1,10 +1,13 @@
 import type { ReactNode } from "react";
 import { Platform, ScrollView, type StyleProp, type ViewStyle } from "react-native";
+import { FloatingCard } from "@/components/floating-card";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 
 type Props = {
   children: ReactNode;
   contentContainerStyle?: StyleProp<ViewStyle>;
+  /** Place the body on a floating card. Chat columns pass false. */
+  card?: boolean;
 };
 
 /**
@@ -12,7 +15,7 @@ type Props = {
  * moves up and down so full-size tiles, chat boxes, and talk controls stay
  * on the page and you can reach them by scrolling.
  */
-export function TabPageScroll({ children, contentContainerStyle }: Props) {
+export function TabPageScroll({ children, contentContainerStyle, card = true }: Props) {
   const overlap = useOverlapInsets();
   const padBottom = 28 + overlap.scrollPaddingBottom;
 
@@ -28,7 +31,7 @@ export function TabPageScroll({ children, contentContainerStyle }: Props) {
       showsVerticalScrollIndicator
       testID="tab-page-scroll"
     >
-      {children}
+      {card ? <FloatingCard style={styles.card}>{children}</FloatingCard> : children}
     </ScrollView>
   );
 }
@@ -42,5 +45,8 @@ const styles = {
     flexGrow: 1,
     padding: 16,
     gap: 12,
+  } as ViewStyle,
+  card: {
+    flexGrow: 1,
   } as ViewStyle,
 };

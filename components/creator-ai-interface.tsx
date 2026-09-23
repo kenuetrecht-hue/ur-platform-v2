@@ -44,6 +44,7 @@ import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 import { AiChatMessageMedia } from "@/components/ai-chat-message-media";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { ThanksStampsWall } from "@/components/thanks-stamps-wall";
+import { FloatingCard } from "@/components/floating-card";
 import { BUSINESS_STEWARD_AI_ID } from "@/lib/owner-platform-ops-catalog";
 import { playExclusiveAudio, stopExclusiveAudio, unlockWebAudio } from "@/lib/exclusive-audio-player";
 import { pickChatAttachments, type PickedChatAttachment } from "@/lib/chat-attachment-picker";
@@ -703,7 +704,9 @@ export function CreatorAIInterface({
       </View>
 
       {isStewardDesk ? null : (
-        <ThanksStampsWall targetType="ai" targetId={creatorId} targetName={creatorName} compact />
+        <FloatingCard style={{ marginHorizontal: 12, marginBottom: 8, padding: 10 }}>
+          <ThanksStampsWall targetType="ai" targetId={creatorId} targetName={creatorName} compact />
+        </FloatingCard>
       )}
 
       {!embedded && apiReachable === false ? (

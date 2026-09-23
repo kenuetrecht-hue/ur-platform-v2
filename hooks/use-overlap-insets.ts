@@ -1,6 +1,7 @@
 import { useContext } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomTabBarHeightContext } from "@react-navigation/bottom-tabs";
+import { useWideDashboard } from "@/hooks/use-wide-dashboard";
 import {
   LAYOUT_OVERLAP,
   androidBottomBuffer,
@@ -24,24 +25,28 @@ export type OverlapInsetsOptions = {
 export function useOverlapInsets(options: OverlapInsetsOptions = {}) {
   const { reserveTabBar = true, headerChromeHeight = 0 } = options;
   const insets = useSafeAreaInsets();
+  const wide = useWideDashboard();
   const tabBarFromContext = useContext(BottomTabBarHeightContext);
+  const reserveBottomTabs = reserveTabBar && !wide;
   const tabBarFromNav =
-    reserveTabBar && typeof tabBarFromContext === "number" ? tabBarFromContext : 0;
+    reserveBottomTabs && typeof tabBarFromContext === "number" ? tabBarFromContext : 0;
 
   const expectedChrome = bottomTabChromeHeight(insets.bottom);
-  const tabBarHeight = reserveTabBar
+  const tabBarHeight = reserveBottomTabs
     ? tabBarFromNav > 0
       ? Math.max(tabBarFromNav, expectedChrome)
       : expectedChrome
     : 0;
 
   const androidBuffer = androidBottomBuffer(insets.bottom);
-  const dockPaddingBottom = composerDockPadding({
-    reserveTabBar,
-    reportedTabBarHeight: tabBarFromNav,
-    bottomSafeInset: insets.bottom,
-    androidBuffer,
-  });
+  const dockPaddingBottom = wide
+    ? LAYOUT_OVERLAP.COMPOSER_MIN_PADDING + LAYOUT_OVERLAP.COMPOSER_DOCK_GAP
+    : composerDockPadding({
+        reserveTabBar,
+        reportedTabBarHeight: tabBarFromNav,
+        bottomSafeInset: insets.bottom,
+        androidBuffer,
+      });
   const scrollPaddingBottom = LAYOUT_OVERLAP.COMPOSER_MIN_PADDING + LAYOUT_OVERLAP.COMPOSER_DOCK_GAP;
 
   return {

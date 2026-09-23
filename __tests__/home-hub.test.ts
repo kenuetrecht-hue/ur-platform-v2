@@ -42,7 +42,7 @@ describe("home hub", () => {
     const profile = readFileSync("app/(tabs)/profile.tsx", "utf8");
     const social = readFileSync("components/social-hub-tab-bar.tsx", "utf8");
     expect(home).toContain("HubTabBar");
-    expect(home).toContain("TabPageScroll");
+    expect(home).toContain("DashboardScreen");
     expect(home).toContain("HOME_HUB_TAB_ROWS");
     expect(home).toContain("HOME_DOWNLOAD_DOORS");
     expect(home).toContain("useAppInstallActions");

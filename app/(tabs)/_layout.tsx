@@ -7,12 +7,14 @@ import { useColors } from "@/hooks/use-colors";
 import { HapticTab } from "@/components/haptic-tab";
 import { TabBarIcon } from "@/components/tab-bar-icon";
 import { TabBarWithDisclosure } from "@/components/tab-bar-with-disclosure";
+import { useWideDashboard } from "@/hooks/use-wide-dashboard";
 import { LAYOUT_OVERLAP, tabBarIconsOnlyHeight } from "@/lib/layout-overlap";
 
 export default function TabsLayout() {
   const { isAuthenticated, isLoading } = useAuth();
   const { isPlatformOwner } = usePlatformOwner();
   const colors = useColors();
+  const wide = useWideDashboard();
   const iconRowHeight = tabBarIconsOnlyHeight();
 
   if (isLoading && !isAuthenticated) {
@@ -29,8 +31,9 @@ export default function TabsLayout() {
         tabBar={(props) => <TabBarWithDisclosure {...props} />}
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: colors.onWhite,
-          tabBarInactiveTintColor: colors.onWhite,
+          tabBarPosition: wide ? "left" : "bottom",
+          tabBarActiveTintColor: wide ? colors.gold : colors.onWhite,
+          tabBarInactiveTintColor: wide ? colors.gold : colors.onWhite,
           sceneStyle: {
             backgroundColor: "transparent",
             overflow: "hidden",
@@ -68,8 +71,8 @@ export default function TabsLayout() {
         name="home"
         options={{
           title: "Home",
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon name="house.fill" focused={focused} />
+          tabBarIcon: ({ focused, color }) => (
+            <TabBarIcon name="house.fill" focused={focused} color={color} />
           ),
         }}
       />
@@ -84,8 +87,8 @@ export default function TabsLayout() {
         options={{
           title: "Admin",
           href: isPlatformOwner ? "/(tabs)/admin" : null,
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon name="shield.fill" focused={focused} />
+          tabBarIcon: ({ focused, color }) => (
+            <TabBarIcon name="shield.fill" focused={focused} color={color} />
           ),
         }}
       />
@@ -93,8 +96,8 @@ export default function TabsLayout() {
         name="ais"
         options={{
           title: "AIs",
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon name="sparkles" focused={focused} />
+          tabBarIcon: ({ focused, color }) => (
+            <TabBarIcon name="sparkles" focused={focused} color={color} />
           ),
         }}
       />
@@ -102,8 +105,8 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon name="person.fill" focused={focused} />
+          tabBarIcon: ({ focused, color }) => (
+            <TabBarIcon name="person.fill" focused={focused} color={color} />
           ),
         }}
       />
@@ -111,8 +114,8 @@ export default function TabsLayout() {
         name="messages"
         options={{
           title: "Social",
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon name="bubble.right.fill" focused={focused} />
+          tabBarIcon: ({ focused, color }) => (
+            <TabBarIcon name="bubble.right.fill" focused={focused} color={color} />
           ),
         }}
       />

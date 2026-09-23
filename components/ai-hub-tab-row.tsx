@@ -1,6 +1,7 @@
 import { ScrollView, Text, StyleSheet, ViewStyle } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { AppPressable } from "@/components/app-pressable";
+import { withAlpha } from "@/lib/brand-theme";
 
 type TabItem = {
   id: string;
@@ -24,7 +25,6 @@ export function AiHubTabRow({
   style,
 }: AiHubTabRowProps) {
   const colors = useColors();
-  const activeBg = accentColor ?? colors.primary;
 
   return (
     <ScrollView
@@ -36,7 +36,7 @@ export function AiHubTabRow({
     >
       {tabs.map((tab) => {
         const active = tab.id === activeId;
-        const labelColor = active ? "#FFFFFF" : colors.foreground;
+        const labelColor = colors.gold;
         return (
           <AppPressable
             key={tab.id}
@@ -45,8 +45,8 @@ export function AiHubTabRow({
             style={[
               styles.chip,
               {
-                backgroundColor: active ? activeBg : colors.surface,
-                borderColor: active ? activeBg : colors.border,
+                backgroundColor: active ? withAlpha(colors.gold, 0.22) : withAlpha("#ffffff", 0.08),
+                borderColor: active ? (accentColor ?? colors.gold) : withAlpha(colors.gold, 0.35),
               },
             ]}
           >
@@ -69,8 +69,6 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 0,
     flexShrink: 0,
-    minHeight: 76,
-    maxHeight: 88,
   },
   row: {
     flexDirection: "row",
@@ -81,19 +79,18 @@ const styles = StyleSheet.create({
   },
   chip: {
     flexShrink: 0,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 76,
-    minHeight: 68,
-    borderRadius: 14,
+    borderRadius: 999,
     borderWidth: 1,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    gap: 4,
+    gap: 6,
   },
   chipEmoji: {
-    fontSize: 22,
-    lineHeight: 26,
+    fontSize: 16,
+    lineHeight: 20,
   },
   chipText: {
     fontSize: 12,

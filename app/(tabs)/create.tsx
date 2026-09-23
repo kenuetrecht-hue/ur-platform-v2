@@ -9,7 +9,7 @@ import { VoiceChatInterface } from "@/components/voice-chat-interface";
 import { consolidatedNavigation } from "@/lib/consolidated-navigation";
 import { HubTabBar } from "@/components/hub-tab-bar";
 import { HubDoorGrid, HubDoorTile } from "@/components/hub-door-tile";
-import { TabPageScroll } from "@/components/tab-page-scroll";
+import { DashboardScreen } from "@/components/dashboard-screen";
 import { CREATE_HUB_TABS } from "@/lib/home-hub";
 import { AppPressable } from "@/components/app-pressable";
 import { withAlpha } from "@/lib/brand-theme";
@@ -38,9 +38,10 @@ export default function CreateScreen() {
 
   return (
     <ScreenContainer className="bg-background">
-      <TabScreenHeader compact icon="✏️" title="Create" />
-      <HubTabBar tabs={CREATE_HUB_TABS} activeId={hubTab} onSelect={setHubTab} />
-      <TabPageScroll>
+      <DashboardScreen
+        header={<TabScreenHeader compact icon="✏️" title="Create" />}
+        subnav={<HubTabBar tabs={CREATE_HUB_TABS} activeId={hubTab} onSelect={setHubTab} />}
+      >
         {hubTab === "make" ? (
           <HubDoorGrid>
             {subMenu.map((item) => (
@@ -89,7 +90,7 @@ export default function CreateScreen() {
             </AppPressable>
           </View>
         ) : null}
-      </TabPageScroll>
+      </DashboardScreen>
 
       <PersonalAIChat visible={showAIChat} onClose={() => setShowAIChat(false)} />
 

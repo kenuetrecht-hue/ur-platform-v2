@@ -16,11 +16,13 @@ type TabIconName =
 interface TabBarIconProps {
   name: TabIconName;
   focused: boolean;
+  color?: string;
 }
 
-export function TabBarIcon({ name, focused }: TabBarIconProps) {
+export function TabBarIcon({ name, focused, color }: TabBarIconProps) {
   const colors = useColors();
   const active = brandTabActiveSurface(colors);
+  const tint = color ?? colors.onWhite;
 
   return (
     <View
@@ -36,7 +38,7 @@ export function TabBarIcon({ name, focused }: TabBarIconProps) {
       <IconSymbol
         name={name as ComponentProps<typeof IconSymbol>["name"]}
         size={14}
-        color={colors.onWhite}
+        color={tint}
       />
     </View>
   );

@@ -15,7 +15,7 @@ import { ThanksStampsPanel } from "@/components/thanks-stamps-panel";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { HubTabBar } from "@/components/hub-tab-bar";
 import { HubDoorGrid, HubDoorTile } from "@/components/hub-door-tile";
-import { TabPageScroll } from "@/components/tab-page-scroll";
+import { DashboardScreen } from "@/components/dashboard-screen";
 import { PROFILE_HUB_TABS } from "@/lib/home-hub";
 import { withAlpha } from "@/lib/brand-theme";
 
@@ -61,9 +61,10 @@ export default function ProfileScreen() {
 
   return (
     <ScreenContainer className="bg-background">
-      <TabScreenHeader compact icon="👤" title="Profile" />
-      <HubTabBar tabs={PROFILE_HUB_TABS} activeId={hubTab} onSelect={setHubTab} />
-      <TabPageScroll>
+      <DashboardScreen
+        header={<TabScreenHeader compact icon="👤" title="Profile" />}
+        subnav={<HubTabBar tabs={PROFILE_HUB_TABS} activeId={hubTab} onSelect={setHubTab} />}
+      >
         {hubTab === "you" ? (
           <>
             <View
@@ -191,7 +192,7 @@ export default function ProfileScreen() {
             </Pressable>
           </>
         ) : null}
-      </TabPageScroll>
+      </DashboardScreen>
     </ScreenContainer>
   );
 }

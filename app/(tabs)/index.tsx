@@ -20,7 +20,7 @@ import { PasswordRemindBanner } from "@/components/password-remind-banner";
 import { trpc } from "@/lib/trpc";
 import { HubTabBar } from "@/components/hub-tab-bar";
 import { HubDoorGrid, HubDoorTile } from "@/components/hub-door-tile";
-import { TabPageScroll } from "@/components/tab-page-scroll";
+import { DashboardScreen } from "@/components/dashboard-screen";
 import {
   HOME_DOWNLOAD_DOORS,
   HOME_HUB_TAB_ROWS,
@@ -45,23 +45,25 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer className="bg-background">
-      <TabScreenHeader
-        compact
-        showBack={false}
-        icon="🏠"
-        title={user?.name ? user.name : "Home"}
-      />
-      {HOME_HUB_TAB_ROWS.map((row, index) => (
-        <HubTabBar
-          key={`home-row-${index}`}
-          tabs={row}
-          activeId={hubTab}
-          onSelect={(id) => {
-            if (isHomeHubTabId(id)) setHubTab(id);
-          }}
-        />
-      ))}
-      <TabPageScroll>
+      <DashboardScreen
+        header={
+          <TabScreenHeader
+            compact
+            showBack={false}
+            icon="🏠"
+            title={user?.name ? user.name : "Home"}
+          />
+        }
+        subnav={
+          <HubTabBar
+            tabs={HOME_HUB_TAB_ROWS.flat()}
+            activeId={hubTab}
+            onSelect={(id) => {
+              if (isHomeHubTabId(id)) setHubTab(id);
+            }}
+          />
+        }
+      >
         {hubTab === "start" ? (
           <>
             <HomeLaunchPromoBanner />
@@ -168,7 +170,7 @@ export default function HomeScreen() {
           </HubDoorGrid>
         ) : null}
 
-      </TabPageScroll>
+      </DashboardScreen>
     </ScreenContainer>
   );
 }

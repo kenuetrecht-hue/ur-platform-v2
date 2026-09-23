@@ -1,8 +1,7 @@
-import { View, Text, Pressable, StyleSheet } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
-import { brandGradientPair, brandSoftGradientPair, withAlpha } from "@/lib/brand-theme";
+import { withAlpha } from "@/lib/brand-theme";
 import type { ComponentProps } from "react";
 
 export type HubTabItem = {
@@ -19,53 +18,44 @@ type Props = {
   badgeFor?: (id: string) => number;
 };
 
-/** Same clean Social-style pills — dark bar, blue-to-purple active tab. */
+/** Horizontal gold pills under the page header. Scrolls when the labels do not fit. */
 export function HubTabBar({ tabs, activeId, onSelect, badgeFor }: Props) {
   const colors = useColors();
-  const [gradStart, gradEnd] = brandGradientPair(colors);
-  const softGrad = brandSoftGradientPair(colors);
 
   return (
-    <LinearGradient
-      colors={softGrad}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-      style={[styles.wrap, { borderBottomColor: withAlpha(colors.secondary, 0.18) }]}
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.scroll}
+      contentContainerStyle={styles.row}
+      keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.row}>
-        {tabs.map((tab) => {
-          const isActive = tab.id === activeId;
-          const badge = badgeFor?.(tab.id) ?? 0;
+      {tabs.map((tab) => {
+        const isActive = tab.id === activeId;
+        const badge = badgeFor?.(tab.id) ?? 0;
 
-          return (
-            <Pressable
-              key={tab.id}
-              onPress={() => onSelect(tab.id)}
-              style={({ pressed }) => [styles.tab, pressed && !isActive ? { opacity: 0.75 } : null]}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: isActive }}
-              accessibilityLabel={tab.label}
-              testID={`hub-tab-${tab.id}`}
-            >
-              {isActive ? (
-                <LinearGradient
-                  colors={[gradStart, gradEnd]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.activePill}
-                >
-                  <TabInner tab={tab} active badge={badge} colors={colors} />
-                </LinearGradient>
-              ) : (
-                <View style={styles.inactivePill}>
-                  <TabInner tab={tab} active={false} badge={badge} colors={colors} />
-                </View>
-              )}
-            </Pressable>
-          );
-        })}
-      </View>
-    </LinearGradient>
+        return (
+          <Pressable
+            key={tab.id}
+            onPress={() => onSelect(tab.id)}
+            style={({ pressed }) => [
+              styles.pill,
+              {
+                backgroundColor: isActive ? withAlpha(colors.gold, 0.22) : withAlpha("#ffffff", 0.08),
+                borderColor: isActive ? colors.gold : withAlpha(colors.gold, 0.35),
+              },
+              pressed && !isActive ? { opacity: 0.75 } : null,
+            ]}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isActive }}
+            accessibilityLabel={tab.label}
+            testID={`hub-tab-${tab.id}`}
+          >
+            <TabInner tab={tab} active={isActive} badge={badge} colors={colors} />
+          </Pressable>
+        );
+      })}
+    </ScrollView>
   );
 }
 
@@ -113,34 +103,28 @@ function TabInner({
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 6,
-    paddingTop: 4,
-    paddingBottom: 5,
+  scroll: {
+    flexGrow: 0,
+    flexShrink: 0,
   },
   row: {
     flexDirection: "row",
-    alignItems: "stretch",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingTop: 2,
+    paddingBottom: 8,
+  },
+  pill: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
-  },
-  tab: {
-    flex: 1,
-    minWidth: 0,
-  },
-  activePill: {
-    borderRadius: 12,
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    alignItems: "center",
-    gap: 2,
-  },
-  inactivePill: {
-    borderRadius: 12,
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    alignItems: "center",
-    gap: 2,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
   },
   iconWrap: {
     position: "relative",
@@ -165,8 +149,8 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   label: {
-    fontSize: 10,
+    fontSize: 13,
+    fontWeight: "700",
     letterSpacing: 0.1,
-    textAlign: "center",
   },
 });

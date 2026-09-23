@@ -35,6 +35,7 @@ import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 
 import { SpecialistJobToolsPanel } from "@/components/specialist-job-tools-panel";
 import { hasSpecialistJobTools } from "@/lib/specialist-job-tools";
+import { TabPageScroll } from "@/components/tab-page-scroll";
 
 type SurfaceMode = "chat" | "learn" | "build" | "live" | "pricing" | "tools";
 type LearnLevel = "beginner" | "intermediate" | "advanced";
@@ -131,11 +132,13 @@ export function AiCreatorPanel({
           chatOnlyWithPricing
         />
         {surface === "pricing" ? (
-          <AiSpecialistPricingPanel
-            creatorId="linguamate"
-            creatorName="LinguaMate"
-            creatorAvatar="🌍"
-          />
+          <TabPageScroll>
+            <AiSpecialistPricingPanel
+              creatorId="linguamate"
+              creatorName="LinguaMate"
+              creatorAvatar="🌍"
+            />
+          </TabPageScroll>
         ) : (
           <LanguageAIInterface pageScroll={pageScroll} />
         )}
@@ -166,15 +169,21 @@ export function AiCreatorPanel({
         />
       ) : null}
       {surface === "tools" && hasSpecialistJobTools(creatorId) ? (
-        <SpecialistJobToolsPanel creatorId={creatorId} creatorName={creatorName} />
+        <TabPageScroll>
+          <SpecialistJobToolsPanel creatorId={creatorId} creatorName={creatorName} />
+        </TabPageScroll>
       ) : surface === "pricing" ? (
-        <AiSpecialistPricingPanel
-          creatorId={creatorId}
-          creatorName={creatorName}
-          creatorAvatar={creatorAvatar}
-        />
+        <TabPageScroll>
+          <AiSpecialistPricingPanel
+            creatorId={creatorId}
+            creatorName={creatorName}
+            creatorAvatar={creatorAvatar}
+          />
+        </TabPageScroll>
       ) : surface === "live" && showLiveTab ? (
-        <AiLiveSessionsPanel creatorId={creatorId} creatorName={creatorName} />
+        <TabPageScroll>
+          <AiLiveSessionsPanel creatorId={creatorId} creatorName={creatorName} />
+        </TabPageScroll>
       ) : surface === "build" && (isTechBuilder || chainSmith) ? (
         <TechBuilderSandboxPanel
           initialFilePath={sandboxSeed?.path ?? (chainSmith ? TEACHING_CHAIN_STARTER_FILE.path : undefined)}
