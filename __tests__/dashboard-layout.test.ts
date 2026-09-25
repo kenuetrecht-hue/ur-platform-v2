@@ -29,7 +29,7 @@ describe("dashboard layout", () => {
     expect(scroll).toContain("FloatingCard");
     expect(scroll).toContain("ScrollView");
     expect(ais).not.toContain("maxHeight: 260");
-    expect(ais).toContain("pageScroll={false}");
+    expect(readFileSync("app/ai/[creatorId]/chat.tsx", "utf8")).toContain("pageScroll={false}");
     expect(readFileSync("components/composer-dock.tsx", "utf8")).toContain("KeyboardAvoidingView");
   });
 });

@@ -48,6 +48,11 @@ export default function LoginScreen() {
             <Text style={styles.brand}>UR</Text>
             <Text style={styles.title}>Login</Text>
             <LandingWhatWeOffer compact />
+            <Link href="/services" testID="login-products-link">
+              <Text style={{ color: T.text, fontWeight: "800", fontSize: 14, textAlign: "center" }}>
+                Products and prices
+              </Text>
+            </Link>
             {serviceHint ? (
               <View style={styles.errorBox}>
                 <Text style={styles.errorText}>{serviceHint}</Text>

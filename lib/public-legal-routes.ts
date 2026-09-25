@@ -5,6 +5,7 @@ export const PUBLIC_LEGAL_PATHS = [
   "refunds",
   "cancellations",
   "contact",
+  "services",
 ] as const;
 
 export type PublicLegalPath = (typeof PUBLIC_LEGAL_PATHS)[number];
@@ -15,6 +16,7 @@ export const PUBLIC_LEGAL_NAV = [
   { href: "/refunds", label: "Refunds & Returns" },
   { href: "/cancellations", label: "Cancellations" },
   { href: "/contact", label: "Contact" },
+  { href: "/services", label: "Products & prices" },
 ] as const;
 
 export function isPublicLegalRoute(segments: string[]): boolean {

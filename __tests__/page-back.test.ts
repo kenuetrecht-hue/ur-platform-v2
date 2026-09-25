@@ -46,6 +46,8 @@ describe("page back", () => {
       "app/3d-workspace.tsx",
       "app/shop.tsx",
       "app/jobsite.tsx",
+      "app/ai/[creatorId]/chat.tsx",
+      "app/ai/[creatorId]/index.tsx",
       "app/live-session/[sessionId].tsx",
       "app/class-replay/[replayId].tsx",
       "components/public-legal-screen.tsx",

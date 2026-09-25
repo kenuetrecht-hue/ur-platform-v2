@@ -73,7 +73,7 @@ describe("home hub", () => {
     expect(pageScroll).toContain("ur-page-scroll");
     expect(readFileSync("global.css", "utf8")).toContain(".ur-page-scroll");
     expect(readFileSync("app/(tabs)/ais.tsx", "utf8")).toContain("TabPageScroll");
-    expect(readFileSync("app/(tabs)/ais.tsx", "utf8")).toContain("pageScroll");
+    expect(readFileSync("app/ai/[creatorId]/chat.tsx", "utf8")).toContain("pageScroll");
     expect(screen).toContain("BrandColorStage");
     expect(screen).toContain("withoutPageFill");
     expect(screen).toContain('backgroundColor: "transparent"');

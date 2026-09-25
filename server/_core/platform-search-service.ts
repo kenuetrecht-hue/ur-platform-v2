@@ -3,6 +3,7 @@
  */
 
 import { AI_CREATOR_CATALOG } from "../../lib/ai-creator-catalog";
+import { STOREFRONT_VISIBLE } from "../../lib/storefront-review-hold";
 import { isOwnerOpsAiId } from "../../lib/owner-platform-ops-catalog";
 import {
   PLATFORM_SEARCH_EMPTY_HINT,
@@ -102,7 +103,7 @@ function collectDocuments(params: { isPlatformOwner: boolean }): SearchableDocum
     });
   }
 
-  for (const product of listAllPublicProducts(80)) {
+  if (STOREFRONT_VISIBLE) for (const product of listAllPublicProducts(80)) {
     docs.push({
       id: `shop:${product.id}`,
       kind: "shop",

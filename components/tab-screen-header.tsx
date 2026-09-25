@@ -13,6 +13,9 @@ interface TabScreenHeaderProps {
   compact?: boolean;
   /** Hide Back on the starting Home screen only. */
   showBack?: boolean;
+  /** Leave this screen. Defaults to the previous page, or Home. */
+  onBack?: () => void;
+  backLabel?: string;
 }
 
 export function TabScreenHeader({
@@ -21,6 +24,8 @@ export function TabScreenHeader({
   icon,
   compact = false,
   showBack = true,
+  onBack,
+  backLabel = "← Back",
 }: TabScreenHeaderProps) {
   const colors = useColors();
   const router = useRouter();
@@ -30,13 +35,13 @@ export function TabScreenHeader({
     <View style={[styles.wrap, compact && styles.wrapCompact]}>
       {showBack ? (
         <Pressable
-          onPress={() => goBackOrHome(router)}
+          onPress={() => (onBack ? onBack() : goBackOrHome(router))}
           accessibilityRole="button"
           accessibilityLabel="Back"
           testID="page-back"
           style={styles.backRow}
         >
-          <Text style={[styles.backText, { color: colors.gold }]}>← Back</Text>
+          <Text style={[styles.backText, { color: colors.gold }]}>{backLabel}</Text>
         </Pressable>
       ) : null}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>

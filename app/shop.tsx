@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
 import { PlatformShopPanel } from "@/components/platform-shop-panel";
@@ -10,6 +10,7 @@ import { useColors } from "@/hooks/use-colors";
 import { BillingStatePicker } from "@/components/billing-state-picker";
 import { calculateCustomerCheckout } from "@/lib/stripe-checkout-pricing";
 import type { UsStateCode } from "@/lib/us-state-taxes";
+import { STOREFRONT_VISIBLE } from "@/lib/storefront-review-hold";
 
 function CreatorShopView({ slug }: { slug: string }) {
   const colors = useColors();
@@ -61,6 +62,26 @@ export default function ShopScreen() {
   const { slug, tab } = useLocalSearchParams<{ slug?: string; tab?: string }>();
   const router = useRouter();
   const colors = useColors();
+
+  if (!STOREFRONT_VISIBLE) {
+    return (
+      <ScreenContainer className="bg-background">
+        <TabScreenHeader
+          icon="🛍️"
+          title="UR Shop"
+          subtitle="Physical merch is not for sale while the account is in review."
+        />
+        <View style={{ padding: 16, gap: 12 }}>
+          <Text style={{ color: colors.foreground, fontSize: 15, lineHeight: 22 }}>
+            UR Platform LLC sells digital access. Prices, delivery, and customer service are on the public products page.
+          </Text>
+          <Link href="/services">
+            <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 16 }}>Products and prices</Text>
+          </Link>
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   if (slug) {
     return (

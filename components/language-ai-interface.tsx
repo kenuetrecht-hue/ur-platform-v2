@@ -37,6 +37,8 @@ interface ChatMessage {
 interface LanguageAIInterfaceProps {
   onClose?: () => void;
   pageScroll?: boolean;
+  /** When false, the mic and Send sit on this screen instead of above the tab bar. */
+  reserveTabBar?: boolean;
 }
 
 const POPULAR_LANGUAGES = [
@@ -54,10 +56,11 @@ const POPULAR_LANGUAGES = [
 
 const LEARN_LEVELS = ["beginner", "intermediate", "advanced"] as const;
 
-export function LanguageAIInterface({ onClose, pageScroll = false }: LanguageAIInterfaceProps) {
+export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar = true }: LanguageAIInterfaceProps) {
   const colors = useColors();
   const overlap = useOverlapInsets({
-    headerChromeHeight: LAYOUT_OVERLAP.AIS_TAB_CHROME_HEIGHT + 100,
+    reserveTabBar,
+    headerChromeHeight: reserveTabBar ? LAYOUT_OVERLAP.AIS_TAB_CHROME_HEIGHT + 100 : 0,
   });
   const { isAuthenticated } = useAuth();
   const subAccess = trpc.aiSubscription.getAccess.useQuery(

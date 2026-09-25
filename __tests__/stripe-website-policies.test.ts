@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { isPublicLegalRoute, PUBLIC_LEGAL_NAV, PUBLIC_LEGAL_PATHS } from "../lib/public-legal-routes";
 import { PLATFORM_PRIVACY_SECTIONS } from "../lib/platform-privacy-policy";
@@ -33,6 +34,7 @@ describe("Stripe website verification copy", () => {
       "refunds",
       "cancellations",
       "contact",
+      "services",
     ]);
     expect(PUBLIC_LEGAL_NAV.map((item) => item.href)).toEqual([
       "/terms",
@@ -40,6 +42,7 @@ describe("Stripe website verification copy", () => {
       "/refunds",
       "/cancellations",
       "/contact",
+      "/services",
     ]);
     expect(isPublicLegalRoute(["terms"])).toBe(true);
     expect(isPublicLegalRoute(["profile"])).toBe(false);
@@ -91,5 +94,20 @@ describe("Stripe website verification copy", () => {
     expect(text).toContain("deleted");
     expect(text).toContain("stripe");
     expect(REFUND_REQUEST_PROCESS.toLowerCase()).toContain("chargebacks");
+  });
+
+  it("publishes priced digital products and holds the unfinished storefront", () => {
+    const services = readFileSync("app/services.tsx", "utf8");
+    const shop = readFileSync("app/shop.tsx", "utf8");
+    const hold = readFileSync("lib/storefront-review-hold.ts", "utf8");
+    expect(hold).toContain("STOREFRONT_VISIBLE = false");
+    expect(hold).toContain("Set STOREFRONT_VISIBLE to true");
+    expect(services).toContain("$7.99");
+    expect(services).toContain("$15.99");
+    expect(services).toContain("$24.99");
+    expect(services).toContain("UR Platform LLC");
+    expect(services).toContain("/terms");
+    expect(shop).toContain("STOREFRONT_VISIBLE");
+    expect(shop).toContain("PlatformShopPanel");
   });
 });

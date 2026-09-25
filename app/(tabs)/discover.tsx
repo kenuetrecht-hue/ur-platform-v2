@@ -10,6 +10,7 @@ import { PlatformSearchPanel } from "@/components/platform-search-panel";
 import { HubTabBar } from "@/components/hub-tab-bar";
 import { HubDoorGrid, HubDoorTile } from "@/components/hub-door-tile";
 import { DISCOVER_HUB_TABS } from "@/lib/home-hub";
+import { STOREFRONT_VISIBLE } from "@/lib/storefront-review-hold";
 
 const DISCOVER_ICONS: Record<string, string> = {
   creators: "👥",
@@ -26,7 +27,9 @@ export default function DiscoverScreen() {
   const router = useRouter();
   const [hubTab, setHubTab] = useState("board");
   const discoverTab = consolidatedNavigation.getTab("discover");
-  const subMenu = discoverTab?.subMenu ?? [];
+  const subMenu = (discoverTab?.subMenu ?? []).filter(
+    (item) => STOREFRONT_VISIBLE || (item.id !== "marketplace" && item.id !== "affiliates"),
+  );
 
   return (
     <ScreenContainer className="bg-background">
@@ -54,7 +57,7 @@ export default function DiscoverScreen() {
                 label={item.label}
                 onPress={() => {
                   if (item.id === "marketplace" || item.id === "affiliates") {
-                    router.push("/shop");
+                    router.push(STOREFRONT_VISIBLE ? "/shop" : "/services");
                   } else if (item.id === "search") {
                     router.push("/discover/search");
                   } else if (item.id === "ai-board") {

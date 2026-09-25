@@ -18,6 +18,7 @@ export const aiFreeBoardRouter = router({
       z
         .object({
           lane: laneSchema.optional(),
+          creatorAiId: z.string().trim().min(1).max(64).optional(),
           limit: z.number().int().min(4).max(60).optional(),
         })
         .optional(),
@@ -25,6 +26,7 @@ export const aiFreeBoardRouter = router({
     .query(({ ctx, input }) =>
       listAiFreeBoard({
         lane: input?.lane,
+        creatorAiId: input?.creatorAiId,
         limit: input?.limit,
         viewerUserId: ctx.user?.id != null ? String(ctx.user.id) : undefined,
       }),

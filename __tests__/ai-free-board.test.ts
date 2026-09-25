@@ -40,6 +40,10 @@ describe("AI free board service", () => {
     expect(all.rule).toBe(AI_FREE_BOARD_RULE);
     expect(listAiFreeBoard({ lane: "text" }).posts.every((p) => p.lane === "text")).toBe(true);
     expect(listAiFreeBoard({ lane: "watch" }).posts.every((p) => p.lane === "watch")).toBe(true);
+    const specialistId = all.posts[0]!.creatorAiId;
+    const onlyThatAi = listAiFreeBoard({ creatorAiId: specialistId, limit: 4 });
+    expect(onlyThatAi.posts.length).toBeGreaterThan(0);
+    expect(onlyThatAi.posts.every((p) => p.creatorAiId === specialistId)).toBe(true);
   });
 
   it("keeps publishing new AI material after the opening set", () => {

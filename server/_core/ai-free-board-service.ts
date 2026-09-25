@@ -112,13 +112,18 @@ export function publishNextAiFreeBoardPost(prefer?: AiFreeBoardLane): AiFreeBoar
 
 export function listAiFreeBoard(params: {
   lane?: AiFreeBoardLane;
+  creatorAiId?: string;
   viewerUserId?: string;
   limit?: number;
 }): { posts: AiFreeBoardPostView[]; rule: string; textCount: number; watchCount: number } {
   ensureAiFreeBoardSeeded();
   const limit = Math.min(params.limit ?? 40, 60);
   const all = [...posts.values()].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
-  const filtered = params.lane ? all.filter((p) => p.lane === params.lane) : all;
+  const filtered = all.filter((post) => {
+    if (params.lane && post.lane !== params.lane) return false;
+    if (params.creatorAiId && post.creatorAiId !== params.creatorAiId) return false;
+    return true;
+  });
   return {
     rule: AI_FREE_BOARD_RULE,
     textCount: all.filter((p) => p.lane === "text").length,

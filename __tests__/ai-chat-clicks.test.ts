@@ -14,6 +14,16 @@ describe("AI texting clicks", () => {
     expect(hub).toContain("AppPressable");
     expect(ais).toContain("AppPressable");
     expect(ais).toContain('testID="ai-browse-specialists"');
+    expect(ais).toContain('pathname: "/ai/[creatorId]"');
+    const specialistPage = readFileSync("app/ai/[creatorId]/index.tsx", "utf8");
+    const chatPage = readFileSync("app/ai/[creatorId]/chat.tsx", "utf8");
+    expect(specialistPage).toContain('testID="ai-open-chat"');
+    expect(specialistPage).toContain("Post for the day");
+    expect(chatPage).toContain("AiCreatorPanel");
+    expect(chatPage).toContain("pageScroll={false}");
+    expect(chatPage).toContain("onBack");
+    expect(chatPage).toContain("buildAiChatDisclosure");
+    expect(chatPage).toContain("You are talking to an AI");
     expect(chat).toContain('testID="ai-chat-send"');
     expect(chat).toContain("AppPressable");
     expect(composer).toContain("onKeyDown");

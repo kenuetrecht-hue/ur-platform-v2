@@ -12,7 +12,6 @@ import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
 import { AiHubTabRow } from "@/components/ai-hub-tab-row";
 import { AiSpecialistPicker } from "@/components/ai-specialist-picker";
-import { AiCreatorPanel } from "@/components/ai-creator-panel";
 import {
   AI_CREATOR_CATALOG,
   type AiCreatorCatalogEntry,
@@ -20,13 +19,11 @@ import {
 import {
   AI_HUB_CATEGORY_GROUPS,
   filterCreatorsByGroup,
-  hubGroupIdForCategory,
   nextHubSelection,
 } from "@/lib/ai-hub-navigation";
 import { OWNER_OPS_AI_IDS, isOwnerOpsAiId } from "@/lib/owner-platform-ops-catalog";
 import { trpc } from "@/lib/trpc";
 import { HiveTownHallPanel } from "@/components/hive-town-hall-panel";
-import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { HubTabBar } from "@/components/hub-tab-bar";
 import { TabPageScroll } from "@/components/tab-page-scroll";
 import { AppPressable } from "@/components/app-pressable";
@@ -39,7 +36,6 @@ export default function AIsScreen() {
   const colors = useColors();
   const router = useRouter();
   const params = useLocalSearchParams<{ group?: string; ai?: string; prompt?: string; subscribe?: string; surface?: string }>();
-  const [catalogOpen, setCatalogOpen] = useState(false);
   const [hubMode, setHubMode] = useState<"chat" | "townHall">("chat");
   const [categoryGroup, setCategoryGroup] = useState("platform");
   const [selectedAiId, setSelectedAiId] = useState<string>("contentmate");
@@ -85,24 +81,13 @@ export default function AIsScreen() {
     [creators, selectedAiId],
   );
 
-  const creatorWelcomeMessage = useMemo(() => {
-    if (!selectedCreator) return undefined;
-    return `Hi! I'm ${selectedCreator.name}. ${selectedCreator.mission} Ask me anything in my area — any language.`;
-  }, [selectedCreator?.id, selectedCreator?.name, selectedCreator?.mission]);
-
-  const creatorInitialPrompt = useMemo(() => {
-    if (!selectedCreator || params.ai !== selectedCreator.id) return undefined;
-    return typeof params.prompt === "string" ? params.prompt : undefined;
-  }, [params.ai, params.prompt, selectedCreator?.id]);
-
-  const creatorInitialSurface = useMemo(() => {
-    if (params.subscribe === "1") return "pricing" as const;
-    const surface = params.surface;
-    if (surface === "build" || surface === "learn" || surface === "chat" || surface === "live" || surface === "pricing") {
-      return surface;
-    }
-    return undefined;
-  }, [params.subscribe, params.surface]);
+  const openSpecialistPage = useCallback(
+    (id: string) => {
+      setSelectedAiId(id);
+      router.push({ pathname: "/ai/[creatorId]", params: { creatorId: id } });
+    },
+    [router],
+  );
 
   const selectCategory = useCallback(
     (groupId: string) => {
@@ -116,10 +101,12 @@ export default function AIsScreen() {
     [creators, searchQuery],
   );
 
-  const pickSpecialist = useCallback((id: string) => {
-    setSelectedAiId(id);
-    setCatalogOpen(false);
-  }, []);
+  const pickSpecialist = useCallback(
+    (id: string) => {
+      openSpecialistPage(id);
+    },
+    [openSpecialistPage],
+  );
 
   useEffect(() => {
     if (typeof params.ai === "string" && isOwnerOpsAiId(params.ai)) {
@@ -137,12 +124,16 @@ export default function AIsScreen() {
 
   useEffect(() => {
     if (typeof params.ai !== "string" || !params.ai || isOwnerOpsAiId(params.ai)) return;
-    const creator = creators.find((c) => c.id === params.ai);
-    if (!creator) return;
-    setSelectedAiId(params.ai);
-    setCatalogOpen(false);
-    setCategoryGroup(hubGroupIdForCategory(creator.category));
-  }, [params.ai, creators]);
+    router.replace({
+      pathname: "/ai/[creatorId]",
+      params: {
+        creatorId: params.ai,
+        ...(typeof params.prompt === "string" ? { prompt: params.prompt } : {}),
+        ...(typeof params.surface === "string" ? { surface: params.surface } : {}),
+        ...(typeof params.subscribe === "string" ? { subscribe: params.subscribe } : {}),
+      },
+    });
+  }, [params.ai, params.prompt, params.surface, params.subscribe, router]);
 
   useEffect(() => {
     const nextId = nextHubSelection({
@@ -169,9 +160,9 @@ export default function AIsScreen() {
             onSelect={(id) => setHubMode(id === "townHall" ? "townHall" : "chat")}
           />
 
-          {hubMode === "chat" && selectedCreator && !catalogOpen ? (
+          {hubMode === "chat" && selectedCreator ? (
             <AppPressable
-              onPress={() => setCatalogOpen(true)}
+              onPress={() => openSpecialistPage(selectedCreator.id)}
               testID="ai-browse-specialists"
               style={[
                 styles.selectedBar,
@@ -186,11 +177,11 @@ export default function AIsScreen() {
                   {selectedCreator.name}
                 </Text>
                 <Text style={{ color: colors.muted, fontSize: 11 }} numberOfLines={1}>
-                  Tap to change specialist
+                  Open this AI
                 </Text>
               </View>
               <Text pointerEvents="none" style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>
-                Browse ▼
+                Open
               </Text>
             </AppPressable>
           ) : null}
@@ -200,14 +191,17 @@ export default function AIsScreen() {
           <View style={styles.fill}>
             <HiveTownHallPanel />
           </View>
-        ) : catalogOpen || !selectedCreator ? (
+        ) : (
           <TabPageScroll contentContainerStyle={styles.bodyScroll}>
             <View style={styles.catalogHeader}>
               <Text style={{ color: colors.gold, fontWeight: "700", fontSize: 13 }}>
                 Choose a specialist
               </Text>
               {selectedCreator ? (
-                <AppPressable onPress={() => setCatalogOpen(false)} hitSlop={8}>
+                <AppPressable
+                  onPress={() => openSpecialistPage(selectedCreator.id)}
+                  hitSlop={8}
+                >
                   <Text pointerEvents="none" style={{ color: colors.gold, fontWeight: "700", fontSize: 12 }}>
                     Done ▲
                   </Text>
@@ -254,21 +248,6 @@ export default function AIsScreen() {
               </Text>
             )}
           </TabPageScroll>
-        ) : (
-          <View style={styles.fill}>
-            <AiCreatorPanel
-              key={selectedCreator.id}
-              creatorId={selectedCreator.id}
-              creatorName={selectedCreator.name}
-              creatorAvatar={selectedCreator.avatar}
-              hideChatHeader
-              pageScroll={false}
-              welcomeMessage={creatorWelcomeMessage}
-              initialPrompt={creatorInitialPrompt}
-              initialSurface={creatorInitialSurface}
-              overlapHeaderHeight={LAYOUT_OVERLAP.AIS_TAB_CHROME_HEIGHT}
-            />
-          </View>
         )}
       </View>
     </ScreenContainer>

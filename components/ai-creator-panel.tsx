@@ -53,6 +53,8 @@ export type AiCreatorPanelProps = {
   initialPrompt?: string;
   /** Hide duplicate chat header when parent screen shows specialist info. */
   hideChatHeader?: boolean;
+  /** Reserve the phone tab bar under the composer. Off on the standalone chat page. */
+  embedded?: boolean;
   /** Open pricing tab (e.g. web checkout handoff ?subscribe=1). */
   initialSurface?: SurfaceMode;
   /** Keyboard overlap — parent tab chrome above this panel. */
@@ -76,6 +78,7 @@ export function AiCreatorPanel({
   welcomeMessage,
   initialPrompt,
   hideChatHeader = false,
+  embedded,
   initialSurface,
   overlapHeaderHeight,
   pageScroll = false,
@@ -142,7 +145,7 @@ export function AiCreatorPanel({
             />
           </TabPageScroll>
         ) : (
-          <LanguageAIInterface pageScroll={pageScroll} />
+          <LanguageAIInterface pageScroll={pageScroll} reserveTabBar={embedded ?? hideChatHeader} />
         )}
       </View>
     );
@@ -207,7 +210,7 @@ export function AiCreatorPanel({
           welcomeMessage={welcomeMessage}
           initialPrompt={initialPrompt}
           hideHeader={hideChatHeader}
-          embedded={hideChatHeader}
+          embedded={embedded ?? hideChatHeader}
           pageScroll={pageScroll}
           overlapHeaderHeight={overlapHeaderHeight}
         />

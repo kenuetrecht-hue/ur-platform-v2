@@ -31,6 +31,7 @@ import {
 } from "@/lib/home-hub";
 import { useAppInstallActions } from "@/hooks/use-app-install-actions";
 import { withAlpha } from "@/lib/brand-theme";
+import { STOREFRONT_VISIBLE } from "@/lib/storefront-review-hold";
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -159,7 +160,7 @@ export default function HomeScreen() {
 
         {hubTab === "doors" ? (
           <HubDoorGrid>
-            {HOME_MAIN_DOORS.map((door) => (
+            {HOME_MAIN_DOORS.filter((door) => STOREFRONT_VISIBLE || door.id !== "shop").map((door) => (
               <HubDoorTile
                 key={door.id}
                 emoji={door.emoji}
