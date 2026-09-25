@@ -76,6 +76,12 @@ export type CreatorAIInterfaceProps = {
   overlapHeaderHeight?: number;
   /** Sit in the page scroll so the text box and talk controls are reachable. */
   pageScroll?: boolean;
+  /**
+   * When set, this decides whether every reply is spoken.
+   * Omit it and the usual talk-time rule applies.
+   * Talk still speaks the answer either way.
+   */
+  speakReplies?: boolean;
 };
 
 export function CreatorAIInterface({
@@ -89,6 +95,7 @@ export function CreatorAIInterface({
   embedded = false,
   overlapHeaderHeight,
   pageScroll = false,
+  speakReplies,
 }: CreatorAIInterfaceProps) {
   const colors = useColors();
   const router = useRouter();
@@ -432,11 +439,14 @@ export function CreatorAIInterface({
         setAwaitingPitchConsent(Boolean(result.pitchConsentRequest));
         setSendStatus(null);
         void refetchChatThread();
-        if (options?.speak || ownerTalkIncluded || hasTalkTime) {
+        const speakThisReply =
+          options?.speak === true ||
+          (speakReplies === undefined ? ownerTalkIncluded || hasTalkTime : speakReplies);
+        if (speakThisReply) {
           setVoiceStatus("Reply ready — speaking it now.");
           speakReplyRef.current(replyText);
         } else {
-          setVoiceStatus("Reply ready — tap Hear to play it.");
+          setVoiceStatus("Reply ready — the words stay in this chat so you can read them.");
         }
       } catch (error) {
         const errText = formatChatError(error);
@@ -464,6 +474,7 @@ export function CreatorAIInterface({
       messages,
       hasTalkTime,
       ownerTalkIncluded,
+      speakReplies,
       pendingAttachments,
       scrollToBottom,
       refetchChatThread,

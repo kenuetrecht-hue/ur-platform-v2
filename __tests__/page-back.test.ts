@@ -37,6 +37,7 @@ describe("page back", () => {
       "app/(tabs)/profile.tsx",
       "app/(tabs)/messages.tsx",
       "app/owner-ops.tsx",
+      "app/owner-ai/[creatorId]/chat.tsx",
       "app/e-manual.tsx",
       "app/download.tsx",
       "app/world.tsx",

@@ -123,6 +123,7 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       segments[0] === "profile" ||
       segments[0] === "jobsite" ||
       segments[0] === "owner-ops" ||
+      segments[0] === "owner-ai" ||
       segments[0] === "3d-workspace" ||
       segments[0] === "playroom" ||
       segments[0] === "world";

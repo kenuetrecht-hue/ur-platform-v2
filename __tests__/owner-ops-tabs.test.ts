@@ -61,7 +61,8 @@ describe("owner ops tabs", () => {
     expect(consoleSource).toContain('desk = "all"');
     expect(consoleSource).toContain("showOwnerOpsDesk");
     expect(consoleSource).toContain("chatDesk");
-    expect(consoleSource).toContain("CreatorAIInterface");
+    expect(consoleSource).toContain('pathname: "/owner-ai/[creatorId]/chat"');
+    expect(consoleSource).toContain('testID="owner-ops-open-chat"');
     expect(consoleSource).toContain("OwnerComplimentaryTextAccessPanel");
     const grant = readFileSync("components/owner-complimentary-text-access-panel.tsx", "utf8");
     expect(grant).toContain('features: ["ai_chat"]');

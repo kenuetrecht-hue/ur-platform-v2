@@ -8,9 +8,9 @@ import {
   StyleSheet,
   TextInput,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
-import { CreatorAIInterface } from "@/components/creator-ai-interface";
 import { VoicePromptField } from "@/components/voice-prompt-field";
 import { AiLearnSurface } from "@/components/ai-creator-panel";
 import { AppPressable } from "@/components/app-pressable";
@@ -43,6 +43,7 @@ export function PlatformOpsConsole({
   desk?: PlatformOpsDesk;
 }) {
   const colors = useColors();
+  const router = useRouter();
   const { isPlatformOwner: isOwnerHook, hasAdminPermission } = usePlatformOwner();
   const isPlatformOwner = isOwnerProp ?? isOwnerHook;
   const utils = trpc.useUtils();
@@ -194,12 +195,6 @@ export function PlatformOpsConsole({
 
   const selectedMeta = opsAis.find((a) => a.id === selectedOpsAi) ?? opsAis[0];
   const isSteward = selectedMeta?.id === "platform-business-steward-ai";
-  const isWorldDirector = selectedMeta?.id === "platform-world-director-ai";
-  const stewardWelcome =
-    "Owner channel active. I'm Business Steward AI — your private operator for urplatform.llc. Launch ad budget is $2/day and $60/month (text + stills). Change store prices here or say SET PRICE monthly text 29.99. I do not file taxes or deploy code.";
-  const worldDirectorWelcome =
-    "Owner channel active. I'm World Director AI — I watch UR World and in-platform talk. Red flags pause the member and land here in English. Your plaza avatar is the UR Sheriff (casual, not a cop uniform). DRESS OWNER · MAKE OWNER OUTFIT weekend shirt #e7e0d4 jeans #3a4f73 shoes #f4f1ea · SET OWNER TITLE UR Sheriff. Catalog: SET WORLD PACK PRICE civic-dawn 2.49. Apparel is never $5.00.";
-  const opsWelcome = `Owner channel active. I'm ${selectedMeta?.name ?? "Ops AI"}. I can diagnose, isolate a broken section, and draft a fix. Nothing is finalized until you type ${OWNER_REMEDIATION_CONFIRM_PHRASE} in Owner Ops.`;
 
   return (
     <View style={chatDesk ? styles.chatDesk : styles.stackDesk}>
@@ -578,38 +573,49 @@ export function PlatformOpsConsole({
         {chatDesk ? null : (
           <Text style={[styles.sectionTitle, { color: colors.gold }]}>Ops AI chat</Text>
         )}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-          {opsAis.map((ai) => (
-            <AppPressable
-              key={ai.id}
-              onPress={() => {
-                setSelectedOpsAi(ai.id);
-                setStewardSurface("chat");
-              }}
-              style={[
-                styles.opsChip,
-                {
-                  backgroundColor: selectedOpsAi === ai.id ? colors.primary : colors.surface,
-                  borderColor: selectedOpsAi === ai.id ? colors.primary : colors.border,
-                },
-              ]}
-            >
-              <Text pointerEvents="none" style={{ fontSize: 20 }}>
-                {ai.avatar}
-              </Text>
-              <Text
-                pointerEvents="none"
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 10, paddingHorizontal: 16, paddingBottom: 12 }}>
+          {opsAis.map((ai) => {
+            const mission = OWNER_PLATFORM_OPS_CATALOG.find((entry) => entry.id === ai.id)?.mission;
+            return (
+              <View
+                key={ai.id}
                 style={{
-                  color: selectedOpsAi === ai.id ? "#fff" : colors.foreground,
-                  fontWeight: "700",
-                  fontSize: 12,
+                  gap: 8,
+                  padding: 14,
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
                 }}
               >
-                {ai.name}
-              </Text>
-            </AppPressable>
-          ))}
-        </ScrollView>
+                <Text style={{ fontSize: 28 }}>{ai.avatar}</Text>
+                <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>{ai.name}</Text>
+                {mission ? (
+                  <Text style={{ color: colors.foreground, fontSize: 13, lineHeight: 18 }}>{mission}</Text>
+                ) : null}
+                <AppPressable
+                  testID="owner-ops-open-chat"
+                  accessibilityLabel={`Chat with ${ai.name}`}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/owner-ai/[creatorId]/chat",
+                      params: { creatorId: ai.id },
+                    })
+                  }
+                  style={{
+                    backgroundColor: colors.primary,
+                    borderRadius: 12,
+                    paddingVertical: 12,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text pointerEvents="none" style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>
+                    Chat
+                  </Text>
+                </AppPressable>
+              </View>
+            );
+          })}
         {isSteward && stewardAdBudget.data ? (
           <View
             style={[
@@ -677,8 +683,10 @@ export function PlatformOpsConsole({
             })}
           </View>
         ) : null}
+        </ScrollView>
+        {isSteward && stewardSurface !== "chat" ? (
         <View style={[chatDesk ? styles.chatPane : styles.chatPaneFixed, { borderColor: colors.border }]}>
-          {isSteward && stewardSurface === "learn" ? (
+          {stewardSurface === "learn" && selectedMeta ? (
             <AiLearnSurface
               creatorId={selectedMeta.id}
               creatorName={selectedMeta.name}
@@ -740,18 +748,12 @@ export function PlatformOpsConsole({
               ))}
             </ScrollView>
           ) : (
-            <CreatorAIInterface
-              key={selectedOpsAi}
-              creatorId={selectedMeta.id}
-              creatorName={selectedMeta.name}
-              creatorAvatar={selectedMeta.avatar}
-              hideHeader
-              welcomeMessage={
-                isSteward ? stewardWelcome : isWorldDirector ? worldDirectorWelcome : opsWelcome
-              }
-            />
+            <Text style={{ color: colors.foreground, fontSize: 13, lineHeight: 18, padding: 14 }}>
+              Push Chat on an AI above. That opens their own room, with the microphone, Send, and the written reply left on the page.
+            </Text>
           )}
         </View>
+        ) : null}
       </View>
       ) : null}
     </View>

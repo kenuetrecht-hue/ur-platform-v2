@@ -55,7 +55,10 @@ export default function OwnerOpsScreen() {
     setShowAdmin(false);
     setOpsTab("chat");
     setStewardFocusNonce((n) => n + 1);
-    router.setParams({ ai: BUSINESS_STEWARD_AI_ID });
+    router.push({
+      pathname: "/owner-ai/[creatorId]/chat",
+      params: { creatorId: BUSINESS_STEWARD_AI_ID },
+    });
   };
 
   type QuickAction =

@@ -90,6 +90,7 @@ import {
 } from "../_core/owner-price-catalog-service";
 import { OWNER_PRICE_MAX_CENTS, OWNER_PRICE_MIN_CENTS } from "../../lib/owner-price-catalog";
 import { getOwnerMemberCensus } from "../_core/owner-member-census-service";
+import { getOwnerOpsAutoSpeakStatus } from "../_core/owner-ops-auto-speak-service";
 
 export const platformOpsRouter = router({
   /** Requires login — owner flag is server-verified only. */
@@ -335,6 +336,8 @@ export const platformOpsRouter = router({
       await hydrateOwnerCommandCenter();
       return listOwnerCommandEvents(input);
     }),
+
+  ownerOpsAutoSpeak: adminPermissionProcedure("chat_ops_ai").query(() => getOwnerOpsAutoSpeakStatus()),
 
   dashboard: adminPermissionProcedure("view_ops_dashboard").query(async () => {
     await Promise.all([hydratePlatformOpsState(), hydratePlatformSectionFlags()]);

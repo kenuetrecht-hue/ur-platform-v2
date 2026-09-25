@@ -16,6 +16,7 @@ import { getMessageAllowance } from "../../lib/ai-usage-allowances";
 import { calculateCustomerCheckout } from "../../lib/stripe-checkout-pricing";
 import { awardAiSubscriptionPurchasePoints } from "./loyalty-activity-service";
 import { markPaidAiPurchaseDuringStreak } from "./loyalty-streak-service";
+import { indianaYearMonth } from "../../lib/owner-ops-auto-speak";
 
 /** Platform-owned AI specialists — UR Platform LLC keeps 100% of subscription revenue */
 export const AI_SUBSCRIPTION_PLATFORM_SHARE_BPS = 10000;
@@ -272,6 +273,20 @@ export function cancelAiSubscription(userId: string, creatorId: string): boolean
   sub.active = false;
   writeSubscription(sub);
   return true;
+}
+
+/** Paid text passes that started this month. Loyalty comps are not revenue. */
+export function subscriptionRevenueCentsThisMonth(now = new Date()): number {
+  const month = indianaYearMonth(now);
+  let total = 0;
+  for (const sub of subscriptionStore.values()) {
+    if (sub.source === "loyalty_reward" || sub.priceCents <= 0) continue;
+    const started = new Date(sub.startedAt);
+    if (Number.isNaN(started.getTime())) continue;
+    if (indianaYearMonth(started) !== month) continue;
+    total += sub.priceCents;
+  }
+  return total;
 }
 
 /** Test helper */

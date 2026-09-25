@@ -25,7 +25,9 @@ describe("newestConversationFirst", () => {
   it("keeps Steward chat on the Administration Chat tab newest-first", () => {
     const consoleSource = readFileSync("components/platform-ops-console.tsx", "utf8");
     const ops = readFileSync("app/owner-ops.tsx", "utf8");
-    expect(consoleSource).toContain("CreatorAIInterface");
+    const ownerChat = readFileSync("app/owner-ai/[creatorId]/chat.tsx", "utf8");
+    expect(consoleSource).toContain('pathname: "/owner-ai/[creatorId]/chat"');
+    expect(ownerChat).toContain("CreatorAIInterface");
     expect(ops).toContain('useState<OwnerOpsTabId>("chat")');
     expect(ops).toContain("chatDesk");
   });
