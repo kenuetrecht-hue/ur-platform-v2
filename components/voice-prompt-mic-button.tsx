@@ -10,6 +10,8 @@ type Props = {
   onTranscript: (text: string, hint: string) => void;
   disabled?: boolean;
   labeled?: boolean;
+  /** Stretch across a side rail so the Talk label stays on one line. */
+  fullWidth?: boolean;
   /** Stop AI playback before the mic opens so it does not hear itself. */
   onBeforeListen?: () => void;
   /** Fired with the printed question after Talk finishes, so the AI can answer it. */
@@ -21,6 +23,7 @@ export function VoicePromptMicButton({
   onTranscript,
   disabled,
   labeled = false,
+  fullWidth = false,
   onBeforeListen,
   onSpokenQuestion,
 }: Props) {
@@ -73,7 +76,9 @@ export function VoicePromptMicButton({
       hitSlop={8}
       style={{
         flexShrink: 0,
-        minWidth: labeled ? 72 : 40,
+        alignSelf: fullWidth ? "stretch" : undefined,
+        minWidth: fullWidth ? 0 : labeled ? 72 : 40,
+        width: fullWidth ? "100%" : undefined,
         height: 40,
         paddingHorizontal: labeled ? 8 : 0,
         borderRadius: 10,

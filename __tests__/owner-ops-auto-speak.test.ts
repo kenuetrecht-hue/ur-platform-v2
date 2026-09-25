@@ -34,5 +34,6 @@ describe("owner ops auto speak", () => {
     expect(chat).toContain("the same words stay in this chat");
     expect(chat).toContain("You are talking to an AI");
     expect(chat).toContain("onBack");
+    expect(chat).toContain('toolRail="left"');
   });
 });

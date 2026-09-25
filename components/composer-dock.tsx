@@ -23,13 +23,17 @@ type ComposerDockProps = {
 type ChatComposerActionRowProps = {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** Extra web class. The base row class stays on. */
+  webClassName?: string;
 };
 
 /** Mic + prompt + Send in one unwrapping row. */
-export function ChatComposerActionRow({ children, style }: ChatComposerActionRowProps) {
+export function ChatComposerActionRow({ children, style, webClassName }: ChatComposerActionRowProps) {
   return (
     <View
-      {...(Platform.OS === "web" ? { className: "ur-chat-composer-row" } : null)}
+      {...(Platform.OS === "web"
+        ? { className: ["ur-chat-composer-row", webClassName].filter(Boolean).join(" ") }
+        : null)}
       style={[styles.actionRow, style]}
     >
       {children}

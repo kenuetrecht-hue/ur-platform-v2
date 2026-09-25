@@ -63,6 +63,10 @@ textarea.ur-chat-composer {
   width: 100%;
 }
 
+.ur-chat-composer-row.ur-chat-composer-rail {
+  align-items: flex-start !important;
+}
+
 .ur-app-shell-row {
   display: flex !important;
   flex-direction: row !important;

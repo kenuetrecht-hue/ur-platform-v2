@@ -82,6 +82,8 @@ export type CreatorAIInterfaceProps = {
    * Talk still speaks the answer either way.
    */
   speakReplies?: boolean;
+  /** Stack attach, text, talk, and paint beside the writing box so lines run across. */
+  toolRail?: "left";
 };
 
 export function CreatorAIInterface({
@@ -96,6 +98,7 @@ export function CreatorAIInterface({
   overlapHeaderHeight,
   pageScroll = false,
   speakReplies,
+  toolRail,
 }: CreatorAIInterfaceProps) {
   const colors = useColors();
   const router = useRouter();
@@ -866,7 +869,87 @@ export function CreatorAIInterface({
             </View>
           ) : null}
 
-          <ChatComposerActionRow>
+          <ChatComposerActionRow webClassName={toolRail === "left" ? "ur-chat-composer-rail" : undefined}>
+            {toolRail === "left" ? (
+              <View style={styles.toolRail}>
+                {supportsPhotoAnalysis ? (
+                  <Pressable
+                    onPress={() => void attachFiles()}
+                    disabled={loading || pendingAttachments.length >= 2}
+                    hitSlop={8}
+                    accessibilityLabel="Attachment"
+                    style={({ pressed }) => [
+                      styles.railButton,
+                      {
+                        borderColor: colors.border,
+                        backgroundColor: colors.surface,
+                        opacity: pressed ? 0.85 : 1,
+                      },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 18 }}>📎</Text>
+                  </Pressable>
+                ) : null}
+                <AppPressable
+                  testID="ai-text-button"
+                  accessibilityLabel="Text"
+                  onPress={() => setTextFocusNonce((n) => n + 1)}
+                  hitSlop={8}
+                  style={({ pressed }) => [
+                    styles.railButton,
+                    {
+                      borderColor: colors.border,
+                      backgroundColor: colors.surface,
+                      opacity: pressed ? 0.85 : 1,
+                    },
+                  ]}
+                >
+                  <Text pointerEvents="none" style={{ color: colors.foreground, fontSize: 12, fontWeight: "800" }}>
+                    Text
+                  </Text>
+                </AppPressable>
+                <VoicePromptMicButton
+                  creatorId={creatorId}
+                  labeled
+                  fullWidth
+                  onBeforeListen={() => {
+                    stopPlayback();
+                    stopExclusiveAudio();
+                    setVoiceStatus("Mic on — AI voice stopped so it does not echo.");
+                  }}
+                  onTranscript={(text, hint) => {
+                    if (text) setInputText(text.slice(0, 2000));
+                    setSpeechHint(hint || null);
+                  }}
+                  onSpokenQuestion={(question) => {
+                    setInputText("");
+                    void sendChatMessage(question, undefined, { speak: true });
+                  }}
+                />
+                {supportsImageGen ? (
+                  <Pressable
+                    onPress={() => {
+                      setShowImageGen((v) => !v);
+                      setShowExtras(true);
+                    }}
+                    disabled={loading}
+                    hitSlop={8}
+                    accessibilityLabel="Paint"
+                    style={({ pressed }) => [
+                      styles.railButton,
+                      {
+                        borderColor: colors.border,
+                        backgroundColor: showImageGen ? colors.primary : colors.surface,
+                        opacity: pressed ? 0.85 : 1,
+                      },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 16 }}>🎨</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : (
+              <>
             {supportsPhotoAnalysis ? (
               <Pressable
                 onPress={() => void attachFiles()}
@@ -941,6 +1024,9 @@ export function CreatorAIInterface({
                 <Text style={{ fontSize: 16 }}>🎨</Text>
               </Pressable>
             ) : null}
+              </>
+            )}
+            <View style={toolRail === "left" ? styles.writingColumn : styles.inlineWriting}>
             <ChatComposerInput
               style={[
                 styles.input,
@@ -976,8 +1062,8 @@ export function CreatorAIInterface({
               onPress={() => void sendChatMessage(inputText)}
               disabled={loading || (!inputText.trim() && pendingAttachments.length === 0)}
               hitSlop={8}
-              style={({ pressed }) => [
-                styles.sendButton,
+                style={({ pressed }) => [
+                toolRail === "left" ? styles.sendWide : styles.sendButton,
                 {
                   backgroundColor:
                     loading || (!inputText.trim() && pendingAttachments.length === 0)
@@ -996,6 +1082,7 @@ export function CreatorAIInterface({
                 </Text>
               )}
             </AppPressable>
+            </View>
           </ChatComposerActionRow>
           {speechHint ? (
             <Text style={{ color: colors.muted, fontSize: 11, paddingTop: 6 }}>{speechHint}</Text>
@@ -1331,6 +1418,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  toolRail: {
+    width: 88,
+    flexShrink: 0,
+    gap: 8,
+  },
+  railButton: {
+    width: "100%",
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  writingColumn: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 180,
+    gap: 8,
+  },
+  inlineWriting: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+  },
   apiBanner: {
     marginHorizontal: 12,
     marginBottom: 6,
@@ -1349,5 +1465,6 @@ const styles = StyleSheet.create({
   },
   input: { ...CHAT_COMPOSER_INPUT },
   sendButton: { ...CHAT_COMPOSER_SEND },
+  sendWide: { ...CHAT_COMPOSER_SEND, alignSelf: "stretch", width: "100%" },
   sendLabel: { color: "#fff", fontWeight: "700", fontSize: 16 },
 });

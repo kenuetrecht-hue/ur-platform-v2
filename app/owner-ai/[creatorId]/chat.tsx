@@ -100,6 +100,7 @@ export default function OwnerOpsAiChatPage() {
           embedded={false}
           pageScroll={false}
           speakReplies={voice.data?.autoSpeak === true}
+          toolRail="left"
           welcomeMessage={welcomeFor(creatorId, creator.name)}
         />
       </View>
