@@ -27,6 +27,7 @@ describe("page back", () => {
     expect(button).toContain("goBackOrHome");
     expect(home).toContain("showBack={false}");
     expect(login).toContain("login-back-home");
+    expect(readFileSync("components/create-desk-screen.tsx", "utf8")).toContain("TabScreenHeader");
   });
 
   it("gives every leave-able screen a Back control", () => {
@@ -47,6 +48,12 @@ describe("page back", () => {
       "app/3d-workspace.tsx",
       "app/shop.tsx",
       "app/jobsite.tsx",
+      "app/create/video.tsx",
+      "app/create/image.tsx",
+      "app/create/text.tsx",
+      "app/create/templates.tsx",
+      "app/create/calendar.tsx",
+      "app/create/drafts.tsx",
       "app/ai/[creatorId]/chat.tsx",
       "app/ai/[creatorId]/index.tsx",
       "app/live-session/[sessionId].tsx",
@@ -56,7 +63,10 @@ describe("page back", () => {
     for (const file of files) {
       const src = readFileSync(file, "utf8");
       expect(
-        src.includes("TabScreenHeader") || src.includes("PageBackButton") || src.includes("goBackOrHome"),
+        src.includes("TabScreenHeader") ||
+          src.includes("PageBackButton") ||
+          src.includes("goBackOrHome") ||
+          src.includes("CreateDeskScreen"),
         file,
       ).toBe(true);
     }
