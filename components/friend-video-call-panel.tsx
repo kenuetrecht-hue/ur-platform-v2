@@ -3,11 +3,11 @@ import {
   View,
   Text,
   Pressable,
-  ActivityIndicator,
   StyleSheet,
   Platform,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import { trpc } from "@/lib/trpc";
 import { UR_STUN_ICE_SERVERS } from "@/lib/webrtc-ice";
 import { openExternalCheckoutUrl } from "@/lib/web-checkout";
@@ -29,6 +29,23 @@ function formatConnectedMs(ms: number): string {
   return `${minutes}:${String(seconds).padStart(2, "0")}.${String(millis).padStart(3, "0")}`;
 }
 
+function routeRemoteAudio(el: HTMLAudioElement): void {
+  el.muted = false;
+  el.volume = 1;
+  const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+  if (session) session.type = "playback";
+  void el.play().catch(() => undefined);
+  const setSinkId = (el as HTMLAudioElement & { setSinkId?: (id: string) => Promise<void> }).setSinkId;
+  if (!setSinkId || !navigator.mediaDevices?.enumerateDevices) return;
+  void navigator.mediaDevices
+    .enumerateDevices()
+    .then((devices) => {
+      const speaker = devices.find((device) => device.kind === "audiooutput" && /speaker|loud/i.test(device.label));
+      if (speaker?.deviceId) return setSinkId.call(el, speaker.deviceId);
+    })
+    .catch(() => undefined);
+}
+
 function canUseWebRtc(): boolean {
   return (
     Platform.OS === "web" &&
@@ -44,8 +61,11 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }:
   const utils = trpc.useUtils();
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const appliedIce = useRef(new Set<string>());
+  const closedRef = useRef(false);
   const [status, setStatus] = useState("Connecting…");
   const [error, setError] = useState<string | null>(null);
   const [mediaReady, setMediaReady] = useState(false);
@@ -115,7 +135,22 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }:
         } catch {
           /* STUN still works if TURN is not configured. */
         }
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: "user" } },
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        }
+        const micTracks = stream.getAudioTracks();
+        if (micTracks.length === 0) {
+          setError("Microphone is off, so they cannot hear you. Allow the microphone and call again.");
+        }
+        micTracks.forEach((track) => {
+          track.enabled = true;
+        });
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
@@ -135,9 +170,18 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }:
         stream.getTracks().forEach((t) => pc.addTrack(t, stream));
 
         pc.ontrack = (ev) => {
-          if (remoteVideoRef.current && ev.streams[0]) {
-            remoteVideoRef.current.srcObject = ev.streams[0];
-            void remoteVideoRef.current.play();
+          if (!remoteStreamRef.current) remoteStreamRef.current = new MediaStream();
+          const remote = remoteStreamRef.current;
+          if (!remote.getTracks().some((track) => track.id === ev.track.id)) remote.addTrack(ev.track);
+          ev.track.enabled = true;
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = remote;
+            remoteVideoRef.current.muted = true;
+            void remoteVideoRef.current.play().catch(() => undefined);
+          }
+          if (ev.track.kind === "audio" && remoteAudioRef.current) {
+            remoteAudioRef.current.srcObject = remote;
+            routeRemoteAudio(remoteAudioRef.current);
           }
         };
 
@@ -245,57 +289,100 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }:
     return () => clearInterval(id);
   }, [roomId, tokenMode, accessToken]);
 
+  useEffect(() => {
+    if (roomData?.status !== "ended" || closedRef.current) return;
+    closedRef.current = true;
+    pcRef.current?.close();
+    pcRef.current = null;
+    onClose();
+  }, [roomData?.status, onClose]);
+
   const hangUp = () => {
+    if (closedRef.current) return;
+    closedRef.current = true;
     if (tokenMode && accessToken) {
-      accessEnd.mutate({ roomId, token: accessToken }, { onSuccess: onClose });
+      accessEnd.mutate({ roomId, token: accessToken });
     } else {
-      end.mutate({ roomId }, { onSuccess: onClose });
+      end.mutate({ roomId });
     }
     pcRef.current?.close();
+    pcRef.current = null;
     void utils.social.getVideoCall.invalidate();
+    onClose();
   };
 
-  return (
-    <View style={[styles.root, { backgroundColor: colors.background, borderColor: colors.border }]}>
-      <Text style={{ color: colors.foreground, fontWeight: "800" }}>Video call</Text>
-      <Text style={{ color: colors.muted, fontSize: 12 }}>{status}</Text>
-      <Text style={{ color: colors.muted, fontSize: 12, fontVariant: ["tabular-nums"] }}>
+  const turnSoundOn = () => {
+    if (remoteAudioRef.current) routeRemoteAudio(remoteAudioRef.current);
+  };
+
+  const tree = (
+    <View
+      style={[
+        styles.root,
+        Platform.OS === "web" ? ({ position: "fixed" } as object) : null,
+        { backgroundColor: "rgba(7, 8, 13, 0.96)", borderColor: colors.border },
+      ]}
+    >
+      <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800" }}>Video call</Text>
+      <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12 }}>{status}</Text>
+      <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12, fontVariant: ["tabular-nums"] }}>
         Time on call: {formatConnectedMs(roomData?.connectedMs ?? 0)}
       </Text>
-      {error ? <Text style={{ color: "#c00", fontSize: 12 }}>{error}</Text> : null}
+      {error ? <Text style={{ color: "#ffb4b4", fontSize: 12 }}>{error}</Text> : null}
 
       {webRtc ? (
         <View style={styles.videoRow}>
           {/* @ts-expect-error web video element */}
           <video ref={localVideoRef} autoPlay muted playsInline style={styles.video} />
           {/* @ts-expect-error web video element */}
-          <video ref={remoteVideoRef} autoPlay playsInline style={styles.video} />
+          <video ref={remoteVideoRef} autoPlay muted playsInline style={styles.video} />
+          {/* @ts-expect-error web audio element */}
+          <audio ref={remoteAudioRef} autoPlay playsInline style={{ width: 1, height: 1 }} />
         </View>
       ) : (
-        <View style={[styles.nativePlaceholder, { backgroundColor: colors.surface }]}>
-          <Text style={{ color: colors.muted, textAlign: "center", fontSize: 13, lineHeight: 19 }}>
+        <View style={[styles.nativePlaceholder, { backgroundColor: "#FFFFFF" }]}>
+          <Text style={{ color: LETTERING_ON_WHITE, textAlign: "center", fontSize: 13, lineHeight: 19 }}>
             Same call as the website. Your camera opens in the secure browser so you can see and hear
             each other. Hang up here when you are done.
           </Text>
         </View>
       )}
 
+      {webRtc ? (
+        <Pressable onPress={turnSoundOn} style={[styles.sound, { backgroundColor: colors.primary }]}>
+          <Text style={styles.btnText}>Sound</Text>
+        </Pressable>
+      ) : null}
       <Pressable onPress={hangUp} style={[styles.hangUp, { backgroundColor: "#c0392b" }]}>
-        {end.isPending || accessEnd.isPending ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.btnText}>End call</Text>
-        )}
+        <Text style={styles.btnText}>End call</Text>
       </Pressable>
     </View>
   );
+
+  if (Platform.OS === "web" && typeof document !== "undefined") {
+    const { createPortal } = require("react-dom") as typeof import("react-dom");
+    return createPortal(tree, document.body);
+  }
+  return tree;
 }
 
 const styles = StyleSheet.create({
-  root: { borderRadius: 14, borderWidth: 1, padding: 14, gap: 10 },
-  videoRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
-  video: { width: 160, height: 120, borderRadius: 8, backgroundColor: "#111" } as unknown as object,
+  root: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 200,
+    padding: 16,
+    paddingBottom: 120,
+    gap: 10,
+    justifyContent: "flex-end",
+  },
+  videoRow: { flex: 1, gap: 8 },
+  video: { width: "100%", flex: 1, minHeight: 160, borderRadius: 12, backgroundColor: "#111", objectFit: "cover" } as unknown as object,
   nativePlaceholder: { padding: 24, borderRadius: 12, minHeight: 100, justifyContent: "center" },
-  hangUp: { borderRadius: 10, padding: 12, alignItems: "center" },
+  sound: { borderRadius: 10, padding: 12, alignItems: "center" },
+  hangUp: { borderRadius: 10, padding: 14, alignItems: "center" },
   btnText: { color: "#fff", fontWeight: "700" },
 });

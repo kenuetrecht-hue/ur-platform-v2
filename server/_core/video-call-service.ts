@@ -169,12 +169,27 @@ export function toPublicVideoCall(room: VideoCallRoom): Omit<VideoCallRoom, "tic
   return safe;
 }
 
+const PEER_LEFT_MS = 12_000;
+
+/** If one phone has left, the other person's next check ends the call too. */
+function closeIfPeerLeft(room: VideoCallRoom): VideoCallRoom {
+  if (room.status === "ended") return room;
+  const meter = getCallMeter(room.id);
+  if (!meter || meter.endedMs != null || meter.connectedStartMs == null) return room;
+  if (meter.lastCallerHeartbeatMs == null || meter.lastCalleeHeartbeatMs == null) return room;
+  const now = nowCallMs();
+  const callerLeft = now - meter.lastCallerHeartbeatMs > PEER_LEFT_MS;
+  const calleeLeft = now - meter.lastCalleeHeartbeatMs > PEER_LEFT_MS;
+  if (!callerLeft && !calleeLeft) return room;
+  return applyMeter(room, endCallMeter({ roomId: room.id }));
+}
+
 export function getVideoCallRoom(roomId: string): VideoCallRoom | null {
   const room = rooms.get(roomId);
   if (!room) return null;
   const meter = getCallMeter(roomId);
   if (meter) applyMeter(room, meter);
-  return room;
+  return closeIfPeerLeft(room);
 }
 
 export function joinVideoCall(params: {

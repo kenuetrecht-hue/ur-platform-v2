@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CREATOR_VIDEO_CALL_MAX_CENTS,
   CREATOR_VIDEO_CALL_MIN_CENTS,
@@ -17,6 +17,8 @@ import {
   createCreatorVideoCall,
   createVideoCall,
   endVideoCall,
+  getVideoCallRoom,
+  heartbeatVideoCall,
   joinVideoCall,
   toPublicVideoCall,
   _resetVideoCallsForTests,
@@ -218,6 +220,34 @@ describe("creator video call rooms", () => {
     expect(paid.paidCents).toBe(2500);
     expect(paid.calleeUserId).toBe("creator-paid-call");
     expect(getOpenCreatorCallTicket({ buyerUserId: "u1", creatorUserId: "creator-paid-call" })).toBeNull();
+  });
+
+  it("ends the call for the other person when one phone leaves", () => {
+    registerSocialUser({ userId: "hear-a", email: "hear-a@test.com", displayName: "Ada" });
+    registerSocialUser({ userId: "hear-b", email: "hear-b@test.com", displayName: "Bea" });
+    const req = sendFriendRequest({
+      fromUserId: "hear-a",
+      fromEmail: "hear-a@test.com",
+      fromName: "Ada",
+      toEmail: "hear-b@test.com",
+    });
+    acceptFriendRequest({ userId: "hear-b", friendshipId: req.id });
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-26T15:00:00.000Z"));
+    try {
+      const room = createVideoCall({ callerUserId: "hear-a", calleeUserId: "hear-b" });
+      joinVideoCall({ roomId: room.id, userId: "hear-a" });
+      joinVideoCall({ roomId: room.id, userId: "hear-b" });
+      heartbeatVideoCall({ roomId: room.id, userId: "hear-a" });
+      heartbeatVideoCall({ roomId: room.id, userId: "hear-b" });
+      expect(getVideoCallRoom(room.id)?.status).toBe("active");
+      vi.setSystemTime(new Date("2026-09-26T15:00:13.000Z"));
+      expect(getVideoCallRoom(room.id)?.status).toBe("ended");
+      const endedByHer = endVideoCall({ roomId: room.id, userId: "hear-b" });
+      expect(endedByHer.status).toBe("ended");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("holds the card on checkout without taking the money yet", () => {
