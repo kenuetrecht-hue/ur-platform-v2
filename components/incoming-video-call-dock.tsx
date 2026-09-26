@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import { FriendVideoCallPanel } from "@/components/friend-video-call-panel";
 import { useAuth } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
@@ -22,7 +22,8 @@ export function IncomingVideoCallDock() {
     enabled: isAuthenticated,
     refetchInterval: 2500,
   });
-  const [active, setActive] = useState<{ roomId: string; peerUserId: string } | null>(null);
+  const [active, setActive] = useState<{ roomId: string; peerUserId: string; peerLabel: string } | null>(null);
+  const decline = trpc.social.endVideoCall.useMutation();
   const [pushReady, setPushReady] = useState(false);
   const registerRing = trpc.social.registerCallRing.useMutation();
   const registerRef = useRef(registerRing.mutateAsync);
@@ -90,45 +91,69 @@ export function IncomingVideoCallDock() {
   return (
     <View
       pointerEvents="box-none"
-      style={{ position: "absolute", top: 64, left: 12, right: 12, zIndex: 50, gap: 8 }}
+      style={
+        Boolean(ringing[0]) && !active
+          ? {
+              position: Platform.OS === "web" ? ("fixed" as "absolute") : "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 260,
+            }
+          : { position: "absolute", top: 64, left: 12, right: 12, zIndex: 50, gap: 8 }
+      }
     >
       {active ? (
         <FriendVideoCallPanel
           roomId={active.roomId}
           friendUserId={active.peerUserId}
+          peerLabel={active.peerLabel}
           isCaller={false}
           onClose={() => setActive(null)}
         />
       ) : null}
-      {ringing.map((call) => (
+      {ringing[0] ? (
         <View
-          key={call.id}
           style={{
-            borderWidth: 1,
-            borderColor: colors.primary,
-            borderRadius: 12,
-            padding: 12,
-            backgroundColor: "rgba(7, 8, 13, 0.92)",
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 8,
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 260,
+            backgroundColor: "rgba(7, 8, 13, 0.96)",
+            padding: 24,
+            justifyContent: "center",
+            gap: 14,
           }}
         >
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800" }}>📹 Incoming video call</Text>
-            <Text style={{ color: LETTERING_ON_COLOR, fontSize: 11 }}>
-              {call.kind === "creator" ? "Paid 1-to-1 call · tap Answer" : "From a friend · tap Answer"}
-            </Text>
-          </View>
+          <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800", fontSize: 28 }}>
+            {ringing[0].callerName || "A friend"} is calling you
+          </Text>
+          <Text style={{ color: LETTERING_ON_COLOR, fontSize: 15 }}>
+            Incoming video call. Only you are being called.
+          </Text>
           <Pressable
-            onPress={() => setActive({ roomId: call.id, peerUserId: call.callerUserId })}
-            style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 14 }}
+            onPress={() =>
+              setActive({
+                roomId: ringing[0].id,
+                peerUserId: ringing[0].callerUserId,
+                peerLabel: ringing[0].callerName || "A friend",
+              })
+            }
+            style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 16, alignItems: "center" }}
           >
-            <Text style={{ color: "#fff", fontWeight: "700" }}>Answer</Text>
+            <Text style={{ color: "#fff", fontWeight: "800", fontSize: 18 }}>Answer</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => decline.mutate({ roomId: ringing[0].id })}
+            style={{ backgroundColor: "#c0392b", borderRadius: 12, paddingVertical: 16, alignItems: "center" }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "800", fontSize: 18 }}>Decline</Text>
           </Pressable>
         </View>
-      ))}
+      ) : null}
     </View>
   );
 }

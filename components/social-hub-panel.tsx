@@ -33,6 +33,8 @@ export function SocialHubPanel() {
   const [mailComposeTo, setMailComposeTo] = useState<string | undefined>();
   const [videoRoomId, setVideoRoomId] = useState<string | null>(null);
   const [videoFriendId, setVideoFriendId] = useState<string | null>(null);
+  const [videoPeerLabel, setVideoPeerLabel] = useState("");
+  const [callingPeerId, setCallingPeerId] = useState<string | null>(null);
   const [videoIsCaller, setVideoIsCaller] = useState(true);
   const params = useLocalSearchParams<{ creatorCall?: string; creator?: string }>();
   const startedPaidCall = useRef<string | null>(null);
@@ -93,10 +95,12 @@ export function SocialHubPanel() {
   });
   const startFriendCall = trpc.social.createVideoCall.useMutation({
     onSuccess: (room, variables) => {
+      setCallingPeerId(null);
       setVideoRoomId(room.id);
       setVideoFriendId(variables.friendUserId);
       setVideoIsCaller(true);
     },
+    onError: () => setCallingPeerId(null),
   });
   const startPaidCreatorCall = trpc.social.startCreatorCall.useMutation({
     onSuccess: (room, variables) => {
@@ -145,10 +149,13 @@ export function SocialHubPanel() {
           <FriendVideoCallPanel
             roomId={videoRoomId}
             friendUserId={videoFriendId}
+            peerLabel={videoPeerLabel}
             isCaller={videoIsCaller}
             onClose={() => {
               setVideoRoomId(null);
               setVideoFriendId(null);
+              setVideoPeerLabel("");
+              setCallingPeerId(null);
             }}
           />
         </View>
@@ -227,11 +234,18 @@ export function SocialHubPanel() {
                     <Text style={{ color: colors.gold, fontSize: 11 }}>Tap name to compose mail</Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => startFriendCall.mutate({ friendUserId: f.peerUserId })}
-                    style={[styles.btn, { backgroundColor: colors.primary, marginTop: 10 }]}
+                    disabled={startFriendCall.isPending || Boolean(videoRoomId)}
+                    onPress={() => {
+                      setCallingPeerId(f.peerUserId);
+                      setVideoPeerLabel(f.peerName || f.peerEmail);
+                      startFriendCall.mutate({ friendUserId: f.peerUserId });
+                    }}
+                    style={[styles.btn, { backgroundColor: colors.primary, marginTop: 10, opacity: startFriendCall.isPending && callingPeerId !== f.peerUserId ? 0.45 : 1 }]}
                   >
                     <Text style={styles.btnText}>
-                      {startFriendCall.isPending ? "Calling…" : "Video call"}
+                      {callingPeerId === f.peerUserId && startFriendCall.isPending
+                        ? `Calling ${f.peerName || "them"}…`
+                        : "Video call"}
                     </Text>
                   </Pressable>
                 </View>

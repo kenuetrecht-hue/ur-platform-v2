@@ -461,6 +461,7 @@ export const socialRouter = router({
       const room = createVideoCall({
         callerUserId: String(ctx.user.id),
         calleeUserId: input.friendUserId,
+        callerName: ctx.user.name ?? undefined,
       });
       ringCallee(room, ctx.user.name);
       return toPublicVideoCall(room);
@@ -607,6 +608,7 @@ export const socialRouter = router({
         const room = createCreatorVideoCall({
           callerUserId,
           creatorUserId: input.creatorUserId,
+          callerName: ctx.user.name ?? undefined,
         });
         ringCallee(room, ctx.user.name);
         return {
@@ -676,6 +678,7 @@ export const socialRouter = router({
       const room = createCreatorVideoCall({
         callerUserId,
         creatorUserId: input.creatorUserId,
+        callerName: ctx.user.name ?? undefined,
       });
       ringCallee(room, ctx.user.name);
       return {
@@ -693,6 +696,7 @@ export const socialRouter = router({
       const room = createCreatorVideoCall({
         callerUserId: String(ctx.user.id),
         creatorUserId: input.creatorUserId,
+        callerName: ctx.user.name ?? undefined,
       });
       ringCallee(room, ctx.user.name);
       return toPublicVideoCall(room);

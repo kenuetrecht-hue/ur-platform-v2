@@ -197,6 +197,7 @@ describe("creator video call rooms", () => {
     acceptFriendRequest({ userId: "u2", friendshipId: req.id });
     const friendRoom = createVideoCall({ callerUserId: "u1", calleeUserId: "u2" });
     expect(friendRoom.kind).toBe("friend");
+    expect(friendRoom.callerName).toBe("A friend");
     expect(friendRoom.paidCents).toBeUndefined();
 
     enrollContentCreator({

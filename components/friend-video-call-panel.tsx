@@ -15,6 +15,8 @@ import { openExternalCheckoutUrl } from "@/lib/web-checkout";
 type Props = {
   roomId: string;
   friendUserId: string;
+  /** The one person this call is for. */
+  peerLabel?: string;
   isCaller: boolean;
   onClose: () => void;
   /** Native in-app browser uses this instead of the signed-in session. */
@@ -56,7 +58,19 @@ function canUseWebRtc(): boolean {
 }
 
 /** 1-to-1 video — WebRTC on website/PWA; native app opens the same call page with camera. */
-export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }: Props) {
+function ensureRemoteAudio(current: HTMLAudioElement | null): HTMLAudioElement | null {
+  if (typeof document === "undefined") return current;
+  if (current) return current;
+  const el = document.createElement("audio");
+  el.autoplay = true;
+  el.setAttribute("playsinline", "true");
+  el.style.width = "1px";
+  el.style.height = "1px";
+  document.body.appendChild(el);
+  return el;
+}
+
+export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, peerLabel }: Props) {
   const colors = useColors();
   const utils = trpc.useUtils();
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -179,9 +193,12 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }:
             remoteVideoRef.current.muted = true;
             void remoteVideoRef.current.play().catch(() => undefined);
           }
-          if (ev.track.kind === "audio" && remoteAudioRef.current) {
-            remoteAudioRef.current.srcObject = remote;
-            routeRemoteAudio(remoteAudioRef.current);
+          if (ev.track.kind === "audio") {
+            remoteAudioRef.current = ensureRemoteAudio(remoteAudioRef.current);
+            if (remoteAudioRef.current) {
+              remoteAudioRef.current.srcObject = remote;
+              routeRemoteAudio(remoteAudioRef.current);
+            }
           }
         };
 
@@ -228,6 +245,8 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }:
       pcRef.current?.close();
       pcRef.current = null;
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
+      remoteAudioRef.current?.remove();
+      remoteAudioRef.current = null;
     };
   }, [roomId, resolvedIsCaller, readyToConnect, tokenMode, accessToken]);
 
@@ -312,8 +331,11 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }:
   };
 
   const turnSoundOn = () => {
+    remoteAudioRef.current = ensureRemoteAudio(remoteAudioRef.current);
     if (remoteAudioRef.current) routeRemoteAudio(remoteAudioRef.current);
   };
+
+  const who = peerLabel?.trim() || "this person";
 
   const tree = (
     <View
@@ -323,7 +345,12 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }:
         { backgroundColor: "rgba(7, 8, 13, 0.96)", borderColor: colors.border },
       ]}
     >
-      <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800" }}>Video call</Text>
+      <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800", fontSize: 22 }}>
+        {resolvedIsCaller ? `Calling ${who}` : who}
+      </Text>
+      <Text style={{ color: LETTERING_ON_COLOR, fontSize: 13 }}>
+        {resolvedIsCaller ? "Only this person is being called." : "You are on this call."}
+      </Text>
       <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12 }}>{status}</Text>
       <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12, fontVariant: ["tabular-nums"] }}>
         Time on call: {formatConnectedMs(roomData?.connectedMs ?? 0)}
@@ -336,8 +363,6 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }:
           <video ref={localVideoRef} autoPlay muted playsInline style={styles.video} />
           {/* @ts-expect-error web video element */}
           <video ref={remoteVideoRef} autoPlay muted playsInline style={styles.video} />
-          {/* @ts-expect-error web audio element */}
-          <audio ref={remoteAudioRef} autoPlay playsInline style={{ width: 1, height: 1 }} />
         </View>
       ) : (
         <View style={[styles.nativePlaceholder, { backgroundColor: "#FFFFFF" }]}>

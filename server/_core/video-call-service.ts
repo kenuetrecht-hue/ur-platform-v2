@@ -26,6 +26,8 @@ export type VideoCallRoom = {
   kind: VideoCallKind;
   callerUserId: string;
   calleeUserId: string;
+  /** Shown on the other person's incoming screen. Never an email address. */
+  callerName: string;
   status: VideoCallStatus;
   createdAt: string;
   createdAtMs: number;
@@ -108,6 +110,7 @@ function putRoom(params: {
   kind: VideoCallKind;
   callerUserId: string;
   calleeUserId: string;
+  callerName: string;
   paidCents?: number;
   ticketId?: string;
   paymentIntentId?: string;
@@ -121,6 +124,7 @@ function putRoom(params: {
     kind: params.kind,
     callerUserId: params.callerUserId,
     calleeUserId: params.calleeUserId,
+    callerName: params.callerName,
     status: "ringing",
     createdAt: new Date(createdAtMs).toISOString(),
     createdAtMs,
@@ -134,21 +138,30 @@ function putRoom(params: {
   return room;
 }
 
+function publicCallerName(name: string | undefined): string {
+  const trimmed = (name ?? "").replace(/\s+/g, " ").trim();
+  if (!trimmed || trimmed.includes("@") || trimmed.length > 40) return "A friend";
+  return trimmed;
+}
+
 export function createVideoCall(params: {
   callerUserId: string;
   calleeUserId: string;
+  callerName?: string;
 }): VideoCallRoom {
   assertFriends(params.callerUserId, params.calleeUserId);
   return putRoom({
     kind: "friend",
     callerUserId: params.callerUserId,
     calleeUserId: params.calleeUserId,
+    callerName: publicCallerName(params.callerName),
   });
 }
 
 export function createCreatorVideoCall(params: {
   callerUserId: string;
   creatorUserId: string;
+  callerName?: string;
 }): VideoCallRoom {
   const ticket = consumeCreatorCallTicket({
     buyerUserId: params.callerUserId,
@@ -158,6 +171,7 @@ export function createCreatorVideoCall(params: {
     kind: "creator",
     callerUserId: params.callerUserId,
     calleeUserId: params.creatorUserId,
+    callerName: publicCallerName(params.callerName),
     paidCents: ticket.priceCents,
     ticketId: ticket.id,
     paymentIntentId: ticket.paymentIntentId,
