@@ -14,10 +14,12 @@ export function CreatorCallButton({
   creatorUserId,
   creatorName,
   onCallStarted,
+  labelColor,
 }: {
   creatorUserId: string;
   creatorName?: string;
   onCallStarted?: (roomId: string, creatorUserId: string) => void;
+  labelColor?: string;
 }) {
   const colors = useColors();
   const [open, setOpen] = useState(false);
@@ -52,7 +54,7 @@ export function CreatorCallButton({
   return (
     <View>
       <Pressable onPress={() => setOpen((v) => !v)} style={styles.callBtn} hitSlop={4}>
-        <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 13 }}>
+        <Text style={{ color: labelColor ?? colors.primary, fontWeight: "800", fontSize: 13 }}>
           {open ? "Hide" : priceCents != null ? `Call · ${formatCallPriceCents(priceCents)}` : "Call"}
         </Text>
       </Pressable>

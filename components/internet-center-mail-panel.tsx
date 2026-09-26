@@ -118,10 +118,10 @@ export function InternetCenterMailPanel({
         end={{ x: 1, y: 0 }}
         style={[styles.centerBanner, { borderColor: withAlpha(colors.secondary, 0.2) }]}
       >
-        <IconSymbol name="envelope.fill" size={20} color={colors.primary} />
+        <IconSymbol name="envelope.fill" size={20} color={colors.gold} />
         <View style={{ flex: 1 }}>
-          <Text style={[styles.centerTitle, { color: colors.foreground }]}>UR Internet Center</Text>
-          <Text style={[styles.centerSub, { color: colors.muted }]}>
+          <Text style={[styles.centerTitle, { color: colors.gold }]}>UR Internet Center</Text>
+          <Text style={[styles.centerSub, { color: colors.gold }]}>
             Signed in as {myEmail || "your account"} · Internal UR mail only
           </Text>
         </View>
@@ -163,34 +163,34 @@ export function InternetCenterMailPanel({
 
       {folder === "compose" ? (
         <ScrollView contentContainerStyle={styles.composeScroll} keyboardShouldPersistTaps="handled">
-          <Text style={[styles.fieldLabel, { color: colors.muted }]}>To</Text>
+          <Text style={[styles.fieldLabel, { color: colors.gold }]}>To</Text>
           <TextInput
             value={toEmail}
             onChangeText={setToEmail}
             placeholder="member@email.com"
-            placeholderTextColor={colors.muted}
+            placeholderTextColor={colors.gold}
             autoCapitalize="none"
             keyboardType="email-address"
-            style={[styles.field, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background }]}
+            style={[styles.field, { borderColor: colors.border, color: colors.gold, backgroundColor: "transparent" }]}
           />
-          <Text style={[styles.fieldLabel, { color: colors.muted }]}>Subject</Text>
+          <Text style={[styles.fieldLabel, { color: colors.gold }]}>Subject</Text>
           <TextInput
             value={subject}
             onChangeText={setSubject}
             placeholder="What's this about?"
-            placeholderTextColor={colors.muted}
-            style={[styles.field, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background }]}
+            placeholderTextColor={colors.gold}
+            style={[styles.field, { borderColor: colors.border, color: colors.gold, backgroundColor: "transparent" }]}
           />
-          <Text style={[styles.fieldLabel, { color: colors.muted }]}>Message</Text>
+          <Text style={[styles.fieldLabel, { color: colors.gold }]}>Message</Text>
           <ChatComposerActionRow>
           <ChatComposerInput
             value={body}
             onChangeText={setBody}
             placeholder="Write your message…"
-            placeholderTextColor={colors.muted}
+            placeholderTextColor={colors.gold}
             style={[
               styles.bodyField,
-              { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background },
+              { borderColor: colors.border, color: colors.gold, backgroundColor: "transparent" },
             ]}
           />
           <Pressable
@@ -212,7 +212,7 @@ export function InternetCenterMailPanel({
           {sendMail.error ? (
             <Text style={{ color: colors.error, fontSize: 12, marginTop: 8 }}>{sendMail.error.message}</Text>
           ) : null}
-          <Text style={[styles.hint, { color: colors.muted }]}>
+          <Text style={[styles.hint, { color: colors.gold }]}>
             Email any UR member who has signed up. They will see it in their Internet Center inbox.
           </Text>
         </ScrollView>
@@ -225,33 +225,33 @@ export function InternetCenterMailPanel({
             }}
             style={styles.backRow}
           >
-            <IconSymbol name="chevron.left" size={18} color={colors.primary} />
-            <Text style={{ color: colors.primary, fontWeight: "600" }}>Back to mailbox</Text>
+            <IconSymbol name="chevron.left" size={18} color={colors.gold} />
+            <Text style={{ color: colors.gold, fontWeight: "600" }}>Back to mailbox</Text>
           </Pressable>
-          <View style={[styles.readCard, { borderColor: withAlpha(colors.secondary, 0.2), backgroundColor: colors.surface }]}>
-            <Text style={[styles.readSubject, { color: colors.foreground }]}>
+          <View style={[styles.readCard, { borderColor: withAlpha(colors.secondary, 0.2), backgroundColor: "transparent" }]}>
+            <Text style={[styles.readSubject, { color: colors.gold }]}>
               {selected.subject ?? "Message from UR Internet Center"}
             </Text>
             <View style={styles.metaRow}>
-              <Text style={[styles.metaLabel, { color: colors.muted }]}>From</Text>
-              <Text style={{ color: colors.foreground, fontSize: 13, flex: 1 }}>
+              <Text style={[styles.metaLabel, { color: colors.gold }]}>From</Text>
+              <Text style={{ color: colors.gold, fontSize: 13, flex: 1 }}>
                 {selected.senderEmail ?? selected.senderUserId.slice(0, 8)}
               </Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={[styles.metaLabel, { color: colors.muted }]}>To</Text>
-              <Text style={{ color: colors.foreground, fontSize: 13, flex: 1 }}>
+              <Text style={[styles.metaLabel, { color: colors.gold }]}>To</Text>
+              <Text style={{ color: colors.gold, fontSize: 13, flex: 1 }}>
                 {selected.recipientEmail ?? selected.recipientUserId.slice(0, 8)}
               </Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={[styles.metaLabel, { color: colors.muted }]}>Date</Text>
-              <Text style={{ color: colors.muted, fontSize: 13 }}>
+              <Text style={[styles.metaLabel, { color: colors.gold }]}>Date</Text>
+              <Text style={{ color: colors.gold, fontSize: 13 }}>
                 {new Date(selected.createdAt).toLocaleString()}
               </Text>
             </View>
             <View style={[styles.bodyDivider, { borderTopColor: withAlpha(colors.secondary, 0.15) }]} />
-            <Text style={[styles.readBody, { color: colors.foreground }]}>{selected.body}</Text>
+            <Text style={[styles.readBody, { color: colors.gold }]}>{selected.body}</Text>
           </View>
         </ScrollView>
       ) : (
@@ -260,18 +260,18 @@ export function InternetCenterMailPanel({
             <ActivityIndicator color={colors.primary} style={{ marginTop: 24 }} />
           ) : list.length === 0 ? (
             <View style={[styles.empty, highlight]}>
-              <IconSymbol name="envelope.fill" size={32} color={colors.primary} />
-              <Text style={{ color: colors.foreground, fontWeight: "700", marginTop: 10 }}>
+              <IconSymbol name="envelope.fill" size={32} color={colors.gold} />
+              <Text style={{ color: colors.gold, fontWeight: "700", marginTop: 10 }}>
                 {folder === "inbox" ? "Inbox is empty" : "No sent mail yet"}
               </Text>
-              <Text style={{ color: colors.muted, fontSize: 12, textAlign: "center", marginTop: 6, lineHeight: 18 }}>
+              <Text style={{ color: colors.gold, fontSize: 12, textAlign: "center", marginTop: 6, lineHeight: 18 }}>
                 {folder === "inbox"
                   ? "When other UR members email you, messages appear here."
                   : "Tap Compose to send mail to any UR member by email address."}
               </Text>
               {folder === "inbox" ? (
                 <Pressable onPress={() => setFolder("compose")} style={{ marginTop: 12 }}>
-                  <Text style={{ color: colors.primary, fontWeight: "700" }}>Compose mail →</Text>
+                  <Text style={{ color: colors.gold, fontWeight: "700" }}>Compose mail →</Text>
                 </Pressable>
               ) : null}
             </View>
@@ -283,9 +283,7 @@ export function InternetCenterMailPanel({
                 style={[
                   styles.mailRow,
                   {
-                    backgroundColor: !mail.readAt && mail.recipientUserId === myUserId
-                      ? withAlpha(colors.primary, 0.08)
-                      : colors.surface,
+                    backgroundColor: "transparent",
                     borderColor: withAlpha(colors.secondary, 0.15),
                   },
                 ]}
@@ -293,7 +291,7 @@ export function InternetCenterMailPanel({
                 <View style={styles.mailRowTop}>
                   <Text
                     style={{
-                      color: colors.foreground,
+                      color: colors.gold,
                       fontWeight: !mail.readAt && mail.recipientUserId === myUserId ? "800" : "600",
                       flex: 1,
                       fontSize: 13,
@@ -302,14 +300,14 @@ export function InternetCenterMailPanel({
                   >
                     {mail.subject ?? "Message from UR Internet Center"}
                   </Text>
-                  <Text style={{ color: colors.muted, fontSize: 10 }}>{formatMailDate(mail.createdAt)}</Text>
+                  <Text style={{ color: colors.gold, fontSize: 10 }}>{formatMailDate(mail.createdAt)}</Text>
                 </View>
-                <Text style={{ color: colors.primary, fontSize: 11, marginTop: 2 }} numberOfLines={1}>
+                <Text style={{ color: colors.gold, fontSize: 11, marginTop: 2 }} numberOfLines={1}>
                   {folder === "inbox"
                     ? `From: ${mail.senderEmail ?? "UR member"}`
                     : `To: ${mail.recipientEmail ?? "UR member"}`}
                 </Text>
-                <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }} numberOfLines={2}>
+                <Text style={{ color: colors.gold, fontSize: 11, marginTop: 4 }} numberOfLines={2}>
                   {mail.body}
                 </Text>
               </Pressable>
@@ -349,7 +347,7 @@ function FolderTab({
         </LinearGradient>
       ) : (
         <View style={styles.folderTabInner}>
-          <Text style={[styles.folderTabText, { color: colors.foreground }]}>{label}</Text>
+          <Text style={[styles.folderTabText, { color: colors.gold }]}>{label}</Text>
           {badge && badge > 0 ? (
             <View style={[styles.folderBadge, { backgroundColor: colors.secondary }]}>
               <Text style={styles.folderBadgeText}>{badge > 9 ? "9+" : badge}</Text>

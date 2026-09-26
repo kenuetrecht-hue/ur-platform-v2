@@ -34,6 +34,11 @@ body > div:first-child {
 }
 
 /* RN-web TextInput + flex layouts collapse <textarea> to 2 rows. Lock chat boxes. */
+textarea.ur-chat-composer::placeholder {
+  color: var(--ur-composer-placeholder, #4f46e5);
+  opacity: 1;
+}
+
 textarea.ur-chat-composer {
   display: block !important;
   flex: 1 1 auto !important;

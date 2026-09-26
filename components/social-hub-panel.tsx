@@ -162,8 +162,8 @@ export function SocialHubPanel() {
                 ]}
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.foreground, fontWeight: "800" }}>📹 Incoming video call</Text>
-                  <Text style={{ color: colors.muted, fontSize: 11 }}>
+                  <Text style={{ color: colors.gold, fontWeight: "800" }}>📹 Incoming video call</Text>
+                  <Text style={{ color: colors.gold, fontSize: 11 }}>
                     {call.kind === "creator" ? "Paid 1-to-1 call · tap Answer" : "From a friend · tap Answer"}
                   </Text>
                 </View>
@@ -208,18 +208,18 @@ export function SocialHubPanel() {
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 32 }}>
         {tab === "friends" ? (
           <>
-            <Text style={[styles.title, { color: colors.foreground }]}>Address book</Text>
-            <Text style={{ color: colors.muted, fontSize: 12 }}>
+            <Text style={[styles.title, { color: colors.gold }]}>Address book</Text>
+            <Text style={{ color: colors.gold, fontSize: 12 }}>
               Add friends by email, then send them mail from the Internet Center.
             </Text>
             <TextInput
               value={friendEmail}
               onChangeText={setFriendEmail}
               placeholder="friend@email.com"
-              placeholderTextColor={colors.muted}
+              placeholderTextColor={colors.gold}
               autoCapitalize="none"
               keyboardType="email-address"
-              style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+              style={[styles.input, { borderColor: colors.border, color: colors.gold, backgroundColor: "transparent" }]}
             />
             <Pressable
               disabled={!friendEmail.includes("@") || addFriend.isPending}
@@ -231,10 +231,10 @@ export function SocialHubPanel() {
 
             {pending.length > 0 ? (
               <>
-                <Text style={[styles.title, { color: colors.foreground }]}>Pending requests</Text>
+                <Text style={[styles.title, { color: colors.gold }]}>Pending requests</Text>
                 {pending.map((p) => (
-                  <View key={p.id} style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-                    <Text style={{ color: colors.foreground, fontWeight: "700" }}>{p.friendEmail}</Text>
+                  <View key={p.id} style={[styles.card, { borderColor: colors.border, backgroundColor: "transparent" }]}>
+                    <Text style={{ color: colors.gold, fontWeight: "700" }}>{p.friendEmail}</Text>
                     <Pressable
                       onPress={() => acceptFriend.mutate({ friendshipId: p.id })}
                       style={[styles.btn, { backgroundColor: colors.primary, marginTop: 8 }]}
@@ -246,14 +246,14 @@ export function SocialHubPanel() {
               </>
             ) : null}
 
-            <Text style={[styles.title, { color: colors.foreground }]}>Friends ({friends.length})</Text>
+            <Text style={[styles.title, { color: colors.gold }]}>Friends ({friends.length})</Text>
             {friends.length === 0 ? (
-              <Text style={{ color: colors.muted }}>No friends yet — invite someone by email.</Text>
+              <Text style={{ color: colors.gold }}>No friends yet — invite someone by email.</Text>
             ) : (
               friends.map((f) => (
                 <View
                   key={f.id}
-                  style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}
+                  style={[styles.card, { borderColor: colors.border, backgroundColor: "transparent" }]}
                 >
                   <Pressable
                     onPress={() => {
@@ -261,8 +261,8 @@ export function SocialHubPanel() {
                       setTab("mail");
                     }}
                   >
-                    <Text style={{ color: colors.foreground, fontWeight: "700" }}>{f.peerEmail}</Text>
-                    <Text style={{ color: colors.muted, fontSize: 11 }}>Tap name to compose mail</Text>
+                    <Text style={{ color: colors.gold, fontWeight: "700" }}>{f.peerEmail}</Text>
+                    <Text style={{ color: colors.gold, fontSize: 11 }}>Tap name to compose mail</Text>
                   </Pressable>
                   <Pressable
                     onPress={() => startFriendCall.mutate({ friendUserId: f.peerUserId })}
@@ -280,8 +280,8 @@ export function SocialHubPanel() {
 
         {tab === "creators" ? (
           <>
-            <Text style={[styles.title, { color: colors.foreground }]}>Follow or subscribe</Text>
-            <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
+            <Text style={[styles.title, { color: colors.gold }]}>Follow or subscribe</Text>
+            <Text style={{ color: colors.gold, fontSize: 12, lineHeight: 18 }}>
               Follow is free. A follower is interested in the free content but is not paying. A paid
               subscriber pays for the creator's information — that is the creator's real income.
               Free videos do not pay the creator; they advertise paid merch, paid subscriptions, and
@@ -291,15 +291,15 @@ export function SocialHubPanel() {
               value={creatorUserId}
               onChangeText={setCreatorUserId}
               placeholder="Creator user ID"
-              placeholderTextColor={colors.muted}
-              style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+              placeholderTextColor={colors.gold}
+              style={[styles.input, { borderColor: colors.border, color: colors.gold, backgroundColor: "transparent" }]}
             />
             <TextInput
               value={creatorName}
               onChangeText={setCreatorName}
               placeholder="Creator display name"
-              placeholderTextColor={colors.muted}
-              style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+              placeholderTextColor={colors.gold}
+              style={[styles.input, { borderColor: colors.border, color: colors.gold, backgroundColor: "transparent" }]}
             />
             <Pressable
               disabled={!creatorUserId.trim() || follow.isPending}
@@ -329,21 +329,22 @@ export function SocialHubPanel() {
               <Text style={styles.btnText}>Follow + class notifications</Text>
             </Pressable>
 
-            <Text style={[styles.title, { color: colors.foreground }]}>Your subscriptions</Text>
+            <Text style={[styles.title, { color: colors.gold }]}>Your subscriptions</Text>
             {subs.length === 0 ? (
-              <Text style={{ color: colors.muted }}>No creator subscriptions yet.</Text>
+              <Text style={{ color: colors.gold }}>No creator subscriptions yet.</Text>
             ) : (
               subs.map((s) => (
-                <View key={s.id} style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-                  <Text style={{ color: colors.foreground, fontWeight: "700" }}>{s.creatorName}</Text>
-                  <CreatorTipButton creatorUserId={s.creatorUserId} creatorName={s.creatorName} />
+                <View key={s.id} style={[styles.card, { borderColor: colors.border, backgroundColor: "transparent" }]}>
+                  <Text style={{ color: colors.gold, fontWeight: "700" }}>{s.creatorName}</Text>
+                  <CreatorTipButton creatorUserId={s.creatorUserId} creatorName={s.creatorName} labelColor={colors.gold} />
                   <CreatorCallButton
                     creatorUserId={s.creatorUserId}
                     creatorName={s.creatorName}
+                    labelColor={colors.gold}
                     onCallStarted={(roomId, creatorId) => openCall(roomId, creatorId, true)}
                   />
                   <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
-                    <Text style={{ color: colors.muted, fontSize: 12 }}>Ride along with AI sessions</Text>
+                    <Text style={{ color: colors.gold, fontSize: 12 }}>Ride along with AI sessions</Text>
                     <Switch
                       value={s.rideAlongWithAi}
                       onValueChange={(v) =>
@@ -355,7 +356,7 @@ export function SocialHubPanel() {
                     onPress={() => paidSub.mutate({ creatorUserId: s.creatorUserId })}
                     style={{ marginTop: 8 }}
                   >
-                    <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
+                    <Text style={{ color: colors.gold, fontSize: 12, fontWeight: "700" }}>
                       Paid subscribe to this channel
                     </Text>
                   </Pressable>
@@ -363,7 +364,7 @@ export function SocialHubPanel() {
                     onPress={() => cancelPaid.mutate({ creatorUserId: s.creatorUserId })}
                     style={{ marginTop: 6 }}
                   >
-                    <Text style={{ color: colors.muted, fontSize: 12 }}>Cancel paid subscription</Text>
+                    <Text style={{ color: colors.gold, fontSize: 12 }}>Cancel paid subscription</Text>
                   </Pressable>
                   <Pressable
                     onPress={() => {
@@ -372,7 +373,7 @@ export function SocialHubPanel() {
                     }}
                     style={{ marginTop: 6 }}
                   >
-                    <Text style={{ color: colors.muted, fontSize: 12 }}>Unfollow / unsubscribe</Text>
+                    <Text style={{ color: colors.gold, fontSize: 12 }}>Unfollow / unsubscribe</Text>
                   </Pressable>
                 </View>
               ))
@@ -380,11 +381,11 @@ export function SocialHubPanel() {
 
             {subscribers.length > 0 ? (
               <>
-                <Text style={[styles.title, { color: colors.foreground }]}>
+                <Text style={[styles.title, { color: colors.gold }]}>
                   Your subscribers ({subscribers.length})
                 </Text>
                 {subscribers.map((s) => (
-                  <Text key={s.id} style={{ color: colors.muted, fontSize: 12 }}>
+                  <Text key={s.id} style={{ color: colors.gold, fontSize: 12 }}>
                     Subscriber {s.subscriberUserId.slice(0, 8)}…
                     {s.rideAlongWithAi ? " · ride-along ON" : ""}
                   </Text>
@@ -402,18 +403,19 @@ export function SocialHubPanel() {
                 brandHighlightSurface(colors),
               ]}
             >
-              <Text style={{ color: colors.foreground, fontWeight: "800" }}>Your UR activity</Text>
-              <Text style={{ color: colors.muted, fontSize: 13, marginTop: 6 }}>
+              <Text style={{ color: colors.gold, fontWeight: "800" }}>Your UR activity</Text>
+              <Text style={{ color: colors.gold, fontSize: 13, marginTop: 6 }}>
                 Loyalty: {activity.data?.loyaltyPoints ?? 0} pts · Friends:{" "}
                 {activity.data?.friendCount ?? 0} · Subscriptions: {activity.data?.subscriptionCount ?? 0}
               </Text>
-              <Text style={{ color: colors.muted, fontSize: 13 }}>
+              <Text style={{ color: colors.gold, fontSize: 13 }}>
                 Transactions: {activity.data?.transactionCount ?? 0} · Volume: $
                 {((activity.data?.totalSpentOrEarnedCents ?? 0) / 100).toFixed(2)}
               </Text>
             </View>
-            <Text style={[styles.title, { color: colors.foreground }]}>Recent transactions</Text>
+            <Text style={[styles.title, { color: colors.gold }]}>Recent transactions</Text>
             <TransactionHistoryList
+              onWash
               transactions={(txs.data?.transactions ?? []).map((t) => ({
                 id: t.id,
                 type: t.type,

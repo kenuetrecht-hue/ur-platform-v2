@@ -14,14 +14,20 @@ type Tx = {
 export function TransactionHistoryList({
   transactions,
   emptyMessage = "No transactions yet.",
+  onWash = false,
 }: {
   transactions: Tx[];
   emptyMessage?: string;
+  /** Gold lettering on the blue page. White cards keep purplish-blue ink. */
+  onWash?: boolean;
 }) {
   const colors = useColors();
+  const ink = onWash ? colors.gold : colors.foreground;
+  const sub = onWash ? colors.gold : colors.muted;
+  const amount = onWash ? colors.gold : colors.primary;
 
   if (transactions.length === 0) {
-    return <Text style={{ color: colors.muted, fontSize: 13 }}>{emptyMessage}</Text>;
+    return <Text style={{ color: sub, fontSize: 13 }}>{emptyMessage}</Text>;
   }
 
   return (
@@ -29,18 +35,24 @@ export function TransactionHistoryList({
       {transactions.map((tx) => (
         <View
           key={tx.id}
-          style={[styles.row, { borderColor: colors.border, backgroundColor: colors.surface }]}
+          style={[
+            styles.row,
+            {
+              borderColor: colors.border,
+              backgroundColor: onWash ? "transparent" : colors.surface,
+            },
+          ]}
         >
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 13 }}>
+            <Text style={{ color: ink, fontWeight: "600", fontSize: 13 }}>
               {tx.description}
             </Text>
-            <Text style={{ color: colors.muted, fontSize: 11 }}>
+            <Text style={{ color: sub, fontSize: 11 }}>
               {tx.createdAtLabel} · {tx.type.replace(/_/g, " ")} · {tx.status}
               {tx.attributionSlug ? ` · via ${tx.attributionSlug}` : ""}
             </Text>
           </View>
-          <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 14 }}>
+          <Text style={{ color: amount, fontWeight: "800", fontSize: 14 }}>
             ${tx.amountUsd}
           </Text>
         </View>

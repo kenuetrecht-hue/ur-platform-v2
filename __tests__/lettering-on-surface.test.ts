@@ -143,6 +143,22 @@ describe("lettering on white vs colored backgrounds", () => {
     expect(linkCard).toContain("Your custom link");
     expect(linkCard).toContain("color: colors.onWhite");
     expect(linkCard).toContain("customUrl");
+
+    const friends = readFileSync("components/social-hub-panel.tsx", "utf8");
+    expect(friends).toMatch(/color: colors\.gold[\s\S]{0,40}Address book|Address book[\s\S]{0,80}colors\.gold/);
+    expect(friends).toContain('placeholder="friend@email.com"');
+    expect(friends).toContain("placeholderTextColor={colors.gold}");
+    expect(friends).toContain("Friends ({friends.length})");
+    expect(friends).toContain('placeholder="Creator user ID"');
+    expect(friends).toContain('placeholder="Creator display name"');
+    expect(friends).toContain("Your UR activity");
+    expect(friends).toContain("onWash");
+
+    const mail = readFileSync("components/internet-center-mail-panel.tsx", "utf8");
+    expect(mail).toContain("UR Internet Center");
+    expect(mail).toMatch(/color: colors\.gold[\s\S]{0,40}UR Internet Center/);
+    expect(mail).toContain('placeholder="member@email.com"');
+    expect(mail).toContain("placeholderTextColor={colors.gold}");
   });
 
   it("uses a readable shared composer on every AI talk and send box", () => {

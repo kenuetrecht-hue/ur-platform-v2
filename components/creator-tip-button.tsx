@@ -13,9 +13,11 @@ const TIP_WEB_PATH = "/(tabs)/messages";
 export function CreatorTipButton({
   creatorUserId,
   creatorName,
+  labelColor,
 }: {
   creatorUserId: string;
   creatorName?: string;
+  labelColor?: string;
 }) {
   const colors = useColors();
   const [open, setOpen] = useState(false);
@@ -36,7 +38,7 @@ export function CreatorTipButton({
   return (
     <View>
       <Pressable onPress={() => setOpen((v) => !v)} style={styles.tipBtn} hitSlop={4}>
-        <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 13 }}>
+        <Text style={{ color: labelColor ?? colors.primary, fontWeight: "800", fontSize: 13 }}>
           {open ? "Hide" : "Coffee"}
         </Text>
       </Pressable>

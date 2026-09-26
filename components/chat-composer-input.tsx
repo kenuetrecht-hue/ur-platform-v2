@@ -82,6 +82,8 @@ export function ChatComposerInput({
             borderColor: typeof flat.borderColor === "string" ? flat.borderColor : "#ddd6fe",
             backgroundColor: typeof flat.backgroundColor === "string" ? flat.backgroundColor : "#ffffff",
             color: typeof flat.color === "string" ? flat.color : "#4F46E5",
+            ["--ur-composer-placeholder" as string]:
+              placeholderTextColor ?? (typeof flat.color === "string" ? flat.color : "#4F46E5"),
             paddingLeft: 14,
             paddingRight: 14,
             paddingTop: 12,
