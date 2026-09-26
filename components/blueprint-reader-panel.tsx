@@ -12,6 +12,7 @@ import {
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { brandWhiteChip } from "@/lib/brand-theme";
+import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import { trpc } from "@/lib/trpc";
 
 const BLUEPRINT_AI_ID = "ai-blueprint-reader-001";
@@ -41,7 +42,7 @@ export function BlueprintReaderPanel({ compact }: { compact?: boolean }) {
         styles.panel,
         {
           borderColor: colors.primary,
-          backgroundColor: compact ? colors.surface : `${colors.primary}08`,
+          backgroundColor: compact ? "#FFFFFF" : "transparent",
           marginHorizontal: compact ? 0 : 16,
         },
       ]}
@@ -49,8 +50,8 @@ export function BlueprintReaderPanel({ compact }: { compact?: boolean }) {
       <View style={styles.header}>
         <Text style={{ fontSize: compact ? 20 : 24 }}>📐</Text>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.title, { color: colors.foreground }]}>Blueprint Reader AI</Text>
-          <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+          <Text style={[styles.title, { color: compact ? LETTERING_ON_WHITE : LETTERING_ON_COLOR }]}>Blueprint Reader AI</Text>
+          <Text style={{ color: compact ? LETTERING_ON_WHITE : LETTERING_ON_COLOR, fontSize: 11, lineHeight: 16 }}>
             Any schematic — architectural, electrical, P&ID, PCB, HVAC, structural, automotive, robotics…
           </Text>
         </View>
@@ -61,12 +62,12 @@ export function BlueprintReaderPanel({ compact }: { compact?: boolean }) {
           {types.data.types.slice(0, 8).map((t) => (
             <View key={t.id} style={[styles.typeChip, { borderColor: colors.border }]}>
               <Text>{t.emoji}</Text>
-              <Text style={{ color: colors.muted, fontSize: 9 }}>{t.label.split(" ")[0]}</Text>
+              <Text style={{ color: LETTERING_ON_COLOR, fontSize: 9 }}>{t.label.split(" ")[0]}</Text>
             </View>
           ))}
           <View style={[styles.typeChip, { borderColor: colors.primary }]}>
             <Text>+7</Text>
-            <Text style={{ color: colors.primary, fontSize: 9 }}>more</Text>
+            <Text style={{ color: LETTERING_ON_COLOR, fontSize: 9 }}>more</Text>
           </View>
         </ScrollView>
       ) : null}
@@ -75,18 +76,18 @@ export function BlueprintReaderPanel({ compact }: { compact?: boolean }) {
         value={description}
         onChangeText={setDescription}
         placeholder="Describe your drawing (e.g. '2nd floor electrical one-line, panel A, 200A service…')"
-        placeholderTextColor={colors.muted}
+        placeholderTextColor={LETTERING_ON_WHITE}
         multiline
         numberOfLines={compact ? 3 : 4}
-        style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+        style={[styles.input, { borderColor: colors.border, color: LETTERING_ON_WHITE, backgroundColor: "#FFFFFF" }]}
       />
       {Platform.OS === "web" ? (
         <TextInput
           value={fileName}
           onChangeText={setFileName}
           placeholder="Optional: filename.pdf or sheet name"
-          placeholderTextColor={colors.muted}
-          style={[styles.fileInput, { borderColor: colors.border, color: colors.foreground }]}
+          placeholderTextColor={LETTERING_ON_WHITE}
+          style={[styles.fileInput, { borderColor: colors.border, color: LETTERING_ON_WHITE, backgroundColor: "#FFFFFF" }]}
         />
       ) : null}
 
@@ -109,35 +110,35 @@ export function BlueprintReaderPanel({ compact }: { compact?: boolean }) {
               params: { ai: BLUEPRINT_AI_ID },
             })
           }
-          style={[styles.btn, brandWhiteChip(colors), { borderWidth: 1 }]}
+          style={[styles.btn, brandWhiteChip(colors), { borderWidth: 1, backgroundColor: "#FFFFFF" }]}
         >
-          <Text style={{ color: colors.onWhite, fontWeight: "700", fontSize: 12, textAlign: "center" }}>Chat</Text>
+          <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 12, textAlign: "center" }}>Chat</Text>
         </Pressable>
       </View>
 
       {result ? (
-        <View style={[styles.result, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-          <Text style={{ color: colors.foreground, fontWeight: "800" }}>
+        <View style={[styles.result, { borderColor: colors.border, backgroundColor: "#FFFFFF" }]}>
+          <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800" }}>
             {result.typeLabel} · {Math.round(result.confidence * 100)}% match
           </Text>
-          <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 6 }}>
+          <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12, lineHeight: 18, marginTop: 6 }}>
             {result.summary.replace(/\*\*/g, "")}
           </Text>
-          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12, marginTop: 10 }}>
+          <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 12, marginTop: 10 }}>
             Reading checklist
           </Text>
           {result.readingChecklist.slice(0, 3).map((item) => (
-            <Text key={item} style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+            <Text key={item} style={{ color: LETTERING_ON_WHITE, fontSize: 11, lineHeight: 16 }}>
               • {item}
             </Text>
           ))}
           {result.industryTrends.length > 0 ? (
             <>
-              <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12, marginTop: 10 }}>
+              <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 12, marginTop: 10 }}>
                 Industry trends
               </Text>
               {result.industryTrends.slice(0, 2).map((t) => (
-                <Text key={t.title} style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+                <Text key={t.title} style={{ color: LETTERING_ON_WHITE, fontSize: 11, lineHeight: 16 }}>
                   📈 {t.title}: {t.summary}
                 </Text>
               ))}
@@ -152,7 +153,7 @@ export function BlueprintReaderPanel({ compact }: { compact?: boolean }) {
             }
             style={{ marginTop: 10 }}
           >
-            <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>
+            <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 12 }}>
               Open Learn mode for full blueprint academy →
             </Text>
           </Pressable>

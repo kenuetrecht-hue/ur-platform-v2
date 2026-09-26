@@ -27,6 +27,7 @@ import { Workspace3dPricingPanel } from "@/components/workspace-3d-pricing-panel
 import { AiHubTabRow } from "@/components/ai-hub-tab-row";
 import { useColors } from "@/hooks/use-colors";
 import { brandWhiteChip } from "@/lib/brand-theme";
+import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import { useWorkspaceDesign } from "@/hooks/use-workspace-design";
 import { designLayerSummary } from "@/lib/workspace-design-utils";
 import { trpc } from "@/lib/trpc";
@@ -197,10 +198,10 @@ export default function Workspace3DScreen() {
 
           <WorkspaceWebHandoffBanner variant="general" />
 
-          <Text style={{ color: colors.gold, fontSize: 12, lineHeight: 18, paddingHorizontal: 16 }}>
+          <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12, lineHeight: 18, paddingHorizontal: 16 }}>
             {UR_3D_WORKSPACE_VS_WORLD}
           </Text>
-          <Text style={{ color: colors.gold, fontSize: 11, lineHeight: 16, paddingHorizontal: 16 }}>
+          <Text style={{ color: LETTERING_ON_COLOR, fontSize: 11, lineHeight: 16, paddingHorizontal: 16 }}>
             {UR_3D_WORKSPACE_LEGAL}
           </Text>
 
@@ -221,19 +222,19 @@ export default function Workspace3DScreen() {
               onPress={() => setActiveTab("pricing")}
               style={[styles.pricingLink, { borderColor: colors.primary, marginHorizontal: 16 }]}
             >
-              <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 12 }}>
+              <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800", fontSize: 12 }}>
                 💳 Subscribe to use the 3D workspace — see Pricing tab for plans
               </Text>
             </Pressable>
           ) : workspaceAccess.data?.hasAccess ? (
-            <Text style={{ color: colors.muted, fontSize: 11, paddingHorizontal: 16, lineHeight: 16 }}>
+            <Text style={{ color: LETTERING_ON_COLOR, fontSize: 11, paddingHorizontal: 16, lineHeight: 16 }}>
               Workspace plan: {workspaceAccess.data.maxConcurrentAiSlots} concurrent AI
               {workspaceAccess.data.maxConcurrentAiSlots === 1 ? "" : "s"} in session
             </Text>
           ) : null}
 
           {Platform.OS === "web" ? (
-            <Text style={{ color: colors.muted, fontSize: 12, paddingHorizontal: 16, lineHeight: 18 }}>
+            <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12, paddingHorizontal: 16, lineHeight: 18 }}>
               Grid = floor. 1 square = 1 foot. Follow Start here, then click the drawing table.
             </Text>
           ) : null}
@@ -254,7 +255,7 @@ export default function Workspace3DScreen() {
           />
 
           <Pressable onPress={() => router.push("/playroom")} style={{ paddingHorizontal: 16 }}>
-            <Text style={{ color: colors.primary, fontWeight: "600" }}>🎪 Open AI Playroom →</Text>
+            <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "600" }}>🎪 Open AI Playroom →</Text>
           </Pressable>
 
           <BlueprintReaderPanel />
@@ -290,23 +291,23 @@ export default function Workspace3DScreen() {
           <View style={{ paddingHorizontal: 16, flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             <WorkspaceTapButton
               onPress={() => setOrthoLock((v) => !v)}
-              style={[styles.chip, brandWhiteChip(colors), orthoLock ? { borderColor: colors.primary } : null]}
+              style={[styles.chip, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }, orthoLock ? { borderColor: colors.primary } : null]}
             >
-              <Text style={{ color: colors.onWhite, fontWeight: "700", fontSize: 12, textAlign: "center" }}>
+              <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 12, textAlign: "center" }}>
                 Ortho {orthoLock ? "on" : "off"}
               </Text>
             </WorkspaceTapButton>
             <WorkspaceTapButton
               onPress={() => setChainFrom(null)}
-              style={[styles.chip, brandWhiteChip(colors)]}
+              style={[styles.chip, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}
             >
-              <Text style={{ color: colors.onWhite, fontWeight: "700", fontSize: 12, textAlign: "center" }}>Finish chain</Text>
+              <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 12, textAlign: "center" }}>Finish chain</Text>
             </WorkspaceTapButton>
             <WorkspaceTapButton
               onPress={() => designApi.loadStarterRoom()}
-              style={[styles.chip, brandWhiteChip(colors)]}
+              style={[styles.chip, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}
             >
-              <Text style={{ color: colors.onWhite, fontWeight: "700", fontSize: 12, textAlign: "center" }}>Starter 12×12 room</Text>
+              <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 12, textAlign: "center" }}>Starter 12×12 room</Text>
             </WorkspaceTapButton>
           </View>
 
@@ -315,7 +316,7 @@ export default function Workspace3DScreen() {
           <WorkspaceDesignLayersPanel designApi={designApi} sessionSaved={Boolean(sessionId)} />
 
           <View style={{ paddingHorizontal: 16, gap: 8 }}>
-            <Text style={[styles.section, { color: colors.foreground }]}>Project type</Text>
+            <Text style={[styles.section, { color: LETTERING_ON_COLOR }]}>Project type</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
               {PROJECT_TYPES.map((t) => (
                 <WorkspaceTapButton
@@ -334,7 +335,7 @@ export default function Workspace3DScreen() {
                   style={[
                     styles.chip,
                     {
-                      backgroundColor: projectType === t.id ? colors.primary : colors.surface,
+                      backgroundColor: projectType === t.id ? colors.primary : "#FFFFFF",
                       borderColor: projectType === t.id ? colors.primary : colors.border,
                     },
                   ]}
@@ -342,7 +343,7 @@ export default function Workspace3DScreen() {
                   <Text style={{ fontSize: 16 }}>{t.emoji}</Text>
                   <Text
                     style={{
-                      color: projectType === t.id ? "#fff" : colors.foreground,
+                      color: projectType === t.id ? "#fff" : LETTERING_ON_WHITE,
                       fontWeight: "600",
                       fontSize: 12,
                     }}
@@ -357,18 +358,18 @@ export default function Workspace3DScreen() {
               value={projectName}
               onChangeText={setProjectName}
               placeholder="Project name"
-              placeholderTextColor={colors.muted}
-              style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+              placeholderTextColor={LETTERING_ON_COLOR}
+              style={[styles.input, { borderColor: colors.border, color: LETTERING_ON_COLOR, backgroundColor: "transparent" }]}
             />
             <TextInput
               value={description}
               onChangeText={setDescription}
               placeholder="What are you building? (room, HVAC run, robot cell…)"
-              placeholderTextColor={colors.muted}
+              placeholderTextColor={LETTERING_ON_COLOR}
               multiline
               style={[
                 styles.input,
-                { borderColor: colors.border, color: colors.foreground, minHeight: 64 },
+                { borderColor: colors.border, color: LETTERING_ON_COLOR, backgroundColor: "transparent", minHeight: 64 },
               ]}
             />
 
@@ -388,7 +389,7 @@ export default function Workspace3DScreen() {
           </View>
 
           <View style={{ gap: 6 }}>
-            <Text style={[styles.section, { color: colors.foreground, paddingHorizontal: 16 }]}>
+            <Text style={[styles.section, { color: LETTERING_ON_COLOR, paddingHorizontal: 16 }]}>
               Collaborating AIs
             </Text>
             {workspaceAis.length > 0 ? (
@@ -414,7 +415,7 @@ export default function Workspace3DScreen() {
                   }
                   style={[styles.pricingLink, { borderColor: colors.primary }]}
                 >
-                  <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 12 }}>
+                  <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800", fontSize: 12 }}>
                     💳 {activeAi.name} — see Pricing tab for access options
                   </Text>
                 </Pressable>

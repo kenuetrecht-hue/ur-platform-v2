@@ -1,3 +1,4 @@
+import { readFileSync } from "fs";
 import { describe, expect, it } from "vitest";
 import {
   UR_3D_WORKSPACE_ENGINES,
@@ -17,5 +18,20 @@ describe("UR 3D Workspace product", () => {
     expect(UR_3D_WORKSPACE_ENGINES.map((e) => e.id)).toEqual(["r3f", "babylon"]);
     expect(WORKSPACE_PHYSICS_ENGINES.map((e) => e.id)).toEqual(["rapier", "cannon"]);
     expect(WORKSPACE_PHYSICS_ENGINES.find((e) => e.id === "cannon")?.packageName).toBe("cannon-es");
+  });
+
+  it("uses gold on the blue workspace wash and white plan tabs", () => {
+    const page = readFileSync("app/3d-workspace.tsx", "utf8");
+    expect(page).toContain("LETTERING_ON_COLOR");
+    expect(page).toContain("Open AI Playroom");
+    const pricing = readFileSync("components/workspace-3d-pricing-panel.tsx", "utf8");
+    expect(pricing).toContain(">BUNDLES</Text>");
+    expect(pricing).toContain("color: LETTERING_ON_COLOR");
+    expect(pricing).toContain("onLight");
+    expect(pricing).toContain('backgroundColor: "#FFFFFF"');
+    expect(pricing).toContain("LETTERING_ON_WHITE");
+    const world = readFileSync("app/world.tsx", "utf8");
+    expect(world).toContain("UR_WORLD_SHORT_FOOTER");
+    expect(world).toContain("LETTERING_ON_COLOR");
   });
 });

@@ -18,6 +18,7 @@ import { AiHubTabRow } from "@/components/ai-hub-tab-row";
 import { getClientPlatform, openWebBrowserCheckout } from "@/lib/web-checkout";
 import { PricingComingSoonPanel } from "@/components/pricing-coming-soon-panel";
 import { PUBLIC_PRICING_ENABLED } from "@/lib/pricing-visibility";
+import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import { PurchaseUsageTracker } from "@/components/purchase-usage-tracker";
 import { UsageTrackerDashboard } from "@/components/usage-tracker-dashboard";
 
@@ -99,9 +100,9 @@ export function Workspace3dPricingPanel() {
 
   const activeBanner =
     isAuthenticated && access.data?.hasAccess ? (
-      <View style={[styles.activeBox, { borderColor: colors.primary, backgroundColor: colors.surface }]}>
-        <Text style={{ color: colors.foreground, fontWeight: "700" }}>✓ Workspace access active</Text>
-        <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4, lineHeight: 18 }}>
+      <View style={[styles.activeBox, { borderColor: colors.primary, backgroundColor: "#FFFFFF" }]}>
+        <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700" }}>✓ Workspace access active</Text>
+        <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12, marginTop: 4, lineHeight: 18 }}>
           {access.data.maxConcurrentAiSlots} concurrent AI slot
           {access.data.maxConcurrentAiSlots === 1 ? "" : "s"}
           {access.data.plan ? ` · ${access.data.plan.replace("_", " ")} plan` : ""}
@@ -110,7 +111,7 @@ export function Workspace3dPricingPanel() {
             : ""}
         </Text>
         {access.data.extraAiSlots > 0 ? (
-          <Text style={{ color: colors.primary, fontSize: 12, marginTop: 4, fontWeight: "600" }}>
+          <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12, marginTop: 4, fontWeight: "600" }}>
             +{access.data.extraAiSlots} extra slot{access.data.extraAiSlots === 1 ? "" : "s"}
           </Text>
         ) : null}
@@ -135,11 +136,11 @@ export function Workspace3dPricingPanel() {
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
-      <View style={[styles.hero, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+      <View style={[styles.hero, { borderColor: colors.border, backgroundColor: "#FFFFFF" }]}>
         <Text style={styles.heroEmoji}>🎮</Text>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.heroTitle, { color: colors.foreground }]}>3D Workspace Plans</Text>
-          <Text style={[styles.heroSub, { color: colors.muted }]}>
+          <Text style={[styles.heroTitle, { color: LETTERING_ON_WHITE }]}>3D Workspace Plans</Text>
+          <Text style={[styles.heroSub, { color: LETTERING_ON_WHITE }]}>
             One lab, many specialists — pay for how many AIs work together at once.
           </Text>
         </View>
@@ -148,9 +149,9 @@ export function Workspace3dPricingPanel() {
       {activeBanner}
       <UsageTrackerDashboard />
 
-      <Text style={[styles.sectionTag, { color: colors.primary }]}>BUNDLES</Text>
-      <Text style={[styles.sectionHint, { color: colors.muted }]}>{WORKSPACE_3D_PRICING_SUMMARY}</Text>
-      <Text style={[styles.sectionHint, { color: colors.muted }]}>
+      <Text style={[styles.sectionTag, { color: LETTERING_ON_COLOR }]}>BUNDLES</Text>
+      <Text style={[styles.sectionHint, { color: LETTERING_ON_COLOR }]}>{WORKSPACE_3D_PRICING_SUMMARY}</Text>
+      <Text style={[styles.sectionHint, { color: LETTERING_ON_COLOR }]}>
         Text chat still uses each specialist&apos;s day/week/month plan. Voice uses Talk Time.
       </Text>
 
@@ -178,6 +179,7 @@ export function Workspace3dPricingPanel() {
             setLastReceipt(null);
           }}
           style={{ paddingHorizontal: 0 }}
+          onLight
         />
       ) : null}
 
@@ -200,19 +202,19 @@ export function Workspace3dPricingPanel() {
                   styles.planCard,
                   {
                     borderColor: active ? colors.primary : colors.border,
-                    backgroundColor: active ? `${colors.primary}18` : colors.background,
+                    backgroundColor: "#FFFFFF",
                   },
                 ]}
               >
-                <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>{p.label}</Text>
-                <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 18, marginTop: 4 }}>
+                <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 13 }}>{p.label}</Text>
+                <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800", fontSize: 18, marginTop: 4 }}>
                   {p.priceDisplay}
                 </Text>
-                <Text style={{ color: colors.muted, fontSize: 10, marginTop: 4 }}>
+                <Text style={{ color: LETTERING_ON_WHITE, fontSize: 10, marginTop: 4 }}>
                   {p.concurrentAiSlots} AI{p.concurrentAiSlots === 1 ? "" : "s"} at once
                 </Text>
-                <Text style={{ color: colors.muted, fontSize: 9, marginTop: 2 }}>{p.tagline}</Text>
-                <Text style={{ color: colors.muted, fontSize: 9, marginTop: 4, textAlign: "center" }}>
+                <Text style={{ color: LETTERING_ON_WHITE, fontSize: 9, marginTop: 2 }}>{p.tagline}</Text>
+                <Text style={{ color: LETTERING_ON_WHITE, fontSize: 9, marginTop: 4, textAlign: "center" }}>
                   Total {planSummary.pricing.totalDisplay} incl. tax & fees
                 </Text>
               </Pressable>
@@ -257,15 +259,15 @@ export function Workspace3dPricingPanel() {
       </Pressable>
 
       {lastReceipt ? (
-        <Text style={{ color: colors.muted, fontSize: 11, marginTop: 8, lineHeight: 16 }}>
+        <Text style={{ color: LETTERING_ON_COLOR, fontSize: 11, marginTop: 8, lineHeight: 16 }}>
           ✓ Purchase recorded — {lastReceipt.youPay.value}
         </Text>
       ) : null}
 
       {access.data?.hasAccess && access.data.plan && access.data.plan !== "day_pass" ? (
         <>
-          <Text style={[styles.sectionTag, { color: colors.primary, marginTop: 16 }]}>ADD-ON</Text>
-          <Text style={[styles.sectionHint, { color: colors.muted }]}>
+          <Text style={[styles.sectionTag, { color: LETTERING_ON_COLOR, marginTop: 16 }]}>ADD-ON</Text>
+          <Text style={[styles.sectionHint, { color: LETTERING_ON_COLOR }]}>
             Extra concurrent AI slot — {plans.data?.extraAiSlot.priceDisplay}/mo each
           </Text>
           {extraSlotSummary ? <PurchaseSummaryCard summary={extraSlotSummary} /> : null}
@@ -283,6 +285,7 @@ export function Workspace3dPricingPanel() {
               styles.ctaSecondary,
               {
                 borderColor: colors.primary,
+                backgroundColor: "#FFFFFF",
                 opacity: purchaseExtra.isPending || !isAuthenticated || !hasState ? 0.7 : 1,
               },
             ]}
@@ -290,7 +293,7 @@ export function Workspace3dPricingPanel() {
             {purchaseExtra.isPending ? (
               <ActivityIndicator color={colors.primary} />
             ) : (
-              <Text style={{ color: colors.primary, fontWeight: "700" }}>
+              <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700" }}>
                 {isWebCheckout ? "+ Add extra AI slot" : "Add slot in browser"}
               </Text>
             )}

@@ -27,6 +27,7 @@ import {
 import { UR_WORLD_PLAN_STATUS } from "@/lib/ur-world-future-plan";
 import { UR_WORLD_LOOK_UPGRADE_PLAN } from "@/lib/ur-world-look-upgrade-plan";
 import { openWebBrowserCheckout } from "@/lib/web-checkout";
+import { LETTERING_ON_COLOR } from "@/lib/gold-lettering";
 import { UrWorldLockerPanel } from "@/components/ur-world-locker-panel";
 import { XrHeadsetPanel } from "@/components/xr-headset-panel";
 
@@ -270,7 +271,7 @@ export default function UrWorldScreen() {
             ) : null}
 
             <Pressable onPress={() => setShowPlan((v) => !v)} style={{ paddingHorizontal: 16 }}>
-              <Text style={{ color: colors.primary, fontWeight: "700" }}>
+              <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "700" }}>
                 {showPlan ? "Hide" : "Show"} what we build next (Stork plan)
               </Text>
             </Pressable>
@@ -290,7 +291,7 @@ export default function UrWorldScreen() {
               </View>
             ) : null}
 
-            <Text style={{ color: colors.muted, fontSize: 11, paddingHorizontal: 16, lineHeight: 16 }}>
+            <Text style={{ color: LETTERING_ON_COLOR, fontSize: 11, paddingHorizontal: 16, lineHeight: 16 }}>
               {UR_WORLD_SHORT_FOOTER}
             </Text>
           </ScrollView>
