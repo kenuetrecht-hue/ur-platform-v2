@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { MusicStudioTurntable } from "@/components/music-studio-turntable";
 import { brandHighlightSurface, brandWhiteChip } from "@/lib/brand-theme";
+import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import type { MusicDeckId } from "@/lib/music-studio";
 
 const FADER_STOPS = [0, 25, 50, 75, 100] as const;
@@ -39,7 +40,7 @@ export function MusicStudioBooth({
 
   return (
     <View style={[styles.card, brandHighlightSurface(colors)]}>
-      <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>Booth</Text>
+      <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800", fontSize: 16 }}>Booth</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
         <MusicStudioTurntable
           compact
@@ -57,7 +58,7 @@ export function MusicStudioBooth({
         />
       </View>
 
-      <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "700" }}>
+      <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12, fontWeight: "700" }}>
         Crossfader {crossfade < 15 ? "A" : crossfade > 85 ? "B" : "A / B"}
       </Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
@@ -71,11 +72,11 @@ export function MusicStudioBooth({
                 styles.mini,
                 {
                   borderColor: active ? colors.primary : colors.border,
-                  backgroundColor: active ? colors.primary : colors.surface,
+                  backgroundColor: active ? colors.primary : "#FFFFFF",
                 },
               ]}
             >
-              <Text style={{ color: active ? "#fff" : colors.foreground, fontSize: 12 }}>
+              <Text style={{ color: active ? "#fff" : LETTERING_ON_WHITE, fontSize: 12 }}>
                 {stop === 0 ? "A" : stop === 100 ? "B" : `${stop}`}
               </Text>
             </Pressable>
@@ -96,21 +97,21 @@ export function MusicStudioBooth({
             styles.chip,
             {
               borderColor: metronome ? colors.primary : colors.border,
-              backgroundColor: metronome ? colors.primary : colors.surface,
+              backgroundColor: metronome ? colors.primary : "#FFFFFF",
             },
           ]}
         >
-          <Text style={{ color: metronome ? "#fff" : colors.foreground, fontWeight: "700" }}>
+          <Text style={{ color: metronome ? "#fff" : LETTERING_ON_WHITE, fontWeight: "700" }}>
             {metronome ? "Metronome on" : "Metronome"}
           </Text>
         </Pressable>
-        <Pressable onPress={onCopyAToB} style={[styles.chip, brandWhiteChip(colors)]}>
-          <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>Copy A → B</Text>
+        <Pressable onPress={onCopyAToB} style={[styles.chip, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}>
+          <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", textAlign: "center" }}>Copy A → B</Text>
         </Pressable>
       </View>
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-        <Text style={{ color: colors.muted, fontWeight: "700" }}>Edit grid</Text>
+        <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "700" }}>Edit grid</Text>
         {(["a", "b"] as const).map((deck) => {
           const active = editDeck === deck;
           return (
@@ -121,18 +122,18 @@ export function MusicStudioBooth({
                 styles.mini,
                 {
                   borderColor: active ? colors.primary : colors.border,
-                  backgroundColor: active ? colors.primary : colors.surface,
+                  backgroundColor: active ? colors.primary : "#FFFFFF",
                 },
               ]}
             >
-              <Text style={{ color: active ? "#fff" : colors.foreground, fontSize: 12 }}>
+              <Text style={{ color: active ? "#fff" : LETTERING_ON_WHITE, fontSize: 12 }}>
                 Deck {deck.toUpperCase()}
               </Text>
             </Pressable>
           );
         })}
-        <Pressable onPress={() => onSetCueHere(editDeck)} style={[styles.mini, brandWhiteChip(colors)]}>
-          <Text style={{ color: colors.onWhite, fontSize: 12, textAlign: "center" }}>Set cue here</Text>
+        <Pressable onPress={() => onSetCueHere(editDeck)} style={[styles.mini, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}>
+          <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12, textAlign: "center" }}>Set cue here</Text>
         </Pressable>
       </View>
     </View>

@@ -103,12 +103,12 @@ export function MusicStudioTurntable({ spinning, bpm, title, deckName, compact }
         </Animated.View>
       </View>
       <View style={[compact ? styles.compactCopy : { flex: 1, gap: 4 }]}>
-        <Text style={{ color: colors.foreground, fontWeight: "800", textAlign: compact ? "center" : "left" }}>
+        <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800", textAlign: compact ? "center" : "left" }}>
           {deckName || "Turntable"}
         </Text>
         <Text
           style={{
-            color: colors.muted,
+            color: LETTERING_ON_COLOR,
             fontSize: 12,
             lineHeight: 17,
             textAlign: compact ? "center" : "left",

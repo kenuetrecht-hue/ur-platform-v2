@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { brandWhiteChip } from "@/lib/brand-theme";
+import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import {
   MUSIC_HOOKUPS,
   MUSIC_USER_STARTS_REMINDER,
@@ -53,9 +54,9 @@ export function MusicStudioHookups({ title, bpm, keyName, kit, lyrics, pattern }
   };
 
   return (
-    <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-      <Text style={{ color: colors.foreground, fontWeight: "800" }}>Studio hookups</Text>
-      <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 17 }}>
+    <View style={[styles.card, { borderColor: colors.border, backgroundColor: "#FFFFFF" }]}>
+      <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800" }}>Studio hookups</Text>
+      <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12, lineHeight: 17 }}>
         Same rule as printers and CAD: we hand you a file or an OS dialog. {MUSIC_USER_STARTS_REMINDER}
       </Text>
 
@@ -63,29 +64,29 @@ export function MusicStudioHookups({ title, bpm, keyName, kit, lyrics, pattern }
         <Pressable onPress={printChart} style={[styles.chip, { borderColor: colors.primary, backgroundColor: colors.primary }]}>
           <Text style={{ color: "#fff", fontWeight: "700" }}>Print lead sheet</Text>
         </Pressable>
-        <Pressable onPress={saveMidi} style={[styles.chip, brandWhiteChip(colors)]}>
-          <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>Download MIDI</Text>
+        <Pressable onPress={saveMidi} style={[styles.chip, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}>
+          <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", textAlign: "center" }}>Download MIDI</Text>
         </Pressable>
-        <Pressable onPress={() => void connectMidi()} style={[styles.chip, brandWhiteChip(colors)]}>
-          <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>Connect MIDI</Text>
+        <Pressable onPress={() => void connectMidi()} style={[styles.chip, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}>
+          <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", textAlign: "center" }}>Connect MIDI</Text>
         </Pressable>
         <Pressable
           onPress={() => {
             const result = downloadUsbDeckPack(pattern, bpm, title, { key: keyName, kit });
             setNote(result.detail);
           }}
-          style={[styles.chip, brandWhiteChip(colors)]}
+          style={[styles.chip, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}
         >
-          <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>USB deck pack</Text>
+          <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", textAlign: "center" }}>USB deck pack</Text>
         </Pressable>
         <Pressable
           onPress={() => {
             const result = bluetoothPairHelp();
             setNote(result.detail);
           }}
-          style={[styles.chip, brandWhiteChip(colors)]}
+          style={[styles.chip, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}
         >
-          <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>Bluetooth help</Text>
+          <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", textAlign: "center" }}>Bluetooth help</Text>
         </Pressable>
         <Pressable
           onPress={() => {
@@ -94,30 +95,30 @@ export function MusicStudioHookups({ title, bpm, keyName, kit, lyrics, pattern }
               setNote(result.detail);
             });
           }}
-          style={[styles.chip, brandWhiteChip(colors)]}
+          style={[styles.chip, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}
         >
-          <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>Pick audio in</Text>
+          <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", textAlign: "center" }}>Pick audio in</Text>
         </Pressable>
       </View>
 
       {ports.length ? (
-        <Text style={{ color: colors.muted, fontSize: 12 }}>
+        <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12 }}>
           Allowed MIDI: {ports.map((port) => port.name).join(" · ")}
         </Text>
       ) : null}
       {inputs.length ? (
-        <Text style={{ color: colors.muted, fontSize: 12 }}>
+        <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12 }}>
           Allowed inputs: {inputs.map((device) => device.label).join(" · ")}
         </Text>
       ) : null}
 
       {MUSIC_HOOKUPS.map((hook) => (
-        <Text key={hook.id} style={{ color: colors.muted, fontSize: 12, lineHeight: 17 }}>
+        <Text key={hook.id} style={{ color: LETTERING_ON_WHITE, fontSize: 12, lineHeight: 17 }}>
           {hook.status === "now" ? "Now" : "Later"} · {hook.label}: {hook.how}
         </Text>
       ))}
 
-      {note ? <Text style={{ color: colors.foreground, fontSize: 12 }}>{note}</Text> : null}
+      {note ? <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12 }}>{note}</Text> : null}
     </View>
   );
 }

@@ -17,6 +17,7 @@ import {
   songwriterCoachPrompt,
   type PublicMusicProject,
 } from "@/lib/music-studio";
+import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import type { MusicStudioCoachId } from "@/lib/music-studio-lessons";
 
@@ -72,7 +73,7 @@ export default function MusicStudioScreen() {
               subtitle="Learn the booth, then make a beat — Musician + Songwriter still teach."
             />
             <View style={{ paddingHorizontal: 16, gap: 14 }}>
-              <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>{MUSIC_STUDIO_RULE}</Text>
+              <Text style={{ color: LETTERING_ON_COLOR, fontSize: 13, lineHeight: 19 }}>{MUSIC_STUDIO_RULE}</Text>
 
               <MusicStudioDesk onProjectChange={setProject} />
 
@@ -96,12 +97,12 @@ export default function MusicStudioScreen() {
                       style={[
                         styles.deskChip,
                         {
-                          backgroundColor: active ? colors.primary : colors.surface,
+                          backgroundColor: active ? colors.primary : "#FFFFFF",
                           borderColor: active ? colors.primary : colors.border,
                         },
                       ]}
                     >
-                      <Text style={{ color: active ? "#fff" : colors.foreground, fontWeight: "700" }}>
+                      <Text style={{ color: active ? "#fff" : LETTERING_ON_WHITE, fontWeight: "700" }}>
                         {item.avatar} {item.name}
                       </Text>
                     </Pressable>
@@ -116,7 +117,7 @@ export default function MusicStudioScreen() {
                   overflow: "hidden",
                   borderWidth: 1,
                   borderColor: colors.border,
-                  backgroundColor: colors.surface,
+                  backgroundColor: "#FFFFFF",
                 }}
               >
                 <AIDisclosureWrapper aiName={desk.name}>

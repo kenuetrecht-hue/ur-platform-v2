@@ -46,6 +46,7 @@ import { MusicStudioProPanel } from "@/components/music-studio-pro-panel";
 import { MusicStudioBooth } from "@/components/music-studio-booth";
 import { MusicStudioHookups } from "@/components/music-studio-hookups";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
+import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 
 type Props = {
   onProjectChange?: (project: PublicMusicProject | null) => void;
@@ -254,9 +255,9 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
 
   if (!isAuthenticated) {
     return (
-      <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-        <Text style={{ color: colors.foreground, fontWeight: "700" }}>Sign in to use Music Studio</Text>
-        <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+      <View style={[styles.card, { borderColor: colors.border, backgroundColor: "#FFFFFF" }]}>
+        <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700" }}>Sign in to use Music Studio</Text>
+        <Text style={{ color: LETTERING_ON_WHITE, fontSize: 13, lineHeight: 18 }}>
           Save beats, share a join code, and keep lyrics with Musician and Songwriter.
         </Text>
       </View>
@@ -274,12 +275,12 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
         </Pressable>
         <Pressable
           onPress={persist}
-          style={[styles.chip, { borderColor: colors.border, backgroundColor: colors.surface }]}
+          style={[styles.chip, { borderColor: colors.border, backgroundColor: "#FFFFFF" }]}
         >
           {create.isPending || save.isPending ? (
             <ActivityIndicator color={colors.primary} />
           ) : (
-            <Text style={{ color: colors.foreground, fontWeight: "700" }}>Save</Text>
+            <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700" }}>Save</Text>
           )}
         </Pressable>
         <Pressable
@@ -288,11 +289,11 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
             styles.chip,
             {
               borderColor: colors.primary,
-              backgroundColor: playing ? colors.surface : colors.primary,
+              backgroundColor: playing ? "#FFFFFF" : colors.primary,
             },
           ]}
         >
-          <Text style={{ color: playing ? colors.foreground : "#fff", fontWeight: "700" }}>
+          <Text style={{ color: playing ? LETTERING_ON_WHITE : "#fff", fontWeight: "700" }}>
             {playing ? "Stop" : canPlayMusicStudio() ? "Play mix" : "Play (web)"}
           </Text>
         </Pressable>
@@ -325,12 +326,12 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
         onChangeText={setTitle}
         maxLength={MUSIC_TITLE_MAX}
         placeholder="Beat title"
-        placeholderTextColor={colors.muted}
-        style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+        placeholderTextColor={LETTERING_ON_COLOR}
+        style={[styles.input, { borderColor: colors.border, color: LETTERING_ON_COLOR, backgroundColor: "transparent" }]}
       />
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <Text style={{ color: colors.muted, fontWeight: "700" }}>BPM {bpm}</Text>
+        <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "700" }}>BPM {bpm}</Text>
         {[70, 90, 110, 128, 140].map((value) => (
           <Pressable
             key={value}
@@ -339,16 +340,16 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
               styles.mini,
               {
                 borderColor: bpm === value ? colors.primary : colors.border,
-                backgroundColor: bpm === value ? colors.primary : colors.surface,
+                backgroundColor: bpm === value ? colors.primary : "#FFFFFF",
               },
             ]}
           >
-            <Text style={{ color: bpm === value ? "#fff" : colors.foreground, fontSize: 12 }}>{value}</Text>
+            <Text style={{ color: bpm === value ? "#fff" : LETTERING_ON_WHITE, fontSize: 12 }}>{value}</Text>
           </Pressable>
         ))}
       </View>
 
-      <RowLabel label="Kit" colors={colors}>
+      <RowLabel label="Kit">
         {MUSIC_KITS.map((id) => (
           <Pressable
             key={id}
@@ -357,16 +358,16 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
               styles.mini,
               {
                 borderColor: kit === id ? colors.primary : colors.border,
-                backgroundColor: kit === id ? colors.primary : colors.surface,
+                backgroundColor: kit === id ? colors.primary : "#FFFFFF",
               },
             ]}
           >
-            <Text style={{ color: kit === id ? "#fff" : colors.foreground, fontSize: 12 }}>{id}</Text>
+            <Text style={{ color: kit === id ? "#fff" : LETTERING_ON_WHITE, fontSize: 12 }}>{id}</Text>
           </Pressable>
         ))}
       </RowLabel>
 
-      <RowLabel label="Key" colors={colors}>
+      <RowLabel label="Key">
         {MUSIC_KEYS.map((id) => (
           <Pressable
             key={id}
@@ -375,16 +376,16 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
               styles.mini,
               {
                 borderColor: key === id ? colors.primary : colors.border,
-                backgroundColor: key === id ? colors.primary : colors.surface,
+                backgroundColor: key === id ? colors.primary : "#FFFFFF",
               },
             ]}
           >
-            <Text style={{ color: key === id ? "#fff" : colors.foreground, fontSize: 12 }}>{id}</Text>
+            <Text style={{ color: key === id ? "#fff" : LETTERING_ON_WHITE, fontSize: 12 }}>{id}</Text>
           </Pressable>
         ))}
       </RowLabel>
 
-      <Text style={{ color: colors.muted, fontSize: 12 }}>
+      <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12 }}>
         Chords in {key}: {chords.join("  ·  ")}
       </Text>
 
@@ -393,14 +394,14 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
           gap: 6,
           borderWidth: 1,
           borderColor: colors.border,
-          backgroundColor: colors.surface,
+          backgroundColor: "#FFFFFF",
           borderRadius: 14,
           padding: 10,
         }}
       >
         {tracks.map((track) => (
           <View key={track} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <Text style={{ width: 52, color: colors.muted, fontSize: 11, fontWeight: "700" }}>
+            <Text style={{ width: 52, color: LETTERING_ON_WHITE, fontSize: 11, fontWeight: "700" }}>
               {track}
             </Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, flex: 1 }}>
@@ -431,7 +432,7 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
                       borderRadius: 4,
                       borderWidth: 1,
                       borderColor: current ? colors.primary : cueHere ? "#c9a227" : colors.border,
-                      backgroundColor: on ? colors.primary : colors.surface,
+                      backgroundColor: on ? colors.primary : "#FFFFFF",
                     }}
                   />
                 );
@@ -446,21 +447,21 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
         onChangeText={setLyrics}
         maxLength={MUSIC_LYRICS_MAX}
         placeholder="Lyrics pad — Songwriter can tighten this"
-        placeholderTextColor={colors.muted}
+        placeholderTextColor={LETTERING_ON_COLOR}
         multiline
-        style={[styles.input, styles.lyrics, { borderColor: colors.border, color: colors.foreground }]}
+        style={[styles.input, styles.lyrics, { borderColor: colors.border, color: LETTERING_ON_COLOR, backgroundColor: "transparent" }]}
       />
       <TextInput
         value={notes}
         onChangeText={setNotes}
         maxLength={MUSIC_NOTES_MAX}
         placeholder="Session notes for collaborators"
-        placeholderTextColor={colors.muted}
-        style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+        placeholderTextColor={LETTERING_ON_COLOR}
+        style={[styles.input, { borderColor: colors.border, color: LETTERING_ON_COLOR, backgroundColor: "transparent" }]}
       />
 
       {joinCode ? (
-        <Text style={{ color: colors.foreground, fontSize: 13 }}>
+        <Text style={{ color: LETTERING_ON_COLOR, fontSize: 13 }}>
           Collab code: <Text style={{ fontWeight: "800" }}>{joinCode}</Text> — share so someone can join this beat.
         </Text>
       ) : null}
@@ -472,14 +473,14 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
           maxLength={8}
           autoCapitalize="characters"
           placeholder="Join a friend's code"
-          placeholderTextColor={colors.muted}
-          style={[styles.input, { flex: 1, borderColor: colors.border, color: colors.foreground }]}
+          placeholderTextColor={LETTERING_ON_COLOR}
+          style={[styles.input, { flex: 1, borderColor: colors.border, color: LETTERING_ON_COLOR, backgroundColor: "transparent" }]}
         />
         <Pressable
           onPress={() => join.mutate({ joinCode: joinInput })}
-          style={[styles.chip, { borderColor: colors.border, backgroundColor: colors.surface }]}
+          style={[styles.chip, { borderColor: colors.border, backgroundColor: "#FFFFFF" }]}
         >
-          <Text style={{ color: colors.foreground, fontWeight: "700" }}>Join</Text>
+          <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700" }}>Join</Text>
         </Pressable>
       </View>
 
@@ -493,11 +494,11 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
                 styles.mini,
                 {
                   borderColor: project.id === projectId ? colors.primary : colors.border,
-                  backgroundColor: colors.surface,
+                  backgroundColor: "#FFFFFF",
                 },
               ]}
             >
-              <Text style={{ color: colors.foreground, fontSize: 11 }} numberOfLines={1}>
+              <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11 }} numberOfLines={1}>
                 {project.title}
               </Text>
             </Pressable>
@@ -540,16 +541,14 @@ export function MusicStudioDesk({ onProjectChange }: Props) {
 
 function RowLabel({
   label,
-  colors,
   children,
 }: {
   label: string;
-  colors: { muted: string };
   children: ReactNode;
 }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-      <Text style={{ color: colors.muted, fontWeight: "700", width: 36 }}>{label}</Text>
+      <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "700", width: 36 }}>{label}</Text>
       {children}
     </View>
   );

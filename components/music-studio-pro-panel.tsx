@@ -6,6 +6,7 @@ import { PaymentChannelNotice } from "@/components/payment-channel-notice";
 import { PurchaseSummaryCard } from "@/components/purchase-summary-card";
 import { useColors } from "@/hooks/use-colors";
 import { brandWhiteChip } from "@/lib/brand-theme";
+import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import { useBillingState } from "@/hooks/use-billing-state";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { useAuth } from "@/lib/auth-context";
@@ -92,14 +93,14 @@ export function MusicStudioProPanel({
   };
 
   return (
-    <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-      <Text style={[styles.title, { color: colors.foreground }]}>UR Studio Pro</Text>
-      <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
+    <View style={[styles.card, { borderColor: colors.border, backgroundColor: "#FFFFFF" }]}>
+      <Text style={[styles.title, { color: LETTERING_ON_WHITE }]}>UR Studio Pro</Text>
+      <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12, lineHeight: 18 }}>
         {MUSIC_STUDIO_PRICING_SUMMARY} This is our mixer desk — not a license to Avid Pro Tools.
       </Text>
 
       {hasPro ? (
-        <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>
+        <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 12 }}>
           {status?.complimentary ? "Owner complimentary — Pro is on." : `Pro on · ${status?.exportsRemaining ?? 0} exports · ${status?.vocalTakesRemaining ?? 0} vocal takes`}
         </Text>
       ) : (
@@ -113,11 +114,11 @@ export function MusicStudioProPanel({
                   styles.chip,
                   {
                     borderColor: planId === plan.id ? colors.primary : colors.border,
-                    backgroundColor: planId === plan.id ? colors.primary : colors.surface,
+                    backgroundColor: planId === plan.id ? colors.primary : "#FFFFFF",
                   },
                 ]}
               >
-                <Text style={{ color: planId === plan.id ? "#fff" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
+                <Text style={{ color: planId === plan.id ? "#fff" : LETTERING_ON_WHITE, fontWeight: "700", fontSize: 12 }}>
                   {plan.label} · ${(plan.subtotalCents / 100).toFixed(2)}
                 </Text>
               </Pressable>
@@ -158,44 +159,44 @@ export function MusicStudioProPanel({
 
       {hasPro ? (
         <>
-          <Text style={{ color: colors.foreground, fontWeight: "700" }}>Mixer</Text>
+          <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700" }}>Mixer</Text>
           {MUSIC_TRACKS.map((track) => (
             <View key={track} style={styles.mixRow}>
-              <Text style={{ width: 44, color: colors.muted, fontSize: 11, fontWeight: "700" }}>{track}</Text>
-              <Pressable onPress={() => bump(track, "volume", -5)} style={[styles.nudge, brandWhiteChip(colors)]}>
-                <Text style={{ color: colors.onWhite }}>−vol</Text>
+              <Text style={{ width: 44, color: LETTERING_ON_WHITE, fontSize: 11, fontWeight: "700" }}>{track}</Text>
+              <Pressable onPress={() => bump(track, "volume", -5)} style={[styles.nudge, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}>
+                <Text style={{ color: LETTERING_ON_WHITE }}>−vol</Text>
               </Pressable>
-              <Text style={{ color: colors.foreground, fontSize: 11, width: 28 }}>{mixer[track].volume}</Text>
-              <Pressable onPress={() => bump(track, "volume", 5)} style={[styles.nudge, brandWhiteChip(colors)]}>
-                <Text style={{ color: colors.onWhite }}>+vol</Text>
+              <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11, width: 28 }}>{mixer[track].volume}</Text>
+              <Pressable onPress={() => bump(track, "volume", 5)} style={[styles.nudge, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}>
+                <Text style={{ color: LETTERING_ON_WHITE }}>+vol</Text>
               </Pressable>
-              <Pressable onPress={() => bump(track, "pan", -10)} style={[styles.nudge, brandWhiteChip(colors)]}>
-                <Text style={{ color: colors.onWhite }}>L</Text>
+              <Pressable onPress={() => bump(track, "pan", -10)} style={[styles.nudge, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}>
+                <Text style={{ color: LETTERING_ON_WHITE }}>L</Text>
               </Pressable>
-              <Text style={{ color: colors.foreground, fontSize: 11, width: 24 }}>{mixer[track].pan}</Text>
-              <Pressable onPress={() => bump(track, "pan", 10)} style={[styles.nudge, brandWhiteChip(colors)]}>
-                <Text style={{ color: colors.onWhite }}>R</Text>
+              <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11, width: 24 }}>{mixer[track].pan}</Text>
+              <Pressable onPress={() => bump(track, "pan", 10)} style={[styles.nudge, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}>
+                <Text style={{ color: LETTERING_ON_WHITE }}>R</Text>
               </Pressable>
               <Pressable
                 onPress={() =>
                   onMixerChange({ ...mixer, [track]: { ...mixer[track], mute: !mixer[track].mute } })
                 }
-                style={[styles.nudge, brandWhiteChip(colors)]}
+                style={[styles.nudge, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}
               >
-                <Text style={{ color: colors.onWhite }}>{mixer[track].mute ? "unmute" : "mute"}</Text>
+                <Text style={{ color: LETTERING_ON_WHITE }}>{mixer[track].mute ? "unmute" : "mute"}</Text>
               </Pressable>
               <Pressable
                 onPress={() =>
                   onMixerChange({ ...mixer, [track]: { ...mixer[track], solo: !mixer[track].solo } })
                 }
-                style={[styles.nudge, brandWhiteChip(colors)]}
+                style={[styles.nudge, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}
               >
-                <Text style={{ color: colors.onWhite }}>{mixer[track].solo ? "unsolo" : "solo"}</Text>
+                <Text style={{ color: LETTERING_ON_WHITE }}>{mixer[track].solo ? "unsolo" : "solo"}</Text>
               </Pressable>
             </View>
           ))}
 
-          <Text style={{ color: colors.foreground, fontWeight: "700" }}>
+          <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700" }}>
             FX · reverb {fx.reverb} · delay {fx.delay} · filter {fx.filter}
           </Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
@@ -212,9 +213,9 @@ export function MusicStudioProPanel({
               <Pressable
                 key={`${field}-${delta}`}
                 onPress={() => onFxChange({ ...fx, [field]: clampFx(fx[field] + delta) })}
-                style={[styles.nudge, brandWhiteChip(colors)]}
+                style={[styles.nudge, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}
               >
-                <Text style={{ color: colors.onWhite, fontSize: 11 }}>
+                <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11 }}>
                   {field} {delta > 0 ? "+" : ""}
                   {delta}
                 </Text>
@@ -227,9 +228,9 @@ export function MusicStudioProPanel({
               onPress={() => {
                 playMusicChord(keyName);
               }}
-              style={[styles.chip, brandWhiteChip(colors)]}
+              style={[styles.chip, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}
             >
-              <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>Play {keyName} chord</Text>
+              <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", textAlign: "center" }}>Play {keyName} chord</Text>
             </Pressable>
             <Pressable
               onPress={() => {
@@ -242,9 +243,9 @@ export function MusicStudioProPanel({
                   onError: (error) => setNote(error.message),
                 });
               }}
-              style={[styles.chip, brandWhiteChip(colors)]}
+              style={[styles.chip, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}
             >
-              <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>Export WAV</Text>
+              <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", textAlign: "center" }}>Export WAV</Text>
             </Pressable>
             <Pressable
               onPress={() => {
@@ -257,15 +258,15 @@ export function MusicStudioProPanel({
                   onError: (error) => setNote(error.message),
                 });
               }}
-              style={[styles.chip, brandWhiteChip(colors)]}
+              style={[styles.chip, brandWhiteChip(colors), { backgroundColor: "#FFFFFF" }]}
             >
-              <Text style={{ color: colors.onWhite, fontWeight: "700", textAlign: "center" }}>Vocal take</Text>
+              <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", textAlign: "center" }}>Vocal take</Text>
             </Pressable>
           </View>
         </>
       ) : null}
 
-      {note ? <Text style={{ color: colors.muted, fontSize: 12 }}>{note}</Text> : null}
+      {note ? <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12 }}>{note}</Text> : null}
     </View>
   );
 }

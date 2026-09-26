@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import { brandHighlightSurface } from "@/lib/brand-theme";
 import {
   MUSIC_STUDIO_CLASS_RULE,
@@ -25,8 +26,8 @@ export function MusicStudioLearn({ onAskCoach }: Props) {
 
   return (
     <View style={[styles.card, brandHighlightSurface(colors)]}>
-      <Text style={{ color: colors.foreground, fontWeight: "800" }}>Studio classroom</Text>
-      <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 17 }}>{MUSIC_STUDIO_CLASS_RULE}</Text>
+      <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800" }}>Studio classroom</Text>
+      <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12, lineHeight: 17 }}>{MUSIC_STUDIO_CLASS_RULE}</Text>
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         {(["beginner", "intermediate", "all"] as const).map((id) => {
@@ -46,11 +47,11 @@ export function MusicStudioLearn({ onAskCoach }: Props) {
                 styles.mini,
                 {
                   borderColor: active ? colors.primary : colors.border,
-                  backgroundColor: active ? colors.primary : colors.surface,
+                  backgroundColor: active ? colors.primary : "#FFFFFF",
                 },
               ]}
             >
-              <Text style={{ color: active ? "#fff" : colors.foreground, fontSize: 12 }}>
+              <Text style={{ color: active ? "#fff" : LETTERING_ON_WHITE, fontSize: 12 }}>
                 {id === "all" ? "All lessons" : id}
               </Text>
             </Pressable>
@@ -69,11 +70,11 @@ export function MusicStudioLearn({ onAskCoach }: Props) {
                 styles.mini,
                 {
                   borderColor: active ? colors.primary : colors.border,
-                  backgroundColor: colors.surface,
+                  backgroundColor: "#FFFFFF",
                 },
               ]}
             >
-              <Text style={{ color: colors.foreground, fontSize: 11 }} numberOfLines={1}>
+              <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11 }} numberOfLines={1}>
                 {lesson.title}
               </Text>
             </Pressable>
@@ -97,20 +98,20 @@ function LessonBody({
 }) {
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ color: colors.foreground, fontWeight: "800" }}>
+      <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800" }}>
         {lesson.title}
-        <Text style={{ color: colors.muted, fontWeight: "600" }}>
+        <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "600" }}>
           {" "}
           · {lesson.minutes} min · {lesson.level}
         </Text>
       </Text>
-      <Text style={{ color: colors.foreground, fontSize: 13, lineHeight: 19 }}>Goal: {lesson.goal}</Text>
+      <Text style={{ color: LETTERING_ON_COLOR, fontSize: 13, lineHeight: 19 }}>Goal: {lesson.goal}</Text>
       {lesson.steps.map((step, index) => (
-        <Text key={step} style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>
+        <Text key={step} style={{ color: LETTERING_ON_COLOR, fontSize: 13, lineHeight: 19 }}>
           {index + 1}. {step}
         </Text>
       ))}
-      <Text style={{ color: colors.foreground, fontSize: 13, lineHeight: 19 }}>Try now: {lesson.tryNow}</Text>
+      <Text style={{ color: LETTERING_ON_COLOR, fontSize: 13, lineHeight: 19 }}>Try now: {lesson.tryNow}</Text>
       <Pressable
         onPress={() => onAskCoach({ coach: lesson.coach, ask: lesson.ask })}
         style={[styles.chip, { borderColor: colors.primary, backgroundColor: colors.primary }]}

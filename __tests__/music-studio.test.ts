@@ -220,7 +220,7 @@ describe("music studio", () => {
     expect(booth).toContain("Copy A → B");
     expect(booth).toContain("Set cue here");
     expect(booth).toContain("brandWhiteChip(colors)");
-    expect(booth).toContain("colors.onWhite");
+    expect(booth).toContain("LETTERING_ON_WHITE");
     expect(booth).not.toMatch(/onCopyAToB[\s\S]{0,120}borderColor: colors\.border \}/);
 
     const hookups = readFileSync("components/music-studio-hookups.tsx", "utf8");
