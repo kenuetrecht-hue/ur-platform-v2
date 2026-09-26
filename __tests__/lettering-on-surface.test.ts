@@ -44,7 +44,7 @@ describe("lettering on white vs colored backgrounds", () => {
     expect(hubTabs).toContain("colors.gold");
 
     const disclosure = readFileSync("components/platform-disclosure-bar.tsx", "utf8");
-    expect(disclosure).toContain("colors.gold");
+    expect(disclosure).toContain("colors.onWhite");
 
     const tiles = readFileSync("components/hub-door-tile.tsx", "utf8");
     expect(tiles).toContain("colors.onWhite");
@@ -93,7 +93,8 @@ describe("lettering on white vs colored backgrounds", () => {
     expect(ops).toContain("📌 Assign");
     expect(ops).toContain("active ? \"#fff\" : colors.foreground");
     expect(ops).toContain("Launch advertising budget");
-    expect(ops).toMatch(/Launch advertising budget[\s\S]{0,280}colors\.gold|colors\.gold[\s\S]{0,200}Launch advertising budget/);
+    expect(ops).toContain("Launch advertising budget");
+    expect(ops).toMatch(/colors\.foreground[\s\S]{0,220}Launch advertising budget/);
 
     const emanual = readFileSync("app/e-manual.tsx", "utf8");
     expect(emanual).toContain("color: colors.foreground");
@@ -107,7 +108,7 @@ describe("lettering on white vs colored backgrounds", () => {
 
     const ais = readFileSync("app/(tabs)/ais.tsx", "utf8");
     expect(ais).toContain("Done ▲");
-    expect(ais).toMatch(/Done ▲[\s\S]{0,40}colors\.gold|colors\.gold[\s\S]{0,80}Done ▲/);
+    expect(ais).toMatch(/Done ▲[\s\S]{0,40}colors\.onWhite|colors\.onWhite[\s\S]{0,80}Done ▲/);
 
     const thanks = readFileSync("components/thanks-stamps-wall.tsx", "utf8");
     expect(thanks).toContain("backgroundColor: colors.surface");
@@ -136,11 +137,11 @@ describe("lettering on white vs colored backgrounds", () => {
 
     const loyalty = readFileSync("components/daily-loyalty-banner.tsx", "utf8");
     expect(loyalty).toContain("loyalty points");
-    expect(loyalty).toMatch(/color: colors\.gold[\s\S]{0,80}loyalty points|loyalty points[\s\S]{0,80}color: colors\.gold/);
+    expect(loyalty).toMatch(/color: colors\.onWhite[\s\S]{0,80}loyalty points|loyalty points[\s\S]{0,80}color: colors\.onWhite/);
 
     const linkCard = readFileSync("components/transaction-history-list.tsx", "utf8");
     expect(linkCard).toContain("Your custom link");
-    expect(linkCard).toContain("color: colors.gold");
+    expect(linkCard).toContain("color: colors.onWhite");
     expect(linkCard).toContain("customUrl");
   });
 

@@ -199,11 +199,11 @@ export function PlatformOpsConsole({
   return (
     <View style={chatDesk ? styles.chatDesk : styles.stackDesk}>
       {desk === "all" ? (
-        <View style={[styles.banner, { backgroundColor: `${colors.primary}18`, borderColor: colors.gold }]}>
-          <Text style={[styles.bannerTitle, { color: colors.gold }]}>
+        <View style={[styles.banner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.bannerTitle, { color: colors.onWhite }]}>
             🏛️ Administration & ops
           </Text>
-          <Text style={{ color: colors.gold, fontSize: 13, lineHeight: 18 }}>
+          <Text style={{ color: colors.onWhite, fontSize: 13, lineHeight: 18 }}>
             Business Steward is first — sales, ads, and running the site. World
             Director sits with you for the city locker. Doctor, Administration, and
             Security sit beside them. Members never see Steward or World Director.
@@ -621,14 +621,14 @@ export function PlatformOpsConsole({
             style={[
               styles.banner,
               {
-                backgroundColor: stewardAdBudget.data.exhausted ? "#fef2f2" : `${colors.primary}12`,
-                borderColor: stewardAdBudget.data.exhausted ? "#dc2626" : colors.gold,
+                backgroundColor: stewardAdBudget.data.exhausted ? "#fef2f2" : colors.surface,
+                borderColor: stewardAdBudget.data.exhausted ? "#dc2626" : colors.border,
               },
             ]}
           >
             <Text
               style={{
-                color: stewardAdBudget.data.exhausted ? colors.foreground : colors.gold,
+                color: colors.foreground,
                 fontWeight: "800",
                 fontSize: 13,
               }}
@@ -637,7 +637,7 @@ export function PlatformOpsConsole({
             </Text>
             <Text
               style={{
-                color: stewardAdBudget.data.exhausted ? colors.muted : colors.gold,
+                color: colors.muted,
                 fontSize: 13,
                 lineHeight: 18,
               }}

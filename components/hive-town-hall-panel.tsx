@@ -342,7 +342,7 @@ export function HiveTownHallPanel() {
         ) : null}
 
         {turns.length === 0 ? (
-          <Text style={{ color: colors.muted, textAlign: "center", marginTop: 24, fontSize: 13 }}>
+          <Text style={{ color: colors.gold, textAlign: "center", marginTop: 24, fontSize: 13 }}>
             {canChat
               ? "Ask your question — every specialist on the panel will respond."
               : "Waiting for the scheduled start time…"}

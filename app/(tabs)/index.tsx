@@ -71,7 +71,7 @@ export default function HomeScreen() {
             <PasswordRemindBanner />
             {needsIdPhotos ? (
               <View style={{ gap: 8 }}>
-                <Text style={{ color: colors.gold, fontWeight: "800", fontSize: 15 }}>
+                <Text style={{ color: colors.onWhite, fontWeight: "800", fontSize: 15 }}>
                   Finish the three pictures
                 </Text>
                 <GoToIdPhotosButton label="Open the picture page" />
@@ -134,7 +134,7 @@ export default function HomeScreen() {
               alreadyClaimedToday={dailySignIn.alreadyClaimedToday}
             />
             {dailySignIn.error ? (
-              <Text style={{ color: colors.gold, fontSize: 13 }}>{dailySignIn.error}</Text>
+              <Text style={{ color: colors.onWhite, fontSize: 13 }}>{dailySignIn.error}</Text>
             ) : null}
             <DailyHubPanel />
             <PlatformSearchPanel compact />

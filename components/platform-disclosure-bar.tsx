@@ -34,7 +34,7 @@ export function PlatformDisclosureBar({
 
   const content = (
     <Text
-      style={[styles.text, aboveTabBar ? styles.textAboveTab : null, { color: colors.gold }]}
+      style={[styles.text, aboveTabBar ? styles.textAboveTab : null, { color: colors.onWhite }]}
       numberOfLines={compact ? 1 : 3}
     >
       {text}

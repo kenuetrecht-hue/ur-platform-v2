@@ -800,7 +800,7 @@ export function CreatorAIInterface({
           {loading ? (
             <View style={styles.typingRow}>
               <ActivityIndicator color={colors.primary} />
-              <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "700", flex: 1 }}>
+              <Text style={{ color: colors.gold, fontSize: 14, fontWeight: "700", flex: 1 }}>
                 Working on your question…
               </Text>
             </View>

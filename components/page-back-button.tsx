@@ -6,12 +6,15 @@ import { goBackOrHome } from "@/lib/page-back";
 type Props = {
   label?: string;
   testID?: string;
+  /** Light pages (the e-manual) use bluish-purple. The blue wash keeps gold. */
+  tone?: "wash" | "light";
 };
 
 /** Previous page if we have one, otherwise Home. Same on website and app. */
-export function PageBackButton({ label = "← Back", testID = "page-back" }: Props) {
+export function PageBackButton({ label = "← Back", testID = "page-back", tone = "wash" }: Props) {
   const colors = useColors();
   const router = useRouter();
+  const ink = tone === "light" ? colors.onWhite : colors.gold;
 
   return (
     <Pressable
@@ -21,7 +24,7 @@ export function PageBackButton({ label = "← Back", testID = "page-back" }: Pro
       testID={testID}
       style={styles.row}
     >
-      <Text style={[styles.text, { color: colors.gold }]}>{label}</Text>
+      <Text style={[styles.text, { color: ink }]}>{label}</Text>
     </Pressable>
   );
 }

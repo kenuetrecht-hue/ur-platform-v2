@@ -60,13 +60,13 @@ export function CustomLinkCard({
 }) {
   const colors = useColors();
   return (
-    <View style={[styles.linkCard, { borderColor: colors.gold, backgroundColor: `${colors.primary}10` }]}>
-      <Text style={{ color: colors.gold, fontWeight: "800", fontSize: 14 }}>{label}</Text>
-      <Text style={{ color: colors.gold, fontSize: 11 }}>Slug: {slug}</Text>
+    <View style={[styles.linkCard, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+      <Text style={{ color: colors.onWhite, fontWeight: "800", fontSize: 14 }}>{label}</Text>
+      <Text style={{ color: colors.onWhite, fontSize: 11 }}>Slug: {slug}</Text>
       <Text
         selectable
         style={{
-          color: colors.gold,
+          color: colors.onWhite,
           fontSize: 12,
           fontFamily: "monospace",
           marginTop: 6,
@@ -74,7 +74,7 @@ export function CustomLinkCard({
       >
         {customUrl}
       </Text>
-      <Text style={{ color: colors.gold, fontSize: 11, marginTop: 6 }}>
+      <Text style={{ color: colors.onWhite, fontSize: 11, marginTop: 6 }}>
         Long-press to copy. Every visit and sale through this link is tracked.
       </Text>
     </View>

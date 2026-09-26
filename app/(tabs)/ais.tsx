@@ -194,7 +194,7 @@ export default function AIsScreen() {
         ) : (
           <TabPageScroll contentContainerStyle={styles.bodyScroll}>
             <View style={styles.catalogHeader}>
-              <Text style={{ color: colors.gold, fontWeight: "700", fontSize: 13 }}>
+              <Text style={{ color: colors.onWhite, fontWeight: "700", fontSize: 13 }}>
                 Choose a specialist
               </Text>
               {selectedCreator ? (
@@ -202,7 +202,7 @@ export default function AIsScreen() {
                   onPress={() => openSpecialistPage(selectedCreator.id)}
                   hitSlop={8}
                 >
-                  <Text pointerEvents="none" style={{ color: colors.gold, fontWeight: "700", fontSize: 12 }}>
+                  <Text pointerEvents="none" style={{ color: colors.onWhite, fontWeight: "700", fontSize: 12 }}>
                     Done ▲
                   </Text>
                 </AppPressable>
@@ -231,7 +231,7 @@ export default function AIsScreen() {
             ) : null}
 
             {isError ? (
-              <Text style={[styles.hint, { color: colors.gold }]}>
+              <Text style={[styles.hint, { color: colors.onWhite }]}>
                 Using offline catalog — chat still works when connected.
               </Text>
             ) : null}
@@ -243,7 +243,7 @@ export default function AIsScreen() {
                 onSelect={pickSpecialist}
               />
             ) : (
-              <Text style={[styles.emptyText, { color: colors.gold }]}>
+              <Text style={[styles.emptyText, { color: colors.onWhite }]}>
                 No specialists in this category.
               </Text>
             )}

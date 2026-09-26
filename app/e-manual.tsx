@@ -51,7 +51,7 @@ export default function JoinEmanualScreen() {
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top", "left", "right"]}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.topRow}>
-          <PageBackButton />
+          <PageBackButton tone="light" />
           <View style={styles.actions}>
             <Pressable
               onPress={onDownload}
