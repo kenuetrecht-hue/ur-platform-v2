@@ -14,7 +14,8 @@ import { cn } from '@/lib/utils';
 import { newestConversationFirst } from '@/lib/chat-newest-first';
 import { useScrollChatToNewest } from '@/hooks/use-scroll-chat-to-newest';
 import { ChatComposerInput } from '@/components/chat-composer-input';
-import { ChatComposerActionRow, ComposerDock } from '@/components/composer-dock';
+import { ChatSideComposer } from '@/components/chat-side-composer';
+import { ComposerDock } from '@/components/composer-dock';
 
 interface Message {
   id: string;
@@ -254,7 +255,22 @@ export function PersonalAIChat({
         )}
 
         <ComposerDock reserveTabBar={false}>
-          <ChatComposerActionRow>
+          <ChatSideComposer
+            send={
+          <TouchableOpacity
+            onPress={handleSendMessage}
+            disabled={!inputText.trim() || isLoading}
+            className="bg-primary p-3 rounded-full"
+            style={{ opacity: !inputText.trim() || isLoading ? 0.5 : 1, alignSelf: "stretch", width: "100%" }}
+          >
+            <IconSymbol
+              name="paperplane.fill"
+              size={18}
+              color={colors.background}
+            />
+          </TouchableOpacity>
+            }
+          >
           <ChatComposerInput
             value={inputText}
             onChangeText={setInputText}
@@ -267,19 +283,7 @@ export function PersonalAIChat({
             }}
             editable={!isLoading}
           />
-          <TouchableOpacity
-            onPress={handleSendMessage}
-            disabled={!inputText.trim() || isLoading}
-            className="bg-primary p-3 rounded-full"
-            style={{ opacity: !inputText.trim() || isLoading ? 0.5 : 1, flexShrink: 0 }}
-          >
-            <IconSymbol
-              name="paperplane.fill"
-              size={18}
-              color={colors.background}
-            />
-          </TouchableOpacity>
-          </ChatComposerActionRow>
+          </ChatSideComposer>
         </ComposerDock>
       </View>
     </Modal>

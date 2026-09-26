@@ -16,7 +16,8 @@ import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync"
 import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { useAuth } from "@/lib/auth-context";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
-import { ChatComposerActionRow, ComposerDock } from "@/components/composer-dock";
+import { ChatSideComposer, chatRailButtonStyle } from "@/components/chat-side-composer";
+import { ComposerDock } from "@/components/composer-dock";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
@@ -360,19 +361,17 @@ export function PersonalAIInterface({
         {speechHint ? (
           <Text style={[styles.inputHint, { color: colors.muted }]}>{speechHint}</Text>
         ) : null}
-        <ChatComposerActionRow>
+        <ChatSideComposer
+          tools={
+            <>
           <TouchableOpacity
             testID="ai-text-button"
             accessibilityLabel="Text"
             onPress={() => setTextFocusNonce((n) => n + 1)}
             style={{
-              borderWidth: 1,
+              ...chatRailButtonStyle,
               borderColor: colors.border,
-              borderRadius: 10,
-              paddingVertical: 10,
-              paddingHorizontal: 12,
               backgroundColor: colors.surface,
-              marginRight: 8,
             }}
           >
             <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 13 }}>Text</Text>
@@ -380,6 +379,7 @@ export function PersonalAIInterface({
           <VoicePromptMicButton
             creatorId={creatorId}
             labeled
+            fullWidth
             disabled={loading}
             onBeforeListen={() => {
               stopExclusiveAudio();
@@ -394,6 +394,26 @@ export function PersonalAIInterface({
               void sendChatMessage(question, { speak: true });
             }}
           />
+            </>
+          }
+          send={
+          <TouchableOpacity
+            onPress={handleSendMessage}
+            disabled={loading || !inputText.trim()}
+            style={[
+              styles.sendButton,
+              {
+                backgroundColor: colors.primary,
+                opacity: loading || !inputText.trim() ? 0.5 : 1,
+                alignSelf: "stretch",
+                width: "100%",
+              },
+            ]}
+          >
+            <Text style={styles.sendButtonText}>↑</Text>
+          </TouchableOpacity>
+          }
+        >
           <ChatComposerInput
             style={[
               styles.textInput,
@@ -412,20 +432,7 @@ export function PersonalAIInterface({
             editable={!loading}
             onSubmitEditing={handleSendMessage}
           />
-          <TouchableOpacity
-            onPress={handleSendMessage}
-            disabled={loading || !inputText.trim()}
-            style={[
-              styles.sendButton,
-              {
-                backgroundColor: colors.primary,
-                opacity: loading || !inputText.trim() ? 0.5 : 1,
-              },
-            ]}
-          >
-            <Text style={styles.sendButtonText}>↑</Text>
-          </TouchableOpacity>
-        </ChatComposerActionRow>
+        </ChatSideComposer>
         <Text style={[styles.inputHint, { color: colors.muted }]}>
           Gemini 1.5 Flash · understands 100+ languages
         </Text>

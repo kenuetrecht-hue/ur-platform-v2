@@ -193,7 +193,7 @@ describe("lettering on white vs colored backgrounds", () => {
     for (const file of desks) {
       const src = readFileSync(file, "utf8");
       expect(src).toContain("ChatComposerInput");
-      expect(src).toContain("ChatComposerActionRow");
+      expect(src.includes("ChatComposerActionRow") || src.includes("ChatSideComposer")).toBe(true);
     }
   });
 });

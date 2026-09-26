@@ -5,7 +5,8 @@ import { trpc } from "@/lib/trpc";
 import { createVoicePromptSession } from "@/lib/record-voice-prompt";
 import { stopExclusiveAudio } from "@/lib/exclusive-audio-player";
 import { ChatComposerInput } from "@/components/chat-composer-input";
-import { ChatComposerActionRow, ComposerDock } from "@/components/composer-dock";
+import { ChatSideComposer, chatRailButtonStyle } from "@/components/chat-side-composer";
+import { ComposerDock } from "@/components/composer-dock";
 import { CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 
 type Props = {
@@ -83,19 +84,16 @@ export function VoicePromptField({
           if needed. Then tap {sendLabel}.
         </Text>
       )}
-      <ChatComposerActionRow>
+      <ChatSideComposer
+        tools={
         <Pressable
           onPress={() => void toggleMic()}
           disabled={disabled || sending || transcribe.isPending}
           accessibilityRole="button"
           accessibilityLabel={listening ? "Stop microphone" : "Speak any language"}
           style={{
-            width: 52,
-            minHeight: 52,
-            flexShrink: 0,
-            borderRadius: 12,
-            alignItems: "center",
-            justifyContent: "center",
+            ...chatRailButtonStyle,
+            borderWidth: 0,
             backgroundColor: listening ? "#dc2626" : colors.primary,
           }}
         >
@@ -105,6 +103,35 @@ export function VoicePromptField({
             <Text style={{ fontSize: 22 }}>{listening ? "■" : "🎤"}</Text>
           )}
         </Pressable>
+        }
+        send={
+          onSend ? (
+          <Pressable
+            onPress={() => {
+              if (sendDisabled) return;
+              onSend();
+            }}
+            disabled={sendDisabled}
+            accessibilityRole="button"
+            accessibilityLabel={sendLabel}
+            style={[
+              CHAT_COMPOSER_SEND,
+              {
+                backgroundColor: sendDisabled ? colors.muted : colors.primary,
+                alignSelf: "stretch",
+                width: "100%",
+              },
+            ]}
+          >
+            {sending ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 14 }}>{sendLabel}</Text>
+            )}
+          </Pressable>
+          ) : null
+        }
+      >
         <ChatComposerInput
           value={value}
           onChangeText={onChangeText}
@@ -118,30 +145,7 @@ export function VoicePromptField({
             color: colors.foreground,
           }}
         />
-        {onSend ? (
-          <Pressable
-            onPress={() => {
-              if (sendDisabled) return;
-              onSend();
-            }}
-            disabled={sendDisabled}
-            accessibilityRole="button"
-            accessibilityLabel={sendLabel}
-            style={[
-              CHAT_COMPOSER_SEND,
-              {
-                backgroundColor: sendDisabled ? colors.muted : colors.primary,
-              },
-            ]}
-          >
-            {sending ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 14 }}>{sendLabel}</Text>
-            )}
-          </Pressable>
-        ) : null}
-      </ChatComposerActionRow>
+      </ChatSideComposer>
     </ComposerDock>
   );
 }

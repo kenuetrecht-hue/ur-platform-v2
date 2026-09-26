@@ -19,7 +19,7 @@ import { Link } from "expo-router";
 import { AGE_KYC_REQUIRED_MESSAGE } from "@/lib/age-kyc-policy";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { ChatComposerInput } from "@/components/chat-composer-input";
-import { ChatComposerActionRow } from "@/components/composer-dock";
+import { ChatSideComposer } from "@/components/chat-side-composer";
 import { CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 
 const DEMO_SPECIALISTS = [
@@ -169,7 +169,21 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
         />
       ) : null}
 
-      <ChatComposerActionRow>
+      <ChatSideComposer
+        send={
+      <Pressable
+        onPress={send}
+        disabled={!canSend}
+        style={[CHAT_COMPOSER_SEND, styles.sendBtn, !canSend && styles.sendBtnDisabled, { alignSelf: "stretch", width: "100%" }]}
+      >
+        {loading ? (
+          <ActivityIndicator color="#001018" />
+        ) : (
+          <Text style={styles.sendText}>{demoUsed ? "Sign up" : "Send"}</Text>
+        )}
+      </Pressable>
+        }
+      >
       <ChatComposerInput
         value={message}
         onChangeText={setMessage}
@@ -183,18 +197,7 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
         editable={!demoUsed && !loading}
         style={styles.input}
       />
-      <Pressable
-        onPress={send}
-        disabled={!canSend}
-        style={[CHAT_COMPOSER_SEND, styles.sendBtn, !canSend && styles.sendBtnDisabled]}
-      >
-        {loading ? (
-          <ActivityIndicator color="#001018" />
-        ) : (
-          <Text style={styles.sendText}>{demoUsed ? "Sign up" : "Send"}</Text>
-        )}
-      </Pressable>
-      </ChatComposerActionRow>
+      </ChatSideComposer>
       <Text style={styles.counter}>
         {message.length}/{messageMax}
       </Text>

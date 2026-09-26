@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
-import { ChatComposerActionRow, ComposerDock } from "@/components/composer-dock";
+import { ChatSideComposer, chatRailButtonStyle } from "@/components/chat-side-composer";
+import { ComposerDock } from "@/components/composer-dock";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { AppPressable } from "@/components/app-pressable";
@@ -310,17 +311,16 @@ export function GameForgeLearnPanel({
       ) : null}
 
       <ComposerDock>
-        <ChatComposerActionRow>
+        <ChatSideComposer
+          tools={
+            <>
         <AppPressable
           testID="ai-text-button"
           accessibilityLabel="Text"
           onPress={() => setTextFocusNonce((n) => n + 1)}
           style={{
-            borderWidth: 1,
+            ...chatRailButtonStyle,
             borderColor: colors.border,
-            borderRadius: 10,
-            paddingVertical: 10,
-            paddingHorizontal: 12,
             backgroundColor: colors.surface,
           }}
         >
@@ -331,6 +331,7 @@ export function GameForgeLearnPanel({
         <VoicePromptMicButton
           creatorId={creatorId}
           labeled
+          fullWidth
           disabled={loading}
           onTranscript={(text) => {
             if (text) setInputText(text.slice(0, 4000));
@@ -340,6 +341,18 @@ export function GameForgeLearnPanel({
             void sendLearnMessage(question, { speak: true });
           }}
         />
+            </>
+          }
+          send={
+        <Pressable
+          onPress={() => void sendLearnMessage(inputText)}
+          disabled={loading || !inputText.trim()}
+          style={[styles.sendBtn, { backgroundColor: loading || !inputText.trim() ? colors.muted : colors.primary, alignSelf: "stretch", width: "100%" }]}
+        >
+          <Text style={{ color: "#fff", fontWeight: "700" }}>Learn</Text>
+        </Pressable>
+          }
+        >
         <ChatComposerInput
           style={[styles.input, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
           placeholder="Ask how to build your game…"
@@ -350,14 +363,7 @@ export function GameForgeLearnPanel({
           maxLength={4000}
           editable={!loading}
         />
-        <Pressable
-          onPress={() => void sendLearnMessage(inputText)}
-          disabled={loading || !inputText.trim()}
-          style={[styles.sendBtn, { backgroundColor: loading || !inputText.trim() ? colors.muted : colors.primary }]}
-        >
-          <Text style={{ color: "#fff", fontWeight: "700" }}>Learn</Text>
-        </Pressable>
-        </ChatComposerActionRow>
+        </ChatSideComposer>
       </ComposerDock>
     </View>
   );

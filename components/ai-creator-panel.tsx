@@ -27,7 +27,8 @@ import { AiLiveSessionsPanel } from "@/components/ai-live-sessions-panel";
 import { AiSpecialistPricingPanel } from "@/components/ai-specialist-pricing-panel";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
-import { ChatComposerActionRow, ComposerDock } from "@/components/composer-dock";
+import { ChatSideComposer, chatRailButtonStyle } from "@/components/chat-side-composer";
+import { ComposerDock } from "@/components/composer-dock";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
@@ -613,18 +614,17 @@ export function AiLearnSurface({
       ) : null}
 
       <ComposerDock paddingBottom={overlap.dockPaddingBottom}>
-        <ChatComposerActionRow>
+        <ChatSideComposer
+          tools={
+            <>
         <AppPressable
           testID="ai-text-button"
           accessibilityLabel="Text"
           onPress={() => setTextFocusNonce((n) => n + 1)}
           hitSlop={8}
           style={{
-            borderWidth: 1,
+            ...chatRailButtonStyle,
             borderColor: colors.border,
-            borderRadius: 10,
-            paddingVertical: 10,
-            paddingHorizontal: 12,
             backgroundColor: colors.surface,
           }}
         >
@@ -635,6 +635,7 @@ export function AiLearnSurface({
         <VoicePromptMicButton
           creatorId={creatorId}
           labeled
+          fullWidth
           disabled={loading}
           onTranscript={(text) => {
             if (text) setInputText(text.slice(0, 4000));
@@ -644,6 +645,18 @@ export function AiLearnSurface({
             void sendLearnMessage(question, { speak: true });
           }}
         />
+            </>
+          }
+          send={
+        <TouchableOpacity
+          onPress={() => void sendLearnMessage(inputText)}
+          disabled={loading || !inputText.trim()}
+          style={[styles.sendBtn, { backgroundColor: loading || !inputText.trim() ? colors.muted : colors.primary, alignSelf: "stretch", width: "100%" }]}
+        >
+          <Text style={{ color: "#fff", fontWeight: "700" }}>Send</Text>
+        </TouchableOpacity>
+          }
+        >
         <ChatComposerInput
           value={inputText}
           onChangeText={setInputText}
@@ -653,14 +666,7 @@ export function AiLearnSurface({
           style={[styles.input, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
           maxLength={4000}
         />
-        <TouchableOpacity
-          onPress={() => void sendLearnMessage(inputText)}
-          disabled={loading || !inputText.trim()}
-          style={[styles.sendBtn, { backgroundColor: loading || !inputText.trim() ? colors.muted : colors.primary }]}
-        >
-          <Text style={{ color: "#fff", fontWeight: "700" }}>Send</Text>
-        </TouchableOpacity>
-        </ChatComposerActionRow>
+        </ChatSideComposer>
       </ComposerDock>
       </View>
     </KeyboardAvoidingView>

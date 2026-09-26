@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Platform } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { speakText } from "@/lib/azure-tts-service";
 import { androidMicrophoneHandler } from "@/lib/android-microphone-handler";
+import { ChatSideComposer, chatRailButtonStyle } from "@/components/chat-side-composer";
+import { ChatComposerInput } from "@/components/chat-composer-input";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
 import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 
@@ -35,8 +37,8 @@ export function VoiceChatInterface({
   const [error, setError] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [draft, setDraft] = useState("");
+  const [textFocusNonce, setTextFocusNonce] = useState(0);
   const sendChat = trpc.aiCreators.sendMessage.useMutation();
-  const textInputRef = useRef<TextInput>(null);
   const recognitionRef = useRef<any>(null);
   const handleUserMessageRef = useRef<(text: string) => void>(() => undefined);
   const { ref: scrollViewRef } = useScrollChatToNewest(messages.length);
@@ -345,29 +347,66 @@ export function VoiceChatInterface({
         )}
 
         {/* Microphone Button */}
+        <ChatSideComposer
+          tools={
+            <>
         <TouchableOpacity
           testID="ai-text-button"
           accessibilityLabel="Text"
-          onPress={() => {
-            const question = draft.trim();
-            if (!question) {
-              textInputRef.current?.focus();
-              return;
-            }
-            setDraft("");
-            void handleUserMessage(question);
-          }}
+          onPress={() => setTextFocusNonce((n) => n + 1)}
           disabled={isProcessing || isSpeaking}
-          className="mb-3 p-3 rounded-xl items-center"
-          style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+          style={[
+            chatRailButtonStyle,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
         >
           <Text style={{ color: colors.foreground, fontWeight: "800" }}>Text</Text>
         </TouchableOpacity>
-        <TextInput
-          ref={textInputRef}
-          testID="ai-voice-text-input"
+        <TouchableOpacity
+          testID="ai-talk-mic"
+          accessibilityLabel="Talk"
+          onPress={isListening ? stopListening : startListening}
+          disabled={isProcessing || isSpeaking}
+          style={[
+            chatRailButtonStyle,
+            {
+              backgroundColor: isListening ? colors.error : colors.primary,
+              borderColor: "transparent",
+              opacity: isProcessing || isSpeaking ? 0.6 : 1,
+            },
+          ]}
+        >
+          <Text style={{ color: "#fff", fontWeight: "800" }}>{isListening ? "Stop" : "Talk"}</Text>
+        </TouchableOpacity>
+            </>
+          }
+          send={
+        <TouchableOpacity
+          onPress={() => {
+            const question = draft.trim();
+            if (!question) return;
+            setDraft("");
+            void handleUserMessage(question);
+          }}
+          disabled={isProcessing || isSpeaking || !draft.trim()}
+          style={{
+            alignSelf: "stretch",
+            width: "100%",
+            borderRadius: 14,
+            paddingVertical: 12,
+            alignItems: "center",
+            backgroundColor: colors.primary,
+            opacity: isProcessing || isSpeaking || !draft.trim() ? 0.5 : 1,
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "800" }}>Send</Text>
+        </TouchableOpacity>
+          }
+        >
+        <ChatComposerInput
           value={draft}
           onChangeText={setDraft}
+          focusNonce={textFocusNonce}
           placeholder={`Ask ${aiName} in text…`}
           placeholderTextColor={colors.muted}
           editable={!isProcessing}
@@ -375,34 +414,11 @@ export function VoiceChatInterface({
           style={{
             borderWidth: 1,
             borderColor: colors.border,
-            borderRadius: 12,
-            padding: 12,
             color: colors.foreground,
-            marginBottom: 12,
             backgroundColor: colors.background,
           }}
         />
-        <TouchableOpacity
-          testID="ai-talk-mic"
-          accessibilityLabel="Talk"
-          onPress={isListening ? stopListening : startListening}
-          disabled={isProcessing || isSpeaking}
-          className="p-4 rounded-full items-center justify-center"
-          style={{
-            backgroundColor: isListening ? colors.error : colors.primary,
-            opacity: isProcessing || isSpeaking ? 0.6 : 1,
-          }}
-        >
-          <Text className="text-3xl">
-            {isListening ? "🛑" : "🎤"}
-          </Text>
-          <Text className="text-white font-semibold mt-2">
-            {isListening ? "Stop" : "Talk"}
-          </Text>
-          <Text className="text-white/70 text-xs mt-1">
-            {isListening ? "Tap to stop" : "Tap to speak"}
-          </Text>
-        </TouchableOpacity>
+        </ChatSideComposer>
 
         {/* Browser Compatibility Note */}
         <Text className="text-xs text-muted text-center mt-3">

@@ -12,7 +12,8 @@ import {
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
-import { ChatComposerActionRow, ComposerDock } from "@/components/composer-dock";
+import { ChatSideComposer } from "@/components/chat-side-composer";
+import { ComposerDock } from "@/components/composer-dock";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
@@ -386,7 +387,24 @@ export function HiveTownHallPanel() {
       </ScrollView>
 
       <ComposerDock paddingBottom={overlap.dockPaddingBottom}>
-      <ChatComposerActionRow>
+      <ChatSideComposer
+        send={
+        <Pressable
+          onPress={() => void sendMessage()}
+          disabled={!canChat || !inputText.trim() || loading || sendMutation.isPending}
+          style={[
+            styles.sendBtn,
+            {
+              backgroundColor: canChat && inputText.trim() ? colors.primary : colors.border,
+              alignSelf: "stretch",
+              width: "100%",
+            },
+          ]}
+        >
+          <Text style={{ color: "#fff", fontWeight: "700" }}>Send</Text>
+        </Pressable>
+        }
+      >
         <ChatComposerInput
           value={inputText}
           onChangeText={setInputText}
@@ -395,19 +413,7 @@ export function HiveTownHallPanel() {
           editable={canChat && !loading}
           style={[styles.composerInput, { color: colors.foreground }]}
         />
-        <Pressable
-          onPress={() => void sendMessage()}
-          disabled={!canChat || !inputText.trim() || loading || sendMutation.isPending}
-          style={[
-            styles.sendBtn,
-            {
-              backgroundColor: canChat && inputText.trim() ? colors.primary : colors.border,
-            },
-          ]}
-        >
-          <Text style={{ color: "#fff", fontWeight: "700" }}>Send</Text>
-        </Pressable>
-      </ChatComposerActionRow>
+      </ChatSideComposer>
       </ComposerDock>
     </KeyboardAvoidingView>
   );

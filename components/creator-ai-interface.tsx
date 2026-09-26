@@ -98,7 +98,7 @@ export function CreatorAIInterface({
   overlapHeaderHeight,
   pageScroll = false,
   speakReplies,
-  toolRail,
+  toolRail = "left",
 }: CreatorAIInterfaceProps) {
   const colors = useColors();
   const router = useRouter();

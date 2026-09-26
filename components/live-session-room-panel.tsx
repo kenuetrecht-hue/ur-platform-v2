@@ -13,8 +13,8 @@ import { trpc } from "@/lib/trpc";
 import { useBillingState } from "@/hooks/use-billing-state";
 import { BillingStatePicker } from "@/components/billing-state-picker";
 import { getClientPlatform } from "@/lib/web-checkout";
+import { ChatSideComposer } from "@/components/chat-side-composer";
 import { ChatComposerInput } from "@/components/chat-composer-input";
-import { ChatComposerActionRow } from "@/components/composer-dock";
 import { CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 
 export type LiveSessionRoomPanelProps = {
@@ -253,15 +253,8 @@ export function LiveSessionRoomPanel({ sessionId, creatorName, onLeft }: LiveSes
             </View>
           ))
         )}
-        <ChatComposerActionRow>
-        <ChatComposerInput
-          value={voiceQuestion}
-          onChangeText={setVoiceQuestion}
-          placeholder="Your voice question for the AI…"
-          placeholderTextColor={colors.muted}
-          maxLength={500}
-          style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
-        />
+        <ChatSideComposer
+          send={
         <Pressable
           onPress={() =>
             submitQuestion.mutate({
@@ -277,12 +270,24 @@ export function LiveSessionRoomPanel({ sessionId, creatorName, onLeft }: LiveSes
             {
               borderColor: colors.primary,
               opacity: data.speak.hasAccess && voiceQuestion.trim().length >= 4 ? 1 : 0.5,
+              alignSelf: "stretch",
+              width: "100%",
             },
           ]}
         >
           <Text style={{ color: colors.primary, fontWeight: "700" }}>Queue</Text>
         </Pressable>
-        </ChatComposerActionRow>
+          }
+        >
+        <ChatComposerInput
+          value={voiceQuestion}
+          onChangeText={setVoiceQuestion}
+          placeholder="Your voice question for the AI…"
+          placeholderTextColor={colors.muted}
+          maxLength={500}
+          style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+        />
+        </ChatSideComposer>
       </View>
 
       <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
@@ -303,15 +308,8 @@ export function LiveSessionRoomPanel({ sessionId, creatorName, onLeft }: LiveSes
             </View>
           ))
         )}
-        <ChatComposerActionRow>
-        <ChatComposerInput
-          value={textQuestion}
-          onChangeText={setTextQuestion}
-          placeholder="Type your question for the AI…"
-          placeholderTextColor={colors.muted}
-          maxLength={500}
-          style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
-        />
+        <ChatSideComposer
+          send={
         <Pressable
           onPress={() =>
             submitQuestion.mutate({
@@ -324,12 +322,22 @@ export function LiveSessionRoomPanel({ sessionId, creatorName, onLeft }: LiveSes
           style={[
             CHAT_COMPOSER_SEND,
             styles.btnOutline,
-            { borderColor: colors.primary, opacity: textQuestion.trim().length >= 4 ? 1 : 0.5 },
+            { borderColor: colors.primary, opacity: textQuestion.trim().length >= 4 ? 1 : 0.5, alignSelf: "stretch", width: "100%" },
           ]}
         >
           <Text style={{ color: colors.primary, fontWeight: "700" }}>Queue</Text>
         </Pressable>
-        </ChatComposerActionRow>
+          }
+        >
+        <ChatComposerInput
+          value={textQuestion}
+          onChangeText={setTextQuestion}
+          placeholder="Type your question for the AI…"
+          placeholderTextColor={colors.muted}
+          maxLength={500}
+          style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+        />
+        </ChatSideComposer>
       </View>
 
       {data.myQuestions.some((q) => q.canMarkAnswered) ? (
