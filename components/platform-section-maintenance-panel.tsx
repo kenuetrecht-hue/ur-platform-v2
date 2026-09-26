@@ -3,6 +3,7 @@ import { View, Text, Pressable, ActivityIndicator, StyleSheet, TextInput } from 
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import type { PlatformSectionId } from "@/lib/platform-section-flags";
+import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 
 type Props = {
   canManage: boolean;
@@ -36,10 +37,10 @@ export function PlatformSectionMaintenancePanel({ canManage }: Props) {
 
   return (
     <View style={{ gap: 10, paddingHorizontal: 16 }}>
-      <Text style={[styles.sectionTitle, { color: colors.foreground, paddingHorizontal: 0 }]}>
+      <Text style={[styles.sectionTitle, { color: LETTERING_ON_COLOR, paddingHorizontal: 0 }]}>
         Section maintenance
       </Text>
-      <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+      <Text style={{ color: LETTERING_ON_COLOR, fontSize: 13, lineHeight: 18 }}>
         Shut down one area without taking UR offline. Ops AIs auto-isolate broken sections and
         alert you instantly; you approve fix/deploy or send instructions before anything else runs.
       </Text>
@@ -49,11 +50,11 @@ export function PlatformSectionMaintenancePanel({ canManage }: Props) {
       {(sections.data ?? []).map((section) => (
         <View
           key={section.id}
-          style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          style={[styles.card, { backgroundColor: "#FFFFFF", borderColor: colors.border }]}
         >
           <Pressable onPress={() => setExpandedId(expandedId === section.id ? null : section.id)}>
             <View style={styles.row}>
-              <Text style={{ fontWeight: "700", color: colors.foreground, flex: 1 }}>
+              <Text style={{ fontWeight: "700", color: LETTERING_ON_WHITE, flex: 1 }}>
                 {section.label}
               </Text>
               <Text
@@ -67,13 +68,13 @@ export function PlatformSectionMaintenancePanel({ canManage }: Props) {
                 {section.enabled ? "online" : "offline"}
               </Text>
             </View>
-            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>{section.description}</Text>
+            <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11, marginTop: 4 }}>{section.description}</Text>
           </Pressable>
 
           {expandedId === section.id ? (
             <View style={{ marginTop: 10, gap: 8 }}>
               {!section.enabled && section.reason ? (
-                <Text style={{ color: colors.muted, fontSize: 12 }}>Reason: {section.reason}</Text>
+                <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12 }}>Reason: {section.reason}</Text>
               ) : null}
               {section.enabled ? (
                 <>
@@ -81,11 +82,11 @@ export function PlatformSectionMaintenancePanel({ canManage }: Props) {
                     value={reason}
                     onChangeText={setReason}
                     placeholder="Why take this section offline?"
-                    placeholderTextColor={colors.muted}
+                    placeholderTextColor={LETTERING_ON_WHITE}
                     multiline
                     style={[
                       styles.input,
-                      { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background },
+                      { color: LETTERING_ON_WHITE, borderColor: colors.border, backgroundColor: "#FFFFFF" },
                     ]}
                   />
                   <Pressable

@@ -20,6 +20,7 @@ import {
   computeSessionTicketCents,
   type AllowedSessionDuration,
 } from "@/lib/ai-session-constants";
+import { LETTERING_ON_COLOR } from "@/lib/gold-lettering";
 
 export function AiSessionProgrammingPanel() {
   const colors = useColors();
@@ -91,16 +92,16 @@ export function AiSessionProgrammingPanel() {
 
   return (
     <View style={{ gap: 16, paddingBottom: 24 }}>
-      <View style={[styles.banner, { backgroundColor: `${colors.primary}12`, borderColor: colors.primary }]}>
-        <Text style={[styles.bannerTitle, { color: colors.foreground }]}>🎥 Program AI live sessions</Text>
-        <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>
+      <View style={[styles.banner, { backgroundColor: "transparent", borderColor: colors.primary }]}>
+        <Text style={[styles.bannerTitle, { color: LETTERING_ON_COLOR }]}>🎥 Program AI live sessions</Text>
+        <Text style={{ color: LETTERING_ON_COLOR, fontSize: 13, lineHeight: 19 }}>
           Content creators set class length (15, 30, 45, or 60 min) and must stay live for the full
           committed time. <Text style={{ fontWeight: "700" }}>$0.20/min is the floor</Text> — you
           cannot go lower than twenty cents per minute. Set any higher rate your audience will pay
           (e.g. $5.00/min). Optional overtime after the commitment. Up to 10,000 seats per class.
         </Text>
         {stats.data ? (
-          <Text style={{ color: colors.foreground, fontSize: 12, marginTop: 4 }}>
+          <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12, marginTop: 4 }}>
             {stats.data.upcoming} upcoming · {stats.data.totalAttendees} tickets sold · est. $
             {(stats.data.estimatedRevenueCents / 100).toFixed(2)} revenue
           </Text>
@@ -227,7 +228,7 @@ export function AiSessionProgrammingPanel() {
         ) : null}
       </View>
 
-      <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Per-AI programming</Text>
+      <Text style={[styles.sectionTitle, { color: LETTERING_ON_COLOR }]}>Per-AI programming</Text>
       {programs.isLoading ? (
         <ActivityIndicator color={colors.primary} />
       ) : (
@@ -328,9 +329,9 @@ export function AiSessionProgrammingPanel() {
         </Pressable>
       </View>
 
-      <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Scheduled sessions</Text>
+      <Text style={[styles.sectionTitle, { color: LETTERING_ON_COLOR }]}>Scheduled sessions</Text>
       {sessions.data?.length === 0 ? (
-        <Text style={{ color: colors.muted, paddingHorizontal: 16 }}>No sessions yet.</Text>
+        <Text style={{ color: LETTERING_ON_COLOR, paddingHorizontal: 16 }}>No sessions yet.</Text>
       ) : (
         sessions.data?.map((s) => (
           <View

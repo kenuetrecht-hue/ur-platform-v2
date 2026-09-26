@@ -3,6 +3,7 @@ import { Pressable, Text, TextInput, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
+import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 
 /** Owner-only: free texting with the AIs. Speaking still requires pay. */
 export function OwnerComplimentaryTextAccessPanel() {
@@ -31,10 +32,10 @@ export function OwnerComplimentaryTextAccessPanel() {
 
   return (
     <View style={{ gap: 10, paddingHorizontal: 16, paddingTop: 8 }} testID="complimentary-text-access">
-      <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground }}>
+      <Text style={{ fontSize: 16, fontWeight: "700", color: LETTERING_ON_COLOR }}>
         Free texting
       </Text>
-      <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+      <Text style={{ color: LETTERING_ON_COLOR, fontSize: 13, lineHeight: 18 }}>
         Enter an email to give free texting back and forth with the AIs. Everyone else pays.
         They still pay to speak or have an AI speak.
       </Text>
@@ -42,14 +43,14 @@ export function OwnerComplimentaryTextAccessPanel() {
         value={grantEmail}
         onChangeText={setGrantEmail}
         placeholder="Email for free texting"
-        placeholderTextColor={colors.muted}
+        placeholderTextColor={LETTERING_ON_WHITE}
         autoCapitalize="none"
         keyboardType="email-address"
         maxLength={320}
         style={{
-          color: colors.foreground,
+          color: LETTERING_ON_WHITE,
           borderColor: colors.border,
-          backgroundColor: colors.surface,
+          backgroundColor: "#FFFFFF",
           borderRadius: 10,
           borderWidth: 1,
           paddingHorizontal: 12,
@@ -61,12 +62,12 @@ export function OwnerComplimentaryTextAccessPanel() {
         value={grantReason}
         onChangeText={setGrantReason}
         placeholder="Reason (optional)"
-        placeholderTextColor={colors.muted}
+        placeholderTextColor={LETTERING_ON_WHITE}
         maxLength={500}
         style={{
-          color: colors.foreground,
+          color: LETTERING_ON_WHITE,
           borderColor: colors.border,
-          backgroundColor: colors.surface,
+          backgroundColor: "#FFFFFF",
           borderRadius: 10,
           borderWidth: 1,
           paddingHorizontal: 12,
@@ -100,13 +101,13 @@ export function OwnerComplimentaryTextAccessPanel() {
             borderRadius: 12,
             borderWidth: 1,
             padding: 14,
-            backgroundColor: colors.surface,
+            backgroundColor: "#FFFFFF",
             borderColor: colors.border,
           }}
         >
-          <Text style={{ fontWeight: "700", color: colors.foreground }}>{g.userEmail}</Text>
-          <Text style={{ color: colors.muted, fontSize: 12 }}>Free texting</Text>
-          {g.reason ? <Text style={{ color: colors.muted, fontSize: 12 }}>{g.reason}</Text> : null}
+          <Text style={{ fontWeight: "700", color: LETTERING_ON_WHITE }}>{g.userEmail}</Text>
+          <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12 }}>Free texting</Text>
+          {g.reason ? <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12 }}>{g.reason}</Text> : null}
           <Pressable onPress={() => revokeGrant.mutate({ grantId: g.id })} style={{ marginTop: 6 }}>
             <Text style={{ color: "#dc2626", fontWeight: "600", fontSize: 12 }}>Revoke</Text>
           </Pressable>

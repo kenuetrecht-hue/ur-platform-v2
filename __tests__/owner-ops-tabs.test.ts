@@ -68,5 +68,12 @@ describe("owner ops tabs", () => {
     expect(grant).toContain('features: ["ai_chat"]');
     expect(grant).toContain("Give free texting");
     expect(grant).toContain("Email for free texting");
+    expect(grant).toContain("LETTERING_ON_COLOR");
+    const sessions = readFileSync("components/ai-session-programming-panel.tsx", "utf8");
+    expect(sessions).toContain("Program AI live sessions");
+    expect(sessions).toContain("Per-AI programming");
+    expect(sessions).toContain("Scheduled sessions");
+    expect(sessions).toContain("LETTERING_ON_COLOR");
+    expect(consoleSource).toContain("onWash");
   });
 });

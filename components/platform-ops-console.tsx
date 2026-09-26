@@ -564,6 +564,7 @@ export function PlatformOpsConsole({
           <TransactionHistoryList
             transactions={ledger.data.transactions}
             emptyMessage="No transactions recorded yet."
+            onWash
           />
         </View>
       ) : null}
