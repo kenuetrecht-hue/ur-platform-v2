@@ -38,6 +38,8 @@ const SERVER_ONLY_SECRET_NAMES = [
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
   "STRIPE_PUBLISHABLE_KEY",
+  "WEB_PUSH_VAPID_PUBLIC_KEY",
+  "WEB_PUSH_VAPID_PRIVATE_KEY",
 ] as const;
 
 /** Env var prefixes that must never carry API keys or credentials. */
@@ -180,6 +182,16 @@ export function getStripePublishableKey(): string {
   );
 }
 
+/** Public half of the call-ring key. Safe to send to a signed-in browser. */
+export function getWebPushVapidPublicKey(): string {
+  return readServerSecret("WEB_PUSH_VAPID_PUBLIC_KEY");
+}
+
+/** Private half. Never return this to a client or write it to a log. */
+export function getWebPushVapidPrivateKey(): string {
+  return readServerSecret("WEB_PUSH_VAPID_PRIVATE_KEY");
+}
+
 export function isStripeSecretLive(): boolean {
   return getStripeSecretKey().startsWith("sk_live_");
 }
@@ -282,7 +294,7 @@ export function redactSecrets(text: string): string {
     .replace(/sk_test_[A-Za-z0-9]+/g, "[REDACTED_STRIPE_SECRET]")
     .replace(/whsec_[A-Za-z0-9]+/g, "[REDACTED_STRIPE_WEBHOOK]")
     .replace(
-      /(CONTENTMATE_GEMINI_API_KEY|GEMINI_API_KEY|TURNSTILE_SECRET_KEY|TURN_AUTH_SECRET|TURN_PASSWORD|CLOUDFLARE_TURN_API_TOKEN|MUX_TOKEN_SECRET|MUX_WEBHOOK_SECRET|MUX_SIGNING_PRIVATE_KEY|AYRSHARE_API_KEY|AYRSHARE_PROFILE_KEY|BUFFER_ACCESS_TOKEN|PRINTFUL_API_KEY|PRINTIFY_API_TOKEN|CJ_DROPSHIPPING_API_KEY|AMAZON_ASSOCIATE_TAG|WALMART_TRACKING_ID|STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET)(=|:)\s*["']?[^"'\s]+["']?/gi,
+      /(CONTENTMATE_GEMINI_API_KEY|GEMINI_API_KEY|TURNSTILE_SECRET_KEY|TURN_AUTH_SECRET|TURN_PASSWORD|CLOUDFLARE_TURN_API_TOKEN|MUX_TOKEN_SECRET|MUX_WEBHOOK_SECRET|MUX_SIGNING_PRIVATE_KEY|AYRSHARE_API_KEY|AYRSHARE_PROFILE_KEY|BUFFER_ACCESS_TOKEN|PRINTFUL_API_KEY|PRINTIFY_API_TOKEN|CJ_DROPSHIPPING_API_KEY|AMAZON_ASSOCIATE_TAG|WALMART_TRACKING_ID|STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET|WEB_PUSH_VAPID_PRIVATE_KEY)(=|:)\s*["']?[^"'\s]+["']?/gi,
       "$1$2[REDACTED]",
     );
 }

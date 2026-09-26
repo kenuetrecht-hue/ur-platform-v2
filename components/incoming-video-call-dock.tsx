@@ -1,8 +1,16 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { FriendVideoCallPanel } from "@/components/friend-video-call-panel";
 import { useAuth } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
+import {
+  ensureCallRingPermission,
+  showForegroundCallNotice,
+  startCallRingtone,
+  stopCallRingtone,
+  subscribeCallRing,
+  unlockCallRingtone,
+} from "@/lib/call-ring-client";
 import { LETTERING_ON_COLOR } from "@/lib/gold-lettering";
 import { trpc } from "@/lib/trpc";
 
@@ -12,10 +20,70 @@ export function IncomingVideoCallDock() {
   const { isAuthenticated } = useAuth();
   const incoming = trpc.social.incomingVideoCalls.useQuery(undefined, {
     enabled: isAuthenticated,
-    refetchInterval: 4000,
+    refetchInterval: 2500,
   });
   const [active, setActive] = useState<{ roomId: string; peerUserId: string } | null>(null);
+  const [pushReady, setPushReady] = useState(false);
+  const registerRing = trpc.social.registerCallRing.useMutation();
+  const registerRef = useRef(registerRing.mutateAsync);
+  registerRef.current = registerRing.mutateAsync;
+  const publicKey = trpc.social.callRingPublicKey.useQuery(undefined, {
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+  }).data?.publicKey;
   const ringing = (incoming.data ?? []).filter((call) => call.status === "ringing" && call.id !== active?.roomId);
+  const ringKey = ringing.map((call) => call.id).join(",");
+  const ringingRef = useRef(ringing);
+  ringingRef.current = ringing;
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const unlock = () => {
+      unlockCallRingtone();
+      void ensureCallRingPermission();
+    };
+    if (typeof window !== "undefined") window.addEventListener("pointerdown", unlock);
+    return () => {
+      if (typeof window !== "undefined") window.removeEventListener("pointerdown", unlock);
+      stopCallRingtone();
+    };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated || typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+    const onMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === "ur-incoming-call") void incoming.refetch();
+    };
+    navigator.serviceWorker.addEventListener("message", onMessage);
+    return () => navigator.serviceWorker.removeEventListener("message", onMessage);
+  }, [isAuthenticated, incoming]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !publicKey) return;
+    let cancelled = false;
+    void subscribeCallRing({
+      publicKey,
+      register: (subscription) => registerRef.current(subscription),
+    }).then((ok) => {
+      if (!cancelled && ok) setPushReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, publicKey]);
+
+  useEffect(() => {
+    if (!ringKey) return;
+    startCallRingtone();
+    const first = ringingRef.current[0];
+    if (first && !pushReady) {
+      showForegroundCallNotice(
+        first.id,
+        first.kind === "creator" ? "A paid call is ringing on UR" : "A friend is calling you on UR",
+      );
+    }
+    return () => stopCallRingtone();
+  }, [ringKey, pushReady]);
 
   if (!isAuthenticated || (!active && ringing.length === 0)) return null;
 

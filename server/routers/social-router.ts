@@ -67,6 +67,12 @@ import { mapServiceErrorToTrpc } from "../_core/service-errors";
 import { CREATOR_VIDEO_CALL_SKU, creatorCallPriceError } from "../../lib/creator-call-pricing";
 import { getIceServersForCall } from "../_core/turn-ice-service";
 import {
+  callRingCallerLabel,
+  getCallRingPublicKey,
+  ringUserForVideoCall,
+  saveCallRingSubscription,
+} from "../_core/call-ring-service";
+import {
   addPostComment,
   assertVideoPostForRating,
   createFeedPost,
@@ -162,6 +168,17 @@ function requireCallAccess(roomId: string, token: string) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "This call link is not valid." });
   }
   return payload;
+}
+
+function ringCallee(
+  room: { id: string; calleeUserId: string },
+  callerName: string | null | undefined,
+): void {
+  ringUserForVideoCall({
+    calleeUserId: room.calleeUserId,
+    roomId: room.id,
+    callerLabel: callRingCallerLabel(callerName ?? undefined),
+  });
 }
 
 async function settlePublicVideoCall(room: ReturnType<typeof endVideoCall>) {
@@ -441,12 +458,12 @@ export const socialRouter = router({
     .input(z.object({ friendUserId: z.string().trim().min(1).max(80) }))
     .mutation(async ({ ctx, input }) => {
       await assertUserIsAgeVerified(ctx.user.id);
-      return toPublicVideoCall(
-        createVideoCall({
-          callerUserId: String(ctx.user.id),
-          calleeUserId: input.friendUserId,
-        }),
-      );
+      const room = createVideoCall({
+        callerUserId: String(ctx.user.id),
+        calleeUserId: input.friendUserId,
+      });
+      ringCallee(room, ctx.user.name);
+      return toPublicVideoCall(room);
     }),
 
   joinVideoCall: secureProcedure("social")
@@ -489,6 +506,28 @@ export const socialRouter = router({
   incomingVideoCalls: secureProcedure("social").query(({ ctx }) =>
     listIncomingCalls(String(ctx.user.id)).map(toPublicVideoCall),
   ),
+
+  callRingPublicKey: secureProcedure("social").query(() => ({
+    publicKey: getCallRingPublicKey(),
+  })),
+
+  registerCallRing: secureProcedure("social")
+    .input(
+      z.object({
+        endpoint: z.string().trim().url().max(2000),
+        keys: z.object({
+          p256dh: z.string().trim().min(1).max(200),
+          auth: z.string().trim().min(1).max(200),
+        }),
+      }),
+    )
+    .mutation(({ ctx, input }) => {
+      if (!input.endpoint.startsWith("https://")) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Call alerts need a secure address." });
+      }
+      saveCallRingSubscription(String(ctx.user.id), input);
+      return { ok: true as const };
+    }),
 
   signalVideoOffer: secureProcedure("social")
     .input(z.object({ roomId: z.string().uuid(), sdp: z.string().trim().min(1).max(50000) }))
@@ -569,6 +608,7 @@ export const socialRouter = router({
           callerUserId,
           creatorUserId: input.creatorUserId,
         });
+        ringCallee(room, ctx.user.name);
         return {
           mode: "ready" as const,
           roomId: room.id,
@@ -637,6 +677,7 @@ export const socialRouter = router({
         callerUserId,
         creatorUserId: input.creatorUserId,
       });
+      ringCallee(room, ctx.user.name);
       return {
         mode: "simulated" as const,
         roomId: room.id,
@@ -649,12 +690,12 @@ export const socialRouter = router({
     .input(z.object({ creatorUserId: z.string().trim().min(1).max(80) }))
     .mutation(async ({ ctx, input }) => {
       await assertUserIsAgeVerified(ctx.user.id);
-      return toPublicVideoCall(
-        createCreatorVideoCall({
-          callerUserId: String(ctx.user.id),
-          creatorUserId: input.creatorUserId,
-        }),
-      );
+      const room = createCreatorVideoCall({
+        callerUserId: String(ctx.user.id),
+        creatorUserId: input.creatorUserId,
+      });
+      ringCallee(room, ctx.user.name);
+      return toPublicVideoCall(room);
     }),
 
   mintCallAccess: secureProcedure("social")
