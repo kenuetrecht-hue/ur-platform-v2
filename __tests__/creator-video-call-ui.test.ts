@@ -18,6 +18,10 @@ describe("1-to-1 call UI is on website and app screens", () => {
   it("opens the same call page from the native in-app browser", () => {
     const panel = readFileSync("components/friend-video-call-panel.tsx", "utf8");
     const page = readFileSync("app/call/[roomId].tsx", "utf8");
+    expect(panel).toContain("mediaReady");
+    expect(panel).toContain("row.fromUserId === selfId");
+    expect(readFileSync("components/incoming-video-call-dock.tsx", "utf8")).toContain("Incoming video call");
+    expect(readFileSync("app/_layout.tsx", "utf8")).toContain("IncomingVideoCallDock");
     expect(panel).toContain("mintCallAccess");
     expect(panel).toContain("heartbeatVideoCall");
     expect(panel).toContain("iceServers.useMutation");

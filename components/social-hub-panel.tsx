@@ -38,9 +38,6 @@ export function SocialHubPanel() {
   const startedPaidCall = useRef<string | null>(null);
 
   const dash = trpc.social.dashboard.useQuery();
-  const incomingCalls = trpc.social.incomingVideoCalls.useQuery(undefined, {
-    refetchInterval: 5000,
-  });
   const activity = trpc.social.myActivitySummary.useQuery();
   const txs = trpc.partnerDashboard.myTransactions.useQuery({ limit: 15 });
 
@@ -143,46 +140,6 @@ export function SocialHubPanel() {
         pendingFriends={pending.length}
       />
 
-      {(incomingCalls.data ?? []).filter((r) => r.status === "ringing").length > 0 ? (
-        <View style={{ paddingHorizontal: 16, paddingTop: 8, gap: 8 }}>
-          {(incomingCalls.data ?? [])
-            .filter((r) => r.status === "ringing")
-            .map((call) => (
-              <View
-                key={call.id}
-                style={[
-                  styles.card,
-                  {
-                    borderColor: colors.primary,
-                    backgroundColor: `${colors.primary}15`,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  },
-                ]}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.gold, fontWeight: "800" }}>📹 Incoming video call</Text>
-                  <Text style={{ color: colors.gold, fontSize: 11 }}>
-                    {call.kind === "creator" ? "Paid 1-to-1 call · tap Answer" : "From a friend · tap Answer"}
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={() => {
-                    setVideoRoomId(call.id);
-                    setVideoFriendId(call.callerUserId);
-                    setVideoIsCaller(false);
-                    setTab("mail");
-                  }}
-                  style={[styles.btn, { backgroundColor: colors.primary, marginTop: 0, paddingVertical: 8, paddingHorizontal: 14 }]}
-                >
-                  <Text style={styles.btnText}>Answer</Text>
-                </Pressable>
-              </View>
-            ))}
-        </View>
-      ) : null}
-
       {videoRoomId && videoFriendId ? (
         <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
           <FriendVideoCallPanel
@@ -247,6 +204,11 @@ export function SocialHubPanel() {
             ) : null}
 
             <Text style={[styles.title, { color: colors.gold }]}>Friends ({friends.length})</Text>
+            {startFriendCall.error ? (
+              <Text style={{ color: "#c0392b", fontSize: 13, lineHeight: 18 }}>
+                {startFriendCall.error.message}
+              </Text>
+            ) : null}
             {friends.length === 0 ? (
               <Text style={{ color: colors.gold }}>No friends yet — invite someone by email.</Text>
             ) : (

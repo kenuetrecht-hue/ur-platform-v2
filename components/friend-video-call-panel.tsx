@@ -48,6 +48,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }:
   const appliedIce = useRef(new Set<string>());
   const [status, setStatus] = useState("Connecting…");
   const [error, setError] = useState<string | null>(null);
+  const [mediaReady, setMediaReady] = useState(false);
   const webRtc = canUseWebRtc();
   const tokenMode = Boolean(accessToken);
 
@@ -122,7 +123,11 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }:
         localStreamRef.current = stream;
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
-          await localVideoRef.current.play();
+          try {
+            await localVideoRef.current.play();
+          } catch {
+            /* The stream is attached even when autoplay is blocked. */
+          }
         }
 
         const pc = new RTCPeerConnection({ iceServers });
@@ -152,6 +157,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }:
           await join.mutateAsync({ roomId });
         }
 
+        setMediaReady(true);
         if (resolvedIsCaller) {
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
@@ -161,7 +167,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }:
           } else {
             await signalOffer.mutateAsync({ roomId, sdp });
           }
-          setStatus("Calling…");
+          setStatus("Calling… waiting for them to answer");
         } else {
           setStatus("Waiting for the other person…");
         }
@@ -174,6 +180,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }:
 
     return () => {
       cancelled = true;
+      setMediaReady(false);
       pcRef.current?.close();
       pcRef.current = null;
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -181,7 +188,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }:
   }, [roomId, resolvedIsCaller, readyToConnect, tokenMode, accessToken]);
 
   useEffect(() => {
-    if (!webRtc || !roomData?.offerSdp || resolvedIsCaller || !pcRef.current) return;
+    if (!webRtc || !mediaReady || !roomData?.offerSdp || resolvedIsCaller || !pcRef.current) return;
     const pc = pcRef.current;
     if (pc.currentRemoteDescription) return;
     void (async () => {
@@ -196,22 +203,24 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }:
       }
       setStatus("Connected");
     })();
-  }, [roomData?.offerSdp, resolvedIsCaller, roomId, webRtc, tokenMode, accessToken]);
+  }, [roomData?.offerSdp, resolvedIsCaller, roomId, webRtc, tokenMode, accessToken, mediaReady]);
 
   useEffect(() => {
-    if (!webRtc || !roomData?.answerSdp || !resolvedIsCaller || !pcRef.current) return;
+    if (!webRtc || !mediaReady || !roomData?.answerSdp || !resolvedIsCaller || !pcRef.current) return;
     const pc = pcRef.current;
     if (pc.currentRemoteDescription) return;
     void (async () => {
       await pc.setRemoteDescription(JSON.parse(roomData.answerSdp!) as RTCSessionDescriptionInit);
       setStatus("Connected");
     })();
-  }, [roomData?.answerSdp, resolvedIsCaller, webRtc]);
+  }, [roomData?.answerSdp, resolvedIsCaller, webRtc, mediaReady]);
 
   useEffect(() => {
-    if (!webRtc || !pcRef.current || !roomData?.iceCandidates?.length) return;
+    if (!webRtc || !mediaReady || !pcRef.current || !roomData?.iceCandidates?.length) return;
     const pc = pcRef.current;
+    const selfId = resolvedIsCaller ? roomData.callerUserId : roomData.calleeUserId;
     for (const row of roomData.iceCandidates) {
+      if (row.fromUserId === selfId) continue;
       if (appliedIce.current.has(row.candidate)) continue;
       appliedIce.current.add(row.candidate);
       try {
@@ -220,7 +229,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken }:
         /* Ignore malformed candidates. */
       }
     }
-  }, [roomData?.iceCandidates, webRtc]);
+  }, [roomData?.iceCandidates, roomData?.callerUserId, roomData?.calleeUserId, resolvedIsCaller, webRtc, mediaReady]);
 
   useEffect(() => {
     if (!roomId) return;

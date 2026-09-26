@@ -20,6 +20,7 @@ import { AuthRouteGuard } from "@/components/auth-route-guard";
 import { LandingDemoConversionTracker } from "@/components/landing-demo-conversion-tracker";
 import { PlatformDisclosureFrame } from "@/components/platform-disclosure-frame";
 import { OwnerEmergencyAlarm } from "@/components/owner-emergency-alarm";
+import { IncomingVideoCallDock } from "@/components/incoming-video-call-dock";
 import { useRegisterPwaServiceWorker } from "@/hooks/use-register-pwa-service-worker";
 
 import "react-native-safe-area-context/src/SafeAreaContext";
@@ -72,6 +73,7 @@ export default function RootLayout() {
                 <AuthRouteGuard>
                   <PlatformDisclosureFrame>
                     <OwnerEmergencyAlarm />
+                    <IncomingVideoCallDock />
                     <Stack
                       screenOptions={{
                         headerShown: false,
