@@ -221,6 +221,9 @@ describe("music studio", () => {
     expect(booth).toContain("Set cue here");
     expect(booth).toContain("brandWhiteChip(colors)");
     expect(booth).toContain("LETTERING_ON_WHITE");
+    const turntable = readFileSync("components/music-studio-turntable.tsx", "utf8");
+    expect(turntable).toContain('import { LETTERING_ON_COLOR } from "@/lib/gold-lettering"');
+    expect(turntable).toContain("color: LETTERING_ON_COLOR");
     expect(booth).not.toMatch(/onCopyAToB[\s\S]{0,120}borderColor: colors\.border \}/);
 
     const hookups = readFileSync("components/music-studio-hookups.tsx", "utf8");

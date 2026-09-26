@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Animated, Easing, PanResponder, StyleSheet, Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { LETTERING_ON_COLOR } from "@/lib/gold-lettering";
 import { scratchMusicStudio } from "@/lib/music-studio-playback";
 
 type Props = {
