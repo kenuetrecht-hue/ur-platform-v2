@@ -78,7 +78,8 @@ describe("home hub", () => {
     expect(screen).toContain("withoutPageFill");
     expect(screen).toContain('backgroundColor: "transparent"');
     expect(login).toContain("BrandColorStage");
-    expect(tiles).toContain("colors.onWhite");
+    expect(tiles).toContain("LETTERING_ON_WHITE");
+    expect(tiles).toContain('backgroundColor: "#FFFFFF"');
 
     const tabs = readFileSync("app/(tabs)/_layout.tsx", "utf8");
     expect(tabs).toContain("href: null");

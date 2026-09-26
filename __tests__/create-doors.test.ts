@@ -20,6 +20,11 @@ describe("create doors", () => {
       expect(existsSync(file), file).toBe(true);
       expect(readFileSync(file, "utf8")).toContain("CreateDeskScreen");
     }
+    const desk = readFileSync("components/create-desk-screen.tsx", "utf8");
+    expect(desk).toContain("LETTERING_ON_COLOR");
+    expect(desk).toContain("LETTERING_ON_WHITE");
+    expect(desk).toContain('backgroundColor: "#FFFFFF"');
+    expect(createScreen).toContain("LETTERING_ON_WHITE");
     expect(createScreen).toContain('item.id === "ai"');
     expect(createScreen).toContain("router.push(item.route");
     expect(existsSync("app/cartoon-studio.tsx")).toBe(true);

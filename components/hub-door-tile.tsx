@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
 import { Text, View, StyleSheet } from "react-native";
-import { useColors } from "@/hooks/use-colors";
 import { AppPressable } from "@/components/app-pressable";
-import { withAlpha } from "@/lib/brand-theme";
+import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 
 type Props = {
   emoji: string;
@@ -13,8 +12,6 @@ type Props = {
 
 /** Social-style door — name only. The page you open explains itself. */
 export function HubDoorTile({ emoji, label, onPress, testID }: Props) {
-  const colors = useColors();
-
   return (
     <AppPressable
       onPress={onPress}
@@ -22,15 +19,15 @@ export function HubDoorTile({ emoji, label, onPress, testID }: Props) {
       style={[
         styles.tile,
         {
-          backgroundColor: colors.surface,
-          borderColor: withAlpha(colors.primary, 0.42),
+          backgroundColor: "#FFFFFF",
+          borderColor: "rgba(79, 70, 229, 0.42)",
         },
       ]}
     >
       <Text pointerEvents="none" style={styles.emoji}>
         {emoji}
       </Text>
-      <Text pointerEvents="none" style={[styles.label, { color: colors.onWhite }]} numberOfLines={2}>
+      <Text pointerEvents="none" style={[styles.label, { color: LETTERING_ON_WHITE }]} numberOfLines={2}>
         {label}
       </Text>
     </AppPressable>

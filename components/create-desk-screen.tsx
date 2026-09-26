@@ -6,7 +6,7 @@ import { TabScreenHeader } from "@/components/tab-screen-header";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { AppPressable } from "@/components/app-pressable";
 import { useColors } from "@/hooks/use-colors";
-import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
+import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 
 const FIELD: TextStyle = {
   backgroundColor: "#FFFFFF",
@@ -46,8 +46,7 @@ export function CreateDeskScreen({
 }
 
 export function WashCopy({ children }: { children: string }) {
-  const colors = useColors();
-  return <Text style={{ color: colors.gold, fontSize: 14, lineHeight: 20 }}>{children}</Text>;
+  return <Text style={{ color: LETTERING_ON_COLOR, fontSize: 14, lineHeight: 20 }}>{children}</Text>;
 }
 
 export function DeskField({
@@ -68,12 +67,12 @@ export function DeskField({
   const colors = useColors();
   return (
     <View style={{ gap: 6 }}>
-      <Text style={{ color: colors.gold, fontWeight: "700", fontSize: 13 }}>{label}</Text>
+      <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "700", fontSize: 13 }}>{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#6D28D9"
+        placeholderTextColor={LETTERING_ON_WHITE}
         multiline={multiline}
         maxLength={maxLength ?? (multiline ? 2000 : 80)}
         style={[FIELD, { borderColor: colors.border }, multiline ? { minHeight: 120, textAlignVertical: "top" } : null]}
@@ -115,7 +114,7 @@ export function DeskLink({ label, onPress }: { label: string; onPress: () => voi
   };
   return (
     <AppPressable onPress={onPress} style={style}>
-      <Text pointerEvents="none" style={{ color: colors.gold, fontWeight: "700", textAlign: "center" }}>
+      <Text pointerEvents="none" style={{ color: LETTERING_ON_COLOR, fontWeight: "700", textAlign: "center" }}>
         {label}
       </Text>
     </AppPressable>
@@ -123,7 +122,6 @@ export function DeskLink({ label, onPress }: { label: string; onPress: () => voi
 }
 
 export function DeskNotice({ message }: { message: string | null }) {
-  const colors = useColors();
   if (!message) return null;
-  return <Text style={{ color: colors.gold, fontSize: 13 }}>{message}</Text>;
+  return <Text style={{ color: LETTERING_ON_COLOR, fontSize: 13 }}>{message}</Text>;
 }

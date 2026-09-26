@@ -12,7 +12,7 @@ import { HubDoorGrid, HubDoorTile } from "@/components/hub-door-tile";
 import { DashboardScreen } from "@/components/dashboard-screen";
 import { CREATE_HUB_TABS } from "@/lib/home-hub";
 import { AppPressable } from "@/components/app-pressable";
-import { withAlpha } from "@/lib/brand-theme";
+import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 
 const CREATE_ICONS: Record<string, string> = {
   video: "🎬",
@@ -76,15 +76,15 @@ export default function CreateScreen() {
             <AppPressable
               onPress={() => setShowVoiceChat(true)}
               style={{
-                backgroundColor: colors.surface,
+                backgroundColor: "#FFFFFF",
                 borderRadius: 14,
                 padding: 16,
                 alignItems: "center",
                 borderWidth: 1,
-                borderColor: withAlpha(colors.secondary, 0.4),
+                borderColor: "rgba(79, 70, 229, 0.42)",
               }}
             >
-              <Text pointerEvents="none" style={{ color: colors.foreground, fontWeight: "700" }}>
+              <Text pointerEvents="none" style={{ color: LETTERING_ON_WHITE, fontWeight: "700" }}>
                 Voice AI
               </Text>
             </AppPressable>

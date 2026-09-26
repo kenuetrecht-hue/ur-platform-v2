@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Text, View } from "react-native";
 import { CreateDeskScreen, DeskLink, WashCopy } from "@/components/create-desk-screen";
-import { useColors } from "@/hooks/use-colors";
+import { LETTERING_ON_COLOR } from "@/lib/gold-lettering";
 import { CREATE_DESK_ROUTES, type CreateDraft } from "@/lib/create-desk";
 import { deleteDraft, listDrafts } from "@/lib/create-desk-store";
 
@@ -19,7 +19,6 @@ const KIND_ROUTE: Record<CreateDraft["kind"], string> = {
 };
 
 export default function CreateDraftsScreen() {
-  const colors = useColors();
   const router = useRouter();
   const [drafts, setDrafts] = useState<CreateDraft[]>([]);
 
@@ -41,8 +40,8 @@ export default function CreateDraftsScreen() {
       ) : (
         drafts.map((draft) => (
           <View key={draft.id} style={{ gap: 6 }}>
-            <Text style={{ color: colors.gold, fontWeight: "800", fontSize: 16 }}>{draft.title}</Text>
-            <Text style={{ color: colors.gold, fontSize: 12 }}>
+            <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800", fontSize: 16 }}>{draft.title}</Text>
+            <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12 }}>
               {KIND_LABEL[draft.kind]} · {new Date(draft.updatedAt).toLocaleString()}
             </Text>
             <DeskLink

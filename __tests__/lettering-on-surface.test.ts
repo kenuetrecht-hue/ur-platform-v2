@@ -47,7 +47,8 @@ describe("lettering on white vs colored backgrounds", () => {
     expect(disclosure).toContain("colors.onWhite");
 
     const tiles = readFileSync("components/hub-door-tile.tsx", "utf8");
-    expect(tiles).toContain("colors.onWhite");
+    expect(tiles).toContain("LETTERING_ON_WHITE");
+    expect(tiles).toContain('backgroundColor: "#FFFFFF"');
 
     const launch = readFileSync("components/home-launch-promo-banner.tsx", "utf8");
     expect(launch).toContain("Launch window closed");
