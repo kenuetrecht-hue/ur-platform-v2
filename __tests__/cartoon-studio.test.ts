@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
+import { readFileSync } from "fs";
 import {
   buildCartoonFrameSvg,
   CARTOON_STYLES,
@@ -276,5 +277,17 @@ describe("Cartoon Studio prepaid billing", () => {
     expect(summary.importantNotes.join(" ")).toMatch(/must be happy/i);
     expect(CARTOON_STUDIO_NO_REFUND_POLICY.toLowerCase()).toContain("no return policy");
     expect(CARTOON_STUDIO_PAY_FIRST_RULE.toLowerCase()).toContain("pay before");
+  });
+
+  it("uses gold writing on the blue page and purplish blue inside the white lesson box", () => {
+    const page = readFileSync("app/cartoon-studio.tsx", "utf8");
+    expect(page).toContain("1. Pick a plan — cheap to 4K");
+    expect(page).toMatch(/LETTERING_ON_COLOR[\s\S]{0,80}1\. Pick a plan/);
+    expect(page).toContain("4. Your yard footage — or type the lesson");
+    expect(page).toContain("Use Cartoon Me in this video");
+    expect(page).toContain("5. Pay now — then we build");
+    expect(page).toContain("onWash");
+    expect(page).toContain('backgroundColor: "#FFFFFF"');
+    expect(page).toContain("color: LETTERING_ON_WHITE");
   });
 });

@@ -1,5 +1,6 @@
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { LETTERING_ON_COLOR } from "@/lib/gold-lettering";
 import { PURCHASE_NO_REFUND_CHECKBOX_LABEL } from "@/lib/platform-terms-of-use";
 import type { DigitalPurchaseAgreement } from "@/lib/digital-purchase-agreements";
 
@@ -11,6 +12,7 @@ export function NoRefundPurchaseAck({
   title,
   rules,
   agreement,
+  onWash = false,
 }: {
   checked: boolean;
   onToggle: () => void;
@@ -18,21 +20,31 @@ export function NoRefundPurchaseAck({
   title?: string;
   rules?: string[];
   agreement?: DigitalPurchaseAgreement;
+  /** Gold lettering when this check sits on the blue page. */
+  onWash?: boolean;
 }) {
   const colors = useColors();
   const heading = title ?? agreement?.title;
   const lines = rules ?? agreement?.rules ?? [];
   const checkboxLabel = label ?? agreement?.checkboxLabel ?? PURCHASE_NO_REFUND_CHECKBOX_LABEL;
+  const ink = onWash ? LETTERING_ON_COLOR : colors.foreground;
 
   return (
     <View style={styles.wrap}>
       {heading || lines.length > 0 ? (
-        <View style={[styles.rulesBox, { borderColor: colors.primary, backgroundColor: `${colors.primary}10` }]}>
+        <View
+          style={[
+            styles.rulesBox,
+            onWash
+              ? { borderColor: "transparent", backgroundColor: "transparent" }
+              : { borderColor: colors.primary, backgroundColor: `${colors.primary}10` },
+          ]}
+        >
           {heading ? (
-            <Text style={[styles.rulesTitle, { color: colors.foreground }]}>{heading}</Text>
+            <Text style={[styles.rulesTitle, { color: ink }]}>{heading}</Text>
           ) : null}
           {lines.map((line) => (
-            <Text key={line} style={[styles.rule, { color: colors.foreground }]}>
+            <Text key={line} style={[styles.rule, { color: ink }]}>
               • {line}
             </Text>
           ))}
@@ -50,7 +62,7 @@ export function NoRefundPurchaseAck({
         >
           {checked ? <Text style={styles.mark}>✓</Text> : null}
         </View>
-        <Text style={[styles.label, { color: colors.foreground }]}>{checkboxLabel}</Text>
+        <Text style={[styles.label, { color: ink }]}>{checkboxLabel}</Text>
       </Pressable>
     </View>
   );

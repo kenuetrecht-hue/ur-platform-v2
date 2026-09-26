@@ -24,6 +24,7 @@ import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/auth-context";
 import { getClientPlatform, openWebBrowserCheckout } from "@/lib/web-checkout";
+import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import {
   CARTOON_IDEA_MAX,
   CARTOON_STUDIO_RULE,
@@ -160,7 +161,7 @@ export default function CartoonStudioScreen() {
             <CartoonCreatorPricingPanel />
           </View>
 
-          <Text style={{ color: colors.foreground, fontWeight: "800" }}>1. Pick a plan — cheap to 4K</Text>
+          <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800" }}>1. Pick a plan — cheap to 4K</Text>
           <View style={{ gap: 10 }}>
             {CARTOON_STUDIO_TIERS.map((tier) => {
               const selected = tier.id === tierId;
@@ -175,28 +176,28 @@ export default function CartoonStudioScreen() {
                     styles.plan,
                     {
                       borderColor: selected ? colors.primary : colors.border,
-                      backgroundColor: selected ? colors.surface : colors.background,
+                      backgroundColor: selected ? "#FFFFFF" : "transparent",
                     },
                   ]}
                 >
-                  <Text style={{ color: colors.primary, fontWeight: "800" }}>
+                  <Text style={{ color: selected ? colors.primary : LETTERING_ON_COLOR, fontWeight: "800" }}>
                     {tier.badge} · {tier.label}
                   </Text>
-                  <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18 }}>
+                  <Text style={{ color: selected ? LETTERING_ON_WHITE : LETTERING_ON_COLOR, fontWeight: "800", fontSize: 18 }}>
                     ${(tier.rateCentsPerSecond / 100).toFixed(2)} / sec · min ${(tier.minCents / 100).toFixed(2)}
                   </Text>
-                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>
+                  <Text style={{ color: selected ? colors.primary : LETTERING_ON_COLOR, fontWeight: "700", fontSize: 12 }}>
                     Resolution: {tier.resolutionLabel}
                   </Text>
-                  <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>{tier.usedFor}</Text>
-                  <Text style={{ color: colors.foreground, fontSize: 12, lineHeight: 18, fontWeight: "700" }}>
+                  <Text style={{ color: selected ? LETTERING_ON_WHITE : LETTERING_ON_COLOR, fontSize: 12, lineHeight: 18 }}>{tier.usedFor}</Text>
+                  <Text style={{ color: selected ? LETTERING_ON_WHITE : LETTERING_ON_COLOR, fontSize: 12, lineHeight: 18, fontWeight: "700" }}>
                     Difference: {tier.difference}
                   </Text>
-                  <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
+                  <Text style={{ color: selected ? LETTERING_ON_WHITE : LETTERING_ON_COLOR, fontSize: 12, lineHeight: 18 }}>
                     What this cost is for: {tier.costExplained}
                   </Text>
                   {tier.youGet.map((item) => (
-                    <Text key={item} style={{ color: colors.foreground, fontSize: 12 }}>
+                    <Text key={item} style={{ color: selected ? LETTERING_ON_WHITE : LETTERING_ON_COLOR, fontSize: 12 }}>
                       • {item}
                     </Text>
                   ))}
@@ -204,12 +205,12 @@ export default function CartoonStudioScreen() {
               );
             })}
           </View>
-          <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
+          <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12, lineHeight: 18 }}>
             Ladder: Draft (stills) → Lite (cheap 720p engine) → Mid (1080p fast) → Cinema (1080p quality) → Premiere 4K
             (highest resolution). You selected {selectedTier.label}. Compared with {otherTier.label}: {otherTier.difference}
           </Text>
 
-          <Text style={{ color: colors.foreground, fontWeight: "800" }}>2. Prepaid length</Text>
+          <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800" }}>2. Prepaid length</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {selectedTier.secondOptions.map((option) => (
               <Pressable
@@ -218,19 +219,19 @@ export default function CartoonStudioScreen() {
                 style={[
                   styles.chip,
                   {
-                    backgroundColor: seconds === option ? colors.primary : colors.surface,
+                    backgroundColor: seconds === option ? colors.primary : "#FFFFFF",
                     borderColor: seconds === option ? colors.primary : colors.border,
                   },
                 ]}
               >
-                <Text style={{ color: seconds === option ? "#fff" : colors.foreground, fontWeight: "700" }}>
+                <Text style={{ color: seconds === option ? "#fff" : LETTERING_ON_WHITE, fontWeight: "700" }}>
                   {option} seconds
                 </Text>
               </Pressable>
             ))}
           </View>
 
-          <Text style={{ color: colors.foreground, fontWeight: "800" }}>3. Cartoon look</Text>
+          <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800" }}>3. Cartoon look</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {CARTOON_STYLES.map((item) => (
               <Pressable
@@ -239,18 +240,18 @@ export default function CartoonStudioScreen() {
                 style={[
                   styles.chip,
                   {
-                    backgroundColor: style === item.id ? colors.primary : colors.surface,
+                    backgroundColor: style === item.id ? colors.primary : "#FFFFFF",
                     borderColor: style === item.id ? colors.primary : colors.border,
                   },
                 ]}
               >
-                <Text style={{ color: style === item.id ? "#fff" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
+                <Text style={{ color: style === item.id ? "#fff" : LETTERING_ON_WHITE, fontWeight: "700", fontSize: 12 }}>
                   {item.label}
                 </Text>
               </Pressable>
             ))}
           </View>
-          <Text style={{ color: colors.muted, fontSize: 12 }}>
+          <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12 }}>
             {CARTOON_STYLES.find((item) => item.id === style)?.hint}
           </Text>
 
@@ -372,8 +373,8 @@ export default function CartoonStudioScreen() {
             ) : null}
           </View>
 
-          <Text style={{ color: colors.foreground, fontWeight: "800" }}>4. Your yard footage — or type the lesson</Text>
-          <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
+          <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800" }}>4. Your yard footage — or type the lesson</Text>
+          <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12, lineHeight: 18 }}>
             Camera shy is fine. Film the lesson for yourself, then paste what you said. The audience sees Cartoon Me, not your real face.
           </Text>
           <TextInput
@@ -382,11 +383,11 @@ export default function CartoonStudioScreen() {
             maxLength={CARTOON_FOOTAGE_MAX}
             multiline
             placeholder="I was in the yard showing how to check a breaker. First I pointed at the panel…"
-            placeholderTextColor={colors.muted}
-            style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
+            placeholderTextColor={LETTERING_ON_WHITE}
+            style={[styles.input, { borderColor: colors.border, color: LETTERING_ON_WHITE, backgroundColor: "#FFFFFF" }]}
           />
           <Pressable onPress={() => setUseCartoonSelf((value) => !value)}>
-            <Text style={{ color: colors.primary, fontWeight: "700" }}>
+            <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "700" }}>
               {useCartoonSelf ? "☑ Use Cartoon Me in this video" : "☐ Use Cartoon Me in this video"}
             </Text>
           </Pressable>
@@ -396,21 +397,21 @@ export default function CartoonStudioScreen() {
             maxLength={CARTOON_IDEA_MAX}
             multiline
             placeholder="Or type a lesson if you did not film yet…"
-            placeholderTextColor={colors.muted}
-            style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
+            placeholderTextColor={LETTERING_ON_WHITE}
+            style={[styles.input, { borderColor: colors.border, color: LETTERING_ON_WHITE, backgroundColor: "#FFFFFF" }]}
           />
 
-          <Text style={{ color: colors.foreground, fontWeight: "800" }}>5. Pay now — then we build</Text>
+          <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800" }}>5. Pay now — then we build</Text>
           {CARTOON_STUDIO_BILLING_NOTES.map((note) => (
-            <Text key={note} style={{ color: colors.muted, fontSize: 12, lineHeight: 17 }}>
+            <Text key={note} style={{ color: LETTERING_ON_COLOR, fontSize: 12, lineHeight: 17 }}>
               • {note}
             </Text>
           ))}
           <BillingStatePicker value={stateCode} onChange={setStateCode} />
           {summary ? <PurchaseSummaryCard summary={summary} /> : (
-            <Text style={{ color: colors.muted, fontSize: 13 }}>Select your billing state to see tax, Stripe, and the exact card total.</Text>
+            <Text style={{ color: LETTERING_ON_COLOR, fontSize: 13 }}>Select your billing state to see tax, Stripe, and the exact card total.</Text>
           )}
-          <NoRefundPurchaseAck checked={acceptedNoRefund} onToggle={() => setAcceptedNoRefund((value) => !value)} />
+          <NoRefundPurchaseAck onWash checked={acceptedNoRefund} onToggle={() => setAcceptedNoRefund((value) => !value)} />
 
           {mustUseWeb ? (
             <Pressable
@@ -472,7 +473,7 @@ export default function CartoonStudioScreen() {
             <Text style={{ color: "#c0392b", fontSize: 13 }}>{purchase.error.message}</Text>
           ) : null}
           {purchase.data?.message ? (
-            <Text style={{ color: colors.muted, fontSize: 12 }}>{purchase.data.message}</Text>
+            <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12 }}>{purchase.data.message}</Text>
           ) : null}
 
           {isPlatformOwner ? (
@@ -489,7 +490,7 @@ export default function CartoonStudioScreen() {
                 })
               }
             >
-              <Text style={{ color: colors.primary, fontWeight: "700" }}>
+              <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "700" }}>
                 Owner complimentary build (no card)
               </Text>
             </Pressable>
@@ -497,20 +498,20 @@ export default function CartoonStudioScreen() {
 
           {active ? (
             <View style={{ gap: 10, marginTop: 8 }}>
-              <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18 }}>{active.title}</Text>
-              <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "700" }}>
+              <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800", fontSize: 18 }}>{active.title}</Text>
+              <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12, fontWeight: "700" }}>
                 {CARTOON_STUDIO_TIERS.find((tier) => tier.id === active.tier)?.label ?? active.tier} ·{" "}
                 {CARTOON_STUDIO_TIERS.find((tier) => tier.id === active.tier)?.resolutionLabel} · prepaid{" "}
                 {active.billedSeconds}s · used {active.totalSeconds}s
               </Text>
-              <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>{active.engineNote}</Text>
+              <Text style={{ color: LETTERING_ON_COLOR, fontSize: 13, lineHeight: 19 }}>{active.engineNote}</Text>
               {active.characterName ? (
-                <Text style={{ color: colors.primary, fontWeight: "700" }}>
+                <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "700" }}>
                   Cartoon Me: {active.characterName}
                   {active.fromFootage ? " · built from your footage notes" : ""}
                 </Text>
               ) : null}
-              <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>{active.script}</Text>
+              <Text style={{ color: LETTERING_ON_COLOR, fontSize: 13, lineHeight: 19 }}>{active.script}</Text>
               <CartoonStudioPlayer project={active} />
               <CartoonStudioEditor
                 project={active}
@@ -538,7 +539,7 @@ export default function CartoonStudioScreen() {
                 <Text style={{ color: "#c0392b", fontSize: 13 }}>{publish.error.message}</Text>
               ) : null}
               <Pressable onPress={() => router.push("/creator-dashboard")}>
-                <Text style={{ color: colors.primary, fontWeight: "700" }}>Open my creator page →</Text>
+                <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "700" }}>Open my creator page →</Text>
               </Pressable>
               <Pressable onPress={() => remove.mutate({ projectId: active.id })}>
                 <Text style={{ color: "#c0392b", fontWeight: "700" }}>Delete this cartoon</Text>
@@ -548,7 +549,7 @@ export default function CartoonStudioScreen() {
 
           {(list.data ?? []).length > 1 ? (
             <View style={{ gap: 8 }}>
-              <Text style={{ color: colors.foreground, fontWeight: "800" }}>Your cartoons</Text>
+              <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800" }}>Your cartoons</Text>
               {list.data!.map((project) => (
                 <Pressable
                   key={project.id}
