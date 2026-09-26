@@ -6,6 +6,7 @@
 
 import { randomUUID } from "crypto";
 import { TRPCError } from "@trpc/server";
+import { assertIceCandidate, assertSecureSessionDescription } from "./call-media-guard";
 import { listFriends } from "./social-service";
 import { consumeCreatorCallTicket } from "./creator-call-ticket-service";
 import {
@@ -257,7 +258,7 @@ export function setVideoOffer(roomId: string, userId: string, sdp: string): Vide
   if (userId !== room.callerUserId) {
     throw new TRPCError({ code: "FORBIDDEN", message: "Only the caller sends the offer." });
   }
-  room.offerSdp = sdp.slice(0, 50000);
+  room.offerSdp = assertSecureSessionDescription(sdp, "offer");
   rooms.set(roomId, room);
   return room;
 }
@@ -267,7 +268,7 @@ export function setVideoAnswer(roomId: string, userId: string, sdp: string): Vid
   if (userId !== room.calleeUserId) {
     throw new TRPCError({ code: "FORBIDDEN", message: "Only the callee sends the answer." });
   }
-  room.answerSdp = sdp.slice(0, 50000);
+  room.answerSdp = assertSecureSessionDescription(sdp, "answer");
   rooms.set(roomId, room);
   return room;
 }
@@ -280,7 +281,7 @@ export function addIceCandidate(params: {
   const room = requireLiveCallParticipant(params.roomId, params.userId);
   room.iceCandidates.push({
     fromUserId: params.userId,
-    candidate: params.candidate.slice(0, 8000),
+    candidate: assertIceCandidate(params.candidate),
   });
   if (room.iceCandidates.length > 50) {
     room.iceCandidates = room.iceCandidates.slice(-50);

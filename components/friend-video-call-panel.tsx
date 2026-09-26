@@ -9,6 +9,13 @@ import {
 import { useColors } from "@/hooks/use-colors";
 import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import { trpc } from "@/lib/trpc";
+import {
+  CALL_AUDIO_CONSTRAINTS,
+  CALL_AUDIO_MAX_BITRATE,
+  CALL_VIDEO_CONSTRAINTS,
+  CALL_VIDEO_MAX_BITRATE,
+  CALL_VIDEO_MAX_FRAMERATE,
+} from "@/lib/call-media-profile";
 import { UR_STUN_ICE_SERVERS } from "@/lib/webrtc-ice";
 import { openExternalCheckoutUrl } from "@/lib/web-checkout";
 
@@ -46,6 +53,53 @@ function routeRemoteAudio(el: HTMLAudioElement): void {
       if (speaker?.deviceId) return setSinkId.call(el, speaker.deviceId);
     })
     .catch(() => undefined);
+}
+
+function preferCallCodecs(pc: RTCPeerConnection): void {
+  if (typeof RTCRtpSender === "undefined" || !RTCRtpSender.getCapabilities) return;
+  const video = RTCRtpSender.getCapabilities("video");
+  const audio = RTCRtpSender.getCapabilities("audio");
+  const rank = (mime: string, kind: "video" | "audio") => {
+    if (kind === "video" && /H264/i.test(mime)) return 0;
+    if (kind === "video" && /VP8/i.test(mime)) return 1;
+    if (kind === "audio" && /opus/i.test(mime)) return 0;
+    return 5;
+  };
+  for (const transceiver of pc.getTransceivers()) {
+    const kind = transceiver.sender.track?.kind;
+    if (kind !== "video" && kind !== "audio") continue;
+    const caps = kind === "video" ? video : audio;
+    if (!caps || !transceiver.setCodecPreferences) continue;
+    const codecs = [...caps.codecs].sort((a, b) => rank(a.mimeType, kind) - rank(b.mimeType, kind));
+    try {
+      transceiver.setCodecPreferences(codecs);
+    } catch {
+      /* This browser keeps its own codec order. */
+    }
+  }
+}
+
+async function tuneCallSenders(pc: RTCPeerConnection): Promise<void> {
+  for (const sender of pc.getSenders()) {
+    const track = sender.track;
+    if (!track) continue;
+    try {
+      const params = sender.getParameters();
+      if (!params.encodings || params.encodings.length === 0) params.encodings = [{}];
+      const encoding = params.encodings[0];
+      if (!encoding) continue;
+      if (track.kind === "video") {
+        params.degradationPreference = "balanced";
+        encoding.maxBitrate = CALL_VIDEO_MAX_BITRATE;
+        encoding.maxFramerate = CALL_VIDEO_MAX_FRAMERATE;
+      } else if (track.kind === "audio") {
+        encoding.maxBitrate = CALL_AUDIO_MAX_BITRATE;
+      }
+      await sender.setParameters(params);
+    } catch {
+      /* The browser keeps its own rate if this phone rejects the cap. */
+    }
+  }
 }
 
 function canUseWebRtc(): boolean {
@@ -152,8 +206,8 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
         let stream: MediaStream;
         try {
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: "user" } },
-            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            video: CALL_VIDEO_CONSTRAINTS,
+            audio: CALL_AUDIO_CONSTRAINTS,
           });
         } catch {
           stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -164,6 +218,10 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
         }
         micTracks.forEach((track) => {
           track.enabled = true;
+          track.contentHint = "speech";
+        });
+        stream.getVideoTracks().forEach((track) => {
+          track.contentHint = "detail";
         });
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
@@ -179,9 +237,15 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
           }
         }
 
-        const pc = new RTCPeerConnection({ iceServers });
+        const pc = new RTCPeerConnection({
+          iceServers,
+          bundlePolicy: "max-bundle",
+          rtcpMuxPolicy: "require",
+          iceCandidatePoolSize: 2,
+        });
         pcRef.current = pc;
         stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+        preferCallCodecs(pc);
 
         pc.ontrack = (ev) => {
           if (!remoteStreamRef.current) remoteStreamRef.current = new MediaStream();
@@ -222,6 +286,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
         if (resolvedIsCaller) {
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
+          await tuneCallSenders(pc);
           const sdp = JSON.stringify(offer);
           if (tokenMode && accessToken) {
             await accessOffer.mutateAsync({ roomId, token: accessToken, sdp });
@@ -258,13 +323,14 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
       await pc.setRemoteDescription(JSON.parse(roomData.offerSdp!) as RTCSessionDescriptionInit);
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
+      await tuneCallSenders(pc);
       const sdp = JSON.stringify(answer);
       if (tokenMode && accessToken) {
         await accessAnswer.mutateAsync({ roomId, token: accessToken, sdp });
       } else {
         await signalAnswer.mutateAsync({ roomId, sdp });
       }
-      setStatus("Connected");
+      setStatus("Connected · encrypted");
     })();
   }, [roomData?.offerSdp, resolvedIsCaller, roomId, webRtc, tokenMode, accessToken, mediaReady]);
 
@@ -274,7 +340,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
     if (pc.currentRemoteDescription) return;
     void (async () => {
       await pc.setRemoteDescription(JSON.parse(roomData.answerSdp!) as RTCSessionDescriptionInit);
-      setStatus("Connected");
+      setStatus("Connected · encrypted");
     })();
   }, [roomData?.answerSdp, resolvedIsCaller, webRtc, mediaReady]);
 

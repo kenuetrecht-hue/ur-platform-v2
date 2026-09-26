@@ -20,6 +20,9 @@ describe("1-to-1 call UI is on website and app screens", () => {
     const panel = readFileSync("components/friend-video-call-panel.tsx", "utf8");
     const page = readFileSync("app/call/[roomId].tsx", "utf8");
     expect(panel).toContain("mediaReady");
+    expect(panel).toContain("bundlePolicy: \"max-bundle\"");
+    expect(panel).toContain("CALL_VIDEO_MAX_BITRATE");
+    expect(readFileSync("server/_core/video-call-service.ts", "utf8")).toContain("assertSecureSessionDescription");
     expect(panel).toContain("remoteAudioRef");
     expect(panel).toContain("Only this person is being called.");
     expect(panel).not.toContain("<audio");
