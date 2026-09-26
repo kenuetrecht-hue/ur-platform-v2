@@ -2,6 +2,7 @@ import { ScrollView, Text, StyleSheet, ViewStyle } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { AppPressable } from "@/components/app-pressable";
 import { withAlpha } from "@/lib/brand-theme";
+import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 
 type TabItem = {
   id: string;
@@ -15,6 +16,8 @@ type AiHubTabRowProps = {
   onSelect: (id: string) => void;
   accentColor?: string;
   style?: ViewStyle;
+  /** White catalog card: purplish-blue labels. The blue page wash keeps gold. */
+  onLight?: boolean;
 };
 
 export function AiHubTabRow({
@@ -23,6 +26,7 @@ export function AiHubTabRow({
   onSelect,
   accentColor,
   style,
+  onLight = false,
 }: AiHubTabRowProps) {
   const colors = useColors();
 
@@ -36,7 +40,7 @@ export function AiHubTabRow({
     >
       {tabs.map((tab) => {
         const active = tab.id === activeId;
-        const labelColor = colors.gold;
+        const labelColor = onLight ? LETTERING_ON_WHITE : colors.gold;
         return (
           <AppPressable
             key={tab.id}
@@ -44,10 +48,15 @@ export function AiHubTabRow({
             onPress={() => onSelect(tab.id)}
             style={[
               styles.chip,
-              {
-                backgroundColor: active ? withAlpha(colors.gold, 0.22) : withAlpha("#ffffff", 0.08),
-                borderColor: active ? (accentColor ?? colors.gold) : withAlpha(colors.gold, 0.35),
-              },
+              onLight
+                ? {
+                    backgroundColor: "#FFFFFF",
+                    borderColor: active ? LETTERING_ON_WHITE : withAlpha(LETTERING_ON_WHITE, 0.35),
+                  }
+                : {
+                    backgroundColor: active ? withAlpha(colors.gold, 0.22) : withAlpha("#ffffff", 0.08),
+                    borderColor: active ? (accentColor ?? colors.gold) : withAlpha(colors.gold, 0.35),
+                  },
             ]}
           >
             {tab.emoji ? (

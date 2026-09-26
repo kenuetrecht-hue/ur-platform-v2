@@ -224,7 +224,7 @@ export default function AIsScreen() {
               ]}
             />
 
-            <AiHubTabRow tabs={categoryTabs} activeId={categoryGroup} onSelect={selectCategory} />
+            <AiHubTabRow onLight tabs={categoryTabs} activeId={categoryGroup} onSelect={selectCategory} />
 
             {isLoading && !data ? (
               <ActivityIndicator style={{ marginVertical: 8 }} color={colors.primary} />

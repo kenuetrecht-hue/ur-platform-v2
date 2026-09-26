@@ -197,10 +197,10 @@ export default function Workspace3DScreen() {
 
           <WorkspaceWebHandoffBanner variant="general" />
 
-          <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18, paddingHorizontal: 16 }}>
+          <Text style={{ color: colors.gold, fontSize: 12, lineHeight: 18, paddingHorizontal: 16 }}>
             {UR_3D_WORKSPACE_VS_WORLD}
           </Text>
-          <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16, paddingHorizontal: 16 }}>
+          <Text style={{ color: colors.gold, fontSize: 11, lineHeight: 16, paddingHorizontal: 16 }}>
             {UR_3D_WORKSPACE_LEGAL}
           </Text>
 

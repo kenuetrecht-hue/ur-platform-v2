@@ -1,7 +1,7 @@
 import { ScrollView, Text, StyleSheet, ViewStyle } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { AppPressable } from "@/components/app-pressable";
-import type { AiCreatorCatalogEntry } from "@/lib/ai-creator-catalog";
+import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 
 type AiSpecialistPickerProps = {
   specialists: AiCreatorCatalogEntry[];
@@ -30,8 +30,8 @@ export function AiSpecialistPicker({
     >
       {specialists.map((specialist) => {
         const active = specialist.id === selectedId;
-        const nameColor = active ? "#FFFFFF" : colors.foreground;
-        const categoryColor = active ? "rgba(255,255,255,0.92)" : colors.muted;
+        const nameColor = active ? "#FFFFFF" : LETTERING_ON_WHITE;
+        const categoryColor = active ? "rgba(255,255,255,0.92)" : "#6D28D9";
 
         return (
           <AppPressable
@@ -41,7 +41,7 @@ export function AiSpecialistPicker({
             style={[
               styles.card,
               {
-                backgroundColor: active ? colors.primary : colors.surface,
+                backgroundColor: active ? colors.primary : "#FFFFFF",
                 borderColor: active ? colors.primary : colors.border,
               },
             ]}

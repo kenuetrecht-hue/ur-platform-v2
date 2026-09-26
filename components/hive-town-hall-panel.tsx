@@ -9,8 +9,10 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
+import { AppPressable } from "@/components/app-pressable";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { ChatSideComposer } from "@/components/chat-side-composer";
 import { ComposerDock } from "@/components/composer-dock";
@@ -54,6 +56,7 @@ function formatSessionTime(iso: string): string {
 
 export function HiveTownHallPanel() {
   const colors = useColors();
+  const router = useRouter();
   const overlap = useOverlapInsets({
     headerChromeHeight: LAYOUT_OVERLAP.AIS_TAB_CHROME_HEIGHT,
   });
@@ -168,9 +171,9 @@ export function HiveTownHallPanel() {
         contentContainerStyle={styles.setupContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.heroTitle, { color: colors.foreground }]}>🏛️ Hive Town Hall</Text>
-          <Text style={[styles.heroSub, { color: colors.muted }]}>
+        <View style={[styles.hero, { backgroundColor: "transparent", borderColor: "transparent" }]}>
+          <Text style={[styles.heroTitle, { color: colors.gold }]}>🏛️ Hive Town Hall</Text>
+          <Text style={[styles.heroSub, { color: colors.gold }]}>
             Schedule a meeting with multiple AI specialists at once. Free for you as platform owner —
             each question goes to the whole panel.
           </Text>
@@ -196,38 +199,48 @@ export function HiveTownHallPanel() {
         />
 
         <Text style={[styles.label, { color: colors.gold }]}>Panel</Text>
-        {PANEL_MODES.map((mode) => (
+        {PANEL_MODES.map((mode) => {
+          const selected = panelMode === mode.id;
+          return (
           <Pressable
             key={mode.id}
             onPress={() => setPanelMode(mode.id)}
             style={[
               styles.modeRow,
               {
-                borderColor: panelMode === mode.id ? colors.primary : colors.border,
-                backgroundColor: panelMode === mode.id ? `${colors.primary}18` : colors.surface,
+                borderColor: selected ? colors.primary : colors.border,
+                backgroundColor: selected ? colors.primary : colors.surface,
               },
             ]}
           >
-            <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>{mode.label}</Text>
-            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>{mode.hint}</Text>
+            <Text style={{ color: selected ? colors.gold : colors.foreground, fontWeight: "700", fontSize: 13 }}>{mode.label}</Text>
+            <Text style={{ color: selected ? colors.gold : colors.muted, fontSize: 11, marginTop: 2 }}>{mode.hint}</Text>
           </Pressable>
-        ))}
+          );
+        })}
 
         {panelPreview.isLoading ? (
           <ActivityIndicator color={colors.primary} style={{ marginVertical: 8 }} />
         ) : panel.length > 0 ? (
-          <View style={[styles.panelPreview, { borderColor: colors.border }]}>
-            <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 6 }}>
+          <View style={[styles.panelPreview, { borderColor: "transparent", backgroundColor: "transparent" }]}>
+            <Text style={{ color: colors.gold, fontSize: 11, marginBottom: 6 }}>
               {panel.length} specialist{panel.length === 1 ? "" : "s"} on panel
             </Text>
             <View style={styles.panelChips}>
               {panel.map((p) => (
-                <View key={p.id} style={[styles.chip, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <Text style={{ fontSize: 14 }}>{p.avatar}</Text>
-                  <Text style={{ color: colors.foreground, fontSize: 10, maxWidth: 72 }} numberOfLines={1}>
+                <AppPressable
+                  key={p.id}
+                  accessibilityLabel={`Open ${p.name}`}
+                  onPress={() =>
+                    router.push({ pathname: "/ai/[creatorId]", params: { creatorId: p.id } })
+                  }
+                  style={[styles.chip, { backgroundColor: "#FFFFFF", borderColor: colors.border }]}
+                >
+                  <Text pointerEvents="none" style={{ fontSize: 14 }}>{p.avatar}</Text>
+                  <Text pointerEvents="none" style={{ color: "#4F46E5", fontSize: 10, maxWidth: 72 }} numberOfLines={1}>
                     {p.name}
                   </Text>
-                </View>
+                </AppPressable>
               ))}
             </View>
           </View>
@@ -333,9 +346,9 @@ export function HiveTownHallPanel() {
         keyboardShouldPersistTaps="handled"
       >
         {panel.length > 0 ? (
-          <View style={[styles.panelPreview, { borderColor: colors.border, marginBottom: 8 }]}>
-            <Text style={{ color: colors.muted, fontSize: 11 }}>Panel</Text>
-            <Text style={{ color: colors.foreground, fontSize: 12 }}>
+          <View style={[styles.panelPreview, { borderColor: "transparent", backgroundColor: "transparent", marginBottom: 8 }]}>
+            <Text style={{ color: colors.gold, fontSize: 11 }}>Panel</Text>
+            <Text style={{ color: colors.gold, fontSize: 12 }}>
               {panel.map((p) => `${p.avatar} ${p.name}`).join(" · ")}
             </Text>
           </View>
