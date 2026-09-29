@@ -12,7 +12,7 @@ import {
   WORLD_DIRECTOR_AI_ID,
   isOwnerOpsAiId,
 } from "@/lib/owner-platform-ops-catalog";
-import { OWNER_OPS_AUTO_SPEAK_MONTHLY_CENTS } from "@/lib/owner-ops-auto-speak";
+import { OWNER_CHAT_DAILY_CAP, OWNER_CHAT_UNLIMITED_MONTHLY_CENTS } from "@/lib/owner-ops-auto-speak";
 import { buildAiChatDisclosure } from "@/lib/platform-disclosure-copy";
 import { OWNER_REMEDIATION_CONFIRM_PHRASE } from "@/lib/platform-ops-remediation-types";
 
@@ -37,7 +37,7 @@ export default function OwnerOpsAiChatPage() {
   const canChat = canAccessAdminDashboard && hasAdminPermission("chat_ops_ai");
   const voice = trpc.platformOps.ownerOpsAutoSpeak.useQuery(undefined, { enabled: canChat });
   const ownerOnly = creatorId === BUSINESS_STEWARD_AI_ID || creatorId === WORLD_DIRECTOR_AI_ID;
-  const monthlyUsd = (OWNER_OPS_AUTO_SPEAK_MONTHLY_CENTS / 100).toLocaleString("en-US");
+  const monthlyUsd = (OWNER_CHAT_UNLIMITED_MONTHLY_CENTS / 100).toLocaleString("en-US");
 
   if (!creatorId || !isOwnerOpsAiId(creatorId) || !creator) {
     return <Redirect href="/(tabs)/admin" />;
@@ -56,9 +56,10 @@ export default function OwnerOpsAiChatPage() {
   }
 
   const aiWarning = buildAiChatDisclosure(creator.name);
-  const voiceNote = voice.data?.autoSpeak
-    ? "They speak the reply, and the same words stay in this chat so you can read them again."
-    : `Replies stay on this page as text. They speak automatically once the site makes $${monthlyUsd} in a month.`;
+  const dailyLeft = voice.data?.dailyRemaining;
+  const voiceNote = voice.data?.unlimited
+    ? "They speak each reply, and the same words stay in this chat so you can read them again."
+    : `They speak each reply, and the same words stay in this chat. Until the site makes $${monthlyUsd} this month, owner chats are limited to ${voice.data?.dailyCap ?? OWNER_CHAT_DAILY_CAP} a day so the bill does not run while the site is not earning.${dailyLeft == null ? "" : ` ${dailyLeft} left today.`}`;
 
   return (
     <ScreenContainer className="bg-background" style={{ flex: 1, minHeight: 0 }}>
@@ -99,7 +100,7 @@ export default function OwnerOpsAiChatPage() {
           hideHeader
           embedded={false}
           pageScroll={false}
-          speakReplies={voice.data?.autoSpeak === true}
+          speakReplies
           toolRail="left"
           welcomeMessage={welcomeFor(creatorId, creator.name)}
         />

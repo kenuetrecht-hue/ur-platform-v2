@@ -1,5 +1,12 @@
-/** Owner ops AIs speak replies on their own after this much platform revenue in one month. */
-export const OWNER_OPS_AUTO_SPEAK_MONTHLY_CENTS = 1_000_000;
+/**
+ * While the site has not made this much in the current month, the owner's
+ * own AI chats are capped per day so constant talking does not run the API bill.
+ * At this mark the daily cap comes off.
+ */
+export const OWNER_CHAT_UNLIMITED_MONTHLY_CENTS = 500_000;
+
+/** Owner AI chats allowed per Indiana day while monthly revenue is under the mark. */
+export const OWNER_CHAT_DAILY_CAP = 20;
 
 const PLATFORM_REVENUE_TYPES = new Set([
   "live_class_ticket",
@@ -34,6 +41,6 @@ export function sumMonthPlatformRevenueCents(
   }, 0);
 }
 
-export function ownerOpsShouldAutoSpeak(revenueCents: number): boolean {
-  return revenueCents >= OWNER_OPS_AUTO_SPEAK_MONTHLY_CENTS;
+export function ownerChatIsUnlimited(revenueCents: number): boolean {
+  return revenueCents >= OWNER_CHAT_UNLIMITED_MONTHLY_CENTS;
 }

@@ -28,6 +28,7 @@ import { isOwnerOnlyPlatformAi } from "./platform-ops-ai";
 import { assertAndConsumeStewardAdBudget } from "./steward-ad-budget-service";
 import { assertAiEntitled } from "./access-entitlements";
 import { assertAndConsumeAiUsage } from "./ai-usage-meter";
+import { assertOwnerChatAllowed, recordOwnerChat } from "./owner-ops-auto-speak-service";
 import { assertAndConsumeCredit } from "./usage-credits-service";
 import {
   getUserMemoryPromptBlock,
@@ -457,6 +458,10 @@ export async function handleCreatorLearningSession(params: {
   assertMissionUseAllowed(message, params.isPlatformOwner);
   assertMessageWithinAiRole(message, params.creatorId, params.isPlatformOwner);
 
+  if (params.isPlatformOwner) {
+    assertOwnerChatAllowed();
+  }
+
   const history = sanitizeChatHistory(params.history ?? [], 20, 4000);
   const memoryBlock = await getUserMemoryPromptBlock(params.userId, params.creatorId);
   const systemPrompt = [
@@ -497,6 +502,10 @@ export async function handleCreatorLearningSession(params: {
     userMessage: message,
     aiReply: lesson,
   });
+
+  if (params.isPlatformOwner) {
+    recordOwnerChat();
+  }
 
   return { lesson, model, creatorName: def.name };
 }

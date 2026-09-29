@@ -54,6 +54,7 @@ import {
   assertAndConsumeStewardAdBudget,
   assertStewardAdBudgetAffordable,
 } from "./steward-ad-budget-service";
+import { assertOwnerChatAllowed, recordOwnerChat } from "./owner-ops-auto-speak-service";
 import type { StewardAdAction } from "../../lib/steward-ad-budget";
 import { BUSINESS_STEWARD_AI_ID } from "../../lib/steward-ad-budget";
 import {
@@ -383,6 +384,11 @@ export async function handleCreatorAiChat(params: {
       });
     }
 
+    const meterOwnerChat = params.ctx.isPlatformOwner && !params.ctx.landingDemo;
+    if (meterOwnerChat) {
+      assertOwnerChatAllowed();
+    }
+
     if (
       !params.ctx.landingDemo &&
       !params.ctx.isPlatformOwner &&
@@ -632,6 +638,10 @@ export async function handleCreatorAiChat(params: {
         extraMessageUnits,
         requireConcurrentAis: useHive && !hiveCreditUsed,
       });
+    }
+
+    if (meterOwnerChat) {
+      recordOwnerChat();
     }
 
     return {
