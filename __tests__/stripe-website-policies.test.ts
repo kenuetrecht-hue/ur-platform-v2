@@ -102,6 +102,12 @@ describe("Stripe website verification copy", () => {
     const hold = readFileSync("lib/storefront-review-hold.ts", "utf8");
     expect(hold).toContain("STOREFRONT_VISIBLE = false");
     expect(hold).toContain("Set STOREFRONT_VISIBLE to true");
+    const landing = readFileSync("components/landing/landing-checkout-cta.tsx", "utf8");
+    expect(landing).toContain("PLATFORM_PASS_CENTS.day");
+    expect(landing).toContain("/services");
+    expect(landing).toContain("/refunds");
+    expect(landing).not.toContain("purchasePlatformPass");
+    expect(shop).not.toContain("in review");
     expect(services).toContain("$7.99");
     expect(services).toContain("$15.99");
     expect(services).toContain("$24.99");

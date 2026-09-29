@@ -69,11 +69,11 @@ export default function ShopScreen() {
         <TabScreenHeader
           icon="🛍️"
           title="UR Shop"
-          subtitle="Physical merch is not for sale while the account is in review."
+          subtitle="UR Platform LLC sells digital access, not physical merchandise."
         />
         <View style={{ padding: 16, gap: 12 }}>
           <Text style={{ color: colors.foreground, fontSize: 15, lineHeight: 22 }}>
-            UR Platform LLC sells digital access. Prices, delivery, and customer service are on the public products page.
+            UR Platform LLC does not sell physical merchandise on this website. Digital products, prices, delivery, refunds, and customer service are on the public products page.
           </Text>
           <Link href="/services">
             <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 16 }}>Products and prices</Text>
