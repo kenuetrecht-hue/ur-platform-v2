@@ -11,7 +11,7 @@ import { useBillingState } from "@/hooks/use-billing-state";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { useAuth } from "@/lib/auth-context";
 import { trpc } from "@/lib/trpc";
-import { getClientPlatform } from "@/lib/web-checkout";
+import { getClientPlatform, openExternalCheckoutUrl } from "@/lib/web-checkout";
 import {
   MUSIC_STUDIO_PRICING_SUMMARY,
   type MusicStudioPlanId,
@@ -68,6 +68,10 @@ export function MusicStudioProPanel({
   const utils = trpc.useUtils();
   const purchase = trpc.musicStudio.purchase.useMutation({
     onSuccess: (result) => {
+      if ("checkoutUrl" in result && result.checkoutUrl) {
+        void openExternalCheckoutUrl(result.checkoutUrl);
+        return;
+      }
       setNote(result.message);
       void utils.musicStudio.catalog.invalidate();
       void utils.musicStudio.status.invalidate();

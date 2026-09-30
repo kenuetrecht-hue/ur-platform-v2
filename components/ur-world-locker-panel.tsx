@@ -4,7 +4,7 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { formatWorldUsd } from "@/lib/ur-world-economy";
 import { UR_WORLD_COSMETIC_LICENSE } from "@/lib/ur-world-cosmetics";
-import { getClientPlatform, openWebBrowserCheckout } from "@/lib/web-checkout";
+import { getClientPlatform, openExternalCheckoutUrl, openWebBrowserCheckout } from "@/lib/web-checkout";
 import { NoRefundPurchaseAck } from "@/components/no-refund-purchase-ack";
 import { BillingStatePicker } from "@/components/billing-state-picker";
 import { calculateCustomerCheckout } from "@/lib/stripe-checkout-pricing";
@@ -43,6 +43,10 @@ export function UrWorldLockerPanel({
 
   const buy = trpc.urWorld.buyApparel.useMutation({
     onSuccess: async (res) => {
+      if ("checkoutUrl" in res && res.checkoutUrl) {
+        void openExternalCheckoutUrl(res.checkoutUrl);
+        return;
+      }
       setNotice(res.notice);
       await utils.urWorld.snapshot.invalidate();
     },

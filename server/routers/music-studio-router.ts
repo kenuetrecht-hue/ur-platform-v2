@@ -10,6 +10,7 @@ import {
   assertSimulatedPurchaseAllowed,
   paymentChannelNote,
 } from "../_core/payment-channel-guard";
+import { redirectToLiveCheckout } from "../_core/platform-checkout";
 import {
   MUSIC_BPM_MAX,
   MUSIC_BPM_MIN,
@@ -112,7 +113,7 @@ export const musicStudioRouter = router({
         acceptedNoRefund: acceptedNoRefundSchema,
       }),
     )
-    .mutation(({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
         gate(ctx.isPlatformOwner);
         const quote = quoteMusicStudio(input.planId);
@@ -134,6 +135,18 @@ export const musicStudioRouter = router({
             paymentChannel: paymentChannelNote(quote.subtotalCents),
           };
         }
+        const liveCheckout = await redirectToLiveCheckout({
+          userId: String(ctx.user.id),
+          userEmail: ctx.user.email ?? "",
+          productName: `UR Studio ${input.planId}`,
+          description: "Music studio plan",
+          priceCents: quote.subtotalCents,
+          billingStateCode: input.stateCode,
+          successPath: "/ais?studioCheckout=success",
+          cancelPath: "/ais?studioCheckout=cancel",
+          metadata: { kind: "music_studio", planId: input.planId },
+        });
+        if (liveCheckout) return { ok: true as const, ...liveCheckout };
         assertSimulatedPurchaseAllowed();
         assertPaymentChannelAllowed({
           subtotalCents: quote.subtotalCents,

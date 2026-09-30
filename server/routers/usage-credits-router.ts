@@ -20,6 +20,7 @@ import {
 } from "../_core/usage-credits-service";
 import { getUsageDashboard } from "../_core/usage-dashboard-service";
 import { assertSimulatedPurchaseAllowed, assertPaymentChannelAllowed } from "../_core/payment-channel-guard";
+import { redirectToLiveCheckout } from "../_core/platform-checkout";
 import { billingStateSchema } from "../../lib/billing-state-schema";
 import { formatUsd, getAiPriceTier } from "../../lib/ai-subscription-pricing";
 import { getActiveAiSubscription } from "../_core/ai-subscription-service";
@@ -205,7 +206,6 @@ export const usageCreditsRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      assertSimulatedPurchaseAllowed();
       const resolved = await liveCreditQuote({
         productId: input.productId,
         period: input.period as BillingPeriod | undefined,
@@ -219,6 +219,28 @@ export const usageCreditsRouter = router({
         subtotalCents: resolved.priceCents,
         clientPlatform: input.clientPlatform,
       });
+
+      const liveCheckout = await redirectToLiveCheckout({
+        userId: String(ctx.user.id),
+        userEmail: ctx.user.email ?? "",
+        productName: resolved.label,
+        description: `${resolved.included} ${CREDIT_PRODUCTS[input.productId].unit}`,
+        priceCents: resolved.priceCents,
+        billingStateCode: input.stateCode,
+        successPath: "/ais?creditCheckout=success",
+        cancelPath: "/ais?creditCheckout=cancel",
+        metadata: {
+          kind: "usage_credit",
+          productId: input.productId,
+          period: input.period ?? "",
+          addonId: input.addonId ?? "",
+        },
+      });
+      if (liveCheckout) {
+        return { ok: true as const, ...liveCheckout };
+      }
+
+      assertSimulatedPurchaseAllowed();
 
       const lot = grantCreditLot({
         userId: String(ctx.user.id),

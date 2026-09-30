@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, secureProcedure, secureCheckoutProcedure, TRPCError } from "../_core/trpc";
 import { assertPaymentChannelAllowed, assertSimulatedPurchaseAllowed } from "../_core/payment-channel-guard";
+import { redirectToLiveCheckout } from "../_core/platform-checkout";
 import { sanitizeUserText } from "../_core/input-sanitize";
 import { acceptedNoRefundSchema, assertAndRecordNoRefundAck } from "../_core/conduct-ledger-service";
 import { getThanksStampPack } from "../../lib/ur-thanks-stamps";
@@ -40,7 +41,7 @@ export const thanksStampsRouter = router({
         billingStateCode: z.string().trim().length(2).optional(),
       }),
     )
-    .mutation(({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       const pack = getThanksStampPack(input.packId);
       if (!pack) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Unknown thanks-stamp pack." });
@@ -49,6 +50,18 @@ export const thanksStampsRouter = router({
         subtotalCents: pack.priceCents,
         clientPlatform: input.clientPlatform,
       });
+      const liveCheckout = await redirectToLiveCheckout({
+        userId: String(ctx.user.id),
+        userEmail: ctx.user.email ?? "",
+        productName: pack.label ?? "Thanks stamps",
+        description: "Social thanks stamps",
+        priceCents: pack.priceCents,
+        billingStateCode: input.billingStateCode,
+        successPath: "/profile?stamps=success",
+        cancelPath: "/profile?stamps=cancel",
+        metadata: { kind: "thanks_pack", packId: input.packId },
+      });
+      if (liveCheckout) return { ok: true as const, notice: liveCheckout.message, ...liveCheckout };
       assertSimulatedPurchaseAllowed();
       assertAndRecordNoRefundAck({
         userId: String(ctx.user.id),

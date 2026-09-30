@@ -12,7 +12,7 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useBillingState } from "@/hooks/use-billing-state";
 import { BillingStatePicker } from "@/components/billing-state-picker";
-import { getClientPlatform } from "@/lib/web-checkout";
+import { getClientPlatform, openExternalCheckoutUrl } from "@/lib/web-checkout";
 import { ChatSideComposer } from "@/components/chat-side-composer";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
@@ -63,8 +63,12 @@ export function LiveSessionRoomPanel({ sessionId, creatorName, onLeft }: LiveSes
     },
   });
   const purchaseSpeak = trpc.aiLiveSessions.purchaseSpeakAccess.useMutation({
-    onSuccess: (res) => {
-      setStatusMessage(res.message);
+    onSuccess: (data) => {
+      if (data && "checkoutUrl" in data && typeof data.checkoutUrl === "string") {
+        void openExternalCheckoutUrl(data.checkoutUrl);
+        return;
+      }
+      if ("message" in data && data.message) setStatusMessage(data.message);
       setShowSpeakCheckout(false);
       void utils.aiLiveSessions.getRoomState.invalidate({ sessionId });
     },

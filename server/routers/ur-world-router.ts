@@ -2,6 +2,7 @@ import { z } from "zod";
 import { router, secureProcedure, secureCheckoutProcedure, TRPCError } from "../_core/trpc";
 import { assertSectionEnabledForRequest } from "../_core/platform-section-guard";
 import { assertPaymentChannelAllowed, assertSimulatedPurchaseAllowed } from "../_core/payment-channel-guard";
+import { redirectToLiveCheckout } from "../_core/platform-checkout";
 import { sanitizeUserText } from "../_core/input-sanitize";
 import { acceptedNoRefundSchema, assertAndRecordNoRefundAck } from "../_core/conduct-ledger-service";
 import { requireWorldAccess } from "./conduct-router";
@@ -83,7 +84,7 @@ export const urWorldRouter = router({
         billingStateCode: z.string().trim().length(2).optional(),
       }),
     )
-    .mutation(({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       assertSectionEnabledForRequest("ur_world", ctx.isPlatformOwner);
       requireWorldAccess(ctx);
       const pack = getWalletPack(input.packId);
@@ -94,6 +95,18 @@ export const urWorldRouter = router({
         subtotalCents: pack.priceCents,
         clientPlatform: input.clientPlatform,
       });
+      const liveCheckout = await redirectToLiveCheckout({
+        userId: String(ctx.user.id),
+        userEmail: ctx.user.email ?? "",
+        productName: pack.label,
+        description: "City wallet credit",
+        priceCents: pack.priceCents,
+        billingStateCode: input.billingStateCode,
+        successPath: "/world?wallet=success",
+        cancelPath: "/world?wallet=cancel",
+        metadata: { kind: "city_wallet", packId: input.packId },
+      });
+      if (liveCheckout) return { ok: true as const, notice: liveCheckout.message, ...liveCheckout };
       assertSimulatedPurchaseAllowed();
       assertAndRecordNoRefundAck({
         userId: String(ctx.user.id),
@@ -168,7 +181,7 @@ export const urWorldRouter = router({
         billingStateCode: z.string().trim().length(2).optional(),
       }),
     )
-    .mutation(({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       assertSectionEnabledForRequest("ur_world", ctx.isPlatformOwner);
       requireWorldAccess(ctx);
       const priceCents = livePackPriceCents(input.packId);
@@ -176,6 +189,18 @@ export const urWorldRouter = router({
         subtotalCents: priceCents,
         clientPlatform: input.clientPlatform,
       });
+      const liveCheckout = await redirectToLiveCheckout({
+        userId: String(ctx.user.id),
+        userEmail: ctx.user.email ?? "",
+        productName: "City apparel",
+        description: input.packId,
+        priceCents,
+        billingStateCode: input.billingStateCode,
+        successPath: "/world?apparel=success",
+        cancelPath: "/world?apparel=cancel",
+        metadata: { kind: "apparel", packId: input.packId, displayName: ctx.user.name ?? "" },
+      });
+      if (liveCheckout) return { ok: true as const, notice: liveCheckout.message, ...liveCheckout };
       assertSimulatedPurchaseAllowed();
       assertAndRecordNoRefundAck({
         userId: String(ctx.user.id),
@@ -279,7 +304,7 @@ export const urWorldRouter = router({
         billingStateCode: z.string().trim().length(2).optional(),
       }),
     )
-    .mutation(({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       assertSectionEnabledForRequest("ur_world", ctx.isPlatformOwner);
       requireWorldAccess(ctx);
       const pack = getLookFundChipPack(input.packId);
@@ -290,6 +315,18 @@ export const urWorldRouter = router({
         subtotalCents: pack.priceCents,
         clientPlatform: input.clientPlatform,
       });
+      const liveCheckout = await redirectToLiveCheckout({
+        userId: String(ctx.user.id),
+        userEmail: ctx.user.email ?? "",
+        productName: "Look fund tip",
+        description: input.packId,
+        priceCents: pack.priceCents,
+        billingStateCode: input.billingStateCode,
+        successPath: "/world?look=success",
+        cancelPath: "/world?look=cancel",
+        metadata: { kind: "look_tip", packId: input.packId, displayName: ctx.user.name ?? "" },
+      });
+      if (liveCheckout) return { ok: true as const, notice: liveCheckout.message, ...liveCheckout };
       assertSimulatedPurchaseAllowed();
       assertAndRecordNoRefundAck({
         userId: String(ctx.user.id),

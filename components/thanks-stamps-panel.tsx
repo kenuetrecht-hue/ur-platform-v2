@@ -11,7 +11,7 @@ import {
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/auth-context";
-import { getClientPlatform, openWebBrowserCheckout } from "@/lib/web-checkout";
+import { getClientPlatform, openExternalCheckoutUrl, openWebBrowserCheckout } from "@/lib/web-checkout";
 import { NoRefundPurchaseAck } from "@/components/no-refund-purchase-ack";
 import { BillingStatePicker } from "@/components/billing-state-picker";
 import { AI_CREATOR_CATALOG } from "@/lib/ai-creator-catalog";
@@ -49,6 +49,10 @@ export function ThanksStampsPanel() {
 
   const buy = trpc.thanksStamps.buy.useMutation({
     onSuccess: async (res) => {
+      if ("checkoutUrl" in res && res.checkoutUrl) {
+        void openExternalCheckoutUrl(res.checkoutUrl);
+        return;
+      }
       setNotice(res.notice);
       await invalidate();
     },

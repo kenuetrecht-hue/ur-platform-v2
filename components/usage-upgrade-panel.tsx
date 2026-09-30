@@ -6,7 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/auth-context";
 import { useBillingState } from "@/hooks/use-billing-state";
 import { BillingStatePicker } from "@/components/billing-state-picker";
-import { getClientPlatform } from "@/lib/web-checkout";
+import { getClientPlatform, openExternalCheckoutUrl } from "@/lib/web-checkout";
 import type { CreditProductId } from "@/lib/usage-caps-catalog";
 import { buildUsageCreditPurchaseSummary } from "@/lib/pricing-disclosures";
 import { PurchaseSummaryCard } from "@/components/purchase-summary-card";
@@ -33,7 +33,11 @@ export function UsageUpgradePanel({ productId, creatorId, title, compact = false
 
   const utils = trpc.useUtils();
   const purchase = trpc.usageCredits.purchase.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if ("checkoutUrl" in data && data.checkoutUrl) {
+        void openExternalCheckoutUrl(data.checkoutUrl);
+        return;
+      }
       void options.refetch();
       void utils.usageCredits.getMyBalances.invalidate();
       void utils.usageCredits.getMyTracker.invalidate();

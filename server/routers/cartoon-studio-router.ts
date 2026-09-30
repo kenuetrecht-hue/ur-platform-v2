@@ -31,6 +31,7 @@ import {
   assertSimulatedPurchaseAllowed,
   paymentChannelNote,
 } from "../_core/payment-channel-guard";
+import { redirectToLiveCheckout } from "../_core/platform-checkout";
 import {
   createCartoonVideo,
   deleteCartoonVideo,
@@ -133,7 +134,7 @@ export const cartoonStudioRouter = router({
         acceptedNoRefund: acceptedNoRefundSchema,
       }),
     )
-    .mutation(({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       const quote = quoteCartoonCreatorPlan(input.planId);
       if (ctx.isPlatformOwner) {
         const result = purchaseCartoonCreatorPlan({
@@ -156,6 +157,22 @@ export const cartoonStudioRouter = router({
           paymentChannel: paymentChannelNote(quote.subtotalCents),
         };
       }
+      const livePlan = await redirectToLiveCheckout({
+        userId: String(ctx.user.id),
+        userEmail: ctx.user.email ?? "",
+        productName: `Cartoon Me ${input.planId}`,
+        description: "Cartoon creator plan",
+        priceCents: quote.subtotalCents,
+        billingStateCode: input.stateCode,
+        successPath: "/cartoon-studio?planCheckout=success",
+        cancelPath: "/cartoon-studio?planCheckout=cancel",
+        metadata: {
+          kind: "cartoon_plan",
+          planId: input.planId,
+          displayName: ctx.user.name ?? "Creator",
+        },
+      });
+      if (livePlan) return { ok: true as const, ...livePlan };
       assertSimulatedPurchaseAllowed();
       assertPaymentChannelAllowed({
         subtotalCents: quote.subtotalCents,
@@ -272,6 +289,26 @@ export const cartoonStudioRouter = router({
         };
       }
 
+      const liveVideo = await redirectToLiveCheckout({
+        userId: String(ctx.user.id),
+        userEmail: ctx.user.email ?? "",
+        productName: `Cartoon ${input.tierId}`,
+        description: `${input.seconds} second cartoon`,
+        priceCents: quote.subtotalCents,
+        billingStateCode: input.stateCode,
+        successPath: "/cartoon-studio?videoCheckout=success",
+        cancelPath: "/cartoon-studio?videoCheckout=cancel",
+        metadata: {
+          kind: "cartoon_video",
+          idea: input.idea,
+          style: input.style,
+          tierId: input.tierId,
+          seconds: String(input.seconds),
+          footageNotes: input.footageNotes ?? "",
+          useCartoonSelf: input.useCartoonSelf ? "1" : "0",
+        },
+      });
+      if (liveVideo) return { ok: true as const, message: liveVideo.message, ...liveVideo };
       assertSimulatedPurchaseAllowed();
       assertPaymentChannelAllowed({
         subtotalCents: quote.subtotalCents,

@@ -16,6 +16,7 @@ import { ForgeBuildToolsPanel } from "@/components/forge-build-tools-panel";
 import { ForgePlatformHandoffBanner } from "@/components/forge-platform-handoff-banner";
 import { TECH_BUILDER_ID } from "@/lib/forge-specialists";
 import { assessForgeProjectScale } from "@/lib/forge-platform-handoff";
+import { openExternalCheckoutUrl } from "@/lib/web-checkout";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 
 function formatBytes(bytes: number): string {
@@ -149,7 +150,11 @@ export function TechBuilderSandboxPanel({
       { tier: nextTier.id },
       {
         onSuccess: (checkout) => {
-          if ("mode" in checkout && checkout.mode === "checkout") {
+          if ("checkoutUrl" in checkout && checkout.checkoutUrl) {
+            void openExternalCheckoutUrl(checkout.checkoutUrl);
+            return;
+          }
+          if ("mode" in checkout && checkout.mode === "checkout" && "paymentIntentId" in checkout && checkout.paymentIntentId) {
             setCheckoutPending(checkout.paymentIntentId);
             confirmPayment.mutate({ paymentIntentId: checkout.paymentIntentId });
           }

@@ -342,6 +342,32 @@ export async function createReplayCheckout(params: {
     });
   }
   const checkout = calculateCustomerCheckout(replay.priceCents, stateCode);
+  if (ENV.isProduction) {
+    const { createPlatformCheckoutSession } = await import("./stripe-checkout-service");
+    const hosted = await createPlatformCheckoutSession({
+      userId: params.userId,
+      userEmail: params.userEmail,
+      productName: replay.title,
+      description: "Class replay",
+      priceCents: replay.priceCents,
+      billingStateCode: stateCode,
+      successPath: `/class-replay/${replay.id}?checkout=success`,
+      cancelPath: `/class-replay/${replay.id}?checkout=cancel`,
+      metadata: { kind: "class_replay", replayId: replay.id },
+    });
+    return {
+      mode: "checkout" as const,
+      checkoutUrl: hosted.checkoutUrl,
+      paymentIntentId: hosted.sessionId,
+      clientSecret: null,
+      amountCents: hosted.totalCents,
+      subtotalCents: replay.priceCents,
+      pricing: checkout,
+      currency: "USD",
+      replayId: replay.id,
+      publishableKey: "",
+    };
+  }
   const stripe = getStripeIntegration();
   const customer = await stripe.getOrCreateCustomer(
     params.userId,
@@ -371,6 +397,15 @@ export async function createReplayCheckout(params: {
     replayId: replay.id,
     publishableKey: process.env.STRIPE_PUBLISHABLE_KEY ?? "pk_test_mock",
   };
+}
+
+export function grantReplayFromStripe(params: { userId: string; replayId: string }): void {
+  if (!params.replayId) return;
+  replayEntitlements.set(replayKey(params.replayId, params.userId), {
+    replayId: params.replayId,
+    userId: params.userId,
+    grantedAt: new Date().toISOString(),
+  });
 }
 
 export async function confirmReplayPayment(params: {

@@ -11,7 +11,7 @@ import { buildClassReplayPurchaseSummary } from "@/lib/pricing-disclosures";
 import { MuxVideoPlayer } from "@/components/mux-video-player";
 import { VideoStarRating } from "@/components/video-star-rating";
 import { CREATOR_PAID_VIDEO_NO_SHARE } from "@/lib/creator-free-content-policy";
-import { PageBackButton } from "@/components/page-back-button";
+import { openExternalCheckoutUrl } from "@/lib/web-checkout";
 
 export default function ClassReplayScreen() {
   const colors = useColors();
@@ -58,6 +58,10 @@ export default function ClassReplayScreen() {
       replayId: id,
       stateCode: publicReplay.data && publicReplay.data.priceCents > 0 ? stateCode ?? undefined : undefined,
     });
+    if ("checkoutUrl" in result && result.checkoutUrl) {
+      void openExternalCheckoutUrl(result.checkoutUrl);
+      return;
+    }
     if (result.mode === "checkout" && result.paymentIntentId) {
       await confirm.mutateAsync({ paymentIntentId: result.paymentIntentId });
     }

@@ -22,6 +22,7 @@ import { buildSubscriptionPurchaseSummary, formatPurchaseReceiptMessage } from "
 import { optionalBillingStateSchema, billingStateSchema } from "../../lib/billing-state-schema";
 import type { UsStateCode } from "../../lib/us-state-taxes";
 import { assertPaymentChannelAllowed, assertSimulatedPurchaseAllowed, paymentChannelNote } from "../_core/payment-channel-guard";
+import { redirectToLiveCheckout } from "../_core/platform-checkout";
 import { liveSlotCents, liveTextPassCents } from "../_core/owner-price-catalog-service";
 import { acceptedNoRefundSchema, assertAndRecordNoRefundAck } from "../_core/conduct-ledger-service";
 import { requireWorldAccess } from "./conduct-router";
@@ -164,7 +165,6 @@ export const aiSubscriptionRouter = router({
     .mutation(async ({ input, ctx }) => {
       assertSectionEnabledForRequest("commerce", ctx.isPlatformOwner);
       requireWorldAccess(ctx);
-      assertSimulatedPurchaseAllowed();
       const userId = String(ctx.user.id);
       const email = ctx.user.email;
       if (!email) {
@@ -207,6 +207,21 @@ export const aiSubscriptionRouter = router({
           message: "You already have platform-wide AI access.",
         });
       }
+
+      const liveCheckout = await redirectToLiveCheckout({
+        userId,
+        userEmail: email,
+        productName: `Text pass ${input.plan}`,
+        description: "UR specialist text messages",
+        priceCents,
+        billingStateCode: input.stateCode,
+        successPath: "/ais?passCheckout=success",
+        cancelPath: "/ais?passCheckout=cancel",
+        metadata: { kind: "text_pass", creatorId: input.creatorId, plan: input.plan },
+      });
+      if (liveCheckout) return { ok: true as const, ...liveCheckout };
+
+      assertSimulatedPurchaseAllowed();
 
       const record = purchaseAiSubscription({
         userId,
@@ -259,7 +274,6 @@ export const aiSubscriptionRouter = router({
     .mutation(async ({ input, ctx }) => {
       assertSectionEnabledForRequest("commerce", ctx.isPlatformOwner);
       requireWorldAccess(ctx);
-      assertSimulatedPurchaseAllowed();
       const email = ctx.user.email;
       if (!email) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Account email required." });
@@ -285,6 +299,21 @@ export const aiSubscriptionRouter = router({
         acceptedNoRefund: true,
         ipAddress: ctx.ip,
       });
+
+      const liveSlot = await redirectToLiveCheckout({
+        userId: String(ctx.user.id),
+        userEmail: email,
+        productName: `Extra AI slot ${input.plan}`,
+        description: "Talk to more than one AI at a time",
+        priceCents,
+        billingStateCode: input.stateCode,
+        successPath: "/ais?slotCheckout=success",
+        cancelPath: "/ais?slotCheckout=cancel",
+        metadata: { kind: "concurrent_slot", creatorId: input.creatorId, plan: input.plan },
+      });
+      if (liveSlot) return { ok: true as const, ...liveSlot };
+
+      assertSimulatedPurchaseAllowed();
 
       const lot = purchaseExtraConcurrentSlot({
         userId: String(ctx.user.id),

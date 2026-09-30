@@ -21,6 +21,7 @@ import {
   hasAiTalkAccess,
 } from "../server/_core/ai-premium-media-service";
 import { _clearTalkTimeForTests } from "../server/_core/ai-talk-time-tracker";
+import { getCreditBalance } from "../server/_core/usage-credits-service";
 
 /** Built at runtime so GitHub push protection does not treat test fixtures as live keys. */
 const FAKE_LIVE_SECRET = ["sk", "live", "notarealkeyfortests"].join("_");
@@ -183,6 +184,26 @@ describe("Stripe webhook fulfillment", () => {
     });
     expect(result.ignored).toBe(true);
     expect(hasAiTalkAccess(userId)).toBe(false);
+  });
+
+  it("grants the $4.99 eight-minute talk plan after Stripe confirms payment", () => {
+    const userId = "stripe-voice-talk-user";
+    const result = fulfillStripeCheckoutSession({
+      id: "cs_test_voice_8",
+      payment_status: "paid",
+      metadata: {
+        kind: "usage_credit",
+        userId,
+        userEmail: "member@example.com",
+        productId: "voice-talk",
+        period: "day",
+        addonId: "",
+        billingStateCode: "IN",
+        priceCents: "499",
+      },
+    });
+    expect(result.handled).toBe(true);
+    expect(getCreditBalance(userId, "voice-talk").included).toBe(8);
   });
 });
 

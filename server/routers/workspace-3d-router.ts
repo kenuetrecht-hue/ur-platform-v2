@@ -20,6 +20,7 @@ import {
 import { optionalBillingStateSchema, billingStateSchema } from "../../lib/billing-state-schema";
 import type { UsStateCode } from "../../lib/us-state-taxes";
 import { assertPaymentChannelAllowed, assertSimulatedPurchaseAllowed, paymentChannelNote } from "../_core/payment-channel-guard";
+import { redirectToLiveCheckout } from "../_core/platform-checkout";
 import { assertSectionEnabledForRequest } from "../_core/platform-section-guard";
 import { liveWorkspaceExtraSlotCents, liveWorkspacePlanCents } from "../_core/owner-price-catalog-service";
 import { formatUsd } from "../../lib/ai-subscription-pricing";
@@ -111,7 +112,6 @@ export const workspace3dRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      assertSimulatedPurchaseAllowed();
       assertSectionEnabledForRequest("3d_workspace", ctx.isPlatformOwner);
       const userId = String(ctx.user.id);
       const email = ctx.user.email;
@@ -143,6 +143,21 @@ export const workspace3dRouter = router({
           message: "You already have platform-wide access including the 3D workspace.",
         });
       }
+
+      const liveCheckout = await redirectToLiveCheckout({
+        userId,
+        userEmail: email,
+        productName: `3D workspace ${input.plan}`,
+        description: "3D workspace plan",
+        priceCents,
+        billingStateCode: input.stateCode,
+        successPath: "/3d-workspace?checkout=success",
+        cancelPath: "/3d-workspace?checkout=cancel",
+        metadata: { kind: "workspace_plan", plan: input.plan },
+      });
+      if (liveCheckout) return { ok: true as const, ...liveCheckout };
+
+      assertSimulatedPurchaseAllowed();
 
       const record = purchaseWorkspace3dPlan({
         userId,
@@ -177,7 +192,6 @@ export const workspace3dRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      assertSimulatedPurchaseAllowed();
       const userId = String(ctx.user.id);
       const email = ctx.user.email;
       if (!email) {
@@ -196,6 +210,21 @@ export const workspace3dRouter = router({
           message: "Platform owner already has full workspace access.",
         });
       }
+
+      const liveSlot = await redirectToLiveCheckout({
+        userId,
+        userEmail: email,
+        productName: "Extra 3D workspace AI",
+        description: "One more AI in the 3D workspace",
+        priceCents: extraSlotCents,
+        billingStateCode: input.stateCode,
+        successPath: "/3d-workspace?slotCheckout=success",
+        cancelPath: "/3d-workspace?slotCheckout=cancel",
+        metadata: { kind: "workspace_slot" },
+      });
+      if (liveSlot) return { ok: true as const, ...liveSlot };
+
+      assertSimulatedPurchaseAllowed();
 
       const record = purchaseWorkspace3dExtraSlot({
         userId,

@@ -23,7 +23,7 @@ import { useBillingState } from "@/hooks/use-billing-state";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/auth-context";
-import { getClientPlatform, openWebBrowserCheckout } from "@/lib/web-checkout";
+import { getClientPlatform, openExternalCheckoutUrl, openWebBrowserCheckout } from "@/lib/web-checkout";
 import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import {
   CARTOON_IDEA_MAX,
@@ -84,7 +84,11 @@ export default function CartoonStudioScreen() {
   const list = trpc.cartoonStudio.list.useQuery();
   const purchase = trpc.cartoonStudio.purchaseAndCreate.useMutation({
     onSuccess: (result) => {
-      setActiveId(result.project.id);
+      if ("checkoutUrl" in result && result.checkoutUrl) {
+        void openExternalCheckoutUrl(result.checkoutUrl);
+        return;
+      }
+      if ("project" in result && result.project) setActiveId(result.project.id);
       setAcceptedNoRefund(false);
       void utils.cartoonStudio.list.invalidate();
     },

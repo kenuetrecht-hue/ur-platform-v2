@@ -7,6 +7,7 @@ import { getStripeIntegration } from "../stripe-integration";
 import { ENV } from "./env";
 import { SANDBOX_TIERS, upgradeSandboxTier, type SandboxTierId } from "./coder-sandbox-service";
 import { recordSandboxPayment, updateSandboxPaymentStatus } from "../db-coder-sandbox";
+import { createPlatformCheckoutSession } from "./stripe-checkout-service";
 
 const pendingUpgrades = new Map<
   string,
@@ -39,6 +40,29 @@ export async function createSandboxUpgradeCheckout(params: {
   }
 
   const amountCents = Math.round(tier.upgradePriceUsd * 100);
+  if (ENV.isProduction) {
+    const hosted = await createPlatformCheckoutSession({
+      userId: params.userId,
+      userEmail: params.userEmail,
+      productName: `TechBuilder ${params.targetTier}`,
+      description: "Sandbox storage upgrade",
+      priceCents: amountCents,
+      billingStateCode: "IN",
+      successPath: "/ais?sandboxCheckout=success",
+      cancelPath: "/ais?sandboxCheckout=cancel",
+      metadata: { kind: "coder_sandbox", tier: params.targetTier },
+    });
+    return {
+      mode: "checkout" as const,
+      checkoutUrl: hosted.checkoutUrl,
+      paymentIntentId: hosted.sessionId,
+      clientSecret: null,
+      amountCents: hosted.totalCents,
+      currency: "USD",
+      tier,
+      publishableKey: "",
+    };
+  }
   const stripe = getStripeIntegration();
   const customer = await stripe.getOrCreateCustomer(
     params.userId,

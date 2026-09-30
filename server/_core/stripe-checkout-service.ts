@@ -30,6 +30,7 @@ import {
   markCreatorCallTicketVoided,
 } from "./creator-call-ticket-service";
 import { CREATOR_VIDEO_CALL_SKU } from "../../lib/creator-call-pricing";
+import { fulfillPlatformPurchase } from "./platform-purchase-fulfillment";
 
 export const STRIPE_TALK_PACK_KIND = "talk_pack";
 export const STRIPE_CREATOR_SALE_KIND = "creator_sale";
@@ -240,6 +241,64 @@ export async function createTalkPackCheckoutSession(params: {
   };
 }
 
+function clipMeta(value: string): string {
+  return value.replace(/[\r\n]/g, " ").trim().slice(0, 450);
+}
+
+/** Hosted Stripe Checkout for any priced UR product. Card entry happens on Stripe's page. */
+export async function createPlatformCheckoutSession(params: {
+  userId: string;
+  userEmail: string;
+  productName: string;
+  description: string;
+  priceCents: number;
+  billingStateCode: string;
+  successPath: string;
+  cancelPath: string;
+  metadata: Record<string, string>;
+}): Promise<{ checkoutUrl: string; sessionId: string; totalCents: number }> {
+  assertLiveCheckoutAllowed();
+  const checkout = calculateCustomerCheckout(params.priceCents, params.billingStateCode || "IN");
+  const origin = getPlatformPublicOrigin();
+  const adapter = await getAdapter();
+  const metadata: Record<string, string> = {
+    userId: clipMeta(params.userId),
+    billingStateCode: clipMeta(params.billingStateCode || "IN"),
+    priceCents: String(params.priceCents),
+  };
+  for (const [key, value] of Object.entries(params.metadata)) {
+    if (!key || key.length > 40) continue;
+    metadata[key] = clipMeta(value);
+  }
+
+  const session = await adapter.createSession({
+    mode: "payment",
+    client_reference_id: params.userId.slice(0, 200),
+    customer_email: params.userEmail.trim() ? params.userEmail.trim().slice(0, 200) : undefined,
+    success_url: `${origin}${params.successPath.startsWith("/") ? params.successPath : `/${params.successPath}`}`,
+    cancel_url: `${origin}${params.cancelPath.startsWith("/") ? params.cancelPath : `/${params.cancelPath}`}`,
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          unit_amount: checkout.totalCents,
+          product_data: {
+            name: clipMeta(params.productName).slice(0, 120) || "UR purchase",
+            description: clipMeta(params.description).slice(0, 240),
+          },
+        },
+      },
+    ],
+    metadata,
+  });
+
+  if (!session.url) {
+    throw new InternalServiceError("UPSTREAM_FAILED", "Stripe did not return a checkout URL.");
+  }
+  return { checkoutUrl: session.url, sessionId: session.id, totalCents: checkout.totalCents };
+}
+
 export async function createCreatorMarketplaceCheckout(params: {
   buyerUserId: string;
   buyerEmail: string;
@@ -364,6 +423,12 @@ export function fulfillStripeCheckoutSession(session: {
     }
     fulfilledSessionIds.add(session.id);
     return { handled: true, ignored: false };
+  }
+
+  const platform = fulfillPlatformPurchase(metadata);
+  if (platform) {
+    if (platform.handled) fulfilledSessionIds.add(session.id);
+    return platform;
   }
 
   if (metadata.kind !== STRIPE_TALK_PACK_KIND) {

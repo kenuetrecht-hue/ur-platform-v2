@@ -23,6 +23,7 @@ import { sanitizeUserText } from "../_core/input-sanitize";
 import { assertNoAiTakeoverInMessage } from "../_core/ai-control";
 import { purchaseLandingPlatformPass } from "../_core/landing-checkout-service";
 import { assertSimulatedPurchaseAllowed } from "../_core/payment-channel-guard";
+import { redirectToLiveCheckout } from "../_core/platform-checkout";
 import { assertUserIsAgeVerified } from "../_core/age-kyc-service";
 import { AGE_KYC_REQUIRED_MESSAGE } from "../../lib/age-kyc-policy";
 import { assertTurnstileToken, getTurnstileClientConfig } from "../_core/turnstile";
@@ -243,6 +244,18 @@ export const landingRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       assertSectionEnabledForRequest("commerce", ctx.isPlatformOwner);
+      const liveCheckout = await redirectToLiveCheckout({
+        userId: String(ctx.user.id),
+        userEmail: input.email,
+        productName: "Monthly text pass",
+        description: "Every UR specialist, one at a time",
+        priceCents: LANDING_ALL_SPECIALISTS_MONTHLY_CENTS,
+        billingStateCode: input.billingStateCode,
+        successPath: "/ais?passCheckout=success",
+        cancelPath: "/services?passCheckout=cancel",
+        metadata: { kind: "platform_pass" },
+      });
+      if (liveCheckout) return liveCheckout;
       assertSimulatedPurchaseAllowed();
       await assertUserIsAgeVerified(ctx.user.id);
       const email = sanitizeUserText(input.email, 120);

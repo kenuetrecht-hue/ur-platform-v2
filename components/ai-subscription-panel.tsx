@@ -32,6 +32,7 @@ import { buildTextPassPurchaseAgreement } from "@/lib/digital-purchase-agreement
 import {
   buildAiSubscriptionWebPath,
   getClientPlatform,
+  openExternalCheckoutUrl,
   openWebBrowserCheckout,
 } from "@/lib/web-checkout";
 import { formatAllowanceHeadline } from "@/lib/pricing-transparency";
@@ -110,22 +111,24 @@ export function AiSubscriptionPanel({ creatorId, creatorName, compact = false, m
 
 
   const purchase = trpc.aiSubscription.purchase.useMutation({
-
     onSuccess: (data) => {
-
-      if (data.receipt) setLastReceipt(data.receipt);
-
+      if ("checkoutUrl" in data && data.checkoutUrl) {
+        void openExternalCheckoutUrl(data.checkoutUrl);
+        return;
+      }
+      if ("receipt" in data && data.receipt) setLastReceipt(data.receipt);
       void utils.aiSubscription.getAccess.invalidate({ creatorId });
-
       void utils.platformOps.getMyAccess.invalidate();
       void utils.usageCredits.getMyTracker.invalidate();
-
     },
-
   });
 
   const purchaseSlot = trpc.aiSubscription.purchaseConcurrentSlot.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if ("checkoutUrl" in data && data.checkoutUrl) {
+        void openExternalCheckoutUrl(data.checkoutUrl);
+        return;
+      }
       void utils.aiSubscription.getAccess.invalidate({ creatorId });
     },
   });

@@ -7,7 +7,7 @@ import { NoRefundPurchaseAck } from "@/components/no-refund-purchase-ack";
 import { PurchaseSummaryCard } from "@/components/purchase-summary-card";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/auth-context";
-import { getClientPlatform, openWebBrowserCheckout } from "@/lib/web-checkout";
+import { getClientPlatform, openExternalCheckoutUrl, openWebBrowserCheckout } from "@/lib/web-checkout";
 import {
   CARTOON_CREATOR_BILLING_NOTES,
   CARTOON_CREATOR_PAY_FIRST_RULE,
@@ -31,7 +31,11 @@ export function CartoonCreatorPricingPanel() {
 
   const catalog = trpc.cartoonStudio.creatorPlans.useQuery();
   const purchase = trpc.cartoonStudio.purchaseCreatorPlan.useMutation({
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result && "checkoutUrl" in result && result.checkoutUrl) {
+        void openExternalCheckoutUrl(result.checkoutUrl);
+        return;
+      }
       setAcceptedNoRefund(false);
       void utils.cartoonStudio.creatorPlans.invalidate();
       void utils.cartoonStudio.published.invalidate();

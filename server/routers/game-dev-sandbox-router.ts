@@ -109,6 +109,28 @@ export const gameDevSandboxRouter = router({
       const tier = GAME_SANDBOX_TIERS[input.tier as SandboxTierId];
       if (!tier.upgradePriceUsd) throw new TRPCError({ code: "BAD_REQUEST", message: "Tier not purchasable." });
       const amountCents = Math.round(tier.upgradePriceUsd * 100);
+      if (process.env.NODE_ENV === "production") {
+        const { createPlatformCheckoutSession } = await import("../_core/stripe-checkout-service");
+        const hosted = await createPlatformCheckoutSession({
+          userId: String(ctx.user.id),
+          userEmail: ctx.user.email ?? "",
+          productName: `Game Forge ${input.tier}`,
+          description: "Game sandbox upgrade",
+          priceCents: amountCents,
+          billingStateCode: "IN",
+          successPath: "/ais?gameCheckout=success",
+          cancelPath: "/ais?gameCheckout=cancel",
+          metadata: { kind: "game_sandbox", tier: input.tier },
+        });
+        return {
+          mode: "checkout" as const,
+          checkoutUrl: hosted.checkoutUrl,
+          paymentIntentId: hosted.sessionId,
+          clientSecret: null,
+          amountCents: hosted.totalCents,
+          tier,
+        };
+      }
       const stripe = getStripeIntegration();
       const customer = await stripe.getOrCreateCustomer(String(ctx.user.id), ctx.user.email ?? "", ctx.user.name ?? "UR User");
       const intent = await stripe.createPaymentIntent(customer.id, amountCents, "USD", { product: "gameforge_sandbox", tierId: input.tier });

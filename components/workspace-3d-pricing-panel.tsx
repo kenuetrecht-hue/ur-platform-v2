@@ -15,7 +15,7 @@ import { BillingStatePicker } from "@/components/billing-state-picker";
 import { useBillingState } from "@/hooks/use-billing-state";
 import { PaymentChannelNotice } from "@/components/payment-channel-notice";
 import { AiHubTabRow } from "@/components/ai-hub-tab-row";
-import { getClientPlatform, openWebBrowserCheckout } from "@/lib/web-checkout";
+import { getClientPlatform, openExternalCheckoutUrl, openWebBrowserCheckout } from "@/lib/web-checkout";
 import { PricingComingSoonPanel } from "@/components/pricing-coming-soon-panel";
 import { PUBLIC_PRICING_ENABLED } from "@/lib/pricing-visibility";
 import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
@@ -54,7 +54,11 @@ export function Workspace3dPricingPanel() {
 
   const purchase = trpc.workspace3d.purchase.useMutation({
     onSuccess: (data) => {
-      if (data.receipt) setLastReceipt(data.receipt);
+      if ("checkoutUrl" in data && data.checkoutUrl) {
+        void openExternalCheckoutUrl(data.checkoutUrl);
+        return;
+      }
+      if ("receipt" in data && data.receipt) setLastReceipt(data.receipt);
       void utils.workspace3d.getAccess.invalidate();
       void utils.usageCredits.getMyTracker.invalidate();
     },
@@ -62,7 +66,11 @@ export function Workspace3dPricingPanel() {
 
   const purchaseExtra = trpc.workspace3d.purchaseExtraSlot.useMutation({
     onSuccess: (data) => {
-      if (data.receipt) setLastReceipt(data.receipt);
+      if ("checkoutUrl" in data && data.checkoutUrl) {
+        void openExternalCheckoutUrl(data.checkoutUrl);
+        return;
+      }
+      if ("receipt" in data && data.receipt) setLastReceipt(data.receipt);
       void utils.workspace3d.getAccess.invalidate();
       void utils.usageCredits.getMyTracker.invalidate();
     },

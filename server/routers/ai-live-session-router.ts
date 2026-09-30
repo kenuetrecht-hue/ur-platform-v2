@@ -35,6 +35,8 @@ import {
   scheduleLiveSession,
 } from "../_core/ai-live-session-service";
 import { assertSectionEnabledForRequest } from "../_core/platform-section-guard";
+import { redirectToLiveCheckout } from "../_core/platform-checkout";
+import { getAiTalkPack } from "../../lib/ai-talk-pricing";
 import {
   getCreatorVideo,
   getVideoGenerationStatus,
@@ -344,8 +346,23 @@ export const aiLiveSessionRouter = router({
         clientPlatform: z.enum(["web", "native"]),
       }),
     )
-    .mutation(({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       assertSectionEnabledForRequest("commerce", ctx.isPlatformOwner);
+      if (!ctx.isPlatformOwner) {
+        const pack = getAiTalkPack("talk_5");
+        const liveCheckout = await redirectToLiveCheckout({
+          userId: String(ctx.user.id),
+          userEmail: ctx.user.email ?? "",
+          productName: pack.label,
+          description: `${pack.totalMinutes} AI talk minutes`,
+          priceCents: pack.priceCents,
+          billingStateCode: input.stateCode,
+          successPath: "/ais?talkCheckout=success",
+          cancelPath: "/ais?talkCheckout=cancel",
+          metadata: { kind: "talk_pack", packId: "talk_5" },
+        });
+        if (liveCheckout) return liveCheckout;
+      }
       return purchaseLiveSessionSpeakAccess({
         sessionId: input.sessionId,
         userId: String(ctx.user.id),
