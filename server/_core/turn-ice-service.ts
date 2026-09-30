@@ -44,8 +44,7 @@ export function _setCloudflareTurnAdapterForTests(adapter: CloudflareTurnAdapter
 
 function envValue(name: string): string {
   if (/^(EXPO_PUBLIC_|NEXT_PUBLIC_|VITE_)/.test(name)) return "";
-  const fromOverride = envOverride?.[name]?.trim() ?? "";
-  if (fromOverride) return fromOverride;
+  if (envOverride) return envOverride[name]?.trim() ?? "";
   return (typeof process !== "undefined" ? process.env[name]?.trim() : "") ?? "";
 }
 

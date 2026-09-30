@@ -18,6 +18,7 @@ import { HubDoorGrid, HubDoorTile } from "@/components/hub-door-tile";
 import { DashboardScreen } from "@/components/dashboard-screen";
 import { PROFILE_HUB_TABS } from "@/lib/home-hub";
 import { withAlpha } from "@/lib/brand-theme";
+import { AllowCallNotifications } from "@/components/allow-call-notifications";
 
 const ROLE_LABELS: Record<string, string> = {
   creator: "Content creator",
@@ -113,6 +114,7 @@ export default function ProfileScreen() {
                 </View>
               ) : null}
             </View>
+            <AllowCallNotifications />
             {myLink.data ? (
               <CustomLinkCard
                 customUrl={myLink.data.customUrl}

@@ -5,6 +5,7 @@ import {
   APP_DOWNLOAD_NO_STORE_LINE,
   APP_DOWNLOAD_PATH,
   IOS_NATIVE_NOTE,
+  IPHONE_HOME_SCREEN_NOTE,
   absoluteAndroidApkUrl,
   buildAppDownloadSummary,
   chooseInstallPlan,
@@ -99,7 +100,7 @@ describe("app website download", () => {
         standalone: false,
         canShare: true,
       }),
-    ).toBe("share");
+    ).toBe("home");
     expect(
       chooseInstallPlan({
         surface: "desktop",
@@ -118,10 +119,8 @@ describe("app website download", () => {
     expect(buttons).toContain("IPHONE_DOWNLOAD_LABEL");
     expect(buttons).toContain("ANDROID_DOWNLOAD_LABEL");
     expect(buttons).toContain("install(item.surface)");
-    expect(buttons).not.toContain("Open this site in Safari");
-    expect(buttons).not.toContain("Tap the Share button");
-    expect(buttons).not.toContain("Add to Home Screen, then Add");
+    expect(buttons).toContain("IPHONE_HOME_SCREEN_NOTE");
+    expect(IPHONE_HOME_SCREEN_NOTE).toMatch(/Add to Home Screen/);
     expect(login).not.toContain("IOS_ADD_TO_HOME_STEPS");
-    expect(login).not.toContain("Open this site in Safari");
   });
 });

@@ -5,7 +5,7 @@ import {
   APP_ALREADY_INSTALLED,
   COMPUTER_DOWNLOAD_LABEL,
   IPHONE_DOWNLOAD_LABEL,
-  IOS_NATIVE_NOTE,
+  IPHONE_HOME_SCREEN_NOTE,
   type WebInstallSurface,
 } from "@/lib/app-download";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
@@ -20,7 +20,7 @@ const SURFACES: { surface: WebInstallSurface; label: string }[] = [
 ];
 
 export function LandingAppDownloadLink({ variant }: { variant: "top" | "hero" | "footer" | "inline" }) {
-  const { install, standalone } = useAppInstallActions();
+  const { install, standalone, showIphoneSteps } = useAppInstallActions();
   const label = variant === "top" ? "Download app" : "Download the app";
   const textStyle = {
     top: styles.topText,
@@ -29,23 +29,31 @@ export function LandingAppDownloadLink({ variant }: { variant: "top" | "hero" | 
     inline: styles.inlineText,
   }[variant];
 
+  const iphoneBrowser =
+    typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
+
   return (
-    <Pressable
-      onPress={() => {
-        const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
-        const surface: WebInstallSurface = /iphone|ipad|ipod/i.test(ua)
-          ? "ios"
-          : /android/i.test(ua)
-            ? "android"
-            : "desktop";
-        void install(surface);
-      }}
-      style={styles[variant]}
-      accessibilityRole="button"
-      accessibilityLabel="Download the UR app from this website"
-    >
-      <Text style={textStyle}>{standalone ? APP_ALREADY_INSTALLED : label}</Text>
-    </Pressable>
+    <View style={styles.inlineWrap}>
+      <Pressable
+        onPress={() => {
+          const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
+          const surface: WebInstallSurface = /iphone|ipad|ipod/i.test(ua)
+            ? "ios"
+            : /android/i.test(ua)
+              ? "android"
+              : "desktop";
+          void install(surface);
+        }}
+        style={styles[variant]}
+        accessibilityRole="button"
+        accessibilityLabel="Download the UR app from this website"
+      >
+        <Text style={textStyle}>{standalone ? APP_ALREADY_INSTALLED : label}</Text>
+      </Pressable>
+      {iphoneBrowser || showIphoneSteps ? (
+        <Text style={styles.failNote}>{IPHONE_HOME_SCREEN_NOTE}</Text>
+      ) : null}
+    </View>
   );
 }
 
@@ -54,7 +62,7 @@ export function LandingDeviceDownloadLinks({
 }: {
   variant?: "hero" | "footer" | "login";
 }) {
-  const { install, standalone, failedSurface } = useAppInstallActions();
+  const { install, standalone, failedSurface, showIphoneSteps } = useAppInstallActions();
   const rowStyle =
     variant === "login" ? styles.loginRow : variant === "hero" ? styles.heroRow : styles.footerRow;
   const btnStyle = variant === "login" ? styles.login : variant === "hero" ? styles.hero : styles.footer;
@@ -76,8 +84,8 @@ export function LandingDeviceDownloadLinks({
         </Pressable>
       ))}
       {standalone ? <Text style={styles.ready}>{APP_ALREADY_INSTALLED}</Text> : null}
-      {variant === "login" && failedSurface === "ios" ? (
-        <Text style={styles.failNote}>{IOS_NATIVE_NOTE}</Text>
+      {variant === "login" && (showIphoneSteps || failedSurface === "ios") ? (
+        <Text style={styles.failNote}>{IPHONE_HOME_SCREEN_NOTE}</Text>
       ) : null}
     </View>
   );
@@ -88,7 +96,7 @@ export function PwaInstallControls({
 }: {
   preferredSurface?: WebInstallSurface | null;
 }) {
-  const { install, standalone, failedSurface } = useAppInstallActions();
+  const { install, standalone, failedSurface, showIphoneSteps } = useAppInstallActions();
   const [surface, setSurface] = useState<WebInstallSurface>(preferredSurface ?? "desktop");
 
   useEffect(() => {
@@ -121,12 +129,15 @@ export function PwaInstallControls({
           </Text>
         </Pressable>
       ))}
-      {failedSurface === "ios" ? <Text style={styles.failNote}>{IOS_NATIVE_NOTE}</Text> : null}
+      {surface === "ios" || showIphoneSteps || failedSurface === "ios" ? (
+        <Text style={styles.failNote}>{IPHONE_HOME_SCREEN_NOTE}</Text>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  inlineWrap: { gap: 8, maxWidth: 420 },
   wrap: { width: "100%", gap: 12 },
   ready: {
     color: T.success,

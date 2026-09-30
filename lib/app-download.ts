@@ -25,6 +25,9 @@ export const APP_DOWNLOAD_NO_STORE_LINE =
 export const IOS_NATIVE_NOTE =
   "Apple does not let US phones install a native iPhone app from a website file.";
 
+export const IPHONE_HOME_SCREEN_NOTE =
+  "On an iPhone, stay in Safari. Tap the Share button at the bottom, then Add to Home Screen, then Add. Open UR from that new icon. That is the iPhone app. Notifications turn on from inside that icon, not from the Safari tab.";
+
 export const ANDROID_APK_NOTE =
   "If you download the Android installer file, your phone may ask you to allow installs from this site.";
 
@@ -39,7 +42,7 @@ export type AppDownloadSummary = {
   iosNativeSideloadAvailable: false;
 };
 
-export type InstallPlan = "prompt" | "apk" | "share" | "already" | "unavailable";
+export type InstallPlan = "prompt" | "apk" | "home" | "already" | "unavailable";
 
 export function isSafeHttpDownloadUrl(raw: string): boolean {
   try {
@@ -115,8 +118,7 @@ export function chooseInstallPlan(args: {
   }
   if (args.surface === "ios") {
     if (args.hasDeferredPrompt) return "prompt";
-    if (args.canShare) return "share";
-    return "unavailable";
+    return "home";
   }
   if (args.hasDeferredPrompt) return "prompt";
   return "unavailable";

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Linking, Platform, Share } from "react-native";
+import { Linking, Platform } from "react-native";
 import {
   ANDROID_APK_FILE_NAME,
   absoluteAndroidApkUrl,
@@ -55,25 +55,12 @@ function downloadApk(apkUrl: string): void {
   void Linking.openURL(abs);
 }
 
-async function shareInstallUrl(): Promise<boolean> {
-  const url = `${pageOrigin()}/`;
-  try {
-    if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.share) {
-      await navigator.share({ title: "UR", url });
-      return true;
-    }
-    const result = await Share.share(Platform.OS === "ios" ? { url } : { message: url, url });
-    return result.action !== Share.dismissedAction;
-  } catch {
-    return false;
-  }
-}
-
 export function useAppInstallActions() {
   const apkUrl = useMemo(() => getAndroidApkDownloadUrl(), []);
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [standalone, setStandalone] = useState(false);
   const [failedSurface, setFailedSurface] = useState<WebInstallSurface | null>(null);
+  const [showIphoneSteps, setShowIphoneSteps] = useState(false);
 
   useEffect(() => {
     captureWebInstallPrompt();
@@ -121,11 +108,9 @@ export function useAppInstallActions() {
         return "apk";
       }
 
-      if (plan === "share" || (surface === "ios" && plan !== "prompt")) {
-        const shared = await shareInstallUrl();
-        if (shared) return "share";
-        setFailedSurface("ios");
-        return "unavailable";
+      if (plan === "home" || surface === "ios") {
+        setShowIphoneSteps(true);
+        return "home";
       }
 
       setFailedSurface(surface);
@@ -139,6 +124,7 @@ export function useAppInstallActions() {
     standalone,
     hasDeferredPrompt: Boolean(deferred),
     failedSurface,
+    showIphoneSteps,
     planFor,
     install,
   };

@@ -2,6 +2,7 @@ import { Link, useLocalSearchParams } from "expo-router";
 import { PageBackButton } from "@/components/page-back-button";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AllowCallNotifications } from "@/components/allow-call-notifications";
 import { PwaInstallControls } from "@/components/pwa-install-controls";
 import {
   APP_DOWNLOAD_HEADLINE,
@@ -33,6 +34,7 @@ export default function DownloadScreen() {
             <Text style={styles.storeFree}>{APP_DOWNLOAD_NO_STORE_LINE}</Text>
 
             <PwaInstallControls preferredSurface={preferredSurface} />
+            <AllowCallNotifications tone="landing" />
 
             <View style={styles.footer}>
               <Link href="/login" asChild>
