@@ -32,6 +32,7 @@ import {
 import { useAppInstallActions } from "@/hooks/use-app-install-actions";
 import { withAlpha } from "@/lib/brand-theme";
 import { STOREFRONT_VISIBLE } from "@/lib/storefront-review-hold";
+import { MemberInterestCard } from "@/components/member-interest-card";
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -68,6 +69,7 @@ export default function HomeScreen() {
         {hubTab === "start" ? (
           <>
             <HomeLaunchPromoBanner />
+            <MemberInterestCard />
             <PasswordRemindBanner />
             {needsIdPhotos ? (
               <View style={{ gap: 8 }}>

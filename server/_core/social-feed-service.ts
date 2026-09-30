@@ -26,6 +26,7 @@ import { getContentCreatorProfile } from "./partner-program-service";
 import { spendThanksStampForReaction } from "./ur-thanks-stamps-service";
 import { getVideoRating, type VideoRatingSummary } from "./video-rating-service";
 import { CREATOR_FREE_VIDEO_SHARE_NOTICE } from "../../lib/creator-free-content-policy";
+import { rankForMemberInterests } from "../../lib/content-rank";
 
 export type PostVisibility = "public" | "friends";
 export type PostKind = "text" | "photo" | "video" | "link";
@@ -468,13 +469,14 @@ export function recordPostShare(postId: string): {
   };
 }
 
-export type FeedSort = "latest" | "top" | "friends";
+export type FeedSort = "latest" | "top" | "friends" | "forYou";
 
 export function getFeed(params: {
   viewerUserId: string;
   sort?: FeedSort;
   hashtag?: string;
   authorUserId?: string;
+  interests?: string[];
   limit?: number;
   cursor?: string;
 }): { posts: FeedPostView[]; nextCursor: string | null } {
@@ -494,7 +496,14 @@ export function getFeed(params: {
     list = list.filter((p) => friendIds.has(p.authorUserId));
   }
 
-  if (params.sort === "top") {
+  if (params.sort === "forYou") {
+    list = rankForMemberInterests(
+      list,
+      params.interests ?? [],
+      (post) => `${post.body} ${post.hashtags.join(" ")} ${post.kind}`,
+      (post) => post.kind === "video" || Boolean(post.videoUrl),
+    );
+  } else if (params.sort === "top") {
     list.sort((a, b) => {
       const scoreA = (likes.get(a.id)?.size ?? 0) + (comments.filter((c) => c.postId === a.id).length * 2);
       const scoreB = (likes.get(b.id)?.size ?? 0) + (comments.filter((c) => c.postId === b.id).length * 2);
@@ -504,14 +513,18 @@ export function getFeed(params: {
     list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
-  if (params.cursor) {
+  if (params.sort !== "forYou" && params.cursor) {
     const cursorTime = new Date(params.cursor).getTime();
     list = list.filter((p) => new Date(p.createdAt).getTime() < cursorTime);
   }
 
   const slice = list.slice(0, limit).map((p) => enrichPost(p, params.viewerUserId));
   const nextCursor =
-    list.length > limit && slice.length > 0 ? slice[slice.length - 1]!.createdAt : null;
+    params.sort === "forYou"
+      ? null
+      : list.length > limit && slice.length > 0
+        ? slice[slice.length - 1]!.createdAt
+        : null;
   return { posts: slice, nextCursor };
 }
 

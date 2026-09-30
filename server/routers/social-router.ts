@@ -89,6 +89,12 @@ import {
   resolveCreatorDisplayName,
 } from "../_core/social-feed-service";
 import {
+  getMemberInterests,
+  listMemberInterestChoices,
+  saveMemberInterests,
+} from "../_core/member-interest-service";
+import { MEMBER_INTEREST_IDS } from "../../lib/member-interests";
+import {
   generateSocialPostDraft,
   getSocialPostAssistantStatus,
   purchaseSocialPostAssistant,
@@ -812,7 +818,7 @@ export const socialRouter = router({
     .input(
       z
         .object({
-          sort: z.enum(["latest", "top", "friends"]).optional(),
+          sort: z.enum(["latest", "top", "friends", "forYou"]).optional(),
           hashtag: z.string().max(64).optional(),
           authorUserId: z.string().optional(),
           limit: z.number().int().min(1).max(50).optional(),
@@ -823,15 +829,33 @@ export const socialRouter = router({
     .query(({ ctx, input }) =>
       getFeed({
         viewerUserId: socialUser(ctx),
-        sort: input?.sort ?? "latest",
+        sort: input?.sort ?? "forYou",
         hashtag: input?.hashtag,
         authorUserId: input?.authorUserId,
+        interests: getMemberInterests(socialUser(ctx)),
         limit: input?.limit,
         cursor: input?.cursor,
       }),
     ),
 
   trendingHashtags: secureProcedure("social").query(() => getTrendingHashtags()),
+
+  interestChoices: secureProcedure("social").query(() => listMemberInterestChoices()),
+
+  myInterests: secureProcedure("social").query(({ ctx }) => ({
+    interests: getMemberInterests(socialUser(ctx)),
+  })),
+
+  saveInterests: secureProcedure("social")
+    .input(
+      z.object({
+        interests: z.array(z.enum(MEMBER_INTEREST_IDS)).min(1).max(5),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await assertUserIsAgeVerified(ctx.user.id);
+      return saveMemberInterests(socialUser(ctx), input.interests);
+    }),
 
   feedStats: secureProcedure("social").query(({ ctx }) => getFeedStats(socialUser(ctx))),
 

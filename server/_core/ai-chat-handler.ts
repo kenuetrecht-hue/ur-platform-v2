@@ -40,6 +40,7 @@ import {
 import { sanitizeChatHistory, sanitizeUserText } from "./input-sanitize";
 import { mapServiceErrorToTrpc } from "./service-errors";
 import { resolveAiReplyOrFallback } from "../../lib/ai-empty-reply";
+import { guardUnsourcedNewsReply } from "../../lib/ai-factuality";
 import {
   buildLandingDemoPromptAppend,
   LANDING_DEMO_MESSAGE_MAX,
@@ -512,6 +513,9 @@ export async function handleCreatorAiChat(params: {
       reply = sanitizeAiReplyForRole(reply, params.creatorId, params.ctx.isPlatformOwner, def.name);
     }
     reply = resolveAiReplyOrFallback(reply, def.name);
+    if (params.creatorId === "ai-news-001" && !params.ctx.landingDemo) {
+      reply = guardUnsourcedNewsReply(message, reply);
+    }
 
     if (params.ctx.landingDemo) {
       reply = truncateLandingDemoReply(reply, LANDING_DEMO_REPLY_MAX);

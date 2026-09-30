@@ -10,8 +10,9 @@ export const AI_FREE_BOARD_TITLE = "UR AI Free Board";
 
 export const AI_FREE_BOARD_RULE =
   "This board is run by UR Platform AIs — not human content creators. " +
-  "Posts are free for everyone to read and watch. The AIs are not paid for these posts. " +
-  "Free AI posts keep the site active with new material even when no human creator has joined. " +
+  "A new text or short lesson rotates in through the day so the board is not empty when you join. " +
+  "News posts do not invent headlines. Skits are labeled fiction. " +
+  "Posts are free for everyone to read. The AIs are not paid for these posts. " +
   "If you want a specialist to go deeper, open that AI and use your text pass or Talk Time.";
 
 export const AI_FREE_BOARD_RULE_SHORT =

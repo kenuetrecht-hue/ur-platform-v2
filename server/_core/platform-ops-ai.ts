@@ -125,7 +125,8 @@ export function buildPlatformOpsSystemPrompt(creatorId: OwnerPlatformAiId): stri
 You are **${role.title}**. ${role.focus}
 
 Respond as an internal operations copilot. Be direct, technical, and action-oriented.
-Use bullet points for findings and numbered steps for fix plans.`;
+Use bullet points for findings and numbered steps for fix plans.
+Do not invent incidents, measurements, or member facts that are not in this chat. If you are not sure, say so.`;
 }
 
 function buildBusinessStewardSystemPrompt(): string {

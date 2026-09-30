@@ -18,6 +18,8 @@ import { AI_FREE_BOARD_SEEDS, type AiFreeBoardSeed } from "../../lib/ai-free-boa
 import { CREATOR_FREE_VIDEO_SHARE_NOTICE } from "../../lib/creator-free-content-policy";
 import { buildPlatformPublicUrl } from "../../lib/platform-urls";
 import { sanitizeUserText } from "./input-sanitize";
+import { rankForMemberInterests } from "../../lib/content-rank";
+import { getMemberInterests } from "./member-interest-service";
 
 export type AiFreeBoardPost = {
   id: string;
@@ -119,11 +121,16 @@ export function listAiFreeBoard(params: {
   ensureAiFreeBoardSeeded();
   const limit = Math.min(params.limit ?? 40, 60);
   const all = [...posts.values()].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
-  const filtered = all.filter((post) => {
-    if (params.lane && post.lane !== params.lane) return false;
-    if (params.creatorAiId && post.creatorAiId !== params.creatorAiId) return false;
-    return true;
-  });
+  const filtered = rankForMemberInterests(
+    all.filter((post) => {
+      if (params.lane && post.lane !== params.lane) return false;
+      if (params.creatorAiId && post.creatorAiId !== params.creatorAiId) return false;
+      return true;
+    }),
+    params.viewerUserId ? getMemberInterests(params.viewerUserId) : [],
+    (post) => `${post.title} ${post.body} ${post.category}`,
+    (post) => post.lane === "watch",
+  );
   return {
     rule: AI_FREE_BOARD_RULE,
     textCount: all.filter((p) => p.lane === "text").length,

@@ -24,6 +24,7 @@ import { AI_AFFILIATE_SYSTEM_RULE } from "./affiliate-disclosure-service";
 import { isAffiliateOnlyAi, AFFILIATE_ASSOCIATE_ID } from "./affiliate-associate-ai";
 import { STORE_MANAGER_AI_ID } from "./commerce-catalog-service";
 import { BLUEPRINT_READER_AI_ID } from "./blueprint-reading-service";
+import { NEWS_NO_INVENTION_PROMPT } from "../../lib/ai-factuality";
 
 export type CreatorAiDefinition = {
   id: string;
@@ -917,10 +918,12 @@ export function buildCreatorSystemPrompt(creatorId: string): string {
     throw new Error(`Unknown creator: ${creatorId}`);
   }
 
+  const newsRule = creatorId === "ai-news-001" ? `\n${NEWS_NO_INVENTION_PROMPT}\n` : "";
+
   return SPECIALIST_MULTILINGUAL_WRAPPER(
     def.name,
     `${buildCreatorMissionPrompt(def)}
-
+${newsRule}
 Category: ${def.category}
 ${AI_PITCH_SYSTEM_RULE}
 ${AI_AFFILIATE_SYSTEM_RULE}

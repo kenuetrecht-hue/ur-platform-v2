@@ -41,7 +41,7 @@ import {
   CREATOR_FREE_CONTENT_POST_NOTICE,
 } from "@/lib/creator-free-content-policy";
 
-type FeedSort = "latest" | "top" | "friends";
+type FeedSort = "forYou" | "latest" | "top" | "friends";
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -341,7 +341,7 @@ export function SocialFeedPanel({
   const { user } = useAuth();
   const myUserId = user?.id != null ? String(user.id) : "";
   const utils = trpc.useUtils();
-  const [sort, setSort] = useState<FeedSort>("latest");
+  const [sort, setSort] = useState<FeedSort>("forYou");
   const [hashtag, setHashtag] = useState<string | undefined>();
   const [body, setBody] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -397,6 +397,7 @@ export function SocialFeedPanel({
   };
 
   const sorts: { id: FeedSort; label: string }[] = [
+    { id: "forYou", label: "For you" },
     { id: "latest", label: "Latest" },
     { id: "top", label: "Top" },
     { id: "friends", label: "Friends" },

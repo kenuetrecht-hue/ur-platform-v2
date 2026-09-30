@@ -20,6 +20,8 @@ import {
   rateVideo,
 } from "../_core/video-rating-service";
 import { CREATOR_FREE_CONTENT_INCOME_RULE_SHORT } from "../../lib/creator-free-content-policy";
+import { rankForMemberInterests } from "../../lib/content-rank";
+import { getMemberInterests } from "../_core/member-interest-service";
 
 export const fairShowRouter = router({
   rules: secureProcedure("video").query(() => ({
@@ -37,11 +39,18 @@ export const fairShowRouter = router({
         .optional(),
     )
     .query(({ ctx, input }) => {
+      const viewerUserId = String(ctx.user.id);
       const page = getFairShowPage({
-        viewerUserId: String(ctx.user.id),
+        viewerUserId,
         limit: input?.limit,
         category: input?.category,
       });
+      page.items = rankForMemberInterests(
+        page.items,
+        getMemberInterests(viewerUserId),
+        (item) => `${item.title} ${item.category} ${item.why}`,
+        () => true,
+      );
       const ratings = getVideoRatingsByIds(
         page.items.map((item) => item.contentId),
         String(ctx.user.id),
