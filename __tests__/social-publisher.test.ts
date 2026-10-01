@@ -105,7 +105,27 @@ describe("social publisher routing", () => {
         body: "Hello from UR",
         platforms: ["facebook"],
       }),
-    ).rejects.toThrow(/could not send/i);
+    ).rejects.toThrow(/No social accounts linked/);
+  });
+
+  it("does not treat an Ayrshare web page as a sent post", async () => {
+    clearSocialEnv();
+    process.env.AYRSHARE_API_KEY = "test-ayrshare";
+    let postedTo = "";
+    _setSocialPublisherFetchForTests(async (url) => {
+      postedTo = String(url);
+      return new Response("<!DOCTYPE html><html><body>Bad Gateway</body></html>", {
+        status: 502,
+        headers: { "content-type": "text/html" },
+      });
+    });
+    await expect(
+      publishOwnerSocialPost({
+        body: "Hello from UR",
+        platforms: ["facebook"],
+      }),
+    ).rejects.toThrow(/web page/i);
+    expect(postedTo).toBe("https://api.ayrshare.com/api/post");
   });
 
   it("lets Post now receive the click and send to the linked accounts", () => {

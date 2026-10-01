@@ -5,6 +5,13 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { SOCIAL_NETWORK_LABEL, type SocialNetwork } from "@/lib/social-publisher-types";
 
+function plainSocialPostError(message: string): string {
+  if (/doctype|not valid json|unexpected token/i.test(message)) {
+    return "The post did not go out. Ayrshare sent a web page instead of a result. Try Post now again.";
+  }
+  return message;
+}
+
 export function OwnerSocialPublisherPanel({
   seedCaption,
   sourceJobId,
@@ -64,7 +71,7 @@ export function OwnerSocialPublisherPanel({
               : `Sent via ${result.mode}: ${ok.join(", ")}.`,
           );
         },
-        onError: (error) => setHint(error.message),
+        onError: (error) => setHint(plainSocialPostError(error.message)),
       },
     );
   };

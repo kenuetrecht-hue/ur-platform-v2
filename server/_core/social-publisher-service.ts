@@ -247,14 +247,18 @@ export async function publishOwnerSocialPost(params: {
           error: null,
         });
       }
-    } catch {
+    } catch (error) {
+      const message = ownerFacingPublisherError(
+        error,
+        "Ayrshare could not send that post. Check the key and linked accounts.",
+      );
       for (const network of ayrshareNetworks) {
         results.push({
           network,
           publisher: "ayrshare",
           ok: false,
           remoteId: null,
-          error: "Ayrshare could not send that post. Check the key and linked accounts.",
+          error: message,
         });
       }
     }
@@ -297,5 +301,14 @@ export async function publishOwnerSocialPost(params: {
     });
   }
 
-  return { results, mode: getSocialPublisherStatus().mode };
+  const status = await getSocialPublisherStatus();
+  return { results, mode: status.mode };
+}
+
+function ownerFacingPublisherError(error: unknown, fallback: string): string {
+  const raw = error instanceof Error ? error.message.replace(/\s+/g, " ").trim() : "";
+  if (!raw || raw.length > 280) return fallback;
+  if (/<|>|doctype|not valid json|unexpected token|bearer\s+/i.test(raw)) return fallback;
+  if (/^(UPSTREAM_FAILED|NOT_CONFIGURED|INVALID_API_KEY|RATE_LIMITED)$/.test(raw)) return fallback;
+  return raw;
 }
