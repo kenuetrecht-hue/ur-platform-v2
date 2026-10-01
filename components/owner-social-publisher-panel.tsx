@@ -68,13 +68,24 @@ async function uploadSocialFile(file: Blob, fileName: string): Promise<AttachedP
 export function OwnerSocialPublisherPanel({
   seedCaption,
   sourceJobId,
+  variant = "owner",
 }: {
   seedCaption?: string;
   sourceJobId?: string;
+  /** Creators post through the same linked UR social accounts. */
+  variant?: "owner" | "creator";
 }) {
   const colors = useColors();
-  const status = trpc.platformOps.getSocialPublisherStatus.useQuery();
-  const publish = trpc.platformOps.publishOwnerSocialPost.useMutation();
+  const ownerStatus = trpc.platformOps.getSocialPublisherStatus.useQuery(undefined, {
+    enabled: variant === "owner",
+  });
+  const creatorStatus = trpc.partnerDashboard.getCreatorSocialStatus.useQuery(undefined, {
+    enabled: variant === "creator",
+  });
+  const status = variant === "creator" ? creatorStatus : ownerStatus;
+  const ownerPublish = trpc.platformOps.publishOwnerSocialPost.useMutation();
+  const creatorPublish = trpc.partnerDashboard.publishCreatorSocialPost.useMutation();
+  const publish = variant === "creator" ? creatorPublish : ownerPublish;
   const [body, setBody] = useState(seedCaption ?? "");
   const [picked, setPicked] = useState<SocialNetwork[]>([]);
   const [hint, setHint] = useState<string | null>(null);
@@ -117,7 +128,7 @@ export function OwnerSocialPublisherPanel({
         platforms: targets,
         mediaUrls: attachment ? [attachment.url] : undefined,
         mediaKind: attachment?.kind,
-        sourceJobId,
+        ...(variant === "owner" ? { sourceJobId } : {}),
       },
       {
         onSuccess: (result) => {
@@ -191,7 +202,9 @@ export function OwnerSocialPublisherPanel({
         Post to your social accounts
       </Text>
       <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
-        A picture or video is sent with the caption. A PDF is sent as a link on Facebook, X, and LinkedIn.
+        {variant === "creator"
+          ? "Add a picture, video, or PDF, then Post now. It goes to the social accounts linked on UR Platform. A picture also reaches Instagram. A video also reaches TikTok and YouTube. A PDF goes out as a link on Facebook, X, and LinkedIn."
+          : "A picture or video is sent with the caption. A PDF is sent as a link on Facebook, X, and LinkedIn."}
       </Text>
       <Text style={{ color: colors.muted, fontSize: 12 }}>
         Ayrshare: {status.data?.ayrshareConfigured ? "key on" : "add AYRSHARE_API_KEY"}
@@ -228,34 +241,53 @@ export function OwnerSocialPublisherPanel({
         </AppPressable>
       ))}
       {Platform.OS === "web" ? (
-        <input
-          ref={fileInputRef as never}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,video/webm,application/pdf"
-          hidden
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) takeFile(file, file.name);
-            event.target.value = "";
+        <label
+          data-testid="owner-social-add-file"
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            borderRadius: 12,
+            padding: "10px 12px",
+            border: `1px solid ${colors.primary}`,
+            cursor: uploading || publish.isPending ? "default" : "pointer",
+            opacity: uploading || publish.isPending ? 0.6 : 1,
+            textAlign: "center",
           }}
-        />
-      ) : null}
-      <AppPressable
-        testID="owner-social-add-file"
-        disabled={uploading || publish.isPending}
-        onPress={() => void pickFile()}
-        style={{
-          borderRadius: 12,
-          paddingVertical: 10,
-          alignItems: "center",
-          borderWidth: 1,
-          borderColor: colors.primary,
-        }}
-      >
-        <Text pointerEvents="none" style={{ color: colors.primary, fontWeight: "800", fontSize: 14 }}>
-          {uploading ? "Uploading…" : attachment ? "Replace picture, video, or PDF" : "Add a picture, video, or PDF"}
-        </Text>
-      </AppPressable>
+        >
+          <input
+            ref={fileInputRef as never}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,video/webm,application/pdf"
+            disabled={uploading || publish.isPending}
+            style={{ display: "none" }}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) takeFile(file, file.name);
+              event.target.value = "";
+            }}
+          />
+          <span style={{ color: colors.primary, fontWeight: 800, fontSize: 14, pointerEvents: "none" }}>
+            {uploading ? "Uploading…" : attachment ? "Replace picture, video, or PDF" : "Add a picture, video, or PDF"}
+          </span>
+        </label>
+      ) : (
+        <AppPressable
+          testID="owner-social-add-file"
+          disabled={uploading || publish.isPending}
+          onPress={() => void pickFile()}
+          style={{
+            borderRadius: 12,
+            paddingVertical: 10,
+            alignItems: "center",
+            borderWidth: 1,
+            borderColor: colors.primary,
+          }}
+        >
+          <Text pointerEvents="none" style={{ color: colors.primary, fontWeight: "800", fontSize: 14 }}>
+            {uploading ? "Uploading…" : attachment ? "Replace picture, video, or PDF" : "Add a picture, video, or PDF"}
+          </Text>
+        </AppPressable>
+      )}
       {attachment ? (
         <Text style={{ color: colors.foreground, fontSize: 13 }}>
           {attachment.name}{" "}

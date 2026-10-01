@@ -133,6 +133,12 @@ describe("social publisher routing", () => {
     expect(panel).toContain("AppPressable");
     expect(panel).toContain('testID="owner-social-post-now"');
     expect(panel).toContain('testID="owner-social-add-file"');
+    expect(panel).toContain('variant === "creator"');
+    const dashboard = readFileSync("components/content-creator-dashboard-panel.tsx", "utf8");
+    expect(dashboard).toContain("CreatorGearPanel");
+    expect(dashboard).toContain('variant="creator"');
+    const upload = readFileSync("server/_core/owner-social-upload-route.ts", "utf8");
+    expect(upload).toContain("getContentCreatorProfile");
     expect(panel).toContain("pointerEvents=\"none\"");
     expect(panel).not.toContain("<Pressable");
     expect(panel).toContain("readyNetworks.map");

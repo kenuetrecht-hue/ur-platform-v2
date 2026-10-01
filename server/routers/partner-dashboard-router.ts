@@ -80,6 +80,36 @@ import {
   purchaseAiVideoTalkPack,
   purchaseCreatorVoicePack,
 } from "../_core/ai-premium-media-service";
+import { publishOwnerSocialPost, getSocialPublisherStatus } from "../_core/social-publisher-service";
+import { SOCIAL_NETWORKS } from "../../lib/social-publisher-types";
+
+const CREATOR_SOCIAL_DAILY_CAP = 8;
+const creatorSocialPosts = new Map<string, { day: string; count: number }>();
+
+function creatorSocialDay(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Indiana/Indianapolis" });
+}
+
+function assertCreatorCanPostSocial(userId: string): void {
+  const day = creatorSocialDay();
+  const row = creatorSocialPosts.get(userId);
+  if (row && row.day === day && row.count >= CREATOR_SOCIAL_DAILY_CAP) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: "You can send 8 social posts a day. Try again tomorrow.",
+    });
+  }
+}
+
+function recordCreatorSocialPost(userId: string): void {
+  const day = creatorSocialDay();
+  const row = creatorSocialPosts.get(userId);
+  if (!row || row.day !== day) {
+    creatorSocialPosts.set(userId, { day, count: 1 });
+    return;
+  }
+  row.count += 1;
+}
 
 export const partnerDashboardRouter = router({
   resolveLink: publicProcedure
@@ -189,6 +219,40 @@ export const partnerDashboardRouter = router({
       watch: getMyFairShowAnalytics(userId),
     };
   }),
+
+  getCreatorSocialStatus: secureProcedure("aiCreators").query(({ ctx }) => {
+    const dash = getCreatorDashboard(String(ctx.user.id));
+    if (!dash.enrolled && !ctx.isPlatformOwner) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Become a content creator before posting to social accounts." });
+    }
+    return getSocialPublisherStatus();
+  }),
+
+  publishCreatorSocialPost: secureProcedure("aiCreators")
+    .input(
+      z.object({
+        body: z.string().max(2200).trim(),
+        platforms: z.array(z.enum(SOCIAL_NETWORKS)).min(1).max(6),
+        mediaUrls: z.array(z.string().trim().url().max(500)).max(4).optional(),
+        mediaKind: z.enum(["image", "video", "file"]).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = String(ctx.user.id);
+      const dash = getCreatorDashboard(userId);
+      if (!dash.enrolled && !ctx.isPlatformOwner) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Become a content creator before posting to social accounts." });
+      }
+      assertCreatorCanPostSocial(userId);
+      const result = await publishOwnerSocialPost({
+        body: input.body,
+        platforms: input.platforms,
+        mediaUrls: input.mediaUrls,
+        mediaKind: input.mediaKind,
+      });
+      recordCreatorSocialPost(userId);
+      return result;
+    }),
 
   setVideoCallPrice: secureProcedure("commerce")
     .input(

@@ -4,6 +4,7 @@ import path from "path";
 import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { isPlatformOwner } from "./owner-auth";
+import { getContentCreatorProfile } from "./partner-program-service";
 import { sdk } from "./sdk";
 import { uploadViaAyrshare } from "./ayrshare-client";
 
@@ -83,8 +84,9 @@ async function handleOwnerSocialUpload(req: Request, res: Response): Promise<voi
     } catch {
       user = null;
     }
-    if (!user || !isPlatformOwner(user)) {
-      res.status(403).json({ error: { message: "Only the platform owner can upload a post file." } });
+    const creator = user ? getContentCreatorProfile(String(user.id)) : null;
+    if (!user || (!isPlatformOwner(user) && !creator)) {
+      res.status(403).json({ error: { message: "Only a content creator or the platform owner can upload a post file." } });
       return;
     }
     if (!storedPath) {

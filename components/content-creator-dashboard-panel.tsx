@@ -30,6 +30,8 @@ import { CreatorPayoutSetupPanel } from "@/components/creator-payout-setup-panel
 import { CreatorVideoCallPricePanel } from "@/components/creator-video-call-price-panel";
 import { CreatorStorePanel } from "@/components/creator-store-panel";
 import { CreatorSocialShareBar, CreatorPromoCard } from "@/components/creator-social-share";
+import { OwnerSocialPublisherPanel } from "@/components/owner-social-publisher-panel";
+import { CreatorGearPanel } from "@/components/creator-gear-panel";
 import { CreatorContentMatePanel } from "@/components/creator-contentmate-panel";
 import { CreatorContentProtectionPanel } from "@/components/creator-content-protection-panel";
 import { MuxVideoUploader } from "@/components/mux-video-uploader";
@@ -1032,6 +1034,8 @@ export function ContentCreatorDashboardPanel() {
 
         {tab === "promote" ? (
           <>
+            <CreatorGearPanel />
+            <OwnerSocialPublisherPanel variant="creator" />
             {promo ? (
               <CreatorPromoCard
                 shareText={promo.shareText}
