@@ -226,25 +226,38 @@ export async function publishOwnerSocialPost(params: {
   const results: PublishedNetworkResult[] = [];
 
   const ayrshareNetworks = byPublisher.get("ayrshare") ?? [];
-  if (ayrshareNetworks.length > 0) {
+  const textNetworks = ayrshareNetworks.filter((network) => !AYRSHARE_MEDIA_NETWORKS.has(network));
+  for (const network of ayrshareNetworks) {
+    if (!AYRSHARE_MEDIA_NETWORKS.has(network)) continue;
+    results.push({
+      network,
+      publisher: "ayrshare",
+      ok: false,
+      remoteId: null,
+      error: "This account needs a picture or video, so the written caption was not sent there.",
+    });
+  }
+  if (textNetworks.length > 0) {
     try {
       const posted = await postViaAyrshare({
         body,
-        platforms: ayrshareNetworks,
+        platforms: textNetworks,
         scheduledAt: params.scheduledAt,
         fetchImpl,
       });
-      for (const network of ayrshareNetworks) {
-        recentFingerprints.set(fingerprint(network, body), {
-          at: Date.now(),
-          publisher: "ayrshare",
-        });
+      for (const row of posted.networks) {
+        if (row.ok) {
+          recentFingerprints.set(fingerprint(row.network, body), {
+            at: Date.now(),
+            publisher: "ayrshare",
+          });
+        }
         results.push({
-          network,
+          network: row.network,
           publisher: "ayrshare",
-          ok: true,
-          remoteId: posted.id,
-          error: null,
+          ok: row.ok,
+          remoteId: row.remoteId,
+          error: row.error,
         });
       }
     } catch (error) {
@@ -252,7 +265,7 @@ export async function publishOwnerSocialPost(params: {
         error,
         "Ayrshare could not send that post. Check the key and linked accounts.",
       );
-      for (const network of ayrshareNetworks) {
+      for (const network of textNetworks) {
         results.push({
           network,
           publisher: "ayrshare",
@@ -301,8 +314,20 @@ export async function publishOwnerSocialPost(params: {
     });
   }
 
-  const status = await getSocialPublisherStatus();
-  return { results, mode: status.mode };
+  return { results, mode: publisherModeFromRoutes() };
+}
+
+const AYRSHARE_MEDIA_NETWORKS = new Set<SocialNetwork>(["instagram", "tiktok", "youtube"]);
+
+function publisherModeFromRoutes(): SocialPublisherStatus["mode"] {
+  const readyPublishers = new Set(
+    SOCIAL_NETWORKS.map(resolveNetworkRoute)
+      .filter((network) => network.ready && network.publisher)
+      .map((network) => network.publisher as SocialPublisherId),
+  );
+  if (readyPublishers.size === 0) return "none";
+  if (readyPublishers.size === 2) return "split";
+  return readyPublishers.has("ayrshare") ? "ayrshare" : "buffer";
 }
 
 function ownerFacingPublisherError(error: unknown, fallback: string): string {

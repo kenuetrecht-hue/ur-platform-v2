@@ -137,6 +137,28 @@ describe("social publisher routing", () => {
     expect(panel).toContain("readyNetworks.map");
   });
 
+  it("sends a written caption to text accounts and explains picture accounts", async () => {
+    clearSocialEnv();
+    process.env.AYRSHARE_API_KEY = "test-ayrshare";
+    let platforms: string[] = [];
+    _setSocialPublisherFetchForTests(async (_url, init) => {
+      const payload = JSON.parse(String(init?.body ?? "{}")) as { platforms?: string[] };
+      platforms = payload.platforms ?? [];
+      return new Response(JSON.stringify({ id: "post-1", status: "success" }), { status: 200 });
+    });
+    const result = await publishOwnerSocialPost({
+      body: "Hello from UR",
+      platforms: ["facebook", "instagram", "twitter"],
+    });
+    expect(platforms).toEqual(["facebook", "twitter"]);
+    expect(result.results.find((row) => row.network === "facebook")?.ok).toBe(true);
+    expect(result.results.find((row) => row.network === "twitter")?.ok).toBe(true);
+    expect(result.results.find((row) => row.network === "instagram")).toMatchObject({
+      ok: false,
+    });
+    expect(result.results.find((row) => row.network === "instagram")?.error).toMatch(/picture or video/i);
+  });
+
   it("blocks the same caption on the same network twice in 24 hours", async () => {
     clearSocialEnv();
     process.env.AYRSHARE_API_KEY = "test-ayrshare";

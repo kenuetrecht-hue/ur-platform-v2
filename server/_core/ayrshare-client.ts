@@ -10,6 +10,13 @@ import { getAyrshareApiKey, getAyrshareProfileKey } from "./secrets";
 import { InternalServiceError } from "./service-errors";
 import type { SocialNetwork } from "../../lib/social-publisher-types";
 
+export type AyrshareNetworkPost = {
+  network: SocialNetwork;
+  ok: boolean;
+  remoteId: string | null;
+  error: string | null;
+};
+
 const AYRSHARE_API_ROOT = "https://api.ayrshare.com/api";
 const AYRSHARE_TIMEOUT_MS = 18_000;
 
@@ -128,7 +135,7 @@ export async function postViaAyrshare(params: {
   platforms: SocialNetwork[];
   scheduledAt?: Date;
   fetchImpl?: typeof fetch;
-}): Promise<{ id: string | null }> {
+}): Promise<{ id: string | null; networks: AyrshareNetworkPost[] }> {
   const apiKey = getAyrshareApiKey();
   if (!apiKey) throw new InternalServiceError("NOT_CONFIGURED", FAILED_REPLY);
 
@@ -159,20 +166,60 @@ export async function postViaAyrshare(params: {
   }
 
   const json = await readAyrshareJson(response);
-  if (!response.ok || json.status === "error") {
-    throw new InternalServiceError("UPSTREAM_FAILED", ownerSafeAyrshareDetail(json) ?? FAILED_REPLY);
-  }
+  const id = ayrsharePostId(json);
+  const failed = !response.ok || json.status === "error";
+  const detail = ownerSafeAyrshareDetail(json) ?? FAILED_REPLY;
+  const errorByNetwork = ayrshareErrorsByNetwork(json);
+  const postedIds = ayrsharePostedIds(json);
 
+  return {
+    id,
+    networks: params.platforms.map((network) => {
+      const remoteId = postedIds.get(network) ?? null;
+      const networkError = errorByNetwork.get(network);
+      if (!failed || remoteId) {
+        return { network, ok: true, remoteId: remoteId ?? id, error: null };
+      }
+      return { network, ok: false, remoteId: null, error: networkError ?? detail };
+    }),
+  };
+}
+
+function ayrsharePostId(json: Record<string, unknown>): string | null {
+  if (typeof json.id === "string" && json.id.trim()) return json.id;
+  const posted = ayrsharePostedIds(json);
+  for (const id of posted.values()) {
+    if (id) return id;
+  }
+  return null;
+}
+
+function ayrsharePostedIds(json: Record<string, unknown>): Map<SocialNetwork, string | null> {
+  const posted = new Map<SocialNetwork, string | null>();
   const postIds = json.postIds;
-  const fromList = Array.isArray(postIds)
-    ? postIds.find((row) => row && typeof row === "object" && typeof (row as { id?: unknown }).id === "string")
-    : undefined;
-  const fromListId =
-    fromList && typeof fromList === "object" ? (fromList as { id?: string }).id : undefined;
-  const fromMap =
-    postIds && typeof postIds === "object" && !Array.isArray(postIds)
-      ? Object.values(postIds as Record<string, unknown>).find((value) => typeof value === "string")
-      : undefined;
-  const id = typeof json.id === "string" ? json.id : fromListId ?? (typeof fromMap === "string" ? fromMap : null);
-  return { id };
+  if (!Array.isArray(postIds)) return posted;
+  for (const row of postIds) {
+    if (!row || typeof row !== "object") continue;
+    const platform = (row as { platform?: unknown }).platform;
+    const status = (row as { status?: unknown }).status;
+    const id = (row as { id?: unknown }).id;
+    if (typeof platform !== "string" || status === "error") continue;
+    posted.set(platform.trim().toLowerCase() as SocialNetwork, typeof id === "string" ? id : null);
+  }
+  return posted;
+}
+
+function ayrshareErrorsByNetwork(json: Record<string, unknown>): Map<SocialNetwork, string> {
+  const errors = new Map<SocialNetwork, string>();
+  if (!Array.isArray(json.errors)) return errors;
+  for (const row of json.errors) {
+    if (!row || typeof row !== "object") continue;
+    const platform = (row as { platform?: unknown }).platform;
+    const message = (row as { message?: unknown }).message;
+    if (typeof platform !== "string" || typeof message !== "string" || !message.trim()) continue;
+    const text = message.replace(/\s+/g, " ").trim().slice(0, 220);
+    if (/<|>|doctype|not valid json|unexpected token/i.test(text)) continue;
+    errors.set(platform.trim().toLowerCase() as SocialNetwork, text);
+  }
+  return errors;
 }

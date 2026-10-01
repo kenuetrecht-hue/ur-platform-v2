@@ -241,16 +241,38 @@ async function startServer() {
 
   app.use((
     err: unknown,
-    _req: express.Request,
+    req: express.Request,
     res: express.Response,
     next: express.NextFunction,
   ) => {
+    if (res.headersSent) {
+      next(err);
+      return;
+    }
     if (isPayloadTooLargeError(err)) {
       res.status(413).json({
         error: {
           message: "Those pictures are too large. Take them again and tap Check my three pictures.",
         },
       });
+      return;
+    }
+    const path = `${req.originalUrl ?? ""} ${req.url ?? ""}`;
+    if (path.includes("/api")) {
+      const parseFailed = (err as { type?: string }).type === "entity.parse.failed";
+      res.status(parseFailed ? 400 : 500).json([
+        {
+          error: {
+            json: {
+              message: parseFailed
+                ? "That request could not be read. Try again."
+                : "Something went wrong. Try again.",
+              code: -32603,
+              data: { code: parseFailed ? "BAD_REQUEST" : "INTERNAL_SERVER_ERROR", httpStatus: parseFailed ? 400 : 500 },
+            },
+          },
+        },
+      ]);
       return;
     }
     next(err);
