@@ -185,11 +185,26 @@ export function logSocialPublisherStartup(): void {
 export async function publishOwnerSocialPost(params: {
   body: string;
   platforms: SocialNetwork[];
+  mediaUrls?: string[];
+  mediaKind?: "image" | "video" | "file";
   scheduledAt?: Date;
 }): Promise<{ results: PublishedNetworkResult[]; mode: SocialPublisherStatus["mode"] }> {
-  const body = sanitizeUserText(params.body, 2200);
+  let body = sanitizeUserText(params.body, 2200);
+  const mediaUrls = (params.mediaUrls ?? []).map((url) => url.trim()).filter(Boolean);
+  if (mediaUrls.some((url) => !isAllowedSocialMediaUrl(url))) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "That file link is not one this site uploaded.",
+    });
+  }
+  if (params.mediaKind === "file" && mediaUrls[0] && !body.includes(mediaUrls[0])) {
+    body = sanitizeUserText(`${body}\n${mediaUrls[0]}`.trim(), 2200);
+  }
+  if (body.length < 1 && (params.mediaKind === "image" || params.mediaKind === "video")) {
+    body = "Shared from UR Platform.";
+  }
   if (body.length < 1) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Write the post first." });
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Write the post or add a picture, video, or file first." });
   }
   assertNoAiTakeoverInMessage(body, true);
 
@@ -226,22 +241,25 @@ export async function publishOwnerSocialPost(params: {
   const results: PublishedNetworkResult[] = [];
 
   const ayrshareNetworks = byPublisher.get("ayrshare") ?? [];
-  const textNetworks = ayrshareNetworks.filter((network) => !AYRSHARE_MEDIA_NETWORKS.has(network));
-  for (const network of ayrshareNetworks) {
-    if (!AYRSHARE_MEDIA_NETWORKS.has(network)) continue;
+  const { send: textOrMediaNetworks, skipped } = splitAyrshareTargets(
+    ayrshareNetworks,
+    params.mediaKind,
+  );
+  for (const row of skipped) {
     results.push({
-      network,
+      network: row.network,
       publisher: "ayrshare",
       ok: false,
       remoteId: null,
-      error: "This account needs a picture or video, so the written caption was not sent there.",
+      error: row.error,
     });
   }
-  if (textNetworks.length > 0) {
+  if (textOrMediaNetworks.length > 0) {
     try {
       const posted = await postViaAyrshare({
         body,
-        platforms: textNetworks,
+        platforms: textOrMediaNetworks,
+        mediaUrls: params.mediaKind === "image" || params.mediaKind === "video" ? mediaUrls : undefined,
         scheduledAt: params.scheduledAt,
         fetchImpl,
       });
@@ -265,7 +283,7 @@ export async function publishOwnerSocialPost(params: {
         error,
         "Ayrshare could not send that post. Check the key and linked accounts.",
       );
-      for (const network of textNetworks) {
+      for (const network of textOrMediaNetworks) {
         results.push({
           network,
           publisher: "ayrshare",
@@ -318,6 +336,49 @@ export async function publishOwnerSocialPost(params: {
 }
 
 const AYRSHARE_MEDIA_NETWORKS = new Set<SocialNetwork>(["instagram", "tiktok", "youtube"]);
+const AYRSHARE_VIDEO_ONLY = new Set<SocialNetwork>(["tiktok", "youtube"]);
+
+export function isAllowedSocialMediaUrl(raw: string): boolean {
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:" || url.username || url.password) return false;
+    const host = url.hostname.toLowerCase();
+    if (host === "localhost" || host.endsWith(".local")) return false;
+    return host === "ayrshare.com" || host.endsWith(".ayrshare.com") || host.endsWith(".amazonaws.com");
+  } catch {
+    return false;
+  }
+}
+
+function splitAyrshareTargets(
+  platforms: SocialNetwork[],
+  kind: "image" | "video" | "file" | undefined,
+): { send: SocialNetwork[]; skipped: Array<{ network: SocialNetwork; error: string }> } {
+  if (kind === "video") return { send: platforms, skipped: [] };
+  if (kind === "image") {
+    return {
+      send: platforms.filter((network) => !AYRSHARE_VIDEO_ONLY.has(network)),
+      skipped: platforms
+        .filter((network) => AYRSHARE_VIDEO_ONLY.has(network))
+        .map((network) => ({
+          network,
+          error: "This account needs a video. The picture and caption went to the other accounts.",
+        })),
+    };
+  }
+  return {
+    send: platforms.filter((network) => !AYRSHARE_MEDIA_NETWORKS.has(network)),
+    skipped: platforms
+      .filter((network) => AYRSHARE_MEDIA_NETWORKS.has(network))
+      .map((network) => ({
+        network,
+        error:
+          kind === "file"
+            ? "A document goes out as a link on Facebook, X, and LinkedIn. This account needs a picture or video."
+            : "This account needs a picture or video, so the written caption was not sent there.",
+      })),
+  };
+}
 
 function publisherModeFromRoutes(): SocialPublisherStatus["mode"] {
   const readyPublishers = new Set(

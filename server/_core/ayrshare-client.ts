@@ -130,9 +130,109 @@ export async function listAyrshareLinkedNetworks(
   }
 }
 
+const SMALL_MEDIA_BYTES = 10 * 1024 * 1024;
+
+export async function uploadViaAyrshare(params: {
+  bytes: Buffer;
+  fileName: string;
+  contentType: string;
+  fetchImpl?: typeof fetch;
+}): Promise<{ url: string }> {
+  const apiKey = getAyrshareApiKey();
+  if (!apiKey) throw new InternalServiceError("NOT_CONFIGURED", "Add AYRSHARE_API_KEY before uploading.");
+  const fetchImpl = params.fetchImpl ?? fetch;
+  if (params.bytes.length <= SMALL_MEDIA_BYTES) {
+    return uploadSmallAyrshareMedia(params.bytes, params.fileName, params.contentType, apiKey, fetchImpl);
+  }
+  return uploadLargeAyrshareMedia(params.bytes, params.fileName, params.contentType, apiKey, fetchImpl);
+}
+
+async function uploadSmallAyrshareMedia(
+  bytes: Buffer,
+  fileName: string,
+  contentType: string,
+  apiKey: string,
+  fetchImpl: typeof fetch,
+): Promise<{ url: string }> {
+  const form = new FormData();
+  form.append("file", new Blob([bytes], { type: contentType }), fileName);
+  form.append("fileName", fileName);
+  const response = await ayrshareFetch(
+    `${AYRSHARE_API_ROOT}/media/upload`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+      body: form,
+    },
+    fetchImpl,
+  );
+  return readUploadedMediaUrl(response);
+}
+
+async function uploadLargeAyrshareMedia(
+  bytes: Buffer,
+  fileName: string,
+  contentType: string,
+  apiKey: string,
+  fetchImpl: typeof fetch,
+): Promise<{ url: string }> {
+  const ticketUrl = new URL(`${AYRSHARE_API_ROOT}/media/uploadUrl`);
+  ticketUrl.searchParams.set("fileName", fileName);
+  ticketUrl.searchParams.set("contentType", contentType);
+  const ticket = await ayrshareFetch(
+    ticketUrl.toString(),
+    { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" } },
+    fetchImpl,
+  );
+  const ticketJson = await readAyrshareJson(ticket);
+  const uploadUrl = firstHttpUrl(ticketJson, ["uploadUrl", "uploadURL"]);
+  const accessUrl = firstHttpUrl(ticketJson, ["accessUrl", "accessURL", "url"]);
+  if (!uploadUrl || !accessUrl) {
+    throw new InternalServiceError("UPSTREAM_FAILED", "Ayrshare did not give a place to put that file.");
+  }
+  const putType = typeof ticketJson.contentType === "string" ? ticketJson.contentType : contentType;
+  const put = await ayrshareFetch(
+    uploadUrl,
+    {
+      method: "PUT",
+      headers: { "Content-Type": putType },
+      body: bytes,
+    },
+    fetchImpl,
+  );
+  if (!put.ok) {
+    throw new InternalServiceError("UPSTREAM_FAILED", "Ayrshare could not store that file. Try a smaller one.");
+  }
+  return { url: accessUrl };
+}
+
+async function readUploadedMediaUrl(response: Response): Promise<{ url: string }> {
+  if (response.status === 401 || response.status === 403) {
+    throw new InternalServiceError("UPSTREAM_FAILED", KEY_REPLY);
+  }
+  const json = await readAyrshareJson(response);
+  const url = firstHttpUrl(json, ["url", "accessUrl", "accessURL"]);
+  if (!response.ok || json.status === "error" || !url) {
+    throw new InternalServiceError(
+      "UPSTREAM_FAILED",
+      ownerSafeAyrshareDetail(json) ?? "Ayrshare could not store that file.",
+    );
+  }
+  return { url };
+}
+
+function firstHttpUrl(json: Record<string, unknown>, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = json[key];
+    if (typeof value === "string" && /^https:\/\//i.test(value.trim())) return value.trim();
+  }
+  return null;
+}
+
 export async function postViaAyrshare(params: {
   body: string;
   platforms: SocialNetwork[];
+  mediaUrls?: string[];
   scheduledAt?: Date;
   fetchImpl?: typeof fetch;
 }): Promise<{ id: string | null; networks: AyrshareNetworkPost[] }> {
@@ -143,6 +243,7 @@ export async function postViaAyrshare(params: {
     post: params.body,
     platforms: params.platforms,
   };
+  if (params.mediaUrls?.length) payload.mediaUrls = params.mediaUrls;
   if (params.scheduledAt) {
     payload.scheduleDate = params.scheduledAt.toISOString();
   }

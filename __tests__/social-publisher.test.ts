@@ -132,6 +132,7 @@ describe("social publisher routing", () => {
     const panel = readFileSync("components/owner-social-publisher-panel.tsx", "utf8");
     expect(panel).toContain("AppPressable");
     expect(panel).toContain('testID="owner-social-post-now"');
+    expect(panel).toContain('testID="owner-social-add-file"');
     expect(panel).toContain("pointerEvents=\"none\"");
     expect(panel).not.toContain("<Pressable");
     expect(panel).toContain("readyNetworks.map");
@@ -157,6 +158,57 @@ describe("social publisher routing", () => {
       ok: false,
     });
     expect(result.results.find((row) => row.network === "instagram")?.error).toMatch(/picture or video/i);
+  });
+
+  it("sends a picture with the caption to Instagram and the text accounts", async () => {
+    clearSocialEnv();
+    process.env.AYRSHARE_API_KEY = "test-ayrshare";
+    let payload: { platforms?: string[]; mediaUrls?: string[] } = {};
+    _setSocialPublisherFetchForTests(async (_url, init) => {
+      payload = JSON.parse(String(init?.body ?? "{}")) as typeof payload;
+      return new Response(JSON.stringify({ id: "post-1", status: "success" }), { status: 200 });
+    });
+    const result = await publishOwnerSocialPost({
+      body: "Hello from UR",
+      platforms: ["facebook", "instagram", "tiktok"],
+      mediaKind: "image",
+      mediaUrls: ["https://img.ayrshare.com/photo.jpg"],
+    });
+    expect(payload.platforms).toEqual(["facebook", "instagram"]);
+    expect(payload.mediaUrls).toEqual(["https://img.ayrshare.com/photo.jpg"]);
+    expect(result.results.find((row) => row.network === "instagram")?.ok).toBe(true);
+    expect(result.results.find((row) => row.network === "tiktok")?.ok).toBe(false);
+  });
+
+  it("sends a video with the caption to TikTok and YouTube", async () => {
+    clearSocialEnv();
+    process.env.AYRSHARE_API_KEY = "test-ayrshare";
+    let platforms: string[] = [];
+    _setSocialPublisherFetchForTests(async (_url, init) => {
+      platforms = (JSON.parse(String(init?.body ?? "{}")) as { platforms?: string[] }).platforms ?? [];
+      return new Response(JSON.stringify({ id: "post-1", status: "success" }), { status: 200 });
+    });
+    const result = await publishOwnerSocialPost({
+      body: "Watch this",
+      platforms: ["facebook", "tiktok", "youtube"],
+      mediaKind: "video",
+      mediaUrls: ["https://img.ayrshare.com/clip.mp4"],
+    });
+    expect(platforms).toEqual(["facebook", "tiktok", "youtube"]);
+    expect(result.results.every((row) => row.ok)).toBe(true);
+  });
+
+  it("rejects a file link that this site did not upload", async () => {
+    clearSocialEnv();
+    process.env.AYRSHARE_API_KEY = "test-ayrshare";
+    await expect(
+      publishOwnerSocialPost({
+        body: "Hello",
+        platforms: ["facebook"],
+        mediaKind: "image",
+        mediaUrls: ["https://evil.example/photo.jpg"],
+      }),
+    ).rejects.toThrow(/not one this site uploaded/i);
   });
 
   it("blocks the same caption on the same network twice in 24 hours", async () => {

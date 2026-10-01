@@ -217,8 +217,10 @@ export const platformOpsRouter = router({
   publishOwnerSocialPost: ownerProcedure
     .input(
       z.object({
-        body: z.string().min(1).max(2200).trim(),
+        body: z.string().max(2200).trim(),
         platforms: z.array(z.enum(SOCIAL_NETWORKS)).min(1).max(6),
+        mediaUrls: z.array(z.string().trim().url().max(500)).max(4).optional(),
+        mediaKind: z.enum(["image", "video", "file"]).optional(),
         scheduledAt: z.string().datetime().optional(),
         sourceJobId: z.string().min(8).max(80).optional(),
       }),
@@ -233,6 +235,8 @@ export const platformOpsRouter = router({
       return publishOwnerSocialPost({
         body: input.body,
         platforms: input.platforms,
+        mediaUrls: input.mediaUrls,
+        mediaKind: input.mediaKind,
         scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : undefined,
       });
     }),
