@@ -4,6 +4,7 @@
  */
 
 import { TRPCError } from "@trpc/server";
+import { mapPrintifyBlueprints, type PrintifySupplyItem } from "../../lib/printify-supply";
 import { isAllowedAffiliateProductUrl } from "../../lib/affiliate-link-policy";
 import {
   getAmazonAssociateTag,
@@ -222,6 +223,27 @@ async function submitCjOrder(params: FulfillmentOrderRequest): Promise<Fulfillme
     status: "simulated",
     message: "CJ API key detected — catalog sync available when wired.",
   };
+}
+
+/** Catalog creators can sell. Ready only after PRINTIFY_API_TOKEN is set. The token is not returned. */
+export async function listCreatorPrintifySupply(): Promise<{ ready: boolean; items: PrintifySupplyItem[] }> {
+  const token = getPrintifyApiToken();
+  if (!token) return { ready: false, items: [] };
+  try {
+    const response = await fetch("https://api.printify.com/v1/catalog/blueprints.json", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "User-Agent": "URPlatform",
+      },
+      signal: AbortSignal.timeout(12_000),
+    });
+    const text = await response.text();
+    if (!response.ok || text.trim().startsWith("<")) return { ready: true, items: [] };
+    return { ready: true, items: mapPrintifyBlueprints(JSON.parse(text) as unknown) };
+  } catch {
+    return { ready: true, items: [] };
+  }
 }
 
 /** Pull catalog from provider — returns empty until keys + sync job wired. */

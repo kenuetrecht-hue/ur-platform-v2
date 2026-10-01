@@ -44,6 +44,7 @@ describe("page back", () => {
       "app/world.tsx",
       "app/music-studio.tsx",
       "app/cartoon-studio.tsx",
+      "app/creator-merch.tsx",
       "app/playroom.tsx",
       "app/3d-workspace.tsx",
       "app/shop.tsx",

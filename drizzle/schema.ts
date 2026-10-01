@@ -766,6 +766,17 @@ export const creatorVideoCallPrices = mysqlTable("creatorVideoCallPrices", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+/** Paid creator cross-post allowance. One row per creator. */
+export const creatorSocialPushLots = mysqlTable("creatorSocialPushLots", {
+  userId: varchar("userId", { length: 128 }).primaryKey(),
+  planId: varchar("planId", { length: 16 }).notNull(),
+  dailyCap: int("dailyCap").notNull(),
+  expiresAt: varchar("expiresAt", { length: 40 }).notNull(),
+  usageDay: varchar("usageDay", { length: 10 }).notNull(),
+  usedToday: int("usedToday").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 /**
  * Fan → creator follows. Count drops only when that fan unfollows.
  */

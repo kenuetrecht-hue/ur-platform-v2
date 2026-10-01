@@ -28,6 +28,7 @@ import {
 import {
   buildAffiliateOutboundUrl,
   getCommerceProviderStatus,
+  listCreatorPrintifySupply,
   syncCatalogFromProvider,
   type FulfillmentProvider,
 } from "../_core/commerce-fulfillment-adapters";
@@ -42,6 +43,15 @@ import {
 } from "../_core/commerce-trend-signals-service";
 
 export const commerceRouter = router({
+  /** Merch blanks from Printify. Creators see titles only. The token stays on the server. */
+  creatorMerchSupply: secureProcedure("commerce").query(async ({ ctx }) => {
+    const enrolled = Boolean(getContentCreatorProfile(String(ctx.user.id)));
+    if (!enrolled && !ctx.isPlatformOwner) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Become a content creator before opening merch supply." });
+    }
+    return listCreatorPrintifySupply();
+  }),
+
   /** Provider readiness — add API keys in .env when you sign up with each company. */
   providerStatus: publicProcedure.query(() => ({
     providers: getCommerceProviderStatus(),

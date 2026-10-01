@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   View,
   Text,
@@ -12,9 +12,13 @@ import {
   Image,
   Linking,
 } from "react-native";
+import * as DocumentPicker from "expo-document-picker";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/lib/auth-context";
+import { getAccessToken } from "@/lib/auth-storage";
 import { trpc } from "@/lib/trpc";
+import { getTrpcApiUrl } from "@/lib/trpc-url";
+import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { SOCIAL_POST_DISCLOSURE, PLATFORM_DISCLOSURE_SHORT } from "@/lib/platform-disclosure-copy";
 import {
@@ -355,6 +359,46 @@ export function SocialFeedPanel({
   const [licenseType, setLicenseType] = useState<ContentLicenseType>("platform_public");
   const [ownsContent, setOwnsContent] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [mediaName, setMediaName] = useState("");
+  const mediaInputRef = useRef<HTMLInputElement | null>(null);
+
+  const uploadFeedMedia = async (file: Blob, fileName: string) => {
+    if (file.size > 40 * 1024 * 1024) {
+      setPostError("That file is over 40 MB.");
+      return;
+    }
+    setUploadingMedia(true);
+    setPostError(null);
+    try {
+      const token = await getAccessToken();
+      const form = new FormData();
+      form.append("file", file, fileName);
+      const response = await fetch(getTrpcApiUrl().replace(/\/api\/trpc\/?$/, "/api/member-feed-upload"), {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+        credentials: "include",
+      });
+      const payload = (await response.json()) as { url?: string; kind?: string; error?: { message?: string } };
+      if (!response.ok || !payload.url) {
+        setPostError(payload.error?.message || "That picture or video could not be added.");
+        return;
+      }
+      if (payload.kind === "video") {
+        setVideoUrl(payload.url);
+        setImageUrl("");
+      } else {
+        setImageUrl(payload.url);
+        setVideoUrl("");
+      }
+      setMediaName(fileName);
+    } catch {
+      setPostError("That picture or video could not be added.");
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
 
   const rightsAttestationText =
     contentRightsMode === "licensed_repost"
@@ -377,6 +421,7 @@ export function SocialFeedPanel({
       setBody("");
       setImageUrl("");
       setVideoUrl("");
+      setMediaName("");
       setAiAssisted(false);
       setContentRightsMode("original");
       setAttributionSourceName("");
@@ -502,13 +547,82 @@ export function SocialFeedPanel({
             placeholderTextColor={colors.muted}
             style={[styles.composerInput, { borderColor: colors.border, color: colors.foreground }]}
           />
+          {Platform.OS === "web" ? (
+            <label
+              data-testid="member-feed-add-media"
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                borderRadius: 12,
+                padding: "10px 12px",
+                background: "#FFFFFF",
+                border: "1px solid #E0E7FF",
+                cursor: uploadingMedia ? "default" : "pointer",
+                textAlign: "center",
+              }}
+            >
+              <input
+                ref={mediaInputRef as never}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,video/webm"
+                disabled={uploadingMedia}
+                style={{ display: "none" }}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void uploadFeedMedia(file, file.name);
+                  event.target.value = "";
+                }}
+              />
+              <span style={{ color: LETTERING_ON_WHITE, fontWeight: 800, fontSize: 14 }}>
+                {uploadingMedia ? "Uploading…" : "Add a picture or video"}
+              </span>
+            </label>
+          ) : (
+            <Pressable
+              testID="member-feed-add-media"
+              disabled={uploadingMedia}
+              onPress={() => {
+                void DocumentPicker.getDocumentAsync({
+                  type: ["image/*", "video/*"],
+                  copyToCacheDirectory: true,
+                }).then(async (result) => {
+                  if (result.canceled || !result.assets[0]) return;
+                  const asset = result.assets[0];
+                  const response = await fetch(asset.uri);
+                  const blob = await response.blob();
+                  await uploadFeedMedia(blob, asset.name || "upload");
+                });
+              }}
+              style={{
+                borderRadius: 12,
+                paddingVertical: 10,
+                alignItems: "center",
+                backgroundColor: "#FFFFFF",
+                borderWidth: 1,
+                borderColor: "#E0E7FF",
+              }}
+            >
+              <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800" }}>
+                {uploadingMedia ? "Uploading…" : "Add a picture or video"}
+              </Text>
+            </Pressable>
+          )}
+          <View style={{ backgroundColor: "#FFFFFF", borderRadius: 10, padding: 8 }}>
+            {mediaName ? (
+              <Text style={{ color: LETTERING_ON_WHITE, fontSize: 13 }}>{mediaName} is ready to post on UR.</Text>
+            ) : (
+              <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12, lineHeight: 18 }}>
+                Pictures and videos you add stay on UR Platform. Sending them out to other social networks is a paid creator plan.
+              </Text>
+            )}
+          </View>
           <TextInput
             value={imageUrl}
             onChangeText={setImageUrl}
             placeholder="Photo URL (optional)"
-            placeholderTextColor={colors.muted}
+            placeholderTextColor={LETTERING_ON_WHITE}
             autoCapitalize="none"
-            style={[styles.urlInput, { borderColor: colors.border, color: colors.foreground }]}
+            style={[styles.urlInput, { borderColor: colors.border, color: LETTERING_ON_WHITE, backgroundColor: "#FFFFFF" }]}
           />
           <TextInput
             value={videoUrl}
@@ -639,7 +753,7 @@ export function SocialFeedPanel({
             <Text style={{ color: colors.error ?? "#ef4444", fontSize: 12, marginBottom: 8 }}>{postError}</Text>
           ) : null}
           <Pressable
-            disabled={createPost.isPending || !canSubmitPost}
+            disabled={createPost.isPending || uploadingMedia || !canSubmitPost}
             onPress={() =>
               createPost.mutate({
                 body,
@@ -664,7 +778,7 @@ export function SocialFeedPanel({
               styles.postBtn,
               {
                 backgroundColor: colors.primary,
-                opacity: createPost.isPending || !canSubmitPost ? 0.5 : 1,
+                opacity: createPost.isPending || uploadingMedia || !canSubmitPost ? 0.5 : 1,
               },
             ]}
           >

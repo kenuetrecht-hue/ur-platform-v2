@@ -34,6 +34,8 @@ import { OwnerSocialPublisherPanel } from "@/components/owner-social-publisher-p
 import { CreatorGearPanel } from "@/components/creator-gear-panel";
 import { CreatorContentMatePanel } from "@/components/creator-contentmate-panel";
 import { CreatorContentProtectionPanel } from "@/components/creator-content-protection-panel";
+import { CreatorSalesDeskPanel } from "@/components/creator-sales-desk-panel";
+import { CreatorSupplyLinks } from "@/components/creator-supply-links";
 import { MuxVideoUploader } from "@/components/mux-video-uploader";
 import { CartoonCreatorPricingPanel } from "@/components/cartoon-creator-pricing-panel";
 import { FOUNDING_AUDIENCE_YEAR_RULE } from "@/lib/founding-audience-year-discount";
@@ -246,6 +248,7 @@ export function ContentCreatorDashboardPanel() {
             {link ? (
               <CustomLinkCard customUrl={link.customUrl} slug={link.slug} label="Your creator link" />
             ) : null}
+            {dash.data.salesDesk ? <CreatorSalesDeskPanel desk={dash.data.salesDesk} /> : null}
             {promo ? (
               <CreatorSocialShareBar
                 compact
@@ -430,16 +433,9 @@ export function ContentCreatorDashboardPanel() {
                 Schedule classes, promote on Facebook, and let ContentMate write your captions.
                 Administration is for platform owner only.
               </Text>
-              <Pressable onPress={() => router.push("/cartoon-studio")} style={{ marginTop: 8 }}>
-                <Text style={{ color: colors.primary, fontWeight: "800" }}>
-                  Open Cartoon Studio — film a lesson, host Cartoon Me →
-                </Text>
-              </Pressable>
-              <Pressable onPress={() => router.push("/music-studio")} style={{ marginTop: 6 }}>
-                <Text style={{ color: colors.primary, fontWeight: "800" }}>
-                  Open Music Studio — beats, lyrics, Musician + Songwriter →
-                </Text>
-              </Pressable>
+              <View style={{ marginTop: 10 }}>
+                <CreatorSupplyLinks />
+              </View>
             </View>
             <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
               <CartoonCreatorPricingPanel />

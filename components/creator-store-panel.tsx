@@ -11,6 +11,7 @@ import {
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
+import { CreatorSupplyLinks } from "@/components/creator-supply-links";
 
 export function CreatorStorePanel() {
   const colors = useColors();
@@ -57,6 +58,7 @@ export function CreatorStorePanel() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 32 }}>
+      <CreatorSupplyLinks />
       <View style={[styles.card, { borderColor: colors.primary, backgroundColor: `${colors.primary}10` }]}>
         <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>{store.name}</Text>
         <Text style={{ color: colors.muted, fontSize: 12 }}>Your shop: /shop/{store.slug}</Text>

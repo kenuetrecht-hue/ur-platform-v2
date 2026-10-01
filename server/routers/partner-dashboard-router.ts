@@ -82,34 +82,17 @@ import {
 } from "../_core/ai-premium-media-service";
 import { publishOwnerSocialPost, getSocialPublisherStatus } from "../_core/social-publisher-service";
 import { SOCIAL_NETWORKS } from "../../lib/social-publisher-types";
-
-const CREATOR_SOCIAL_DAILY_CAP = 8;
-const creatorSocialPosts = new Map<string, { day: string; count: number }>();
-
-function creatorSocialDay(): string {
-  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Indiana/Indianapolis" });
-}
-
-function assertCreatorCanPostSocial(userId: string): void {
-  const day = creatorSocialDay();
-  const row = creatorSocialPosts.get(userId);
-  if (row && row.day === day && row.count >= CREATOR_SOCIAL_DAILY_CAP) {
-    throw new TRPCError({
-      code: "TOO_MANY_REQUESTS",
-      message: "You can send 8 social posts a day. Try again tomorrow.",
-    });
-  }
-}
-
-function recordCreatorSocialPost(userId: string): void {
-  const day = creatorSocialDay();
-  const row = creatorSocialPosts.get(userId);
-  if (!row || row.day !== day) {
-    creatorSocialPosts.set(userId, { day, count: 1 });
-    return;
-  }
-  row.count += 1;
-}
+import {
+  assertCreatorSocialPush,
+  getCreatorSocialPushStatus,
+  grantCreatorSocialPush,
+  hydrateCreatorSocialPush,
+  recordCreatorSocialPush,
+} from "../_core/creator-social-push-service";
+import { getCreatorSocialPushPlan } from "../../lib/creator-social-push-pricing";
+import { getCreatorSalesDesk } from "../_core/creator-sales-desk-service";
+import { redirectToLiveCheckout } from "../_core/platform-checkout";
+import { assertPaymentChannelAllowed, assertSimulatedPurchaseAllowed } from "../_core/payment-channel-guard";
 
 export const partnerDashboardRouter = router({
   resolveLink: publicProcedure
@@ -202,13 +185,15 @@ export const partnerDashboardRouter = router({
     });
   }),
 
-  creatorDashboard: protectedProcedure.query(({ ctx }) => {
+  creatorDashboard: protectedProcedure.query(async ({ ctx }) => {
     const userId = String(ctx.user.id);
     const dash = getCreatorDashboard(userId);
     const link = getUserLink(userId);
     const tx = listAllTransactions({ userId, limit: 20 });
     const payout = getCreatorPayoutDashboard(userId);
-    if (!dash.enrolled) return { ...dash, link, recentTransactions: [], payout, analytics: null, promo: null, watch: null };
+    const salesDesk =
+      dash.enrolled || ctx.isPlatformOwner ? await getCreatorSalesDesk({ userId, isPlatformOwner: ctx.isPlatformOwner }) : null;
+    if (!dash.enrolled) return { ...dash, link, recentTransactions: [], payout, analytics: null, promo: null, watch: null, salesDesk };
     return {
       ...dash,
       link,
@@ -217,16 +202,74 @@ export const partnerDashboardRouter = router({
       analytics: getCreatorAnalytics(userId),
       promo: getCreatorPromoPayload(userId),
       watch: getMyFairShowAnalytics(userId),
+      salesDesk,
     };
   }),
 
-  getCreatorSocialStatus: secureProcedure("aiCreators").query(({ ctx }) => {
-    const dash = getCreatorDashboard(String(ctx.user.id));
+  getCreatorSocialStatus: secureProcedure("aiCreators").query(async ({ ctx }) => {
+    await hydrateCreatorSocialPush();
+    const userId = String(ctx.user.id);
+    const dash = getCreatorDashboard(userId);
     if (!dash.enrolled && !ctx.isPlatformOwner) {
       throw new TRPCError({ code: "FORBIDDEN", message: "Become a content creator before posting to social accounts." });
     }
-    return getSocialPublisherStatus();
+    return {
+      ...getSocialPublisherStatus(),
+      push: getCreatorSocialPushStatus(userId, ctx.isPlatformOwner),
+    };
   }),
+
+  buyCreatorSocialPush: secureProcedure("aiCreators")
+    .input(
+      z.object({
+        planId: z.enum(["starter", "plus", "studio"]),
+        stateCode: z.string().trim().max(8).optional(),
+        clientPlatform: z.enum(["web", "native"]).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await hydrateCreatorSocialPush();
+      const userId = String(ctx.user.id);
+      const dash = getCreatorDashboard(userId);
+      if (!dash.enrolled && !ctx.isPlatformOwner) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Become a content creator before buying a social push plan." });
+      }
+      const plan = getCreatorSocialPushPlan(input.planId);
+      if (!plan) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "That social push plan is not available." });
+      }
+      if (ctx.isPlatformOwner) {
+        return {
+          ok: true as const,
+          complimentary: true,
+          message: "Owner complimentary — your posts go out without a plan.",
+        };
+      }
+      const liveCheckout = await redirectToLiveCheckout({
+        userId,
+        userEmail: ctx.user.email ?? "",
+        productName: `Social push ${plan.label}`,
+        description: `${plan.dailyCap} posts a day for ${plan.days} days on the social accounts linked to UR Platform.`,
+        priceCents: plan.subtotalCents,
+        billingStateCode: input.stateCode ?? "IN",
+        successPath: "/creator-dashboard?socialPush=success",
+        cancelPath: "/creator-dashboard?socialPush=cancel",
+        metadata: { kind: "creator_social_push", planId: plan.id },
+      });
+      if (liveCheckout) return { ok: true as const, ...liveCheckout };
+      assertSimulatedPurchaseAllowed();
+      assertPaymentChannelAllowed({
+        subtotalCents: plan.subtotalCents,
+        clientPlatform: input.clientPlatform ?? "web",
+      });
+      const push = grantCreatorSocialPush({ userId, planId: plan.id });
+      return {
+        ok: true as const,
+        complimentary: false,
+        push,
+        message: `${plan.label} is on. You can send ${plan.dailyCap} posts a day for ${plan.days} days.`,
+      };
+    }),
 
   publishCreatorSocialPost: secureProcedure("aiCreators")
     .input(
@@ -238,19 +281,20 @@ export const partnerDashboardRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      await hydrateCreatorSocialPush();
       const userId = String(ctx.user.id);
       const dash = getCreatorDashboard(userId);
       if (!dash.enrolled && !ctx.isPlatformOwner) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Become a content creator before posting to social accounts." });
       }
-      assertCreatorCanPostSocial(userId);
+      assertCreatorSocialPush(userId, ctx.isPlatformOwner);
       const result = await publishOwnerSocialPost({
         body: input.body,
         platforms: input.platforms,
         mediaUrls: input.mediaUrls,
         mediaKind: input.mediaKind,
       });
-      recordCreatorSocialPost(userId);
+      recordCreatorSocialPush(userId, ctx.isPlatformOwner);
       return result;
     }),
 

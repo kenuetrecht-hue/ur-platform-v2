@@ -70,8 +70,7 @@ export async function recordVisitorTrailEvent(input: {
   }
 }
 
-export async function getVisitorTrailReport(now: Date): Promise<VisitorTrailReport> {
-  const since = new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000);
+export async function loadVisitorTrailEvents(since: Date): Promise<VisitorTrailEvent[]> {
   const db = await getDb();
   if (db) {
     try {
@@ -81,7 +80,7 @@ export async function getVisitorTrailReport(now: Date): Promise<VisitorTrailRepo
         .where(gte(visitorTrailEvents.createdAt, since))
         .orderBy(desc(visitorTrailEvents.createdAt))
         .limit(8_000);
-      const events: VisitorTrailEvent[] = rows.map((row) => ({
+      return rows.map((row) => ({
         visitorId: row.visitorId,
         kind: row.kind,
         path: row.path,
@@ -90,10 +89,14 @@ export async function getVisitorTrailReport(now: Date): Promise<VisitorTrailRepo
         seconds: row.seconds,
         createdAt: row.createdAt.toISOString(),
       }));
-      return summarizeVisitorTrail(events, now);
     } catch {
-      console.warn("[visitor-trail] report failed");
+      console.warn("[visitor-trail] load failed");
     }
   }
-  return summarizeVisitorTrail(memoryEvents, now);
+  return memoryEvents.filter((event) => new Date(event.createdAt).getTime() >= since.getTime());
+}
+
+export async function getVisitorTrailReport(now: Date): Promise<VisitorTrailReport> {
+  const since = new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000);
+  return summarizeVisitorTrail(await loadVisitorTrailEvents(since), now);
 }

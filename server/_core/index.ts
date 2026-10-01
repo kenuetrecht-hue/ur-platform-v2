@@ -44,7 +44,7 @@ import { startPlatformOpsMonitor } from "./platform-ops-monitor";
 import { startAiFreeBoardPublisher } from "./ai-free-board-service";
 import { isPayloadTooLargeError, jsonBodyLimitForPath } from "./json-body-limit";
 import { registerAgeKycFastRoute } from "./age-kyc-fast-route";
-import { registerOwnerSocialUploadRoute } from "./owner-social-upload-route";
+import { registerMemberFeedUploadRoute, registerOwnerSocialUploadRoute } from "./owner-social-upload-route";
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -156,6 +156,7 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerAgeKycFastRoute(app);
   registerOwnerSocialUploadRoute(app);
+  registerMemberFeedUploadRoute(app);
 
   app.get("/health", (_req, res) => {
     res.status(200).json({ ok: true, ...getWebDeployHealth() });

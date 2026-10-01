@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Platform, Text, View } from "react-native";
-import { useRouter } from "expo-router";
 import { AppPressable } from "@/components/app-pressable";
 import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
+import { CreatorSupplyLinks } from "@/components/creator-supply-links";
 
 type GearState = "unknown" | "ready" | "blocked";
 
@@ -16,7 +16,6 @@ async function allowDevice(kind: "camera" | "microphone"): Promise<GearState> {
 }
 
 export function CreatorGearPanel() {
-  const router = useRouter();
   const [camera, setCamera] = useState<GearState>("unknown");
   const [microphone, setMicrophone] = useState<GearState>("unknown");
   const [hint, setHint] = useState<string | null>(null);
@@ -86,16 +85,7 @@ export function CreatorGearPanel() {
         </Text>
       ) : null}
       {hint ? <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12, lineHeight: 18 }}>{hint}</Text> : null}
-      <AppPressable onPress={() => router.push("/cartoon-studio")}>
-        <Text pointerEvents="none" style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 13 }}>
-          Open Cartoon Studio
-        </Text>
-      </AppPressable>
-      <AppPressable onPress={() => router.push("/music-studio")}>
-        <Text pointerEvents="none" style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 13 }}>
-          Open Music Studio
-        </Text>
-      </AppPressable>
+      <CreatorSupplyLinks />
     </View>
   );
 }

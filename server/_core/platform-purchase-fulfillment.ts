@@ -23,6 +23,7 @@ import { creditCityWallet } from "./ur-world-service";
 import { grantCreditLot } from "./usage-credits-service";
 import { purchaseWorkspace3dExtraSlot, purchaseWorkspace3dPlan } from "./workspace-3d-subscription-service";
 import { grantReplayFromStripe } from "./class-replay-service";
+import { grantCreatorSocialPush } from "./creator-social-push-service";
 
 const PLATFORM_KINDS = new Set([
   "usage_credit",
@@ -41,6 +42,7 @@ const PLATFORM_KINDS = new Set([
   "coder_sandbox",
   "game_sandbox",
   "class_replay",
+  "creator_social_push",
 ]);
 
 function emailOf(metadata: Record<string, string>): string {
@@ -190,6 +192,9 @@ export function fulfillPlatformPurchase(
       return { handled: true, ignored: false };
     case "class_replay":
       grantReplayFromStripe({ userId, replayId: metadata.replayId ?? "" });
+      return { handled: true, ignored: false };
+    case "creator_social_push":
+      grantCreatorSocialPush({ userId, planId: metadata.planId ?? "" });
       return { handled: true, ignored: false };
     default:
       return { handled: false, ignored: true };

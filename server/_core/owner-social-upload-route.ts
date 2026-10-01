@@ -60,6 +60,108 @@ function safeFileName(original: string, extension: string): string {
   return `${stem}.${extension}`;
 }
 
+const MEMBER_FEED_MAX_BYTES = 40 * 1024 * 1024;
+const MEMBER_FEED_DAILY_CAP = 20;
+const memberFeedUploads = new Map<string, { day: string; count: number }>();
+
+const memberUpload = multer({
+  storage: multer.diskStorage({
+    destination: os.tmpdir(),
+    filename: (_req, _file, callback) => {
+      callback(null, `ur-feed-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    },
+  }),
+  limits: { fileSize: MEMBER_FEED_MAX_BYTES, files: 1 },
+});
+
+function memberFeedDay(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Indiana/Indianapolis" });
+}
+
+export function _resetMemberFeedUploadsForTests(): void {
+  memberFeedUploads.clear();
+}
+
+function assertMemberFeedUpload(userId: string): void {
+  const day = memberFeedDay();
+  const row = memberFeedUploads.get(userId);
+  if (row && row.day === day && row.count >= MEMBER_FEED_DAILY_CAP) {
+    throw new Error("cap");
+  }
+}
+
+function recordMemberFeedUpload(userId: string): void {
+  const day = memberFeedDay();
+  const row = memberFeedUploads.get(userId);
+  if (!row || row.day !== day) {
+    memberFeedUploads.set(userId, { day, count: 1 });
+    return;
+  }
+  row.count += 1;
+}
+
+export function registerMemberFeedUploadRoute(app: Express): void {
+  app.post("/api/member-feed-upload", (req, res) => {
+    memberUpload.single("file")(req, res, (error) => {
+      if (error) {
+        const tooBig = error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE";
+        res.status(tooBig ? 413 : 400).json({
+          error: { message: tooBig ? "That file is over 40 MB." : "That file could not be read." },
+        });
+        return;
+      }
+      void handleMemberFeedUpload(req, res);
+    });
+  });
+}
+
+async function handleMemberFeedUpload(req: Request, res: Response): Promise<void> {
+  const storedPath = req.file?.path;
+  try {
+    let user = null;
+    try {
+      user = await sdk.authenticateRequest(req);
+    } catch {
+      user = null;
+    }
+    if (!user) {
+      res.status(401).json({ error: { message: "Sign in before adding a picture or video." } });
+      return;
+    }
+    try {
+      assertMemberFeedUpload(String(user.id));
+    } catch {
+      res.status(429).json({ error: { message: "You can add 20 pictures or videos a day. Try again tomorrow." } });
+      return;
+    }
+    if (!storedPath) {
+      res.status(400).json({ error: { message: "Choose a picture or video first." } });
+      return;
+    }
+    const bytes = await fs.promises.readFile(storedPath);
+    const sniffed = sniffSocialUpload(bytes);
+    if (!sniffed || sniffed.kind === "file") {
+      res.status(400).json({ error: { message: "Use a JPEG, PNG, WebP, GIF, MP4, MOV, or WebM." } });
+      return;
+    }
+    const uploaded = await uploadViaAyrshare({
+      bytes,
+      fileName: safeFileName(req.file?.originalname ?? "upload", sniffed.extension),
+      contentType: sniffed.contentType,
+    });
+    recordMemberFeedUpload(String(user.id));
+    res.status(200).json({
+      url: uploaded.url,
+      kind: sniffed.kind,
+      name: safeFileName(req.file?.originalname ?? "upload", sniffed.extension),
+    });
+  } catch {
+    res.status(502).json({ error: { message: "That picture or video could not be stored. Try again." } });
+  } finally {
+    if (storedPath) await fs.promises.unlink(storedPath).catch(() => undefined);
+  }
+}
+
 export function registerOwnerSocialUploadRoute(app: Express): void {
   app.post("/api/owner-social-upload", (req, res) => {
     upload.single("file")(req, res, (error) => {

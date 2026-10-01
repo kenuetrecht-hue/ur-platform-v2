@@ -6,6 +6,9 @@ import { useColors } from "@/hooks/use-colors";
 import { getAccessToken } from "@/lib/auth-storage";
 import { trpc } from "@/lib/trpc";
 import { getTrpcApiUrl } from "@/lib/trpc-url";
+import { getClientPlatform, openExternalCheckoutUrl } from "@/lib/web-checkout";
+import { useBillingState } from "@/hooks/use-billing-state";
+import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import { SOCIAL_NETWORK_LABEL, type SocialNetwork } from "@/lib/social-publisher-types";
 
 const SOCIAL_FILE_TYPES = [
@@ -85,6 +88,18 @@ export function OwnerSocialPublisherPanel({
   const status = variant === "creator" ? creatorStatus : ownerStatus;
   const ownerPublish = trpc.platformOps.publishOwnerSocialPost.useMutation();
   const creatorPublish = trpc.partnerDashboard.publishCreatorSocialPost.useMutation();
+  const { stateCode } = useBillingState();
+  const buyPush = trpc.partnerDashboard.buyCreatorSocialPush.useMutation({
+    onSuccess: (result) => {
+      if ("checkoutUrl" in result && result.checkoutUrl) {
+        void openExternalCheckoutUrl(result.checkoutUrl);
+        return;
+      }
+      setHint("message" in result && result.message ? result.message : "Plan updated.");
+      void creatorStatus.refetch();
+    },
+    onError: (error) => setHint(plainSocialPostError(error.message)),
+  });
   const publish = variant === "creator" ? creatorPublish : ownerPublish;
   const [body, setBody] = useState(seedCaption ?? "");
   const [picked, setPicked] = useState<SocialNetwork[]>([]);
@@ -203,7 +218,7 @@ export function OwnerSocialPublisherPanel({
       </Text>
       <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
         {variant === "creator"
-          ? "Add a picture, video, or PDF, then Post now. It goes to the social accounts linked on UR Platform. A picture also reaches Instagram. A video also reaches TikTok and YouTube. A PDF goes out as a link on Facebook, X, and LinkedIn."
+          ? "This sends on the social accounts linked to UR Platform. A picture also reaches Instagram. A video also reaches TikTok and YouTube. A PDF goes out as a link on Facebook, X, and LinkedIn. Posting a picture or video on UR itself stays free."
           : "A picture or video is sent with the caption. A PDF is sent as a link on Facebook, X, and LinkedIn."}
       </Text>
       <Text style={{ color: colors.muted, fontSize: 12 }}>
@@ -215,6 +230,42 @@ export function OwnerSocialPublisherPanel({
       </Text>
       {status.data?.setupNeeded ? (
         <Text style={{ color: "#b45309", fontSize: 13, lineHeight: 18 }}>{status.data.setupNeeded}</Text>
+      ) : null}
+      {variant === "creator" && creatorStatus.data?.push && !creatorStatus.data.push.complimentary ? (
+        <View style={{ gap: 8, backgroundColor: "#FFFFFF", borderRadius: 12, padding: 10 }}>
+          <Text style={{ color: LETTERING_ON_WHITE, fontSize: 13, lineHeight: 18 }}>
+            {creatorStatus.data.push.active
+              ? `${creatorStatus.data.push.planLabel}: ${creatorStatus.data.push.usedToday} of ${creatorStatus.data.push.dailyCap} sent today. Upgrade for a higher daily cap.`
+              : "Sending to other platforms is a paid plan. Starter is $6.99 for 3 posts a day. Plus is 8 a day. Studio is 15 a day. Each plan lasts 30 days."}
+          </Text>
+          {creatorStatus.data.push.plans.map((plan) => (
+            <AppPressable
+              key={plan.id}
+              testID={`creator-social-buy-${plan.id}`}
+              disabled={buyPush.isPending}
+              onPress={() =>
+                buyPush.mutate({
+                  planId: plan.id,
+                  stateCode: stateCode ?? "IN",
+                  clientPlatform: getClientPlatform(),
+                })
+              }
+              style={{
+                borderRadius: 10,
+                paddingVertical: 8,
+                paddingHorizontal: 10,
+                backgroundColor: "#FFFFFF",
+                borderWidth: 1,
+                borderColor: "#E0E7FF",
+              }}
+            >
+              <Text pointerEvents="none" style={{ color: LETTERING_ON_WHITE, fontWeight: "800", fontSize: 13 }}>
+                {creatorStatus.data?.push.planId === plan.id ? "Current · " : ""}
+                {plan.label} · {plan.priceDisplay} · {plan.dailyCap} a day
+              </Text>
+            </AppPressable>
+          ))}
+        </View>
       ) : null}
       {(status.data?.networks ?? []).map((network) => (
         <AppPressable
@@ -317,7 +368,11 @@ export function OwnerSocialPublisherPanel({
       />
       <AppPressable
         testID="owner-social-post-now"
-        disabled={publish.isPending || uploading}
+        disabled={
+          publish.isPending ||
+          uploading ||
+          (variant === "creator" && Boolean(creatorStatus.data?.push) && !creatorStatus.data?.push.active)
+        }
         onPress={sendPost}
         style={{
           borderRadius: 12,
