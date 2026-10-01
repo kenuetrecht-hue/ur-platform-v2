@@ -146,7 +146,11 @@ export default function CartoonStudioScreen() {
         <TabScreenHeader
           icon="🎬"
           title={CARTOON_STUDIO_TITLE}
-          subtitle="Website and app. Pay first. Draft, Lite, Mid, Cinema, or Premiere 4K. No refunds."
+          subtitle={
+            isPlatformOwner
+              ? "Your account. Build the cartoon. No platform checkout."
+              : "Website and app. Pay first. Draft, Lite, Mid, Cinema, or Premiere 4K. No refunds."
+          }
         />
         <View style={{ paddingHorizontal: 16, gap: 12 }}>
           <PaymentChannelNotice />
@@ -405,6 +409,39 @@ export default function CartoonStudioScreen() {
             style={[styles.input, { borderColor: colors.border, color: LETTERING_ON_WHITE, backgroundColor: "#FFFFFF" }]}
           />
 
+          {isPlatformOwner ? (
+            <>
+              <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800" }}>5. Build the cartoon</Text>
+              <Text style={{ color: LETTERING_ON_COLOR, fontSize: 13, lineHeight: 19 }}>
+                The platform fee is off for your account. The film engine still runs on UR’s supplier account.
+              </Text>
+              <Pressable
+                testID="owner-cartoon-build"
+                disabled={complimentary.isPending || !hasLesson}
+                onPress={() =>
+                  complimentary.mutate({
+                    idea: idea.trim() || footageNotes.trim(),
+                    style,
+                    tierId,
+                    seconds,
+                    footageNotes: footageNotes.trim() || undefined,
+                    useCartoonSelf,
+                  })
+                }
+                style={[styles.primary, { backgroundColor: colors.primary, opacity: complimentary.isPending || !hasLesson ? 0.5 : 1 }]}
+              >
+                {complimentary.isPending ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.primaryText}>Build {selectedTier.label}</Text>
+                )}
+              </Pressable>
+              {complimentary.error ? (
+                <Text style={{ color: "#c0392b", fontSize: 13 }}>{complimentary.error.message}</Text>
+              ) : null}
+            </>
+          ) : (
+            <>
           <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800" }}>5. Pay now — then we build</Text>
           {CARTOON_STUDIO_BILLING_NOTES.map((note) => (
             <Text key={note} style={{ color: LETTERING_ON_COLOR, fontSize: 12, lineHeight: 17 }}>
@@ -479,26 +516,8 @@ export default function CartoonStudioScreen() {
           {purchase.data?.message ? (
             <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12 }}>{purchase.data.message}</Text>
           ) : null}
-
-          {isPlatformOwner ? (
-            <Pressable
-              disabled={complimentary.isPending || !hasLesson}
-              onPress={() =>
-                complimentary.mutate({
-                  idea: idea.trim() || footageNotes.trim(),
-                  style,
-                  tierId,
-                  seconds,
-                  footageNotes: footageNotes.trim() || undefined,
-                  useCartoonSelf,
-                })
-              }
-            >
-              <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "700" }}>
-                Owner complimentary build (no card)
-              </Text>
-            </Pressable>
-          ) : null}
+            </>
+          )}
 
           {active ? (
             <View style={{ gap: 10, marginTop: 8 }}>

@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
+import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { trpc } from "@/lib/trpc";
 import {
   ALLOWED_SESSION_DURATIONS,
@@ -88,6 +89,7 @@ function formatStartPreset(hoursFromNow: number): string {
 
 export function ContentCreatorDashboardPanel() {
   const colors = useColors();
+  const { isPlatformOwner } = usePlatformOwner();
   const router = useRouter();
   const utils = trpc.useUtils();
   const [tab, setTab] = useState<Tab>("overview");
@@ -166,7 +168,9 @@ export function ContentCreatorDashboardPanel() {
               "🎬 Schedule 15–60 min live classes",
               "📣 Share to Facebook & social",
               "✨ ContentMate AI for promo copy",
-              "🎬 Cartoon Studio — film your lesson, host a Cartoon Me stand-in. Pay first. No refunds.",
+              isPlatformOwner
+                ? "🎬 Cartoon Studio — film your lesson as Cartoon Me. The platform fee is off for your account."
+                : "🎬 Cartoon Studio — film your lesson, host a Cartoon Me stand-in. Pay first. No refunds.",
               "⚡ 85% on classes & merch · fans can buy you a coffee (you keep 100%; they pay the card fee)",
               "🎯 2,000 different people in the 30-day launch (1,000 followers + 1,000 paid subs): a full year of 50% off after your launch deal. 4,000 (2,000 + 2,000) in those 30 days: 60% off that year",
             ].map((item) => (
@@ -437,9 +441,20 @@ export function ContentCreatorDashboardPanel() {
                 <CreatorSupplyLinks />
               </View>
             </View>
-            <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-              <CartoonCreatorPricingPanel />
-            </View>
+            {isPlatformOwner ? (
+              <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
+                  Your AIs are open
+                </Text>
+                <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>
+                  The platform fee is off on your account. Cartoon Studio and your AIs generate without a UR checkout. Other creators still pay the platform price.
+                </Text>
+              </View>
+            ) : (
+              <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                <CartoonCreatorPricingPanel />
+              </View>
+            )}
             {(hostedCartoons.data ?? []).length > 0 ? (
               <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
                 <Text style={{ color: colors.foreground, fontWeight: "800" }}>Hosted cartoon videos</Text>

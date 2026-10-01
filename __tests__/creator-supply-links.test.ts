@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { mapPrintifyBlueprints } from "../lib/printify-supply";
+import { mapPrintifyBlueprints, mapPrintifyShopProducts, printifyUsShippingCents } from "../lib/printify-supply";
+import { memberPrintifyRetailCents } from "../lib/member-printify-pricing";
 
 describe("creator supply links", () => {
   it("keeps cartoon and Printify links on the creator dashboard", () => {
@@ -27,5 +28,43 @@ describe("creator supply links", () => {
     const route = readFileSync("server/_core/commerce-fulfillment-adapters.ts", "utf8");
     expect(route).toContain("listCreatorPrintifySupply");
     expect(route).not.toContain("return { ready: true, token");
+  });
+
+  it("keeps at least $4 and half the cost for UR on a member order", () => {
+    expect(memberPrintifyRetailCents(2000)).toBe(3000);
+    expect(memberPrintifyRetailCents(800)).toBe(1200);
+    expect(memberPrintifyRetailCents(100)).toBe(501);
+    expect(memberPrintifyRetailCents(50)).toBeNull();
+    const offers = mapPrintifyShopProducts({
+      data: [
+        {
+          id: "prod-1",
+          title: "Tee",
+          blueprint_id: 3,
+          print_provider_id: 29,
+          variants: [
+            { id: 2, title: "Large", cost: 900, is_enabled: true },
+            { id: 1, title: "Small", cost: 700, is_enabled: true },
+            { id: 3, title: "Off", cost: 100, is_enabled: false },
+          ],
+        },
+      ],
+    });
+    expect(offers).toEqual([
+      {
+        productId: "prod-1",
+        variantId: "1",
+        title: "Tee · Small",
+        costCents: 700,
+        blueprintId: "3",
+        printProviderId: "29",
+      },
+    ]);
+    expect(
+      printifyUsShippingCents({
+        profiles: [{ countries: ["US"], first_item: { cost: 450, currency: "USD" } }],
+      }),
+    ).toBe(450);
+    expect(memberPrintifyRetailCents(700 + 450)).toBe(1725);
   });
 });

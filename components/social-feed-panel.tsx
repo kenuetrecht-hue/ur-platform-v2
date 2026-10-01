@@ -13,6 +13,7 @@ import {
   Linking,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
+import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/lib/auth-context";
 import { getAccessToken } from "@/lib/auth-storage";
@@ -342,6 +343,7 @@ export function SocialFeedPanel({
   onCallStarted?: (roomId: string, creatorUserId: string) => void;
 }) {
   const colors = useColors();
+  const router = useRouter();
   const { user } = useAuth();
   const myUserId = user?.id != null ? String(user.id) : "";
   const utils = trpc.useUtils();
@@ -526,6 +528,17 @@ export function SocialFeedPanel({
           </Pressable>
         ))}
       </ScrollView>
+
+      <Pressable
+        testID="member-open-printify"
+        onPress={() => router.push("/creator-merch")}
+        style={{ marginHorizontal: 16, marginBottom: 8, backgroundColor: "#FFFFFF", borderRadius: 12, padding: 12 }}
+      >
+        <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800" }}>Order a shirt, mug, or poster</Text>
+        <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12, lineHeight: 18 }}>
+          Printed by Printify. The price includes UR’s share.
+        </Text>
+      </Pressable>
 
       <Pressable onPress={() => setShowComposer((v) => !v)} style={{ paddingHorizontal: 16, paddingVertical: 6 }}>
         <Text style={{ color: colors.primary, fontWeight: "700" }}>

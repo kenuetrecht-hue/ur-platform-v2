@@ -4,7 +4,13 @@
  */
 
 import { TRPCError } from "@trpc/server";
-import { mapPrintifyBlueprints, type PrintifySupplyItem } from "../../lib/printify-supply";
+import { memberPrintifyRetailCents } from "../../lib/member-printify-pricing";
+import {
+  mapPrintifyBlueprints,
+  mapPrintifyShopProducts,
+  printifyUsShippingCents,
+  type PrintifySupplyItem,
+} from "../../lib/printify-supply";
 import { isAllowedAffiliateProductUrl } from "../../lib/affiliate-link-policy";
 import {
   getAmazonAssociateTag,
@@ -225,25 +231,132 @@ async function submitCjOrder(params: FulfillmentOrderRequest): Promise<Fulfillme
   };
 }
 
-/** Catalog creators can sell. Ready only after PRINTIFY_API_TOKEN is set. The token is not returned. */
-export async function listCreatorPrintifySupply(): Promise<{ ready: boolean; items: PrintifySupplyItem[] }> {
+export type MemberPrintifyOffer = PrintifySupplyItem & {
+  productId: string;
+  variantId: string;
+  retailCents: number;
+  profitCents: number;
+};
+
+async function printifyGet(path: string, token: string): Promise<unknown | null> {
+  const response = await fetch(`https://api.printify.com/v1/${path}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "User-Agent": "URPlatform",
+    },
+    signal: AbortSignal.timeout(12_000),
+  });
+  const text = await response.text();
+  if (!response.ok || text.trim().startsWith("<")) return null;
+  return JSON.parse(text) as unknown;
+}
+
+/** Catalog for any signed-in member. Prices exist only when Printify tells us the cost. The token is not returned. */
+export async function listCreatorPrintifySupply(): Promise<{
+  ready: boolean;
+  shopReady: boolean;
+  forSale: MemberPrintifyOffer[];
+  catalog: PrintifySupplyItem[];
+}> {
   const token = getPrintifyApiToken();
-  if (!token) return { ready: false, items: [] };
+  if (!token) return { ready: false, shopReady: false, forSale: [], catalog: [] };
   try {
-    const response = await fetch("https://api.printify.com/v1/catalog/blueprints.json", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
-        "User-Agent": "URPlatform",
-      },
-      signal: AbortSignal.timeout(12_000),
-    });
-    const text = await response.text();
-    if (!response.ok || text.trim().startsWith("<")) return { ready: true, items: [] };
-    return { ready: true, items: mapPrintifyBlueprints(JSON.parse(text) as unknown) };
+    const shopId = getPrintifyShopId();
+    const [blueprints, shop] = await Promise.all([
+      printifyGet("catalog/blueprints.json", token),
+      shopId ? printifyGet(`shops/${encodeURIComponent(shopId)}/products.json`, token) : Promise.resolve(null),
+    ]);
+    const forSale: MemberPrintifyOffer[] = [];
+    const shippingByRoute = new Map<string, number | null>();
+    for (const offer of mapPrintifyShopProducts(shop)) {
+      const route = `${offer.blueprintId}/${offer.printProviderId}`;
+      if (!shippingByRoute.has(route)) {
+        const shipping = await printifyGet(
+          `catalog/blueprints/${encodeURIComponent(offer.blueprintId)}/print_providers/${encodeURIComponent(offer.printProviderId)}/shipping.json`,
+          token,
+        );
+        shippingByRoute.set(route, printifyUsShippingCents(shipping));
+      }
+      const shippingCents = shippingByRoute.get(route);
+      if (shippingCents == null) continue;
+      const retailCents = memberPrintifyRetailCents(offer.costCents + shippingCents);
+      if (!retailCents) continue;
+      forSale.push({
+        id: offer.productId,
+        title: offer.title,
+        productId: offer.productId,
+        variantId: offer.variantId,
+        retailCents,
+        profitCents: retailCents - offer.costCents - shippingCents,
+      });
+    }
+    return {
+      ready: true,
+      shopReady: Boolean(shopId),
+      forSale,
+      catalog: mapPrintifyBlueprints(blueprints),
+    };
   } catch {
-    return { ready: true, items: [] };
+    return { ready: true, shopReady: Boolean(getPrintifyShopId()), forSale: [], catalog: [] };
   }
+}
+
+export async function quoteMemberPrintifyOffer(
+  productId: string,
+  variantId: string,
+): Promise<MemberPrintifyOffer | null> {
+  const supply = await listCreatorPrintifySupply();
+  return supply.forSale.find((item) => item.productId === productId && item.variantId === variantId) ?? null;
+}
+
+export async function placeMemberPrintifyOrder(params: {
+  productId: string;
+  variantId: string;
+  externalId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  address1: string;
+  city: string;
+  region: string;
+  zip: string;
+  country: string;
+}): Promise<void> {
+  const token = getPrintifyApiToken();
+  const shopId = getPrintifyShopId();
+  if (!token || !shopId) return;
+  const variantId = Number.parseInt(params.variantId, 10);
+  if (!Number.isInteger(variantId)) return;
+  await fetch(`https://api.printify.com/v1/shops/${encodeURIComponent(shopId)}/orders.json`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "User-Agent": "URPlatform",
+    },
+    body: JSON.stringify({
+      external_id: params.externalId.slice(0, 40),
+      label: "UR member order",
+      line_items: [{ product_id: params.productId, variant_id: variantId, quantity: 1 }],
+      shipping_method: 1,
+      send_shipping_notification: false,
+      address_to: {
+        first_name: params.firstName.slice(0, 40),
+        last_name: params.lastName.slice(0, 40),
+        email: params.email.slice(0, 80),
+        phone: params.phone.slice(0, 20),
+        country: params.country.slice(0, 2),
+        region: params.region.slice(0, 8),
+        address1: params.address1.slice(0, 80),
+        city: params.city.slice(0, 40),
+        zip: params.zip.slice(0, 12),
+      },
+    }),
+    signal: AbortSignal.timeout(18_000),
+  });
 }
 
 /** Pull catalog from provider — returns empty until keys + sync job wired. */

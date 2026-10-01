@@ -24,6 +24,7 @@ import { grantCreditLot } from "./usage-credits-service";
 import { purchaseWorkspace3dExtraSlot, purchaseWorkspace3dPlan } from "./workspace-3d-subscription-service";
 import { grantReplayFromStripe } from "./class-replay-service";
 import { grantCreatorSocialPush } from "./creator-social-push-service";
+import { placeMemberPrintifyOrder } from "./commerce-fulfillment-adapters";
 
 const PLATFORM_KINDS = new Set([
   "usage_credit",
@@ -43,6 +44,7 @@ const PLATFORM_KINDS = new Set([
   "game_sandbox",
   "class_replay",
   "creator_social_push",
+  "member_printify",
 ]);
 
 function emailOf(metadata: Record<string, string>): string {
@@ -195,6 +197,22 @@ export function fulfillPlatformPurchase(
       return { handled: true, ignored: false };
     case "creator_social_push":
       grantCreatorSocialPush({ userId, planId: metadata.planId ?? "" });
+      return { handled: true, ignored: false };
+    case "member_printify":
+      void placeMemberPrintifyOrder({
+        productId: metadata.productId ?? "",
+        variantId: metadata.variantId ?? "",
+        externalId: userId,
+        email,
+        firstName: metadata.firstName ?? "UR",
+        lastName: metadata.lastName ?? "Member",
+        phone: metadata.phone ?? "",
+        address1: metadata.address1 ?? "",
+        city: metadata.city ?? "",
+        region: metadata.region ?? "",
+        zip: metadata.zip ?? "",
+        country: metadata.country ?? "US",
+      }).catch(() => undefined);
       return { handled: true, ignored: false };
     default:
       return { handled: false, ignored: true };

@@ -29,9 +29,12 @@ import {
   buildAffiliateOutboundUrl,
   getCommerceProviderStatus,
   listCreatorPrintifySupply,
+  quoteMemberPrintifyOffer,
   syncCatalogFromProvider,
   type FulfillmentProvider,
 } from "../_core/commerce-fulfillment-adapters";
+import { redirectToLiveCheckout } from "../_core/platform-checkout";
+import { assertPaymentChannelAllowed, assertSimulatedPurchaseAllowed } from "../_core/payment-channel-guard";
 import { getContentCreatorProfile } from "../_core/partner-program-service";
 import { sanitizeUserText } from "../_core/input-sanitize";
 import { affiliateNetworkFromUrl, OWNER_DIGITAL_KINDS } from "../../lib/affiliate-link-policy";
@@ -43,14 +46,83 @@ import {
 } from "../_core/commerce-trend-signals-service";
 
 export const commerceRouter = router({
-  /** Merch blanks from Printify. Creators see titles only. The token stays on the server. */
-  creatorMerchSupply: secureProcedure("commerce").query(async ({ ctx }) => {
-    const enrolled = Boolean(getContentCreatorProfile(String(ctx.user.id)));
-    if (!enrolled && !ctx.isPlatformOwner) {
-      throw new TRPCError({ code: "FORBIDDEN", message: "Become a content creator before opening merch supply." });
-    }
-    return listCreatorPrintifySupply();
+  /** Printify catalog for any signed-in member. Prices are UR’s retail, not Printify’s cost. */
+  creatorMerchSupply: secureProcedure("commerce").query(async () => {
+    const supply = await listCreatorPrintifySupply();
+    return {
+      ready: supply.ready,
+      shopReady: supply.shopReady,
+      catalog: supply.catalog,
+      forSale: supply.forSale.map((item) => ({
+        id: item.id,
+        title: item.title,
+        productId: item.productId,
+        variantId: item.variantId,
+        retailCents: item.retailCents,
+      })),
+    };
   }),
+
+  buyMemberPrintify: secureProcedure("commerce")
+    .input(
+      z.object({
+        productId: z.string().trim().min(4).max(64),
+        variantId: z.string().trim().min(1).max(24),
+        fullName: z.string().trim().min(3).max(80),
+        phone: z.string().trim().min(7).max(20),
+        address1: z.string().trim().min(4).max(80),
+        city: z.string().trim().min(2).max(40),
+        region: z.string().trim().min(2).max(8),
+        zip: z.string().trim().min(4).max(12),
+        country: z.string().trim().min(2).max(2).default("US"),
+        clientPlatform: z.enum(["web", "native"]).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const offer = await quoteMemberPrintifyOffer(input.productId, input.variantId);
+      if (!offer) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "That item does not have a UR price yet. Connect the Printify shop before selling it.",
+        });
+      }
+      const name = sanitizeUserText(input.fullName, 80);
+      const [firstName, ...rest] = name.split(" ");
+      const lastName = rest.join(" ") || firstName;
+      const liveCheckout = await redirectToLiveCheckout({
+        userId: String(ctx.user.id),
+        userEmail: ctx.user.email ?? "",
+        productName: offer.title,
+        description: "Printed and shipped by Printify. UR keeps the markup on this member order.",
+        priceCents: offer.retailCents,
+        billingStateCode: input.region,
+        successPath: "/creator-merch?order=success",
+        cancelPath: "/creator-merch?order=cancel",
+        metadata: {
+          kind: "member_printify",
+          productId: offer.productId,
+          variantId: offer.variantId,
+          firstName: firstName.slice(0, 40),
+          lastName: lastName.slice(0, 40),
+          phone: sanitizeUserText(input.phone, 20),
+          address1: sanitizeUserText(input.address1, 80),
+          city: sanitizeUserText(input.city, 40),
+          region: sanitizeUserText(input.region, 8),
+          zip: sanitizeUserText(input.zip, 12),
+          country: sanitizeUserText(input.country, 2).toUpperCase() || "US",
+        },
+      });
+      if (liveCheckout) return { ok: true as const, ...liveCheckout };
+      assertSimulatedPurchaseAllowed();
+      assertPaymentChannelAllowed({
+        subtotalCents: offer.retailCents,
+        clientPlatform: input.clientPlatform ?? "web",
+      });
+      return {
+        ok: true as const,
+        message: "Practice mode does not charge a card or place a Printify order.",
+      };
+    }),
 
   /** Provider readiness — add API keys in .env when you sign up with each company. */
   providerStatus: publicProcedure.query(() => ({

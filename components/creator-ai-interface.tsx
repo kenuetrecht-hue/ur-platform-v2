@@ -1336,15 +1336,17 @@ export function CreatorAIInterface({
                       {imageGenMutation.isPending ? "Generating…" : "🎨 Generate image (Imagen)"}
                     </Text>
                   </Pressable>
+                  {isPlatformOwner ? null : (
                   <UsageUpgradePanel
                     productId="images-imagen"
                     creatorId={creatorId}
                     title="Image credits & upgrades"
                   />
+                  )}
                 </View>
               ) : null}
 
-              {supportsPhotoAnalysis && pendingAttachments.length > 0 ? (
+              {supportsPhotoAnalysis && pendingAttachments.length > 0 && !isPlatformOwner ? (
                 <UsageUpgradePanel
                   productId="images-vision"
                   creatorId={creatorId}
