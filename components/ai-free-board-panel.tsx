@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
+import { LETTERING_ON_COLOR } from "@/lib/gold-lettering";
 import { useAuth } from "@/lib/auth-context";
 import { trpc } from "@/lib/trpc";
 import {
@@ -49,10 +50,22 @@ export function AiFreeBoardPanel({
 
   return (
     <View style={{ gap: 10 }}>
-      <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: compact ? 16 : 18 }}>
+      <Text
+        style={{
+          color: compact ? colors.foreground : LETTERING_ON_COLOR,
+          fontWeight: "800",
+          fontSize: compact ? 16 : 18,
+        }}
+      >
         {AI_FREE_BOARD_TITLE}
       </Text>
-      <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
+      <Text
+        style={{
+          color: compact ? colors.muted : LETTERING_ON_COLOR,
+          fontSize: 12,
+          lineHeight: 18,
+        }}
+      >
         {compact ? AI_FREE_BOARD_RULE_SHORT : board.data?.rule ?? AI_FREE_BOARD_RULE}
       </Text>
 
@@ -75,7 +88,17 @@ export function AiFreeBoardPanel({
                 },
               ]}
             >
-              <Text style={{ color: active ? colors.primary : colors.foreground, fontWeight: "700", fontSize: 12 }}>
+              <Text
+                style={{
+                  color: active
+                    ? compact
+                      ? colors.primary
+                      : LETTERING_ON_COLOR
+                    : colors.foreground,
+                  fontWeight: "700",
+                  fontSize: 12,
+                }}
+              >
                 {tab.label}
               </Text>
             </Pressable>

@@ -67,5 +67,18 @@ export function explainAuthFailure(error: unknown): string {
     return "Wrong email or password. Type the same email and password you used on Sign up. If you forgot, tap Send a new password. If you are new, tap Sign up.";
   }
 
+  if (
+    lower.includes("phone provider") ||
+    lower.includes("phone logins are disabled") ||
+    lower.includes("error sending sms") ||
+    lower.includes("sms_send_failed")
+  ) {
+    return "Text codes are not turned on for this site yet. Tap Send a new password to this email.";
+  }
+
+  if (lower.includes("token has expired") || lower.includes("otp_expired") || lower.includes("invalid otp")) {
+    return "That code is wrong or expired. Tap Text the code again.";
+  }
+
   return raw.trim() || "Login failed. Please try again.";
 }

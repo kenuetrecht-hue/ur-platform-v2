@@ -1,5 +1,6 @@
 import { ScrollViewStyleReset } from "expo-router/html";
 import type { PropsWithChildren } from "react";
+import { passwordRecoveryBootstrapScript } from "@/lib/password-recovery-url";
 
 export default function Root({ children }: PropsWithChildren) {
   return (
@@ -24,6 +25,7 @@ export default function Root({ children }: PropsWithChildren) {
         <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <ScrollViewStyleReset />
+        <script dangerouslySetInnerHTML={{ __html: passwordRecoveryBootstrapScript() }} />
       </head>
       <body style={{ backgroundColor: "#07080d", margin: 0 }}>{children}</body>
     </html>

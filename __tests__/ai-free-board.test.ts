@@ -40,6 +40,8 @@ describe("AI free board service", () => {
     expect(all.rule).toBe(AI_FREE_BOARD_RULE);
     expect(listAiFreeBoard({ lane: "text" }).posts.every((p) => p.lane === "text")).toBe(true);
     expect(listAiFreeBoard({ lane: "watch" }).posts.every((p) => p.lane === "watch")).toBe(true);
+    const creatorIds = all.posts.map((post) => post.creatorAiId);
+    expect(new Set(creatorIds).size).toBe(creatorIds.length);
     const specialistId = all.posts[0]!.creatorAiId;
     const onlyThatAi = listAiFreeBoard({ creatorAiId: specialistId, limit: 4 });
     expect(onlyThatAi.posts.length).toBeGreaterThan(0);
@@ -50,7 +52,9 @@ describe("AI free board service", () => {
     ensureAiFreeBoardSeeded();
     const before = listAiFreeBoard({}).posts.length;
     const next = publishNextAiFreeBoardPost("text");
-    expect(next.disclosure.toLowerCase()).toContain("ur platform ai");
+    expect(next).toBeTruthy();
+    expect(next!.disclosure.toLowerCase()).toContain("ur platform ai");
+    expect(listAiFreeBoard({}).posts.filter((post) => post.creatorAiId === next!.creatorAiId)).toHaveLength(1);
     expect(listAiFreeBoard({}).posts.length).toBe(before + 1);
   });
 

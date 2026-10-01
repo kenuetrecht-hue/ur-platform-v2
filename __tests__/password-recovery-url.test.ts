@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "fs";
 import {
+  authCallbackParams,
   isNewPasswordPath,
   isPasswordRecoveryHref,
+  passwordRecoveryBootstrapScript,
   passwordResetRedirectUrl,
+  pathForPasswordRecoveryLanding,
+  shouldCapturePasswordRecoveryHref,
   websiteOriginForAuthLinks,
+  PASSWORD_RECOVERY_STASH_KEY,
   PUBLIC_WEBSITE_ORIGIN,
 } from "../lib/password-recovery-url";
 import {
@@ -31,6 +36,26 @@ describe("password recovery links", () => {
     expect(guard).toContain("isNewPasswordPath");
     expect(index).toContain("isPasswordRecoveryHref");
     expect(page).toContain("Save password and go to Login");
+    expect(page).toContain("completePasswordRecovery");
+    expect(readFileSync("app/+html.tsx", "utf8")).toContain("passwordRecoveryBootstrapScript");
+  });
+
+  it("pulls the email token off the address before the page router runs", () => {
+    const href =
+      "https://urplatform.llc/new-password#access_token=abc&refresh_token=def&type=recovery";
+    expect(shouldCapturePasswordRecoveryHref(href)).toBe(true);
+    expect(authCallbackParams(href).accessToken).toBe("abc");
+    expect(authCallbackParams(href).refreshToken).toBe("def");
+    expect(pathForPasswordRecoveryLanding("/")).toBe("/new-password");
+    expect(shouldCapturePasswordRecoveryHref("https://urplatform.llc/new-password?code=one-time")).toBe(
+      true,
+    );
+    expect(shouldCapturePasswordRecoveryHref("https://urplatform.llc/services?code=not-auth")).toBe(false);
+    const script = passwordRecoveryBootstrapScript();
+    expect(script).toContain(PASSWORD_RECOVERY_STASH_KEY);
+    expect(script).toContain("/new-password");
+    expect(script).toContain("type=recovery");
+    expect(script).toContain("type=sms");
   });
 });
 

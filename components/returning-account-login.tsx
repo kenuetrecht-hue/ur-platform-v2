@@ -12,6 +12,8 @@ import { EXISTING_ACCOUNT_LOGIN_HINT } from "@/lib/existing-join-login";
 import { loadJoinAccountDraft } from "@/lib/join-account-draft";
 import { readWebTextInputValue } from "@/lib/read-web-input-value";
 import { sendPasswordResetEmail } from "@/lib/send-password-reset";
+import { sendPhoneSignInCode } from "@/lib/phone-sign-in-code";
+import { getSupabaseClientAsync } from "@/lib/supabase";
 import { getStayLoggedIn, setStayLoggedIn } from "@/lib/stay-logged-in";
 import { rememberSignedInApiDevice } from "@/lib/known-api-device";
 import { useColors } from "@/hooks/use-colors";
@@ -22,7 +24,7 @@ type Variant = "homepage" | "page";
 export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant }) {
   const router = useRouter();
   const colors = useColors();
-  const { login } = useAuth();
+  const { login, loginWithSmsCode } = useAuth();
   const verifyTurnstile = trpc.auth.verifyTurnstile.useMutation();
   const claimPass = trpc.ageKyc.claimPass.useMutation();
   const turnstileConfig = trpc.auth.turnstileConfig.useQuery(undefined, { staleTime: 60_000 });
@@ -37,6 +39,11 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
   const [error, setError] = useState<string | null>(alreadyJoined ? EXISTING_ACCOUNT_LOGIN_HINT : null);
   const [busy, setBusy] = useState(false);
   const [resetBusy, setResetBusy] = useState(false);
+  const [phoneOpen, setPhoneOpen] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [smsCode, setSmsCode] = useState("");
+  const [smsSent, setSmsSent] = useState(false);
+  const [smsBusy, setSmsBusy] = useState(false);
 
   const homepage = variant === "homepage";
   const staged = variant === "page" || homepage;
@@ -91,6 +98,36 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
       setError(explainAuthFailure(err));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const finishSmsSignIn = async () => {
+    if (turnstileConfig.data?.required && !turnstileToken.trim()) {
+      setError("Complete the security check, then tap Text the code.");
+      return;
+    }
+    setSmsBusy(true);
+    setError(null);
+    try {
+      if (!smsSent) {
+        const supabase = await getSupabaseClientAsync();
+        await sendPhoneSignInCode(supabase, phone);
+        setSmsSent(true);
+        setError("Check your texts. Type the 6-digit code, then tap Sign in with this code.");
+        return;
+      }
+      await loginWithSmsCode(phone, smsCode);
+      rememberSignedInApiDevice();
+      try {
+        await claimStoredAgeKycPass((input) => claimPass.mutateAsync(input));
+      } catch {
+        /* Returning members already passed ID on the account. */
+      }
+      router.replace(AFTER_ID_PASS_HREF);
+    } catch (err) {
+      setError(explainAuthFailure(err));
+    } finally {
+      setSmsBusy(false);
     }
   };
 
@@ -237,6 +274,50 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
         backgroundColor={staged ? T.brandBlue : colors.muted}
         testID="send-new-password"
       />
+      <Pressable onPress={() => setPhoneOpen((open) => !open)} testID="show-phone-code">
+        <Text style={{ color: linkColor, fontWeight: "800", fontSize: 14 }}>
+          {phoneOpen ? "Hide phone code" : "Text a code to my phone"}
+        </Text>
+      </Pressable>
+      {phoneOpen ? (
+        <View style={{ gap: 10 }}>
+          <Text style={{ color: labelColor, fontWeight: "600" }}>Mobile number</Text>
+          <TextInput
+            value={phone}
+            onChangeText={setPhone}
+            placeholder="317-555-0100"
+            placeholderTextColor={mutedColor}
+            keyboardType="phone-pad"
+            autoComplete="tel"
+            textContentType="telephoneNumber"
+            style={inputStyle}
+            testID="login-phone"
+          />
+          {smsSent ? (
+            <>
+              <Text style={{ color: labelColor, fontWeight: "600" }}>Code from the text</Text>
+              <TextInput
+                value={smsCode}
+                onChangeText={setSmsCode}
+                placeholder="6-digit code"
+                placeholderTextColor={mutedColor}
+                keyboardType="number-pad"
+                maxLength={6}
+                style={inputStyle}
+                testID="login-sms-code"
+              />
+            </>
+          ) : null}
+          <PrimaryActionButton
+            label={smsSent ? "Sign in with this code" : "Text the code"}
+            loadingLabel={smsSent ? "Checking…" : "Texting…"}
+            loading={smsBusy}
+            onPress={() => void finishSmsSignIn()}
+            backgroundColor={staged ? T.brandBlue : colors.muted}
+            testID="send-phone-code"
+          />
+        </View>
+      ) : null}
 
       {homepage ? (
         <Link href={JOIN_ACCOUNT_HREF} style={{ color: linkColor, fontWeight: "700", fontSize: 14 }}>

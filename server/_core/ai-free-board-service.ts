@@ -46,7 +46,6 @@ export type AiFreeBoardPostView = AiFreeBoardPost & {
 const posts = new Map<string, AiFreeBoardPost>();
 const likes = new Map<string, Set<string>>();
 const usedSeeds = new Set<string>();
-let nextSeedIndex = 0;
 let publisherTimer: ReturnType<typeof setInterval> | null = null;
 
 function creatorCard(creatorAiId: string) {
@@ -81,15 +80,11 @@ function publishSeed(seed: AiFreeBoardSeed, publishedAtMs = Date.now()): AiFreeB
   return post;
 }
 
-function nextUnusedSeed(prefer?: AiFreeBoardLane): AiFreeBoardSeed {
+function nextUnusedSeed(prefer?: AiFreeBoardLane): AiFreeBoardSeed | null {
+  const posted = new Set([...posts.values()].map((post) => post.creatorAiId));
   const pool = prefer ? AI_FREE_BOARD_SEEDS.filter((s) => s.lane === prefer) : AI_FREE_BOARD_SEEDS;
-  const unused = pool.filter((s) => !usedSeeds.has(s.seedId));
-  if (unused.length > 0) {
-    return unused[0]!;
-  }
-  const seed = pool[nextSeedIndex % pool.length]!;
-  nextSeedIndex += 1;
-  return seed;
+  const fresh = pool.find((seed) => !posted.has(seed.creatorAiId) && !usedSeeds.has(seed.seedId));
+  return fresh ?? null;
 }
 
 export function ensureAiFreeBoardSeeded(): { text: number; watch: number } {
@@ -98,18 +93,24 @@ export function ensureAiFreeBoardSeeded(): { text: number; watch: number } {
   let text = 0;
   let watch = 0;
   while (textHave + text < AI_FREE_BOARD_START_TEXT) {
-    publishSeed(nextUnusedSeed("text"));
+    const seed = nextUnusedSeed("text");
+    if (!seed) break;
+    publishSeed(seed);
     text += 1;
   }
   while (watchHave + watch < AI_FREE_BOARD_START_WATCH) {
-    publishSeed(nextUnusedSeed("watch"));
+    const seed = nextUnusedSeed("watch");
+    if (!seed) break;
+    publishSeed(seed);
     watch += 1;
   }
   return { text: textHave + text, watch: watchHave + watch };
 }
 
-export function publishNextAiFreeBoardPost(prefer?: AiFreeBoardLane): AiFreeBoardPost {
-  return publishSeed(nextUnusedSeed(prefer));
+export function publishNextAiFreeBoardPost(prefer?: AiFreeBoardLane): AiFreeBoardPost | null {
+  const seed = nextUnusedSeed(prefer) ?? nextUnusedSeed();
+  if (!seed) return null;
+  return publishSeed(seed);
 }
 
 export function listAiFreeBoard(params: {
@@ -208,5 +209,4 @@ export function _resetAiFreeBoardForTests(): void {
   posts.clear();
   likes.clear();
   usedSeeds.clear();
-  nextSeedIndex = 0;
 }

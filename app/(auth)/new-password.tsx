@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { SignupDoorShell } from "@/components/signup-door-shell";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { RETURNING_LOGIN_HREF } from "@/lib/after-sign-in";
+import { completePasswordRecovery } from "@/lib/complete-password-recovery";
 import { PUBLIC_WEBSITE_ORIGIN } from "@/lib/password-recovery-url";
 import { getSupabaseClientAsync } from "@/lib/supabase";
 import { explainAuthFailure } from "@/lib/auth-network-error";
@@ -26,12 +27,13 @@ export default function NewPasswordScreen() {
     void (async () => {
       try {
         const supabase = await getSupabaseClientAsync();
-        const { data } = await supabase.auth.getSession();
+        const result = await completePasswordRecovery(supabase);
         if (!cancelled) {
-          setLinkReady(Boolean(data.session));
-          if (!data.session) {
+          setLinkReady(result.ready);
+          if (!result.ready) {
             setError(
-              `This page needs the email link. Open ${PUBLIC_WEBSITE_ORIGIN}/login and tap Send a new password.`,
+              result.message ??
+                `This page needs the email link. Open ${PUBLIC_WEBSITE_ORIGIN}/login and tap Send a new password.`,
             );
           }
         }

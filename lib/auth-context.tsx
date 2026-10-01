@@ -10,6 +10,7 @@ import { getSupabaseClientAsync } from "./supabase";
 import { explainAuthFailure } from "./auth-network-error";
 import { isAlreadyRegisteredAuthError } from "./auth-already-registered";
 import { signInWithPasswordRetryingCaptcha } from "./supabase-password-signin";
+import { verifyPhoneSignInCode } from "./phone-sign-in-code";
 import { rememberSignedInApiDevice } from "./known-api-device";
 import {
   clearAuthStorage,
@@ -42,6 +43,7 @@ export interface AuthState {
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string, captchaToken?: string) => Promise<void>;
+  loginWithSmsCode: (phone: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (
     email: string,
@@ -252,7 +254,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (!mounted) return;
 
-        if (event === "SIGNED_IN" && session?.user && session.access_token) {
+        if (
+          (event === "SIGNED_IN" || event === "PASSWORD_RECOVERY") &&
+          session?.user &&
+          session.access_token
+        ) {
           const authUser = mapSupabaseUser(session.user);
           await persistSessionSafe(session, authUser);
           dispatch({
@@ -329,6 +335,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       dispatch({
         type: "LOGIN_SUCCESS",
         payload: { user: authUser, accessToken: data.session.access_token },
+      });
+    } catch (error) {
+      const msg = explainAuthFailure(error);
+      dispatch({ type: "SET_ERROR", payload: msg });
+      throw new Error(msg);
+    }
+  }, []);
+
+  const loginWithSmsCode = useCallback(async (phone: string, code: string) => {
+    dispatch({ type: "SET_ERROR", payload: null });
+    try {
+      const supabase = await getSupabaseClientAsync();
+      const data = await verifyPhoneSignInCode(supabase, phone, code);
+      const session = data.session;
+      if (!session?.user || !session.access_token) {
+        throw new Error("That code did not sign you in. Text a new code and try again.");
+      }
+      const authUser = mapSupabaseUser(session.user);
+      await persistSessionSafe(session, authUser);
+      dispatch({
+        type: "LOGIN_SUCCESS",
+        payload: { user: authUser, accessToken: session.access_token },
       });
     } catch (error) {
       const msg = explainAuthFailure(error);
@@ -449,6 +477,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const value: AuthContextType = {
     ...state,
     login,
+    loginWithSmsCode,
     logout,
     register,
     clearError,
