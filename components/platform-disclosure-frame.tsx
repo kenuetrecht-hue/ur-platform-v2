@@ -20,8 +20,9 @@ export function PlatformDisclosureFrame({
   const isMarketingLanding = segments[0] === "welcome";
   const isAuthScreen =
     segments[0] === "(auth)" || segments[0] === "login" || segments[0] === "signup";
+  const isOwnerOpsChat = segments[0] === "owner-ai";
 
-  if (isMarketingLanding || isAuthScreen) {
+  if (isMarketingLanding || isAuthScreen || isOwnerOpsChat) {
     return <View style={styles.root}>{children}</View>;
   }
 

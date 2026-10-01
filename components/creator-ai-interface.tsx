@@ -47,7 +47,7 @@ import { AiChatMessageMedia } from "@/components/ai-chat-message-media";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { ThanksStampsWall } from "@/components/thanks-stamps-wall";
 import { FloatingCard } from "@/components/floating-card";
-import { BUSINESS_STEWARD_AI_ID } from "@/lib/owner-platform-ops-catalog";
+import { BUSINESS_STEWARD_AI_ID, isOwnerOpsAiId } from "@/lib/owner-platform-ops-catalog";
 import { playExclusiveAudio, stopExclusiveAudio, unlockWebAudio } from "@/lib/exclusive-audio-player";
 import { pickChatAttachments, type PickedChatAttachment } from "@/lib/chat-attachment-picker";
 import { AppPressable } from "@/components/app-pressable";
@@ -169,6 +169,7 @@ export function CreatorAIInterface({
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
   const [awaitingPitchConsent, setAwaitingPitchConsent] = useState(false);
   const isStewardDesk = creatorId === BUSINESS_STEWARD_AI_ID;
+  const ownerOpsChat = isOwnerOpsAiId(creatorId);
   const [showExtras, setShowExtras] = useState(false);
   const [showTalkTopUp, setShowTalkTopUp] = useState(false);
   const [apiReachable, setApiReachable] = useState<boolean | null>(null);
@@ -702,6 +703,7 @@ export function CreatorAIInterface({
       </View>
       ) : null}
 
+      {ownerOpsChat ? null : (
       <View
         style={[
           styles.disclosureBanner,
@@ -724,6 +726,7 @@ export function CreatorAIInterface({
           {buildAiChatDisclosure(creatorName)}
         </Text>
       </View>
+      )}
 
       {isStewardDesk ? null : (
         <FloatingCard style={{ marginHorizontal: 12, marginBottom: 8, padding: 10 }}>
