@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   appendAiChatTurns,
@@ -87,5 +88,25 @@ describe("ai-chat-persistence-service (in-memory fallback)", () => {
     const coder = await listAiChatMessages({ userId: 3, creatorId: "ai-coder-001" });
     expect(contentmate?.messages[0]?.content).toBe("Write a caption");
     expect(coder?.messages[0]?.content).toBe("Fix my bug");
+  });
+
+  it("keeps the newest turns when a thread is longer than the load window", async () => {
+    const turns = Array.from({ length: 45 }, (_, index) => ({
+      role: (index % 2 === 0 ? "user" : "assistant") as "user" | "assistant",
+      content: `turn-${index}`,
+    }));
+    await appendAiChatTurns({
+      userId: 11,
+      creatorId: "business-steward",
+      turns,
+    });
+
+    const thread = await listAiChatMessages({ userId: 11, creatorId: "business-steward" });
+    expect(thread?.messages[0]?.content).toBe("turn-5");
+    expect(thread?.messages.at(-1)?.content).toBe("turn-44");
+    expect(thread?.messages.some((message) => message.content === "turn-0")).toBe(false);
+
+    const source = readFileSync("server/_core/ai-chat-persistence-service.ts", "utf8");
+    expect(source).toContain("desc(aiChatMessages.createdAt)");
   });
 });

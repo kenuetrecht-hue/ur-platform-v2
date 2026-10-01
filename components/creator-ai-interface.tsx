@@ -40,6 +40,8 @@ import { isTalkTimeLowBalance } from "@/lib/ai-talk-time-policy";
 import type { ChatMessageAttachmentPreview, ChatSearchCitation } from "@/lib/chat-attachment-types";
 import { AiChatSearchCitations } from "@/components/ai-chat-search-citations";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
+import { mergeUnsavedChatTail } from "@/lib/merge-unsaved-chat-tail";
+import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 import { AiChatMessageMedia } from "@/components/ai-chat-message-media";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
@@ -119,12 +121,15 @@ export function CreatorAIInterface({
   const applySyncedMessages = useCallback(
     (synced: SyncedChatMessage[]) => {
       if (loadingRef.current || synced.length === 0) return;
-      setMessages(
-        synced.map((m) => ({
-          id: m.id,
-          role: m.role,
-          text: m.text,
-        })),
+      setMessages((prev) =>
+        mergeUnsavedChatTail(
+          prev,
+          synced.map((m) => ({
+            id: m.id,
+            role: m.role,
+            text: m.text,
+          })),
+        ),
       );
     },
     [],
@@ -812,13 +817,13 @@ export function CreatorAIInterface({
                 styles.bubble,
                 msg.role === "user"
                   ? [styles.userBubble, { backgroundColor: colors.primary }]
-                  : [styles.aiBubble, { backgroundColor: colors.background, borderColor: colors.border }],
+                  : [styles.aiBubble, { backgroundColor: "#FFFFFF", borderColor: colors.border }],
               ]}
             >
               <Text
                 style={[
                   styles.bubbleText,
-                  { color: msg.role === "user" ? "#fff" : colors.foreground },
+                  { color: msg.role === "user" ? "#fff" : LETTERING_ON_WHITE },
                 ]}
               >
                 {msg.text}

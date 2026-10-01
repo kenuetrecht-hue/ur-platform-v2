@@ -3,7 +3,7 @@
  */
 
 import { randomUUID } from "crypto";
-import { and, asc, eq, gt } from "drizzle-orm";
+import { and, asc, desc, eq, gt } from "drizzle-orm";
 import { aiChatMessages, aiChatThreads } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { sanitizeUserText } from "./input-sanitize";
@@ -162,18 +162,20 @@ export async function listAiChatMessages(params: {
       conditions.push(gt(aiChatMessages.createdAt, params.since));
     }
 
+    const rowLimit = params.since ? 100 : limit;
     const rows = await db
       .select()
       .from(aiChatMessages)
       .where(and(...conditions))
-      .orderBy(asc(aiChatMessages.createdAt))
-      .limit(params.since ? 100 : limit);
+      .orderBy(params.since ? asc(aiChatMessages.createdAt) : desc(aiChatMessages.createdAt))
+      .limit(rowLimit);
+    const chronological = params.since ? rows : [...rows].reverse();
 
     return {
       threadId: thread.id,
       creatorId: thread.creatorId,
       updatedAt: toIso(thread.updatedAt),
-      messages: rows.map((row) => ({
+      messages: chronological.map((row) => ({
         id: row.id,
         role: row.role,
         content: row.content,

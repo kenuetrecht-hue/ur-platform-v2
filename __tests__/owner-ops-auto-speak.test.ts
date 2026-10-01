@@ -61,10 +61,8 @@ describe("owner chat allowance", () => {
     expect(hub).toContain("owner-ops-open-chat");
     expect(chat).toContain("speakReplies");
     expect(chat).not.toContain("autoSpeak === true");
-    expect(chat).toContain("the same words stay in this chat");
-    expect(chat).toContain("You are talking to an AI");
-    expect(chat).toContain("OWNER_CHAT_UNLIMITED_MONTHLY_CENTS");
-    expect(chat).toContain("OWNER_CHAT_DAILY_CAP");
+    expect(chat).not.toContain("You are talking to an AI");
+    expect(chat).not.toContain("buildAiChatDisclosure");
     expect(chat).toContain("onBack");
     expect(chat).toContain('toolRail="left"');
     expect(handler).toContain("assertOwnerChatAllowed");

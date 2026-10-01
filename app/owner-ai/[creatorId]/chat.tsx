@@ -1,19 +1,16 @@
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { TabScreenHeader } from "@/components/tab-screen-header";
 import { CreatorAIInterface } from "@/components/creator-ai-interface";
 import { useColors } from "@/hooks/use-colors";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
-import { trpc } from "@/lib/trpc";
 import {
   BUSINESS_STEWARD_AI_ID,
   OWNER_PLATFORM_OPS_CATALOG,
   WORLD_DIRECTOR_AI_ID,
   isOwnerOpsAiId,
 } from "@/lib/owner-platform-ops-catalog";
-import { OWNER_CHAT_DAILY_CAP, OWNER_CHAT_UNLIMITED_MONTHLY_CENTS } from "@/lib/owner-ops-auto-speak";
-import { buildAiChatDisclosure } from "@/lib/platform-disclosure-copy";
 import { OWNER_REMEDIATION_CONFIRM_PHRASE } from "@/lib/platform-ops-remediation-types";
 
 function welcomeFor(id: string, name: string): string {
@@ -35,9 +32,7 @@ export default function OwnerOpsAiChatPage() {
   const creator = OWNER_PLATFORM_OPS_CATALOG.find((entry) => entry.id === creatorId);
   const { isPlatformOwner, canAccessAdminDashboard, hasAdminPermission, isLoading } = usePlatformOwner();
   const canChat = canAccessAdminDashboard && hasAdminPermission("chat_ops_ai");
-  const voice = trpc.platformOps.ownerOpsAutoSpeak.useQuery(undefined, { enabled: canChat });
   const ownerOnly = creatorId === BUSINESS_STEWARD_AI_ID || creatorId === WORLD_DIRECTOR_AI_ID;
-  const monthlyUsd = (OWNER_CHAT_UNLIMITED_MONTHLY_CENTS / 100).toLocaleString("en-US");
 
   if (!creatorId || !isOwnerOpsAiId(creatorId) || !creator) {
     return <Redirect href="/(tabs)/admin" />;
@@ -55,12 +50,6 @@ export default function OwnerOpsAiChatPage() {
     );
   }
 
-  const aiWarning = buildAiChatDisclosure(creator.name);
-  const dailyLeft = voice.data?.dailyRemaining;
-  const voiceNote = voice.data?.unlimited
-    ? "They speak each reply, and the same words stay in this chat so you can read them again."
-    : `They speak each reply, and the same words stay in this chat. Until the site makes $${monthlyUsd} this month, owner chats are limited to ${voice.data?.dailyCap ?? OWNER_CHAT_DAILY_CAP} a day so the bill does not run while the site is not earning.${dailyLeft == null ? "" : ` ${dailyLeft} left today.`}`;
-
   return (
     <ScreenContainer className="bg-background" style={{ flex: 1, minHeight: 0 }}>
       <TabScreenHeader
@@ -70,27 +59,6 @@ export default function OwnerOpsAiChatPage() {
         backLabel="← Back"
         onBack={() => router.replace("/(tabs)/admin")}
       />
-      <View
-        accessibilityRole="alert"
-        accessibilityLabel={aiWarning}
-        style={{
-          marginHorizontal: 12,
-          marginBottom: 8,
-          paddingHorizontal: 12,
-          paddingVertical: 10,
-          borderRadius: 12,
-          borderWidth: 1,
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-          gap: 4,
-        }}
-      >
-        <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 13, lineHeight: 18 }}>
-          ⚠️ You are talking to an AI
-        </Text>
-        <Text style={{ color: colors.foreground, fontSize: 12, lineHeight: 17 }}>{aiWarning}</Text>
-        <Text style={{ color: colors.foreground, fontSize: 12, lineHeight: 17 }}>{voiceNote}</Text>
-      </View>
       <View style={{ flex: 1, minHeight: 0 }}>
         <CreatorAIInterface
           key={creatorId}
