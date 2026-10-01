@@ -53,6 +53,12 @@ textarea.ur-chat-composer {
   box-sizing: border-box !important;
 }
 
+textarea.ur-chat-composer.ur-chat-composer-owner {
+  height: 240px !important;
+  min-height: 240px !important;
+  max-height: 480px !important;
+}
+
 .ur-chat-composer-footer {
   flex-shrink: 0 !important;
   position: sticky;

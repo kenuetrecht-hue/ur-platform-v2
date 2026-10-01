@@ -26,7 +26,7 @@ export type PersistedChatThread = {
 
 const MAX_STORED_MESSAGES = 200;
 const MAX_LOAD_MESSAGES = 40;
-const MAX_CONTENT_LENGTH = 4000;
+const MAX_CONTENT_LENGTH = 20_000;
 
 type MemThread = {
   id: string;

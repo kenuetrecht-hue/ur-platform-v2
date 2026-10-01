@@ -109,4 +109,21 @@ describe("ai-chat-persistence-service (in-memory fallback)", () => {
     const source = readFileSync("server/_core/ai-chat-persistence-service.ts", "utf8");
     expect(source).toContain("desc(aiChatMessages.createdAt)");
   });
+
+  it("keeps a long spoken reply so it can be read again later", async () => {
+    const spoken = `Repost this. ${"word ".repeat(1200)}`.trim();
+    expect(spoken.length).toBeGreaterThan(4000);
+
+    await appendAiChatTurns({
+      userId: 15,
+      creatorId: "platform-business-steward-ai",
+      turns: [
+        { role: "user", content: "What should I post?" },
+        { role: "assistant", content: spoken },
+      ],
+    });
+
+    const thread = await listAiChatMessages({ userId: 15, creatorId: "platform-business-steward-ai" });
+    expect(thread?.messages.at(-1)?.content).toBe(spoken);
+  });
 });

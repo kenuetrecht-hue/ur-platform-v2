@@ -20,6 +20,10 @@ type ChatComposerInputProps = {
   onFocus?: () => void;
   /** Increment to move the cursor into this box (the Text button). */
   focusNonce?: number;
+  /** Shorter box for Administration chats. Public chats keep the shared 300px frame. */
+  frameHeight?: number;
+  rows?: number;
+  webClassName?: string;
 };
 
 /**
@@ -38,6 +42,9 @@ export function ChatComposerInput({
   onSubmitEditing,
   onFocus,
   focusNonce = 0,
+  frameHeight,
+  rows = CHAT_COMPOSER_LINES,
+  webClassName,
 }: ChatComposerInputProps) {
   const nativeRef = useRef<TextInput>(null);
   const webRef = useRef<HTMLTextAreaElement>(null);
@@ -47,7 +54,7 @@ export function ChatComposerInput({
     else nativeRef.current?.focus();
   }, [focusNonce]);
   const flat = StyleSheet.flatten([CHAT_COMPOSER_INPUT, style]) ?? {};
-  const height = typeof flat.height === "number" ? flat.height : CHAT_COMPOSER_HEIGHT;
+  const height = frameHeight ?? (typeof flat.height === "number" ? flat.height : CHAT_COMPOSER_HEIGHT);
   const maxHeight = typeof flat.maxHeight === "number" ? flat.maxHeight : CHAT_COMPOSER_MAX_HEIGHT;
   const frameStyle = [CHAT_COMPOSER_FRAME, { height, minHeight: height, maxHeight }];
 
@@ -56,12 +63,12 @@ export function ChatComposerInput({
       <View style={frameStyle}>
         <textarea
           ref={webRef}
-          className="ur-chat-composer"
+          className={["ur-chat-composer", webClassName].filter(Boolean).join(" ")}
           value={value}
           placeholder={placeholder}
           disabled={editable === false}
           maxLength={maxLength}
-          rows={CHAT_COMPOSER_LINES}
+          rows={rows}
           onChange={(event) => onChangeText(event.target.value)}
           onFocus={onFocus}
           onKeyDown={(event) => {

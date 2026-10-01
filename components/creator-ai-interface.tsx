@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect, useLayoutEffect } from "react";
 import {
   View,
   Text,
@@ -303,7 +303,7 @@ export function CreatorAIInterface({
     if (forgeEmbedded) setShowExtras(true);
   }, [forgeEmbedded]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     messageSeq.current = 0;
     const welcome =
       welcomeMessage ??
@@ -842,7 +842,14 @@ export function CreatorAIInterface({
           ))}
         </ScrollView>
 
-        <ComposerDock paddingBottom={overlap.dockPaddingBottom}>
+        <ComposerDock
+          paddingBottom={
+            ownerOpsChat
+              ? LAYOUT_OVERLAP.COMPOSER_MIN_PADDING + LAYOUT_OVERLAP.COMPOSER_DOCK_GAP
+              : overlap.dockPaddingBottom
+          }
+          style={ownerOpsChat ? { marginTop: 4, paddingTop: 6 } : undefined}
+        >
           {pendingAttachments.length > 0 ? (
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 4, paddingBottom: 6 }}>
               {pendingAttachments.map((att, i) => (
@@ -888,6 +895,7 @@ export function CreatorAIInterface({
                     accessibilityLabel="Attachment"
                     style={({ pressed }) => [
                       styles.railButton,
+                      ownerOpsChat ? styles.railButtonOwner : null,
                       {
                         borderColor: colors.border,
                         backgroundColor: colors.surface,
@@ -945,6 +953,7 @@ export function CreatorAIInterface({
                     accessibilityLabel="Paint"
                     style={({ pressed }) => [
                       styles.railButton,
+                      ownerOpsChat ? styles.railButtonOwner : null,
                       {
                         borderColor: colors.border,
                         backgroundColor: showImageGen ? colors.primary : colors.surface,
@@ -1036,8 +1045,12 @@ export function CreatorAIInterface({
             )}
             <View style={toolRail === "left" ? styles.writingColumn : styles.inlineWriting}>
             <ChatComposerInput
+              frameHeight={ownerOpsChat ? 240 : undefined}
+              rows={ownerOpsChat ? 10 : undefined}
+              webClassName={ownerOpsChat ? "ur-chat-composer-owner" : undefined}
               style={[
                 styles.input,
+                ownerOpsChat ? styles.inputOwner : null,
                 {
                   color: colors.foreground,
                   backgroundColor: colors.surface,
@@ -1072,6 +1085,7 @@ export function CreatorAIInterface({
               hitSlop={8}
                 style={({ pressed }) => [
                 toolRail === "left" ? styles.sendWide : styles.sendButton,
+                ownerOpsChat ? styles.sendOwner : null,
                 {
                   backgroundColor:
                     loading || (!inputText.trim() && pendingAttachments.length === 0)
@@ -1093,9 +1107,9 @@ export function CreatorAIInterface({
             </View>
           </ChatComposerActionRow>
           {speechHint ? (
-            <Text style={{ color: colors.muted, fontSize: 11, paddingTop: 6 }}>{speechHint}</Text>
+            <Text style={{ color: colors.muted, fontSize: 11, paddingTop: ownerOpsChat ? 2 : 6 }}>{speechHint}</Text>
           ) : (
-            <Text style={{ color: colors.muted, fontSize: 11, paddingTop: 6 }}>
+            <Text style={{ color: colors.muted, fontSize: 11, paddingTop: ownerOpsChat ? 2 : 6 }}>
               Talk (mic) uses your text pass — 1 message to print, 1 to send. Hear uses Talk Time, not the $24.99 pass.
             </Text>
           )}
@@ -1125,7 +1139,7 @@ export function CreatorAIInterface({
             </View>
           ) : null}
 
-          <View style={{ paddingHorizontal: 4, paddingBottom: 6, gap: 6 }}>
+          <View style={{ paddingHorizontal: 4, paddingBottom: ownerOpsChat ? 2 : 6, gap: ownerOpsChat ? 4 : 6 }}>
             <View style={{ flexDirection: "row", gap: 8 }}>
               <AppPressable
                 testID="ai-talk-stop"
@@ -1134,7 +1148,7 @@ export function CreatorAIInterface({
                   stopExclusiveAudio();
                   setVoiceStatus("Stopped.");
                 }}
-                style={[styles.hiveToggle, { flex: 1, marginHorizontal: 0, marginBottom: 0, borderColor: colors.border, backgroundColor: colors.surface }]}
+                style={[styles.hiveToggle, ownerOpsChat ? styles.hiveToggleOwner : null, { flex: 1, marginHorizontal: 0, marginBottom: 0, borderColor: colors.border, backgroundColor: colors.surface }]}
               >
                 <Text pointerEvents="none" style={{ color: colors.foreground, fontSize: 12, fontWeight: "700" }}>
                   ⏹ Stop
@@ -1150,7 +1164,7 @@ export function CreatorAIInterface({
                   void speakLastReply();
                 }}
                 disabled={voiceMutation.isPending || buyAffiliateVoice.isPending}
-                style={[styles.hiveToggle, { flex: 2, marginHorizontal: 0, marginBottom: 0, borderColor: colors.primary, backgroundColor: colors.surface }]}
+                style={[styles.hiveToggle, ownerOpsChat ? styles.hiveToggleOwner : null, { flex: 2, marginHorizontal: 0, marginBottom: 0, borderColor: colors.primary, backgroundColor: colors.surface }]}
               >
                 <Text pointerEvents="none" style={{ color: colors.foreground, fontSize: 13, fontWeight: "700" }}>
                   {voiceMutation.isPending || buyAffiliateVoice.isPending
@@ -1439,6 +1453,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  railButtonOwner: {
+    height: 44,
+  },
   writingColumn: {
     flexGrow: 1,
     flexShrink: 1,
@@ -1472,7 +1489,20 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   input: { ...CHAT_COMPOSER_INPUT },
+  inputOwner: {
+    minHeight: 240,
+    height: 240,
+    maxHeight: 480,
+  },
   sendButton: { ...CHAT_COMPOSER_SEND },
   sendWide: { ...CHAT_COMPOSER_SEND, alignSelf: "stretch", width: "100%" },
+  sendOwner: {
+    minHeight: 44,
+    paddingVertical: 10,
+  },
+  hiveToggleOwner: {
+    paddingVertical: 4,
+    marginBottom: 0,
+  },
   sendLabel: { color: "#fff", fontWeight: "700", fontSize: 16 },
 });

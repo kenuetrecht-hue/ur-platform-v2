@@ -68,6 +68,9 @@ describe("owner chat allowance", () => {
     expect(chat).not.toContain("buildAiChatDisclosure");
     expect(ui).toContain("ownerOpsChat ? null");
     expect(ui).toContain("isOwnerOpsAiId(creatorId)");
+    expect(ui).toContain("useLayoutEffect");
+    expect(ui).toContain("ur-chat-composer-owner");
+    expect(ui).toContain("frameHeight={ownerOpsChat ? 240 : undefined}");
     expect(frame).toContain('segments[0] === "owner-ai"');
     expect(publicChat).toContain("You are talking to an AI");
     expect(publicChat).toContain("buildAiChatDisclosure");

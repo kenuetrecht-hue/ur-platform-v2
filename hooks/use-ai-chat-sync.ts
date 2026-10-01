@@ -43,7 +43,9 @@ export function useAiChatSync(params: {
   const { isAuthenticated, accessToken } = useAuth();
   const { isOnline, isApiReachable } = useNetworkConnectivity();
   const connected = isOnline && isApiReachable;
-  const active = params.enabled && isAuthenticated && connected;
+  // Load the saved thread whenever the account is online. A failed health probe
+  // must not hide replies that were already stored.
+  const active = params.enabled && isAuthenticated && isOnline;
   const lastAppliedUpdatedAt = useRef<string | null>(null);
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   const reconnectDelayRef = useRef(1_000);
