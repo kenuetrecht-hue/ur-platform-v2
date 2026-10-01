@@ -18,6 +18,7 @@ import { trpc, createTRPCClient } from "@/lib/trpc";
 import { AuthProvider } from "@/lib/auth-context";
 import { AuthRouteGuard } from "@/components/auth-route-guard";
 import { LandingDemoConversionTracker } from "@/components/landing-demo-conversion-tracker";
+import { VisitorTrailTracker } from "@/components/visitor-trail-tracker";
 import { PlatformDisclosureFrame } from "@/components/platform-disclosure-frame";
 import { OwnerEmergencyAlarm } from "@/components/owner-emergency-alarm";
 import { IncomingVideoCallDock } from "@/components/incoming-video-call-dock";
@@ -70,6 +71,7 @@ export default function RootLayout() {
             <QueryClientProvider client={queryClient}>
               <AuthProvider>
                 <LandingDemoConversionTracker />
+                <VisitorTrailTracker />
                 <AuthRouteGuard>
                   <PlatformDisclosureFrame>
                     <OwnerEmergencyAlarm />

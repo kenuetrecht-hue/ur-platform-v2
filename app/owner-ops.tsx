@@ -14,6 +14,7 @@ import { SecurityNoticeOpsPanel } from "@/components/security-notice-ops-panel";
 import { OwnerSigninResetPanel } from "@/components/owner-signin-reset-panel";
 import { FoundingAudienceReviewPanel } from "@/components/founding-audience-review-panel";
 import { OwnerMemberCensusPanel } from "@/components/owner-member-census-panel";
+import { VisitorTrailPanel } from "@/components/visitor-trail-panel";
 import { OwnerComplimentaryTextAccessPanel } from "@/components/owner-complimentary-text-access-panel";
 import { LandingDemoConversionStatsPanel } from "@/components/landing-demo-conversion-stats-panel";
 import { AdminDashboard } from "@/components/admin-dashboard";
@@ -104,6 +105,7 @@ export default function OwnerOpsScreen() {
       ) : null}
       {isPlatformOwner && opsTab === "people" ? (
         <>
+          <VisitorTrailPanel />
           <OwnerComplimentaryTextAccessPanel />
           <OwnerMemberCensusPanel />
           <FoundingAudienceReviewPanel />

@@ -786,6 +786,18 @@ export const creatorPaidChannelSubs = mysqlTable("creatorPaidChannelSubs", {
   subscribedAt: timestamp("subscribedAt").notNull(),
 });
 
+/** Anonymous website trail for the owner: pages, buttons, and time on a page. */
+export const visitorTrailEvents = mysqlTable("visitorTrailEvents", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  visitorId: varchar("visitorId", { length: 36 }).notNull(),
+  kind: mysqlEnum("kind", ["page", "button", "dwell"]).notNull(),
+  path: varchar("path", { length: 180 }).notNull(),
+  label: varchar("label", { length: 80 }).notNull(),
+  signedIn: boolean("signedIn").default(false).notNull(),
+  seconds: int("seconds").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export const platformOpsSandboxRepairs = mysqlTable("platformOpsSandboxRepairs", {
   id: varchar("id", { length: 64 }).primaryKey(),
   incidentId: varchar("incidentId", { length: 64 }).notNull(),

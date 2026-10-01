@@ -39,6 +39,7 @@ import { loyaltyRouter } from "./routers/loyalty-router";
 import { hiveTownHallRouter } from "./routers/hive-town-hall-router";
 import { usageCreditsRouter } from "./routers/usage-credits-router";
 import { landingRouter } from "./routers/landing-router";
+import { visitorTrailRouter } from "./routers/visitor-trail-router";
 import { jobsiteRouter } from "./routers/jobsite-router";
 import { muxVideoRouter } from "./routers/mux-video-router";
 import { cartoonStudioRouter } from "./routers/cartoon-studio-router";
@@ -239,6 +240,7 @@ export const appRouter = router({
   aiCreators: aiCreatorChatRouter,
   hiveTownHall: hiveTownHallRouter,
   landing: landingRouter,
+  visitorTrail: visitorTrailRouter,
   platformOps: platformOpsRouter,
   equipment: equipmentRouter,
   aiLearning: aiLearningRouter,
