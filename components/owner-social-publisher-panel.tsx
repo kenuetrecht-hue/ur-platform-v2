@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Text, TextInput, View } from "react-native";
+import { AppPressable } from "@/components/app-pressable";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { SOCIAL_NETWORK_LABEL, type SocialNetwork } from "@/lib/social-publisher-types";
@@ -17,15 +18,54 @@ export function OwnerSocialPublisherPanel({
   const [body, setBody] = useState(seedCaption ?? "");
   const [picked, setPicked] = useState<SocialNetwork[]>([]);
   const [hint, setHint] = useState<string | null>(null);
+  const userAdjusted = useRef(false);
 
   const readyNetworks = useMemo(
     () => (status.data?.networks ?? []).filter((n) => n.ready),
     [status.data],
   );
 
+  useEffect(() => {
+    if (userAdjusted.current) return;
+    setPicked(readyNetworks.map((network) => network.network));
+  }, [readyNetworks]);
+
   const toggle = (network: SocialNetwork) => {
+    userAdjusted.current = true;
     setPicked((current) =>
       current.includes(network) ? current.filter((n) => n !== network) : [...current, network],
+    );
+  };
+
+  const sendPost = () => {
+    const caption = body.trim();
+    const targets = picked.length > 0 ? picked : readyNetworks.map((network) => network.network);
+    if (!caption) {
+      setHint("Write the post first.");
+      return;
+    }
+    if (targets.length === 0) {
+      setHint(status.data?.setupNeeded ?? "No social account is linked yet, so there is nowhere to send this.");
+      return;
+    }
+    publish.mutate(
+      {
+        body: caption,
+        platforms: targets,
+        sourceJobId,
+      },
+      {
+        onSuccess: (result) => {
+          const ok = result.results.filter((r) => r.ok).map((r) => r.network);
+          const failed = result.results.filter((r) => !r.ok);
+          setHint(
+            failed.length
+              ? `Sent ${ok.join(", ") || "none"}. Failed: ${failed.map((f) => `${f.network}${f.error ? ` (${f.error})` : ""}`).join(", ")}.`
+              : `Sent via ${result.mode}: ${ok.join(", ")}.`,
+          );
+        },
+        onError: (error) => setHint(error.message),
+      },
     );
   };
 
@@ -60,7 +100,7 @@ export function OwnerSocialPublisherPanel({
         <Text style={{ color: "#b45309", fontSize: 13, lineHeight: 18 }}>{status.data.setupNeeded}</Text>
       ) : null}
       {(status.data?.networks ?? []).map((network) => (
-        <Pressable
+        <AppPressable
           key={network.network}
           disabled={!network.ready}
           onPress={() => toggle(network.network)}
@@ -74,14 +114,14 @@ export function OwnerSocialPublisherPanel({
             opacity: network.ready ? 1 : 0.55,
           }}
         >
-          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
+          <Text pointerEvents="none" style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
             {SOCIAL_NETWORK_LABEL[network.network]}
             {network.publisher ? ` · ${network.publisher}` : ""}
           </Text>
           {network.ready ? null : (
-            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>{network.reason}</Text>
+            <Text pointerEvents="none" style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>{network.reason}</Text>
           )}
-        </Pressable>
+        </AppPressable>
       ))}
       <TextInput
         value={body}
@@ -102,43 +142,25 @@ export function OwnerSocialPublisherPanel({
           textAlignVertical: "top",
         }}
       />
-      <Pressable
-        disabled={!body.trim() || picked.length === 0 || publish.isPending || readyNetworks.length === 0}
-        onPress={() => {
-          publish.mutate(
-            {
-              body: body.trim(),
-              platforms: picked,
-              sourceJobId,
-            },
-            {
-              onSuccess: (result) => {
-                const ok = result.results.filter((r) => r.ok).map((r) => r.network);
-                const failed = result.results.filter((r) => !r.ok);
-                setHint(
-                  failed.length
-                    ? `Sent ${ok.join(", ") || "none"}. Failed: ${failed.map((f) => f.network).join(", ")}.`
-                    : `Sent via ${result.mode}: ${ok.join(", ")}.`,
-                );
-              },
-              onError: (error) => setHint(error.message),
-            },
-          );
-        }}
+      <AppPressable
+        testID="owner-social-post-now"
+        disabled={publish.isPending}
+        onPress={sendPost}
         style={{
           borderRadius: 12,
           paddingVertical: 12,
           alignItems: "center",
-          backgroundColor:
-            !body.trim() || picked.length === 0 || publish.isPending ? colors.muted : colors.primary,
+          backgroundColor: publish.isPending ? colors.muted : colors.primary,
         }}
       >
         {publish.isPending ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 14 }}>Post now</Text>
+          <Text pointerEvents="none" style={{ color: "#fff", fontWeight: "800", fontSize: 14 }}>
+            Post now
+          </Text>
         )}
-      </Pressable>
+      </AppPressable>
       {hint ? (
         <Text style={{ color: publish.isError ? "#dc2626" : colors.muted, fontSize: 12 }}>{hint}</Text>
       ) : null}

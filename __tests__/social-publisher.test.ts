@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   getSocialPublisherStatus,
@@ -89,6 +90,31 @@ describe("social publisher routing", () => {
       ready: true,
     });
     await expect(getSocialPublisherStatus()).resolves.toMatchObject({ mode: "split" });
+  });
+
+  it("does not call a post sent when Ayrshare answers with an error", async () => {
+    clearSocialEnv();
+    process.env.AYRSHARE_API_KEY = "test-ayrshare";
+    _setSocialPublisherFetchForTests(async () =>
+      new Response(JSON.stringify({ status: "error", message: "No social accounts linked" }), {
+        status: 200,
+      }),
+    );
+    await expect(
+      publishOwnerSocialPost({
+        body: "Hello from UR",
+        platforms: ["facebook"],
+      }),
+    ).rejects.toThrow(/could not send/i);
+  });
+
+  it("lets Post now receive the click and send to the linked accounts", () => {
+    const panel = readFileSync("components/owner-social-publisher-panel.tsx", "utf8");
+    expect(panel).toContain("AppPressable");
+    expect(panel).toContain('testID="owner-social-post-now"');
+    expect(panel).toContain("pointerEvents=\"none\"");
+    expect(panel).not.toContain("<Pressable");
+    expect(panel).toContain("readyNetworks.map");
   });
 
   it("blocks the same caption on the same network twice in 24 hours", async () => {

@@ -66,7 +66,14 @@ export async function postViaAyrshare(params: {
   });
 
   const text = await response.text();
-  if (!response.ok) {
+  let json: { status?: string; id?: string; message?: string; postIds?: Record<string, string> | Array<{ id?: string }> } = {};
+  try {
+    json = JSON.parse(text) as typeof json;
+  } catch {
+    json = {};
+  }
+
+  if (!response.ok || json.status === "error") {
     if (response.status === 401 || response.status === 403) {
       throw new InternalServiceError("INVALID_API_KEY");
     }
@@ -74,10 +81,7 @@ export async function postViaAyrshare(params: {
     throw new InternalServiceError("UPSTREAM_FAILED");
   }
 
-  try {
-    const json = JSON.parse(text) as { id?: string; postIds?: Record<string, string> };
-    return { id: json.id ?? Object.values(json.postIds ?? {})[0] ?? null };
-  } catch {
-    return { id: null };
-  }
+  const fromList = Array.isArray(json.postIds) ? json.postIds.find((row) => row.id)?.id : undefined;
+  const fromMap = json.postIds && !Array.isArray(json.postIds) ? Object.values(json.postIds)[0] : undefined;
+  return { id: json.id ?? fromList ?? fromMap ?? null };
 }
