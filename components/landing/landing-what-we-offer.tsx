@@ -3,6 +3,7 @@ import { LANDING_THEME as T } from "@/lib/landing-theme";
 import {
   LANDING_WHAT_WE_OFFER,
   LANDING_WHAT_WE_OFFER_LEDE,
+  LANDING_WHAT_WE_OFFER_SPEECH,
   LANDING_WHAT_WE_OFFER_TITLE,
 } from "@/lib/landing-platform-copy";
 
@@ -21,6 +22,7 @@ export function LandingWhatWeOffer({ compact }: { compact?: boolean }) {
           </View>
         ))}
       </View>
+      <Text style={styles.speech}>{LANDING_WHAT_WE_OFFER_SPEECH}</Text>
     </View>
   );
 }
@@ -68,5 +70,12 @@ const styles = StyleSheet.create({
     color: T.text,
     fontSize: 12,
     fontWeight: "700",
+  },
+  speech: {
+    color: T.text,
+    fontSize: 15,
+    fontWeight: "700",
+    lineHeight: 22,
+    maxWidth: 720,
   },
 });

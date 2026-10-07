@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { trpc } from "@/lib/trpc";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
+import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import { LandingConversionModal } from "@/components/landing/landing-conversion-modal";
 import { LANDING_DEMO_MESSAGE_MAX, LANDING_DEMO_REPLY_MAX } from "@/lib/landing-demo-policy";
 import { saveLandingDemoAttributionId } from "@/lib/landing-demo-attribution-storage";
@@ -192,7 +193,7 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
             ? "e.g. My outboard cranks but won't start after winter..."
             : "Ask your specialist anything..."
         }
-        placeholderTextColor={T.muted}
+        placeholderTextColor={LETTERING_ON_WHITE}
         maxLength={messageMax}
         editable={!demoUsed && !loading}
         style={styles.input}
@@ -280,8 +281,9 @@ const styles = StyleSheet.create({
     opacity: 0,
   },
   input: {
-    borderColor: T.border,
-    color: T.text,
+    borderColor: "#E0E7FF",
+    backgroundColor: "#FFFFFF",
+    color: LETTERING_ON_WHITE,
     marginBottom: 4,
   },
   counter: { color: T.muted, fontSize: 11, textAlign: "right", marginBottom: 12 },

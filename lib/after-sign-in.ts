@@ -11,6 +11,8 @@ export const AFTER_ID_PASS_HREF = "/home" as const;
 export const AFTER_JOIN_WELCOME_HREF = "/e-manual?joined=1" as const;
 /** Returning members: email + password. New members use /signup, then ID, then selfie. */
 export const RETURNING_LOGIN_HREF = "/login" as const;
+/** Public attraction page people see before Login. */
+export const ATTRACTION_HREF = "/welcome" as const;
 export const JOIN_ACCOUNT_HREF = "/signup" as const;
 export const JOIN_ID_PHOTOS_HREF = "/signup-id" as const;
 export const JOIN_SELFIE_HREF = "/signup-selfie" as const;

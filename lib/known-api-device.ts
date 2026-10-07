@@ -90,6 +90,7 @@ export function rememberSignedInApiDevice(now = new Date()): RememberedApiDevice
   } catch {
     /* private mode */
   }
+  void import("@/lib/returning-member-door").then((mod) => mod.rememberJoinedOnThisDevice());
   return record;
 }
 

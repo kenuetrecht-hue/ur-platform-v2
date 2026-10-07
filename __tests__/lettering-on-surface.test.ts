@@ -43,6 +43,14 @@ describe("lettering on white vs colored backgrounds", () => {
     const hubTabs = readFileSync("components/hub-tab-bar.tsx", "utf8");
     expect(hubTabs).toContain("colors.gold");
 
+    const demoChat = readFileSync("components/landing/landing-demo-chat.tsx", "utf8");
+    expect(demoChat).toContain("color: LETTERING_ON_WHITE");
+    expect(demoChat).toContain('backgroundColor: "#FFFFFF"');
+    expect(demoChat).toContain("placeholderTextColor={LETTERING_ON_WHITE}");
+    const demoInput = demoChat.slice(demoChat.indexOf("input: {"), demoChat.indexOf("counter:"));
+    expect(demoInput).toContain("LETTERING_ON_WHITE");
+    expect(demoInput).not.toContain("T.text");
+
     const disclosure = readFileSync("components/platform-disclosure-bar.tsx", "utf8");
     expect(disclosure).toContain("LETTERING_ON_WHITE");
     expect(disclosure).toContain('backgroundColor: "#FFFFFF"');

@@ -11,6 +11,9 @@ export const LANDING_WHAT_WE_OFFER_TITLE = "What we offer";
 export const LANDING_WHAT_WE_OFFER_LEDE =
   "UR Platform is a paid digital community and creator platform for adults 18+. Members can use social networking, create and share digital content, subscribe, sell digital goods, and use SaaS software and digital AI tools.";
 
+export const LANDING_WHAT_WE_OFFER_SPEECH =
+  "Freedom of speech, as long as you are not harassing others, committing fraud, or blatantly lying about other people.";
+
 export const LANDING_WHAT_WE_OFFER = [
   "Digital community",
   "Social networking",

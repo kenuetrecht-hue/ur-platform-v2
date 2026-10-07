@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   LANDING_WHAT_WE_OFFER,
   LANDING_WHAT_WE_OFFER_LEDE,
+  LANDING_WHAT_WE_OFFER_SPEECH,
   LANDING_WHAT_WE_OFFER_TITLE,
 } from "../lib/landing-platform-copy";
 
@@ -23,6 +24,10 @@ describe("landing what we offer", () => {
     expect(LANDING_WHAT_WE_OFFER_LEDE.toLowerCase()).toContain("digital community");
     expect(LANDING_WHAT_WE_OFFER_LEDE.toLowerCase()).toContain("saas");
     expect(LANDING_WHAT_WE_OFFER_LEDE.toLowerCase()).toContain("18+");
+    expect(LANDING_WHAT_WE_OFFER_SPEECH).toContain("Freedom of speech");
+    expect(LANDING_WHAT_WE_OFFER_SPEECH.toLowerCase()).toContain("harassing");
+    expect(LANDING_WHAT_WE_OFFER_SPEECH.toLowerCase()).toContain("fraud");
+    expect(LANDING_WHAT_WE_OFFER_SPEECH.toLowerCase()).toContain("lying about other people");
   });
 
   it("puts that list on the main Welcome page, not on Login", () => {

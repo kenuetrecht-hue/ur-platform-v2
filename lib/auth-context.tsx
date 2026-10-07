@@ -457,6 +457,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         await setStoredUserJson(JSON.stringify(authUser));
+        const { rememberJoinedOnThisDevice } = await import("@/lib/returning-member-door");
+        rememberJoinedOnThisDevice();
         dispatch({ type: "SET_LOADING", payload: false });
         return { needsEmailConfirmation: true };
       } catch (error) {

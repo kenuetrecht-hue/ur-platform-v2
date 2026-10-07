@@ -45,6 +45,8 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
   const [smsCode, setSmsCode] = useState("");
   const [smsSent, setSmsSent] = useState(false);
   const [smsBusy, setSmsBusy] = useState(false);
+  const [recoverOpen, setRecoverOpen] = useState(false);
+  const [recoverChoice, setRecoverChoice] = useState<"password" | "username" | null>(null);
 
   const homepage = variant === "homepage";
   const staged = variant === "page" || homepage;
@@ -99,6 +101,29 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
       setError(explainAuthFailure(err));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const sendNewPassword = async () => {
+    const emptyRef = { current: null };
+    const emailValue = (email.trim() || readWebTextInputValue(emptyRef, "login-email")).trim();
+    if (!emailValue) {
+      setNotice(null);
+      setError("Type your email, then tap Send a new password.");
+      return;
+    }
+    setResetBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await sendPasswordResetEmail(emailValue);
+      setNotice(
+        "If this email is on UR, check your inbox and spam. Open the link, type a new password twice, then Login.",
+      );
+    } catch (err) {
+      setError(explainAuthFailure(err));
+    } finally {
+      setResetBusy(false);
     }
   };
 
@@ -227,6 +252,76 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
         testID={homepage ? "homepage-sign-in-submit" : "returning-login-submit"}
       />
 
+      {homepage ? (
+        <View style={{ gap: 8 }} testID="homepage-lost-password">
+          <Pressable
+            onPress={() => {
+              setRecoverOpen((open) => !open);
+              setRecoverChoice(null);
+              setNotice(null);
+              setError(null);
+            }}
+            testID="open-lost-password"
+            accessibilityRole="button"
+          >
+            <Text style={{ color: linkColor, fontWeight: "800", fontSize: 15 }}>
+              Lost your password? Press here.
+            </Text>
+          </Pressable>
+          {recoverOpen ? (
+            <View style={{ gap: 8 }} testID="forgot-which">
+              <Text style={{ color: labelColor, fontWeight: "800", fontSize: 15 }}>
+                What did you forget?
+              </Text>
+              <Pressable
+                onPress={() => setRecoverChoice("password")}
+                testID="forgot-password-choice"
+                accessibilityRole="button"
+                style={{
+                  borderWidth: 1,
+                  borderColor: recoverChoice === "password" ? linkColor : "rgba(255,255,255,0.28)",
+                  borderRadius: 12,
+                  paddingVertical: 10,
+                  paddingHorizontal: 12,
+                }}
+              >
+                <Text style={{ color: labelColor, fontWeight: "700" }}>I forgot my password</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setRecoverChoice("username")}
+                testID="forgot-username-choice"
+                accessibilityRole="button"
+                style={{
+                  borderWidth: 1,
+                  borderColor: recoverChoice === "username" ? linkColor : "rgba(255,255,255,0.28)",
+                  borderRadius: 12,
+                  paddingVertical: 10,
+                  paddingHorizontal: 12,
+                }}
+              >
+                <Text style={{ color: labelColor, fontWeight: "700" }}>I forgot my username</Text>
+              </Pressable>
+              {recoverChoice === "username" ? (
+                <Text testID="username-is-email" style={{ color: labelColor, fontSize: 14, lineHeight: 20 }}>
+                  Your username is the email you signed up with. There is no other username. The only
+                  thing to reset is the password.
+                </Text>
+              ) : null}
+              {recoverChoice ? (
+                <PrimaryActionButton
+                  label="Send a new password to this email"
+                  loadingLabel="Sending…"
+                  loading={resetBusy}
+                  onPress={() => void sendNewPassword()}
+                  backgroundColor={T.brandBlue}
+                  testID="homepage-send-new-password"
+                />
+              ) : null}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
       <Pressable
         onPress={() => {
           setStayLoggedInBox((value) => {
@@ -257,37 +352,16 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
         Email is your username.
       </Text>
 
-      <PrimaryActionButton
-        label="Forgot password? Send a new password to this email"
-        loadingLabel="Sending…"
-        loading={resetBusy}
-        onPress={() => {
-          void (async () => {
-            const emptyRef = { current: null };
-            const emailValue = (email.trim() || readWebTextInputValue(emptyRef, "login-email")).trim();
-            if (!emailValue) {
-              setNotice(null);
-              setError("Type your email, then tap Send a new password.");
-              return;
-            }
-            setResetBusy(true);
-            setError(null);
-            setNotice(null);
-            try {
-              await sendPasswordResetEmail(emailValue);
-              setNotice(
-                "If this email is on UR, check your inbox and spam. Open the link, type a new password twice, then Login.",
-              );
-            } catch (err) {
-              setError(explainAuthFailure(err));
-            } finally {
-              setResetBusy(false);
-            }
-          })();
-        }}
-        backgroundColor={staged ? T.brandBlue : colors.muted}
-        testID="send-new-password"
-      />
+      {homepage ? null : (
+        <PrimaryActionButton
+          label="Forgot password? Send a new password to this email"
+          loadingLabel="Sending…"
+          loading={resetBusy}
+          onPress={() => void sendNewPassword()}
+          backgroundColor={staged ? T.brandBlue : colors.muted}
+          testID="send-new-password"
+        />
+      )}
       <Pressable onPress={() => setPhoneOpen((open) => !open)} testID="show-phone-code">
         <Text style={{ color: linkColor, fontWeight: "800", fontSize: 14 }}>
           {phoneOpen ? "Hide phone code" : "Text a code to my phone"}

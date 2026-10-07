@@ -2,12 +2,12 @@ import { readFileSync } from "fs";
 import { describe, expect, it } from "vitest";
 
 describe("homepage sign-in", () => {
-  it("opens the website on Login, and already-logged-in people go into the app", () => {
+  it("opens the website on the attraction page, and already-logged-in people go into the app", () => {
     const index = readFileSync("app/index.tsx", "utf8");
-    expect(index).toContain("RETURNING_LOGIN_HREF");
+    expect(index).toContain("doorForUnsignedVisitor");
+    expect(index).toContain("hasJoinedOnThisDevice");
     expect(index).toContain("AFTER_ID_PASS_HREF");
     expect(index).not.toContain("AFTER_SIGN_IN_HREF");
-    expect(index).not.toContain('"/welcome"');
   });
 
   it("puts email and password on the front door so a saved browser login has a box to fill", () => {

@@ -4,7 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { AuthDoorStage } from "@/components/auth-door-stage";
 import { ReturningAccountLogin } from "@/components/returning-account-login";
 import { useLoginScreen } from "@/hooks/use-login-screen";
-import { JOIN_ACCOUNT_HREF } from "@/lib/after-sign-in";
+import { ATTRACTION_HREF, JOIN_ACCOUNT_HREF } from "@/lib/after-sign-in";
 import {
   LOGIN_PAYOUT_BANNER_STAY,
   LOGIN_PAYOUT_BANNER_SPLIT,
@@ -41,7 +41,7 @@ export default function LoginScreen() {
           keyboardDismissMode="on-drag"
         >
           <View style={styles.card} testID="login-form">
-            <Link href="/" style={styles.backHome} testID="login-back-home">
+            <Link href={ATTRACTION_HREF} style={styles.backHome} testID="login-back-home">
               ← Back
             </Link>
             <Text style={styles.brand}>UR</Text>
