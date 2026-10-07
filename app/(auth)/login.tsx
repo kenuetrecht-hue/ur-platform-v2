@@ -47,6 +47,17 @@ export default function LoginScreen() {
             </Link>
             <Text style={styles.brand}>UR</Text>
             <Text style={styles.title}>Login</Text>
+            <Link href={JOIN_ACCOUNT_HREF} testID="go-to-signup" style={styles.signupLink}>
+              <LinearGradient
+                colors={[T.brandBlue, T.brandPurple]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.signupBubble}
+              >
+                <Text style={styles.signupKicker}>New here?</Text>
+                <Text style={styles.signupLabel}>Sign up</Text>
+              </LinearGradient>
+            </Link>
             <LandingWhatWeOffer compact />
             <Link href="/services" testID="login-products-link">
               <Text style={{ color: T.text, fontWeight: "800", fontSize: 14, textAlign: "center" }}>
@@ -59,17 +70,6 @@ export default function LoginScreen() {
               </View>
             ) : null}
             <ReturningAccountLogin variant="page" />
-            <Link href={JOIN_ACCOUNT_HREF} testID="go-to-signup">
-              <LinearGradient
-                colors={[T.brandBlue, T.brandPurple]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.signupBubble}
-              >
-                <Text style={styles.signupKicker}>New here?</Text>
-                <Text style={styles.signupLabel}>Sign up</Text>
-              </LinearGradient>
-            </Link>
             <LandingDeviceDownloadLinks variant="login" />
           </View>
         </ScrollView>
@@ -167,14 +167,15 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#ffb4b4",
   },
+  signupLink: {
+    width: "100%",
+  },
   signupBubble: {
-    marginTop: 8,
-    alignSelf: "center",
-    borderRadius: 999,
+    width: "100%",
+    borderRadius: 16,
     paddingHorizontal: 28,
     paddingVertical: 14,
     alignItems: "center",
-    minWidth: 180,
     ...(Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null),
   },
   signupKicker: {

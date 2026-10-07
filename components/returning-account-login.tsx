@@ -37,6 +37,7 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
   const [stayLoggedIn, setStayLoggedInBox] = useState(() => getStayLoggedIn());
   const [turnstileToken, setTurnstileToken] = useState("");
   const [error, setError] = useState<string | null>(alreadyJoined ? EXISTING_ACCOUNT_LOGIN_HINT : null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [resetBusy, setResetBusy] = useState(false);
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -204,6 +205,38 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
         style={inputStyle}
       />
 
+      <PrimaryActionButton
+        label="Forgot password? Send a new password to this email"
+        loadingLabel="Sending…"
+        loading={resetBusy}
+        onPress={() => {
+          void (async () => {
+            const emptyRef = { current: null };
+            const emailValue = (email.trim() || readWebTextInputValue(emptyRef, "login-email")).trim();
+            if (!emailValue) {
+              setNotice(null);
+              setError("Type your email, then tap Send a new password.");
+              return;
+            }
+            setResetBusy(true);
+            setError(null);
+            setNotice(null);
+            try {
+              await sendPasswordResetEmail(emailValue);
+              setNotice(
+                "If this email is on UR, check your inbox and spam. Open the link, type a new password twice, then Login.",
+              );
+            } catch (err) {
+              setError(explainAuthFailure(err));
+            } finally {
+              setResetBusy(false);
+            }
+          })();
+        }}
+        backgroundColor={staged ? T.brandBlue : colors.muted}
+        testID="send-new-password"
+      />
+
       <Pressable
         onPress={() => {
           setStayLoggedInBox((value) => {
@@ -232,6 +265,14 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
 
       <TurnstileWidget action="login" onToken={setTurnstileToken} />
 
+      {notice ? (
+        <Text
+          testID="password-reset-sent"
+          style={{ color: staged ? T.text : colors.foreground, fontSize: 14, lineHeight: 20 }}
+        >
+          {notice}
+        </Text>
+      ) : null}
       {error ? (
         <Text style={{ color: staged ? "#ffb4b4" : "#c0392b", fontSize: 14, lineHeight: 20 }}>
           {error}
@@ -245,34 +286,6 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
         onPress={() => void onSubmit()}
         backgroundColor={staged ? T.brandPurple : colors.primary}
         testID={homepage ? "homepage-sign-in-submit" : "returning-login-submit"}
-      />
-      <PrimaryActionButton
-        label="Send a new password to this email"
-        loadingLabel="Sending…"
-        loading={resetBusy}
-        onPress={() => {
-          void (async () => {
-            const emailValue = email.trim();
-            if (!emailValue) {
-              setError("Type your email, then tap Send a new password.");
-              return;
-            }
-            setResetBusy(true);
-            setError(null);
-            try {
-              await sendPasswordResetEmail(emailValue);
-              setError(
-                "If this email is on UR, check your inbox. Open the link, type a new password twice, then Login.",
-              );
-            } catch (err) {
-              setError(explainAuthFailure(err));
-            } finally {
-              setResetBusy(false);
-            }
-          })();
-        }}
-        backgroundColor={staged ? T.brandBlue : colors.muted}
-        testID="send-new-password"
       />
       <Pressable onPress={() => setPhoneOpen((open) => !open)} testID="show-phone-code">
         <Text style={{ color: linkColor, fontWeight: "800", fontSize: 14 }}>

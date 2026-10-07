@@ -14,6 +14,7 @@ describe("returning account login", () => {
     expect(page).toContain("ReturningAccountLogin");
     expect(page).toContain("Login");
     expect(page).toContain("go-to-signup");
+    expect(page.indexOf('testID="go-to-signup"')).toBeLessThan(page.indexOf("<LandingWhatWeOffer"));
     expect(page).toContain("login-payout-banner");
     expect(page).toContain("LOGIN_PAYOUT_BANNER_SPLIT");
     expect(page).toContain("LOGIN_PAYOUT_BANNER_TIPS");
