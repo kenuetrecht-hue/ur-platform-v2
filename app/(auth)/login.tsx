@@ -45,6 +45,9 @@ export default function LoginScreen() {
               ← Back
             </Link>
             <Text style={styles.brand}>UR</Text>
+            <Text style={styles.splitMark} testID="login-card-split">
+              85%, 15% split
+            </Text>
             <Text style={styles.title}>Login</Text>
             <Link href={JOIN_ACCOUNT_HREF} testID="go-to-signup" style={styles.signupLink}>
               <LinearGradient
@@ -139,6 +142,13 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 6,
     textAlign: "center",
+  },
+  splitMark: {
+    color: T.text,
+    fontSize: 20,
+    fontWeight: "800",
+    textAlign: "center",
+    letterSpacing: 0.4,
   },
   title: {
     color: T.text,
