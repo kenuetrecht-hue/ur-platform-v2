@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, TextInput } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/auth-context";
 
@@ -47,15 +48,15 @@ export function ThanksStampsWall({
   const posts = wall.data?.posts ?? [];
   const bag = wallet.data?.items ?? [];
   const who = targetName ?? (targetType === "ai" ? "this AI" : "this page");
-  const washInk = colors.foreground;
-  const washMuted = colors.muted;
+  const washInk = LETTERING_ON_WHITE;
+  const washMuted = LETTERING_ON_WHITE;
 
   return (
     <View
       style={[
         styles.wrap,
         compact && styles.compact,
-        { borderColor: colors.border, backgroundColor: colors.surface },
+        { borderColor: "#E0E7FF", backgroundColor: "#FFFFFF" },
       ]}
     >
       <Pressable onPress={() => setOpen((v) => !v)} style={styles.header} hitSlop={6}>
@@ -76,11 +77,11 @@ export function ThanksStampsWall({
             <View style={styles.row}>
               {posts.map((post) => (
                 <View key={post.id} style={[styles.chip, { borderColor: post.colorHex, backgroundColor: colors.surface }]}>
-                  <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "800" }}>{post.mark}</Text>
-                  <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: "700" }}>{post.name}</Text>
-                  <Text style={{ color: colors.muted, fontSize: 10 }}>from {post.fromName}</Text>
+                  <Text style={{ color: LETTERING_ON_WHITE, fontSize: 16, fontWeight: "800" }}>{post.mark}</Text>
+                  <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11, fontWeight: "700" }}>{post.name}</Text>
+                  <Text style={{ color: LETTERING_ON_WHITE, fontSize: 10 }}>from {post.fromName}</Text>
                   {post.note ? (
-                    <Text style={{ color: colors.muted, fontSize: 10 }} numberOfLines={2}>
+                    <Text style={{ color: LETTERING_ON_WHITE, fontSize: 10 }} numberOfLines={2}>
                       {post.note}
                     </Text>
                   ) : null}
@@ -106,8 +107,8 @@ export function ThanksStampsWall({
                       },
                     ]}
                   >
-                    <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "800" }}>{item.mark}</Text>
-                    <Text style={{ color: colors.foreground, fontSize: 11 }}>{item.name}</Text>
+                    <Text style={{ color: LETTERING_ON_WHITE, fontSize: 16, fontWeight: "800" }}>{item.mark}</Text>
+                    <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11 }}>{item.name}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -117,9 +118,9 @@ export function ThanksStampsWall({
                     value={note}
                     onChangeText={setNote}
                     placeholder="Optional note (80 chars)"
-                    placeholderTextColor={colors.muted}
+                    placeholderTextColor={LETTERING_ON_WHITE}
                     maxLength={80}
-                    style={[styles.input, { borderColor: colors.border, color: colors.foreground }]}
+                    style={[styles.input, { borderColor: colors.border, color: LETTERING_ON_WHITE }]}
                   />
                   <Pressable
                     onPress={() =>

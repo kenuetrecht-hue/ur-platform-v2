@@ -11,6 +11,7 @@ import {
   Platform,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import { trpc } from "@/lib/trpc";
 import { CreatorAIInterface } from "@/components/creator-ai-interface";
 import { AIDisclosureWrapper } from "@/components/ai-disclosure-wrapper";
@@ -53,11 +54,11 @@ export function AffiliateAssociatePanel({ referralLink }: { referralLink: string
 
   return (
     <View style={{ gap: 14 }}>
-      <View style={[styles.banner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={{ color: colors.onWhite, fontWeight: "800", fontSize: 16 }}>
+      <View style={[styles.banner, { backgroundColor: "#FFFFFF", borderColor: "#E0E7FF" }]}>
+        <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800", fontSize: 16 }}>
           🔗 Associate AI — your affiliate sales helper
         </Text>
-        <Text style={{ color: colors.onWhite, fontSize: 12, lineHeight: 18 }}>
+        <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12, lineHeight: 18 }}>
           Text chat is free. Pay to hear Associate AI speak ($2.99 / 30 min voice pack) when your
           affiliate earnings justify it. Drafts social posts with your UR link and queues automatic sharing.
         </Text>
@@ -75,18 +76,19 @@ export function AffiliateAssociatePanel({ referralLink }: { referralLink: string
       </View>
 
       <Pressable onPress={() => setShowChat((v) => !v)}>
-        <Text style={{ color: colors.primary, fontWeight: "700" }}>
+        <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "700" }}>
           {showChat ? "▼ Hide Associate AI chat" : "▶ Chat with Associate AI"}
         </Text>
       </Pressable>
 
       {showChat ? (
-        <View style={{ height: 420 }}>
-          <AIDisclosureWrapper aiName="Associate AI" hasAffiliateLinks>
+        <View style={{ width: "100%" }}>
+          <AIDisclosureWrapper aiName="Associate AI" hasAffiliateLinks page>
             <CreatorAIInterface
               creatorId={AFFILIATE_ASSOCIATE_ID}
               creatorName="Associate AI"
               creatorAvatar="🔗"
+              pageScroll
               welcomeMessage={
                 "Hi! I'm Associate AI — I help UR affiliates share referral links on social media. " +
                 "Ask me to write a Facebook post, schedule promo copy, or coach you on referring creators. " +
@@ -97,11 +99,11 @@ export function AffiliateAssociatePanel({ referralLink }: { referralLink: string
         </View>
       ) : null}
 
-      <Text style={{ color: colors.foreground, fontWeight: "800" }}>Scheduled & auto-posts</Text>
+      <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800" }}>Scheduled & auto-posts</Text>
       {posts.isLoading ? (
         <ActivityIndicator color={colors.primary} />
       ) : (posts.data ?? []).length === 0 ? (
-        <Text style={{ color: colors.muted, fontSize: 12 }}>
+        <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12 }}>
           No posts queued yet — ask Associate AI to draft posts, or tap Schedule weekly auto-posts.
         </Text>
       ) : (
@@ -109,12 +111,12 @@ export function AffiliateAssociatePanel({ referralLink }: { referralLink: string
           {(posts.data ?? []).map((p) => (
             <View
               key={p.id}
-              style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}
+              style={[styles.card, { borderColor: "#E0E7FF", backgroundColor: "#FFFFFF" }]}
             >
-              <Text style={{ color: colors.foreground, fontWeight: "700" }}>
+              <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700" }}>
                 {PLATFORMS.find((x) => x.id === p.platform)?.label ?? p.platform} · {p.status}
               </Text>
-              <Text style={{ color: colors.muted, fontSize: 11 }} numberOfLines={4}>
+              <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11 }} numberOfLines={4}>
                 {p.body}
               </Text>
               {p.status !== "posted" ? (
@@ -125,7 +127,7 @@ export function AffiliateAssociatePanel({ referralLink }: { referralLink: string
                   <Text style={styles.btnText}>Share now</Text>
                 </Pressable>
               ) : (
-                <Text style={{ color: colors.muted, fontSize: 11 }}>Posted ✓</Text>
+                <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11 }}>Posted ✓</Text>
               )}
             </View>
           ))}

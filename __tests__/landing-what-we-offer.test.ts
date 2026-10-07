@@ -25,10 +25,10 @@ describe("landing what we offer", () => {
     expect(LANDING_WHAT_WE_OFFER_LEDE.toLowerCase()).toContain("18+");
   });
 
-  it("puts that list on Login (front door) and Welcome", () => {
+  it("puts that list on the main Welcome page, not on Login", () => {
     const login = readFileSync("app/(auth)/login.tsx", "utf8");
     const welcome = readFileSync("components/techno-futurist-experience.tsx", "utf8");
-    expect(login).toContain("LandingWhatWeOffer");
+    expect(login).not.toContain("LandingWhatWeOffer");
     expect(welcome).toContain("LandingWhatWeOffer");
   });
 });

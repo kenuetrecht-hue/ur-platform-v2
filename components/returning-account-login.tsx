@@ -154,9 +154,6 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
       {homepage ? (
         <Text style={{ color: labelColor, fontWeight: "800", fontSize: 18 }}>Login</Text>
       ) : null}
-      <Text style={{ color: mutedColor, fontSize: 14, lineHeight: 20 }}>
-        Email is your username. Then your password. No pictures on this page.
-      </Text>
 
       <Text style={{ color: labelColor, fontWeight: "600" }}>Email</Text>
       <TextInput
@@ -205,6 +202,61 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
         style={inputStyle}
       />
 
+      <TurnstileWidget action="login" onToken={setTurnstileToken} />
+
+      {notice ? (
+        <Text
+          testID="password-reset-sent"
+          style={{ color: staged ? T.text : colors.foreground, fontSize: 14, lineHeight: 20 }}
+        >
+          {notice}
+        </Text>
+      ) : null}
+      {error ? (
+        <Text style={{ color: staged ? "#ffb4b4" : "#c0392b", fontSize: 14, lineHeight: 20 }}>
+          {error}
+        </Text>
+      ) : null}
+
+      <PrimaryActionButton
+        label="Login"
+        loadingLabel="Logging you in…"
+        loading={busy}
+        onPress={() => void onSubmit()}
+        backgroundColor={staged ? T.brandPurple : colors.primary}
+        testID={homepage ? "homepage-sign-in-submit" : "returning-login-submit"}
+      />
+
+      <Pressable
+        onPress={() => {
+          setStayLoggedInBox((value) => {
+            const next = !value;
+            setStayLoggedIn(next);
+            return next;
+          });
+        }}
+        style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+        testID="stay-logged-in"
+      >
+        <View
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: 6,
+            borderWidth: 2,
+            borderColor: stayLoggedIn ? linkColor : staged ? "rgba(255,255,255,0.4)" : colors.border,
+            backgroundColor: stayLoggedIn ? linkColor : "transparent",
+          }}
+        />
+        <Text style={{ color: labelColor, fontSize: 14, flex: 1 }}>
+          Stay logged in on this phone or computer
+        </Text>
+      </Pressable>
+
+      <Text testID="email-is-username" style={{ color: labelColor, fontSize: 14, lineHeight: 20 }}>
+        Email is your username.
+      </Text>
+
       <PrimaryActionButton
         label="Forgot password? Send a new password to this email"
         loadingLabel="Sending…"
@@ -235,57 +287,6 @@ export function ReturningAccountLogin({ variant = "page" }: { variant?: Variant 
         }}
         backgroundColor={staged ? T.brandBlue : colors.muted}
         testID="send-new-password"
-      />
-
-      <Pressable
-        onPress={() => {
-          setStayLoggedInBox((value) => {
-            const next = !value;
-            setStayLoggedIn(next);
-            return next;
-          });
-        }}
-        style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
-        testID="stay-logged-in"
-      >
-        <View
-          style={{
-            width: 20,
-            height: 20,
-            borderRadius: 6,
-            borderWidth: 2,
-            borderColor: stayLoggedIn ? linkColor : staged ? "rgba(255,255,255,0.4)" : colors.border,
-            backgroundColor: stayLoggedIn ? linkColor : "transparent",
-          }}
-        />
-        <Text style={{ color: labelColor, fontSize: 14, flex: 1 }}>
-          Stay logged in on this phone or computer
-        </Text>
-      </Pressable>
-
-      <TurnstileWidget action="login" onToken={setTurnstileToken} />
-
-      {notice ? (
-        <Text
-          testID="password-reset-sent"
-          style={{ color: staged ? T.text : colors.foreground, fontSize: 14, lineHeight: 20 }}
-        >
-          {notice}
-        </Text>
-      ) : null}
-      {error ? (
-        <Text style={{ color: staged ? "#ffb4b4" : "#c0392b", fontSize: 14, lineHeight: 20 }}>
-          {error}
-        </Text>
-      ) : null}
-
-      <PrimaryActionButton
-        label="Login"
-        loadingLabel="Logging you in…"
-        loading={busy}
-        onPress={() => void onSubmit()}
-        backgroundColor={staged ? T.brandPurple : colors.primary}
-        testID={homepage ? "homepage-sign-in-submit" : "returning-login-submit"}
       />
       <Pressable onPress={() => setPhoneOpen((open) => !open)} testID="show-phone-code">
         <Text style={{ color: linkColor, fontWeight: "800", fontSize: 14 }}>

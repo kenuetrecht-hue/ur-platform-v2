@@ -66,6 +66,11 @@ textarea.ur-chat-composer.ur-chat-composer-owner {
   z-index: 40;
 }
 
+.ur-chat-composer-footer.ur-chat-composer-inline {
+  position: static;
+  z-index: auto;
+}
+
 .ur-chat-composer-row {
   display: flex !important;
   flex-direction: row !important;

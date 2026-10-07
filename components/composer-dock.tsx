@@ -7,7 +7,6 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { useColors } from "@/hooks/use-colors";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { CHAT_COMPOSER_ACTION_ROW } from "@/lib/chat-composer-layout";
 
@@ -18,6 +17,8 @@ type ComposerDockProps = {
   paddingBottom?: number;
   style?: StyleProp<ViewStyle>;
   reserveTabBar?: boolean;
+  /** Stick to the bottom of the screen. Page chats leave this off so later sections stay visible. */
+  pinned?: boolean;
 };
 
 type ChatComposerActionRowProps = {
@@ -51,8 +52,8 @@ export function ComposerDock({
   paddingBottom,
   style,
   reserveTabBar = true,
+  pinned = true,
 }: ComposerDockProps) {
-  const colors = useColors();
   const overlap = useOverlapInsets({ reserveTabBar });
   const pad = paddingBottom ?? overlap.dockPaddingBottom;
 
@@ -63,12 +64,14 @@ export function ComposerDock({
       style={styles.avoid}
     >
       <View
-        {...(Platform.OS === "web" ? { className: "ur-chat-composer-footer" } : null)}
+        {...(Platform.OS === "web"
+          ? { className: pinned ? "ur-chat-composer-footer" : "ur-chat-composer-footer ur-chat-composer-inline" }
+          : null)}
         style={[
           styles.dock,
           {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
+            backgroundColor: "#FFFFFF",
+            borderColor: "#E0E7FF",
             paddingBottom: pad,
           },
           style,

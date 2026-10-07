@@ -1,13 +1,11 @@
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useColors } from "@/hooks/use-colors";
-import { BrandGradient } from "@/components/brand-gradient";
 import {
   PLATFORM_DISCLOSURE_BOTTOM,
   PLATFORM_DISCLOSURE_FULL,
   PLATFORM_DISCLOSURE_TOP,
 } from "@/lib/platform-disclosure-copy";
-import { brandDisclosureSurface } from "@/lib/brand-theme";
+import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 
 export function PlatformDisclosureBar({
   position,
@@ -21,9 +19,7 @@ export function PlatformDisclosureBar({
   onPressFull?: () => void;
   aboveTabBar?: boolean;
 }) {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
-  const brand = brandDisclosureSurface(colors);
 
   const text =
     position === "top"
@@ -34,7 +30,7 @@ export function PlatformDisclosureBar({
 
   const content = (
     <Text
-      style={[styles.text, aboveTabBar ? styles.textAboveTab : null, { color: colors.onWhite }]}
+      style={[styles.text, aboveTabBar ? styles.textAboveTab : null, { color: LETTERING_ON_WHITE }]}
       numberOfLines={compact ? 1 : 3}
     >
       {text}
@@ -42,11 +38,10 @@ export function PlatformDisclosureBar({
   );
 
   return (
-    <BrandGradient
-      variant="soft"
+    <View
       style={[
         styles.bar,
-        brand,
+        { backgroundColor: "#FFFFFF", borderColor: "#E0E7FF" },
         position === "top" ? styles.barTop : styles.barBottom,
         position === "top"
           ? { paddingTop: insets.top + 2, paddingBottom: 2 }
@@ -62,7 +57,7 @@ export function PlatformDisclosureBar({
           content
         )}
       </View>
-    </BrandGradient>
+    </View>
   );
 }
 
@@ -82,7 +77,6 @@ const styles = StyleSheet.create({
     lineHeight: 11,
     textAlign: "center",
     letterSpacing: 0.08,
-    opacity: 0.78,
   },
   textAboveTab: {
     fontSize: 7,

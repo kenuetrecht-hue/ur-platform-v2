@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 
 type Tx = {
   id: string;
@@ -22,9 +23,9 @@ export function TransactionHistoryList({
   onWash?: boolean;
 }) {
   const colors = useColors();
-  const ink = onWash ? colors.gold : colors.foreground;
-  const sub = onWash ? colors.gold : colors.muted;
-  const amount = onWash ? colors.gold : colors.primary;
+  const ink = onWash ? LETTERING_ON_COLOR : LETTERING_ON_WHITE;
+  const sub = onWash ? LETTERING_ON_COLOR : LETTERING_ON_WHITE;
+  const amount = onWash ? LETTERING_ON_COLOR : LETTERING_ON_WHITE;
 
   if (transactions.length === 0) {
     return <Text style={{ color: sub, fontSize: 13 }}>{emptyMessage}</Text>;
@@ -39,7 +40,7 @@ export function TransactionHistoryList({
             styles.row,
             {
               borderColor: colors.border,
-              backgroundColor: onWash ? "transparent" : colors.surface,
+              backgroundColor: onWash ? "transparent" : "#FFFFFF",
             },
           ]}
         >
@@ -70,15 +71,14 @@ export function CustomLinkCard({
   slug: string;
   label?: string;
 }) {
-  const colors = useColors();
   return (
-    <View style={[styles.linkCard, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-      <Text style={{ color: colors.onWhite, fontWeight: "800", fontSize: 14 }}>{label}</Text>
-      <Text style={{ color: colors.onWhite, fontSize: 11 }}>Slug: {slug}</Text>
+    <View style={[styles.linkCard, { borderColor: "#E0E7FF", backgroundColor: "#FFFFFF" }]}>
+      <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800", fontSize: 14 }}>{label}</Text>
+      <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11 }}>Slug: {slug}</Text>
       <Text
         selectable
         style={{
-          color: colors.onWhite,
+          color: LETTERING_ON_WHITE,
           fontSize: 12,
           fontFamily: "monospace",
           marginTop: 6,
@@ -86,7 +86,7 @@ export function CustomLinkCard({
       >
         {customUrl}
       </Text>
-      <Text style={{ color: colors.onWhite, fontSize: 11, marginTop: 6 }}>
+      <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11, marginTop: 6 }}>
         Long-press to copy. Every visit and sale through this link is tracked.
       </Text>
     </View>

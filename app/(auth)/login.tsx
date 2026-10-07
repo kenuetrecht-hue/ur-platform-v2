@@ -12,7 +12,6 @@ import {
 } from "@/lib/login-payout-banner";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
 import { LandingDeviceDownloadLinks } from "@/components/landing/landing-app-download-link";
-import { LandingWhatWeOffer } from "@/components/landing/landing-what-we-offer";
 
 /** First door: email, password, Login. Sign up is a bubble. */
 export default function LoginScreen() {
@@ -57,12 +56,6 @@ export default function LoginScreen() {
                 <Text style={styles.signupKicker}>New here?</Text>
                 <Text style={styles.signupLabel}>Sign up</Text>
               </LinearGradient>
-            </Link>
-            <LandingWhatWeOffer compact />
-            <Link href="/services" testID="login-products-link">
-              <Text style={{ color: T.text, fontWeight: "800", fontSize: 14, textAlign: "center" }}>
-                Products and prices
-              </Text>
             </Link>
             {serviceHint ? (
               <View style={styles.errorBox}>

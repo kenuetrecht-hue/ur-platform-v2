@@ -44,7 +44,8 @@ describe("lettering on white vs colored backgrounds", () => {
     expect(hubTabs).toContain("colors.gold");
 
     const disclosure = readFileSync("components/platform-disclosure-bar.tsx", "utf8");
-    expect(disclosure).toContain("colors.onWhite");
+    expect(disclosure).toContain("LETTERING_ON_WHITE");
+    expect(disclosure).toContain('backgroundColor: "#FFFFFF"');
 
     const tiles = readFileSync("components/hub-door-tile.tsx", "utf8");
     expect(tiles).toContain("LETTERING_ON_WHITE");
@@ -77,8 +78,8 @@ describe("lettering on white vs colored backgrounds", () => {
 
     const usage = readFileSync("components/usage-allowance-banner.tsx", "utf8");
     expect(usage).toContain("Platform access active");
-    expect(usage).toContain("color: colors.foreground");
-    expect(usage).toContain("color: colors.muted");
+    expect(usage).toContain("color: LETTERING_ON_WHITE");
+    expect(usage).toContain('backgroundColor: "#FFFFFF"');
     expect(usage).not.toContain("colors.gold");
 
     const creatorPanel = readFileSync("components/ai-creator-panel.tsx", "utf8");
@@ -104,21 +105,21 @@ describe("lettering on white vs colored backgrounds", () => {
   it("uses bluish-purple on white cards and gold only on the colored wash", () => {
     const creatorAi = readFileSync("components/creator-ai-interface.tsx", "utf8");
     expect(creatorAi).toContain("disclosureBanner");
-    expect(creatorAi).toContain("color: colors.onWhite");
-    expect(creatorAi).toContain("backgroundColor: colors.surface");
+    expect(creatorAi).toContain("color: LETTERING_ON_WHITE");
+    expect(creatorAi).toContain('backgroundColor: "#FFFFFF"');
 
     const ais = readFileSync("app/(tabs)/ais.tsx", "utf8");
     expect(ais).toContain("Done ▲");
     expect(ais).toMatch(/Done ▲[\s\S]{0,40}colors\.onWhite|colors\.onWhite[\s\S]{0,80}Done ▲/);
 
     const thanks = readFileSync("components/thanks-stamps-wall.tsx", "utf8");
-    expect(thanks).toContain("backgroundColor: colors.surface");
-    expect(thanks).toContain("const washInk = colors.foreground");
+    expect(thanks).toContain('backgroundColor: "#FFFFFF"');
+    expect(thanks).toContain("const washInk = LETTERING_ON_WHITE");
     expect(thanks).not.toContain("colors.gold");
 
     const purchase = readFileSync("components/purchase-usage-tracker.tsx", "utf8");
-    expect(purchase).toContain("backgroundColor: colors.surface");
-    expect(purchase).toContain("color: colors.foreground");
+    expect(purchase).toContain('backgroundColor: "#FFFFFF"');
+    expect(purchase).toContain("color: LETTERING_ON_WHITE");
     expect(purchase).not.toContain("colors.gold");
 
     const talk = readFileSync("components/ai-talk-time-tracker.tsx", "utf8");
@@ -142,7 +143,8 @@ describe("lettering on white vs colored backgrounds", () => {
 
     const linkCard = readFileSync("components/transaction-history-list.tsx", "utf8");
     expect(linkCard).toContain("Your custom link");
-    expect(linkCard).toContain("color: colors.onWhite");
+    expect(linkCard).toContain("color: LETTERING_ON_WHITE");
+    expect(linkCard).toContain('backgroundColor: "#FFFFFF"');
     expect(linkCard).toContain("customUrl");
 
     const friends = readFileSync("components/social-hub-panel.tsx", "utf8");

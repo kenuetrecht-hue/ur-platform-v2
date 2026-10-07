@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { ActivityIndicator, Text } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import { AppPressable } from "@/components/app-pressable";
 import { trpc } from "@/lib/trpc";
 import { createVoicePromptSession } from "@/lib/record-voice-prompt";
@@ -84,7 +85,7 @@ export function VoicePromptMicButton({
         borderRadius: 10,
         borderWidth: 1,
         borderColor: listening ? "#dc2626" : colors.border,
-        backgroundColor: listening ? "#dc2626" : colors.surface,
+        backgroundColor: listening ? "#dc2626" : "#FFFFFF",
         alignItems: "center",
         justifyContent: "center",
         flexDirection: "row",
@@ -101,7 +102,7 @@ export function VoicePromptMicButton({
           {labeled ? (
             <Text
               pointerEvents="none"
-              style={{ color: listening ? "#fff" : colors.foreground, fontSize: 11, fontWeight: "800" }}
+              style={{ color: listening ? "#fff" : LETTERING_ON_WHITE, fontSize: 11, fontWeight: "800" }}
             >
               {listening ? "Stop" : "Talk"}
             </Text>

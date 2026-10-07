@@ -1,11 +1,10 @@
 import React from "react";
-import { View, Text, Pressable, StyleSheet, type TextStyle } from "react-native";
-import { useColors } from "@/hooks/use-colors";
+import { View, Text, StyleSheet, type TextStyle } from "react-native";
 import {
   AFFILIATE_LINK_BEFORE_TEXT,
   buildAiChatDisclosure,
 } from "@/lib/platform-disclosure-copy";
-import { brandDisclosureSurface } from "@/lib/brand-theme";
+import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 
 export interface AIDisclosureWrapperProps {
   children: React.ReactNode;
@@ -13,6 +12,8 @@ export interface AIDisclosureWrapperProps {
   hasAffiliateLinks?: boolean;
   affiliateDisclosureText?: string;
   onDismiss?: () => void;
+  /** Sit in the page instead of a fixed-height slot, so the chat does not cover the page. */
+  page?: boolean;
 }
 
 function DisclosureLine({
@@ -38,12 +39,10 @@ export function AIDisclosureWrapper({
   hasAffiliateLinks = false,
   affiliateDisclosureText,
   onDismiss,
+  page = false,
 }: AIDisclosureWrapperProps) {
-  const colors = useColors();
-  const brand = brandDisclosureSurface(colors);
-
   const noteStyle: TextStyle = {
-    color: colors.onWhite,
+    color: LETTERING_ON_WHITE,
     fontSize: 10,
     lineHeight: 14,
     textAlign: "center",
@@ -51,14 +50,16 @@ export function AIDisclosureWrapper({
   };
 
   const dividerStyle = {
-    ...brand,
-    backgroundColor: colors.surface,
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E0E7FF",
+    borderWidth: 1,
+    borderRadius: 8,
     paddingVertical: 5,
     paddingHorizontal: 14,
   };
 
   return (
-    <View style={styles.root}>
+    <View style={page ? styles.page : styles.root}>
       <View style={dividerStyle}>
         <DisclosureLine textStyle={noteStyle}>
           {buildAiChatDisclosure(aiName)}
@@ -66,7 +67,7 @@ export function AIDisclosureWrapper({
         </DisclosureLine>
       </View>
 
-      <View style={styles.contentSlot}>{children}</View>
+      <View style={page ? styles.pageSlot : styles.contentSlot}>{children}</View>
     </View>
   );
 }
@@ -83,5 +84,13 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "stretch",
     overflow: "hidden",
+  },
+  page: {
+    width: "100%",
+    gap: 8,
+  },
+  pageSlot: {
+    width: "100%",
+    overflow: "visible",
   },
 });

@@ -30,7 +30,6 @@ import { useAuth } from "@/lib/auth-context";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { METER_HEARTBEAT_INTERVAL_MS } from "@/lib/ai-metering-policy";
 import { buildAiChatDisclosure, AI_WELCOME_DISCLOSURE_SUFFIX } from "@/lib/platform-disclosure-copy";
-import { brandDisclosureSurface } from "@/lib/brand-theme";
 import { UsageUpgradePanel } from "@/components/usage-upgrade-panel";
 import { UsageAllowanceBanner } from "@/components/usage-allowance-banner";
 import { UsageTrackerDashboard } from "@/components/usage-tracker-dashboard";
@@ -707,15 +706,14 @@ export function CreatorAIInterface({
       <View
         style={[
           styles.disclosureBanner,
-          brandDisclosureSurface(colors),
-          { backgroundColor: colors.surface },
+          { backgroundColor: "#FFFFFF", borderColor: "#E0E7FF", borderWidth: 1 },
         ]}
         accessibilityRole="text"
         accessibilityLabel={buildAiChatDisclosure(creatorName)}
       >
         <Text
           style={{
-            color: colors.onWhite,
+            color: LETTERING_ON_WHITE,
             fontSize: 10,
             lineHeight: 14,
             textAlign: "center",
@@ -843,6 +841,8 @@ export function CreatorAIInterface({
         </ScrollView>
 
         <ComposerDock
+          pinned={!pageScroll}
+          reserveTabBar={embedded}
           paddingBottom={
             ownerOpsChat
               ? LAYOUT_OVERLAP.COMPOSER_MIN_PADDING + LAYOUT_OVERLAP.COMPOSER_DOCK_GAP
@@ -920,7 +920,7 @@ export function CreatorAIInterface({
                     },
                   ]}
                 >
-                  <Text pointerEvents="none" style={{ color: colors.foreground, fontSize: 12, fontWeight: "800" }}>
+                  <Text pointerEvents="none" style={{ color: LETTERING_ON_WHITE, fontSize: 12, fontWeight: "800" }}>
                     Text
                   </Text>
                 </AppPressable>
@@ -1000,7 +1000,7 @@ export function CreatorAIInterface({
                 },
               ]}
             >
-              <Text pointerEvents="none" style={{ color: colors.foreground, fontSize: 12, fontWeight: "800" }}>
+              <Text pointerEvents="none" style={{ color: LETTERING_ON_WHITE, fontSize: 12, fontWeight: "800" }}>
                 Text
               </Text>
             </AppPressable>
@@ -1052,13 +1052,13 @@ export function CreatorAIInterface({
                 styles.input,
                 ownerOpsChat ? styles.inputOwner : null,
                 {
-                  color: colors.foreground,
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
+                  color: LETTERING_ON_WHITE,
+                  backgroundColor: "#FFFFFF",
+                  borderColor: "#E0E7FF",
                 },
               ]}
               placeholder="Type, or tap 🎤 and speak any language…"
-              placeholderTextColor={colors.muted}
+              placeholderTextColor={LETTERING_ON_WHITE}
               value={inputText}
               onChangeText={setInputText}
               focusNonce={textFocusNonce}
@@ -1089,8 +1089,8 @@ export function CreatorAIInterface({
                 {
                   backgroundColor:
                     loading || (!inputText.trim() && pendingAttachments.length === 0)
-                      ? colors.muted
-                      : colors.primary,
+                      ? "#6D28D9"
+                      : "#4F46E5",
                   opacity: pressed ? 0.85 : 1,
                   minWidth: 72,
                 },
@@ -1107,9 +1107,9 @@ export function CreatorAIInterface({
             </View>
           </ChatComposerActionRow>
           {speechHint ? (
-            <Text style={{ color: colors.muted, fontSize: 11, paddingTop: ownerOpsChat ? 2 : 6 }}>{speechHint}</Text>
+            <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11, paddingTop: ownerOpsChat ? 2 : 6 }}>{speechHint}</Text>
           ) : (
-            <Text style={{ color: colors.muted, fontSize: 11, paddingTop: ownerOpsChat ? 2 : 6 }}>
+            <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11, paddingTop: ownerOpsChat ? 2 : 6 }}>
               Talk (mic) uses your text pass — 1 message to print, 1 to send. Hear uses Talk Time, not the $24.99 pass.
             </Text>
           )}
@@ -1148,9 +1148,9 @@ export function CreatorAIInterface({
                   stopExclusiveAudio();
                   setVoiceStatus("Stopped.");
                 }}
-                style={[styles.hiveToggle, ownerOpsChat ? styles.hiveToggleOwner : null, { flex: 1, marginHorizontal: 0, marginBottom: 0, borderColor: colors.border, backgroundColor: colors.surface }]}
+                style={[styles.hiveToggle, ownerOpsChat ? styles.hiveToggleOwner : null, { flex: 1, marginHorizontal: 0, marginBottom: 0, borderColor: "#E0E7FF", backgroundColor: "#FFFFFF" }]}
               >
-                <Text pointerEvents="none" style={{ color: colors.foreground, fontSize: 12, fontWeight: "700" }}>
+                <Text pointerEvents="none" style={{ color: LETTERING_ON_WHITE, fontSize: 12, fontWeight: "700" }}>
                   ⏹ Stop
                 </Text>
               </AppPressable>
@@ -1164,9 +1164,9 @@ export function CreatorAIInterface({
                   void speakLastReply();
                 }}
                 disabled={voiceMutation.isPending || buyAffiliateVoice.isPending}
-                style={[styles.hiveToggle, ownerOpsChat ? styles.hiveToggleOwner : null, { flex: 2, marginHorizontal: 0, marginBottom: 0, borderColor: colors.primary, backgroundColor: colors.surface }]}
+                style={[styles.hiveToggle, ownerOpsChat ? styles.hiveToggleOwner : null, { flex: 2, marginHorizontal: 0, marginBottom: 0, borderColor: "#4F46E5", backgroundColor: "#FFFFFF" }]}
               >
-                <Text pointerEvents="none" style={{ color: colors.foreground, fontSize: 13, fontWeight: "700" }}>
+                <Text pointerEvents="none" style={{ color: LETTERING_ON_WHITE, fontSize: 13, fontWeight: "700" }}>
                   {voiceMutation.isPending || buyAffiliateVoice.isPending
                     ? `🎙️ ${creatorName} is speaking…`
                     : isAssociateAi

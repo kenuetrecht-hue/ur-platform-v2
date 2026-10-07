@@ -14,13 +14,20 @@ describe("returning account login", () => {
     expect(page).toContain("ReturningAccountLogin");
     expect(page).toContain("Login");
     expect(page).toContain("go-to-signup");
-    expect(page.indexOf('testID="go-to-signup"')).toBeLessThan(page.indexOf("<LandingWhatWeOffer"));
+    expect(page).not.toContain("LandingWhatWeOffer");
+    expect(page).not.toContain("login-products-link");
     expect(page).toContain("login-payout-banner");
     expect(page).toContain("LOGIN_PAYOUT_BANNER_SPLIT");
     expect(page).toContain("LOGIN_PAYOUT_BANNER_TIPS");
     expect(signup).toContain("FinishAccountAfterIdPass");
     expect(signup).toContain("Sign up");
-    expect(form).toContain("Email is your username");
+    expect(form).toContain("Email is your username.");
+    expect(form).not.toContain("No pictures on this page");
+    expect(form.indexOf('testID={homepage ? "homepage-sign-in-submit" : "returning-login-submit"}')).toBeLessThan(
+      form.indexOf('testID="stay-logged-in"'),
+    );
+    expect(form.indexOf('testID="stay-logged-in"')).toBeLessThan(form.indexOf('testID="email-is-username"'));
+    expect(form.indexOf('testID="email-is-username"')).toBeLessThan(form.indexOf('testID="send-new-password"'));
     expect(form).toContain("rememberSignedInApiDevice");
     expect(form).toContain("AFTER_ID_PASS_HREF");
     expect(form).not.toContain("IdCheckDuringSignin");

@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from "react-native";
-import { useColors } from "@/hooks/use-colors";
+import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import {
   USAGE_TRACKER_HEADLINE,
   formatUsedLeftLine,
@@ -31,20 +31,19 @@ export function PurchaseUsageTracker({
   lowBalance,
   compact = false,
 }: Props) {
-  const colors = useColors();
   if (included <= 0 && (!lots || lots.length === 0)) return null;
 
   const usedLeft = formatUsedLeftLine({ used, included, remaining, unit });
 
   if (compact) {
     return (
-      <View style={[styles.compact, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-        <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 12 }}>{title}</Text>
-        <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12, marginTop: 3 }}>
+      <View style={[styles.compact, { borderColor: "#E0E7FF", backgroundColor: "#FFFFFF" }]}>
+        <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800", fontSize: 12 }}>{title}</Text>
+        <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 12, marginTop: 3 }}>
           {usedLeft}
         </Text>
         {loseByLabel ? (
-          <Text style={{ color: colors.muted, fontSize: 10, marginTop: 3, lineHeight: 14 }}>
+          <Text style={{ color: LETTERING_ON_WHITE, fontSize: 10, marginTop: 3, lineHeight: 14 }}>
             {loseByLabel}
           </Text>
         ) : null}
@@ -53,40 +52,40 @@ export function PurchaseUsageTracker({
   }
 
   return (
-    <View style={[styles.box, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-      <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 13 }}>
+    <View style={[styles.box, { borderColor: "#E0E7FF", backgroundColor: "#FFFFFF" }]}>
+      <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800", fontSize: 13 }}>
         {USAGE_TRACKER_HEADLINE}
       </Text>
-      <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 14, marginTop: 6 }}>
+      <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800", fontSize: 14, marginTop: 6 }}>
         {title}
       </Text>
-      <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13, marginTop: 4 }}>
+      <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 13, marginTop: 4 }}>
         {usedLeft}
       </Text>
       {dailyNote ? (
-        <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4, lineHeight: 15 }}>
+        <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11, marginTop: 4, lineHeight: 15 }}>
           {dailyNote}
         </Text>
       ) : null}
       {loseByLabel ? (
-        <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4, lineHeight: 16 }}>
+        <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11, marginTop: 4, lineHeight: 16 }}>
           {loseByLabel}
         </Text>
       ) : null}
       {lowBalance ? (
-        <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 11, marginTop: 6 }}>
+        <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 11, marginTop: 6 }}>
           Running low — re-up before you run out.
         </Text>
       ) : null}
       {(lots ?? []).map((lot) => (
         <View
           key={lot.id}
-          style={[styles.lot, { borderColor: colors.border, backgroundColor: colors.background }]}
+          style={[styles.lot, { borderColor: "#E0E7FF", backgroundColor: "#FFFFFF" }]}
         >
-          <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
+          <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 12 }}>
             {lot.productLabel}
           </Text>
-          <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 13, marginTop: 3 }}>
+          <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800", fontSize: 13, marginTop: 3 }}>
             {formatUsedLeftLine({
               used: lot.used,
               included: lot.included,
@@ -94,7 +93,7 @@ export function PurchaseUsageTracker({
               unit: lot.unit,
             })}
           </Text>
-          <Text style={{ color: colors.muted, fontSize: 11, marginTop: 3, lineHeight: 15 }}>
+          <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11, marginTop: 3, lineHeight: 15 }}>
             {lot.loseByLabel}
           </Text>
         </View>

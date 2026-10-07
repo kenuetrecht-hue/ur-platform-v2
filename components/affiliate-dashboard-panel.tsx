@@ -1,5 +1,6 @@
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import { trpc } from "@/lib/trpc";
 import { TransactionHistoryList, CustomLinkCard } from "@/components/transaction-history-list";
 import { AffiliateAssociatePanel } from "@/components/affiliate-associate-panel";
@@ -20,10 +21,10 @@ export function AffiliateDashboardPanel() {
 
   if (!dash.data?.enrolled) {
     return (
-      <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface, margin: 16 }]}>
+      <View style={[styles.card, { borderColor: "#E0E7FF", backgroundColor: "#FFFFFF", margin: 16 }]}>
         <Text style={{ fontSize: 28 }}>🔗</Text>
-        <Text style={[styles.title, { color: colors.foreground }]}>Affiliate Dashboard</Text>
-        <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 21 }}>
+        <Text style={[styles.title, { color: LETTERING_ON_WHITE }]}>Affiliate Dashboard</Text>
+        <Text style={{ color: LETTERING_ON_WHITE, fontSize: 14, lineHeight: 21 }}>
           {info.data?.rule ??
             "Share your UR Platform link and earn $5.00 for every content creator you refer — only after their first 24 free hours, then five later sales. Sales during those first 24 hours do not count. The free day is for people who join in the first 30 days of launch."}
         </Text>
@@ -35,7 +36,7 @@ export function AffiliateDashboardPanel() {
           {enroll.isPending ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.btnText}>Join affiliate program</Text>
+            <Text style={[styles.btnText, { color: LETTERING_ON_COLOR }]}>Join affiliate program</Text>
           )}
         </Pressable>
       </View>
@@ -47,27 +48,27 @@ export function AffiliateDashboardPanel() {
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 32 }}>
       <CustomLinkCard customUrl={referralLink} slug={profile.customSlug} label="Your affiliate link" />
-      <View style={[styles.banner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.title, { color: colors.onWhite }]}>Affiliate Dashboard</Text>
-        <Text style={{ color: colors.onWhite, fontSize: 13, lineHeight: 19 }}>
+      <View style={[styles.banner, { backgroundColor: "#FFFFFF", borderColor: "#E0E7FF" }]}>
+        <Text style={[styles.title, { color: LETTERING_ON_WHITE }]}>Affiliate Dashboard</Text>
+        <Text style={{ color: LETTERING_ON_WHITE, fontSize: 13, lineHeight: 19 }}>
           {dash.data.payoutRule}
         </Text>
-        <Text style={{ color: colors.onWhite, fontSize: 12, marginTop: 6 }}>
+        <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12, marginTop: 6 }}>
           {profile.totalReferrals} referrals · {profile.qualifiedReferrals} qualified · $
           {(profile.totalBonusesPaidCents / 100).toFixed(2)} earned
         </Text>
       </View>
 
-      <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-        <Text style={{ color: colors.foreground, fontWeight: "800" }}>Your referral link</Text>
-        <Text style={{ color: colors.muted, fontSize: 11 }}>Code: {profile.referralCode}</Text>
+      <View style={[styles.card, { borderColor: "#E0E7FF", backgroundColor: "#FFFFFF" }]}>
+        <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800" }}>Your referral link</Text>
+        <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11 }}>Code: {profile.referralCode}</Text>
         <Text
           selectable
           style={{
-            color: colors.primary,
+            color: LETTERING_ON_WHITE,
             fontSize: 12,
             fontFamily: "monospace",
-            backgroundColor: colors.background,
+            backgroundColor: "#FFFFFF",
             padding: 10,
             borderRadius: 8,
             marginTop: 8,
@@ -75,20 +76,20 @@ export function AffiliateDashboardPanel() {
         >
           {referralLink}
         </Text>
-        <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>
+        <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11, marginTop: 4 }}>
           Long-press the link below to copy and share.
         </Text>
-        <Text style={{ color: colors.muted, fontSize: 11, marginTop: 8, lineHeight: 16 }}>{shareText}</Text>
+        <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11, marginTop: 8, lineHeight: 16 }}>{shareText}</Text>
       </View>
 
-      <Text style={{ color: colors.foreground, fontWeight: "700" }}>Referred creators</Text>
+      <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "700" }}>Referred creators</Text>
       {referrals.length === 0 ? (
-        <Text style={{ color: colors.muted }}>No referrals yet — share your link to get started.</Text>
+        <Text style={{ color: LETTERING_ON_COLOR }}>No referrals yet — share your link to get started.</Text>
       ) : (
         referrals.map((r) => (
-          <View key={r.creatorUserId} style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-            <Text style={{ color: colors.foreground, fontWeight: "700" }}>{r.creatorName}</Text>
-            <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
+          <View key={r.creatorUserId} style={[styles.card, { borderColor: "#E0E7FF", backgroundColor: "#FFFFFF" }]}>
+            <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700" }}>{r.creatorName}</Text>
+            <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12, lineHeight: 18 }}>
               {r.creatorEmail}
               {" · "}
               {r.qualifyingTransactionCount}/{dash.data.payoutAfterTransactions} after the free 24 hours
@@ -98,14 +99,14 @@ export function AffiliateDashboardPanel() {
                   ? ` · ${r.transactionsRemaining} more qualifying sales`
                   : ""}
             </Text>
-            <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+            <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11, lineHeight: 16 }}>
               {r.payoutStatus}
             </Text>
           </View>
         ))
       )}
 
-      <Text style={{ color: colors.foreground, fontWeight: "700", marginTop: 8 }}>Transaction history</Text>
+      <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "700", marginTop: 8 }}>Transaction history</Text>
       <TransactionHistoryList transactions={recentTransactions ?? []} />
 
       <AffiliateAssociatePanel referralLink={referralLink} />
