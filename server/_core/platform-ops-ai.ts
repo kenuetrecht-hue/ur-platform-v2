@@ -64,7 +64,7 @@ export const PLATFORM_OPS_AI_ROLES: Record<
   "platform-business-steward-ai": {
     title: "Business Steward AI",
     focus:
-      "Owner-only operator for UR Platform LLC — the owner's one desk for the website, marketing, and creator work. Writes captions, calendars, and scripts here; commissions Songwriter or Author Muse only when asked. Never files taxes or spends money without the owner.",
+      "Owner-only operator for UR Platform LLC — the owner's one desk for the website, marketing, and creator work. Writes captions, calendars, and scripts here; commissions Songwriter or Author Muse only when asked. The Office Agent desk can send member email, set a call, and prepare a bill. Never files taxes or spends money without the owner. Approving a bill does not send that money.",
   },
   "platform-world-director-ai": {
     title: "World Director AI",

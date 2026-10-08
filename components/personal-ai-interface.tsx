@@ -159,10 +159,6 @@ export function PersonalAIInterface({
         setMessages((prev) => [...prev, { role: "ai", text: result.reply }]);
         void refetchChatThread();
         const spoken = markdownToSpeech(result.reply).slice(0, 1200);
-        // #region agent log
-        const hashRuns = spoken.match(/#{1,6}/g) ?? [];
-        fetch('http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1b5626'},body:JSON.stringify({sessionId:'1b5626',location:'components/personal-ai-interface.tsx:sendChatMessage',message:'collapsed reply before voice',data:{replyLen:result.reply.length,spokenLen:spoken.length,hashRunCount:hashRuns.length,maxHashRun:hashRuns.reduce((m,r)=>Math.max(m,r.length),0),newlineCollapsed:/\n/.test(result.reply)&&!/\n/.test(spoken)},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
-        // #endregion
         const canStudioVoice = Boolean(premium.data?.creatorVoice || buyVoice.isSuccess);
         if (spoken && (options?.speak || canStudioVoice)) {
           setVoiceStatus("Reply ready — speaking it now.");

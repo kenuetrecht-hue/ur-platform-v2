@@ -25,6 +25,7 @@ import { purchaseWorkspace3dExtraSlot, purchaseWorkspace3dPlan } from "./workspa
 import { grantReplayFromStripe } from "./class-replay-service";
 import { grantCreatorSocialPush } from "./creator-social-push-service";
 import { placeMemberPrintifyOrder } from "./commerce-fulfillment-adapters";
+import { grantOfficeAgent } from "./office-agent-service";
 
 const PLATFORM_KINDS = new Set([
   "usage_credit",
@@ -45,6 +46,7 @@ const PLATFORM_KINDS = new Set([
   "class_replay",
   "creator_social_push",
   "member_printify",
+  "office_agent",
 ]);
 
 function emailOf(metadata: Record<string, string>): string {
@@ -197,6 +199,9 @@ export function fulfillPlatformPurchase(
       return { handled: true, ignored: false };
     case "creator_social_push":
       grantCreatorSocialPush({ userId, planId: metadata.planId ?? "" });
+      return { handled: true, ignored: false };
+    case "office_agent":
+      grantOfficeAgent(userId);
       return { handled: true, ignored: false };
     case "member_printify":
       void placeMemberPrintifyOrder({

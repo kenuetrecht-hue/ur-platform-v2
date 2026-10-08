@@ -25,6 +25,7 @@ import { isAffiliateOnlyAi, AFFILIATE_ASSOCIATE_ID } from "./affiliate-associate
 import { STORE_MANAGER_AI_ID } from "./commerce-catalog-service";
 import { BLUEPRINT_READER_AI_ID } from "./blueprint-reading-service";
 import { NEWS_NO_INVENTION_PROMPT } from "../../lib/ai-factuality";
+import { isOfficeAgentCreator, OFFICE_AGENT_PROMPT } from "../../lib/office-agent";
 
 export type CreatorAiDefinition = {
   id: string;
@@ -67,6 +68,7 @@ export const CREATOR_AI_REGISTRY: CreatorAiDefinition[] = [
       "Content calendars and posting schedules",
       "Creator workflows, hooks, captions, and audience growth",
       "Helping members use the UR website and phone app without changing security",
+      "Office Agent desk when it is unlocked: member email, call setup, and bills the member approves",
     ],
     [
       "Standalone language tutoring (use LinguaMate)",
@@ -891,6 +893,12 @@ ${MISSION_USE_OUT_OF_SCOPE.map((item) => `- ${item}`).join("\n")}
 }
 
 export function buildCreatorSystemPrompt(creatorId: string): string {
+  const prompt = renderCreatorSystemPrompt(creatorId);
+  if (!isOfficeAgentCreator(creatorId)) return prompt;
+  return `${prompt}\n\n${OFFICE_AGENT_PROMPT}`;
+}
+
+function renderCreatorSystemPrompt(creatorId: string): string {
   if (creatorId === "contentmate") {
     return CONTENTMATE_SYSTEM_PROMPT;
   }

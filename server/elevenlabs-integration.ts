@@ -59,10 +59,6 @@ export class ElevenLabsVoiceService {
     });
 
     const voiceText = markdownToSpeech(applyAffiliateDisclosures(request.text, "voice").text);
-    // #region agent log
-    const hashRuns = voiceText.match(/#{1,6}/g) ?? [];
-    fetch('http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1b5626'},body:JSON.stringify({sessionId:'1b5626',location:'server/elevenlabs-integration.ts:synthesizeVoice',message:'studio voice text markers',data:{len:voiceText.length,hashRunCount:hashRuns.length,maxHashRun:hashRuns.reduce((m,r)=>Math.max(m,r.length),0),boldMarks:(voiceText.match(/\*\*/g)??[]).length,startsWithHash:/^\s*#/.test(voiceText)},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
     const remaining = await peekElevenLabsRemainingCharacters(this.apiKey);
     if (remaining !== null && remaining < voiceText.length) {
       throw new Error(mapElevenLabsVoiceError(402, "character_limit exceeded"));

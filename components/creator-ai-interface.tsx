@@ -52,6 +52,7 @@ import { BUSINESS_STEWARD_AI_ID, isOwnerOpsAiId } from "@/lib/owner-platform-ops
 import { playExclusiveAudio, stopExclusiveAudio, unlockWebAudio } from "@/lib/exclusive-audio-player";
 import { pickChatAttachments, type PickedChatAttachment } from "@/lib/chat-attachment-picker";
 import { AppPressable } from "@/components/app-pressable";
+import { OfficeAgentDesk } from "@/components/office-agent-desk";
 
 interface ChatMessage {
   role: "user" | "ai";
@@ -550,10 +551,6 @@ export function CreatorAIInterface({
 
   const speakReplyText = useCallback(async (rawText: string) => {
     const spoken = markdownToSpeech(rawText).slice(0, 1200);
-    // #region agent log
-    const hashRuns = spoken.match(/#{1,6}/g) ?? [];
-    fetch('http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1b5626'},body:JSON.stringify({sessionId:'1b5626',location:'components/creator-ai-interface.tsx:speakReplyText',message:'collapsed reply before voice',data:{rawLen:rawText.length,spokenLen:spoken.length,hashRunCount:hashRuns.length,maxHashRun:hashRuns.reduce((m,r)=>Math.max(m,r.length),0),newlineCollapsed:/\n/.test(rawText)&&!/\n/.test(spoken)},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
-    // #endregion
     if (!spoken || voiceMutation.isPending) return;
 
     if (isAssociateAi && !hasPaidVoice) {
@@ -796,6 +793,8 @@ export function CreatorAIInterface({
             <UsageTrackerDashboard creatorId={creatorId} compact />
           </>
         )}
+
+        {creatorId === "contentmate" || isStewardDesk ? <OfficeAgentDesk creatorId={creatorId} /> : null}
 
         <ScrollView
           ref={scrollViewRef}

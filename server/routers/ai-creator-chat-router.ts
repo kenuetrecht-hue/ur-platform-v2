@@ -38,6 +38,15 @@ import {
   loadAiChatHistoryForModel,
 } from "../_core/ai-chat-persistence-service";
 import { mapServiceErrorToTrpc } from "../_core/service-errors";
+import {
+  approveOfficeAgentBill,
+  fileOfficeAgentBill,
+  officeAgentStatus,
+  scheduleOfficeAgentCall,
+  sendOfficeAgentEmail,
+} from "../_core/office-agent-service";
+import { OFFICE_AGENT_DAYS, OFFICE_AGENT_PRICE_CENTS, isOfficeAgentCreator, officeAgentPriceLabel } from "../../lib/office-agent";
+import { createPlatformCheckoutSession } from "../_core/stripe-checkout-service";
 import { transcribeVoicePrompt } from "../_core/speech-to-prompt-service";
 import { assertAndConsumeAiUsage } from "../_core/ai-usage-meter";
 import { MIC_TRANSCRIBE_MESSAGE_UNITS } from "../../lib/usage-caps-catalog";
@@ -288,6 +297,7 @@ export const aiCreatorChatRouter = router({
           userId,
           isPlatformOwner: ctx.isPlatformOwner,
           userEmail: ctx.user.email,
+          userName: ctx.user.name,
           canChatOwnerOps: adminAccess.permissions.includes("chat_ops_ai"),
         },
       });
@@ -631,4 +641,129 @@ export const aiCreatorChatRouter = router({
       }
       return { allowed: true as const, meterSessionId: null, millisecondsRemaining: null };
     }),
+
+  officeAgentStatus: secureProcedure("aiCreators")
+    .input(z.object({ creatorId: creatorIdSchema }))
+    .query(({ ctx, input }) => {
+      if (!isOfficeAgentCreator(input.creatorId)) {
+        return { offered: false as const };
+      }
+      if (input.creatorId === "platform-business-steward-ai" && !ctx.isPlatformOwner) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Business Steward is the owner's desk." });
+      }
+      return { offered: true as const, ...officeAgentStatus(String(ctx.user.id), ctx.isPlatformOwner) };
+    }),
+
+  purchaseOfficeAgent: secureProcedure("aiCreators")
+    .input(
+      z.object({
+        creatorId: creatorIdSchema,
+        billingStateCode: z.string().trim().min(2).max(2).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!isOfficeAgentCreator(input.creatorId)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "This assistant does not sell the Office Agent desk." });
+      }
+      if (ctx.isPlatformOwner) {
+        return { ownerIncluded: true as const, checkoutUrl: null, priceLabel: officeAgentPriceLabel() };
+      }
+      try {
+        const session = await createPlatformCheckoutSession({
+          userId: String(ctx.user.id),
+          userEmail: ctx.user.email ?? "",
+          productName: "Office Agent desk",
+          description: `${OFFICE_AGENT_DAYS} days. Send member email, set calls, and prepare bills you approve.`,
+          priceCents: OFFICE_AGENT_PRICE_CENTS,
+          billingStateCode: input.billingStateCode ?? "IN",
+          successPath: "/ais",
+          cancelPath: "/ais",
+          metadata: { kind: "office_agent", creatorId: input.creatorId },
+        });
+        return { ownerIncluded: false as const, checkoutUrl: session.checkoutUrl, priceLabel: officeAgentPriceLabel() };
+      } catch (error) {
+        throw mapServiceErrorToTrpc(error);
+      }
+    }),
+
+  officeAgentSendEmail: secureProcedure("aiCreators")
+    .input(
+      z.object({
+        creatorId: creatorIdSchema,
+        toEmail: z.string().trim().email().max(200),
+        subject: z.string().trim().min(1).max(120),
+        body: z.string().trim().min(1).max(2000),
+      }),
+    )
+    .mutation(({ ctx, input }) =>
+      sendOfficeAgentEmail({
+        userId: String(ctx.user.id),
+        isPlatformOwner: ctx.isPlatformOwner,
+        creatorId: input.creatorId,
+        senderEmail: ctx.user.email ?? "",
+        senderName: ctx.user.name ?? "UR Member",
+        toEmail: input.toEmail,
+        subject: input.subject,
+        body: input.body,
+      }),
+    ),
+
+  officeAgentScheduleCall: secureProcedure("aiCreators")
+    .input(
+      z.object({
+        creatorId: creatorIdSchema,
+        withEmail: z.string().trim().email().max(200),
+        reason: z.string().trim().min(1).max(400),
+        whenLabel: z.string().trim().min(1).max(80),
+      }),
+    )
+    .mutation(({ ctx, input }) =>
+      scheduleOfficeAgentCall({
+        userId: String(ctx.user.id),
+        isPlatformOwner: ctx.isPlatformOwner,
+        creatorId: input.creatorId,
+        callerName: ctx.user.name ?? undefined,
+        withEmail: input.withEmail,
+        reason: input.reason,
+        whenLabel: input.whenLabel,
+      }),
+    ),
+
+  officeAgentFileBill: secureProcedure("aiCreators")
+    .input(
+      z.object({
+        creatorId: creatorIdSchema,
+        payee: z.string().trim().min(1).max(120),
+        amountCents: z.number().int().min(50).max(10_000_000),
+        dueDate: z.string().trim().min(4).max(40),
+        note: z.string().trim().max(400).optional(),
+      }),
+    )
+    .mutation(({ ctx, input }) =>
+      fileOfficeAgentBill({
+        userId: String(ctx.user.id),
+        isPlatformOwner: ctx.isPlatformOwner,
+        creatorId: input.creatorId,
+        payee: input.payee,
+        amountCents: input.amountCents,
+        dueDate: input.dueDate,
+        note: input.note,
+      }),
+    ),
+
+  officeAgentApproveBill: secureProcedure("aiCreators")
+    .input(
+      z.object({
+        creatorId: creatorIdSchema,
+        billId: z.string().uuid(),
+      }),
+    )
+    .mutation(({ ctx, input }) =>
+      approveOfficeAgentBill({
+        userId: String(ctx.user.id),
+        isPlatformOwner: ctx.isPlatformOwner,
+        creatorId: input.creatorId,
+        billId: input.billId,
+      }),
+    ),
 });

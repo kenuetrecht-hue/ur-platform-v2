@@ -88,6 +88,7 @@ import {
 } from "./commerce-catalog-service";
 import { formatTrendSignalsForStoreManager } from "./commerce-trend-signals-service";
 import { getAffiliateProfile } from "./partner-program-service";
+import { applyOfficeAgentChatAction } from "./office-agent-service";
 import {
   BLUEPRINT_READER_AI_ID,
   buildBlueprintReaderContextForChat,
@@ -97,6 +98,7 @@ export type AiChatContext = {
   userId: string | number;
   isPlatformOwner: boolean;
   userEmail?: string | null;
+  userName?: string | null;
   /** Staff with chat_ops_ai from administration dashboard */
   canChatOwnerOps?: boolean;
   /** Homepage one-shot demo — entitlement/usage skipped; guardrails remain */
@@ -499,6 +501,18 @@ export async function handleCreatorAiChat(params: {
       });
       rawReply = resolveAiReplyOrFallback(result.reply, def.name);
       model = result.model;
+    }
+
+    if (!params.ctx.landingDemo) {
+      rawReply = applyOfficeAgentChatAction({
+        userId,
+        isPlatformOwner: params.ctx.isPlatformOwner,
+        creatorId: params.creatorId,
+        userMessage: message,
+        aiReply: rawReply,
+        senderEmail: params.ctx.userEmail ?? "",
+        senderName: params.ctx.userName?.trim() || "UR Member",
+      });
     }
 
     let reply = enforceAiGuardrails({

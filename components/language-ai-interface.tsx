@@ -201,10 +201,6 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
         setMessages((prev) => [...prev, { role: "ai", text: reply }]);
         if (options?.speak && reply.trim()) {
           const spoken = markdownToSpeech(reply).slice(0, 1200);
-          // #region agent log
-          const hashRuns = spoken.match(/#{1,6}/g) ?? [];
-          fetch('http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1b5626'},body:JSON.stringify({sessionId:'1b5626',location:'components/language-ai-interface.tsx:spoken',message:'collapsed reply before voice',data:{replyLen:reply.length,spokenLen:spoken.length,hashRunCount:hashRuns.length,maxHashRun:hashRuns.reduce((m,r)=>Math.max(m,r.length),0),newlineCollapsed:/\n/.test(reply)&&!/\n/.test(spoken)},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
-          // #endregion
           setVoiceStatus("Speaking the answer…");
           try {
             await speakText(spoken);
