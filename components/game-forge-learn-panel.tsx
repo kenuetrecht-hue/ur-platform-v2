@@ -349,7 +349,7 @@ export function GameForgeLearnPanel({
           disabled={loading || !inputText.trim()}
           style={[styles.sendBtn, { backgroundColor: loading || !inputText.trim() ? colors.muted : colors.primary, alignSelf: "stretch", width: "100%" }]}
         >
-          <Text style={{ color: "#fff", fontWeight: "700" }}>Learn</Text>
+          <Text style={{ color: "#fff", fontWeight: "700" }}>Send</Text>
         </Pressable>
           }
         >

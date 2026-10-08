@@ -3,7 +3,7 @@ import { View, type ViewStyle } from "react-native";
 
 import { ChatComposerActionRow } from "@/components/composer-dock";
 
-/** Same desk as Administration: tools stacked on the left, writing box and Send beside them. */
+/** Attachment, Text, and Talk stack on the left. Send sits under Talk. */
 export function ChatSideComposer({
   tools,
   children,
@@ -15,10 +15,15 @@ export function ChatSideComposer({
 }) {
   return (
     <ChatComposerActionRow webClassName="ur-chat-composer-rail">
-      {tools ? <View style={styles.toolRail}>{tools}</View> : null}
+      {tools ? (
+        <View style={styles.toolRail}>
+          {tools}
+          <View style={styles.sendRail}>{send}</View>
+        </View>
+      ) : null}
       <View style={styles.writingColumn}>
         {children}
-        <View style={styles.sendWide}>{send}</View>
+        {tools ? null : <View style={styles.sendWide}>{send}</View>}
       </View>
     </ChatComposerActionRow>
   );
@@ -45,6 +50,10 @@ const styles = {
     flexBasis: 0,
     minWidth: 180,
     gap: 8,
+  } satisfies ViewStyle,
+  sendRail: {
+    alignSelf: "stretch",
+    width: "100%",
   } satisfies ViewStyle,
   sendWide: {
     alignSelf: "stretch",

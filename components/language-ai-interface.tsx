@@ -630,7 +630,7 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
             ]}
           >
             <Text pointerEvents="none" style={styles.sendButtonText}>
-              ↑
+              Send
             </Text>
           </AppPressable>
           }
@@ -840,9 +840,9 @@ const styles = StyleSheet.create({
     minWidth: 52,
   },
   sendButtonText: {
-    fontSize: 22,
-    fontWeight: "700",
     color: "#fff",
+    fontSize: 14,
+    fontWeight: "800",
   },
   inputHint: {
     fontSize: 11,

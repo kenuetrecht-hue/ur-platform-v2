@@ -25,6 +25,12 @@ describe("AI texting clicks", () => {
     expect(chatPage).toContain("buildAiChatDisclosure");
     expect(chatPage).toContain("You are talking to an AI");
     expect(chat).toContain('testID="ai-chat-send"');
+    const rail = chat.slice(chat.indexOf("styles.toolRail"), chat.indexOf("styles.writingColumn"));
+    expect(rail.indexOf("VoicePromptMicButton")).toBeLessThan(rail.indexOf('testID="ai-chat-send"'));
+    expect(rail.indexOf('testID="ai-chat-send"')).toBeLessThan(rail.indexOf("accessibilityLabel=\"Paint\""));
+    const side = readFileSync("components/chat-side-composer.tsx", "utf8");
+    expect(side.indexOf("styles.toolRail")).toBeLessThan(side.indexOf("{send}"));
+    expect(side.indexOf("{send}")).toBeLessThan(side.indexOf("styles.writingColumn"));
     expect(chat).toContain("AppPressable");
     expect(composer).toContain("onKeyDown");
     expect(composer).toContain("onSubmitEditing");

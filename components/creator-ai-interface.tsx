@@ -942,6 +942,33 @@ export function CreatorAIInterface({
                     void sendChatMessage(question, undefined, { speak: true });
                   }}
                 />
+                <AppPressable
+                  testID="ai-chat-send"
+                  onPress={() => void sendChatMessage(inputText)}
+                  disabled={loading || (!inputText.trim() && pendingAttachments.length === 0)}
+                  hitSlop={8}
+                  accessibilityLabel="Send"
+                  style={({ pressed }) => [
+                    styles.railButton,
+                    ownerOpsChat ? styles.railButtonOwner : null,
+                    {
+                      backgroundColor:
+                        loading || (!inputText.trim() && pendingAttachments.length === 0)
+                          ? "#6D28D9"
+                          : "#4F46E5",
+                      borderColor: "transparent",
+                      opacity: pressed ? 0.85 : 1,
+                    },
+                  ]}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text pointerEvents="none" style={styles.sendLabel}>
+                      Send
+                    </Text>
+                  )}
+                </AppPressable>
                 {supportsImageGen ? (
                   <Pressable
                     onPress={() => {
@@ -1078,32 +1105,6 @@ export function CreatorAIInterface({
                 }
               }}
             />
-            <AppPressable
-              testID="ai-chat-send"
-              onPress={() => void sendChatMessage(inputText)}
-              disabled={loading || (!inputText.trim() && pendingAttachments.length === 0)}
-              hitSlop={8}
-                style={({ pressed }) => [
-                toolRail === "left" ? styles.sendWide : styles.sendButton,
-                ownerOpsChat ? styles.sendOwner : null,
-                {
-                  backgroundColor:
-                    loading || (!inputText.trim() && pendingAttachments.length === 0)
-                      ? "#6D28D9"
-                      : "#4F46E5",
-                  opacity: pressed ? 0.85 : 1,
-                  minWidth: 72,
-                },
-              ]}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text pointerEvents="none" style={styles.sendLabel}>
-                  Send
-                </Text>
-              )}
-            </AppPressable>
             </View>
           </ChatComposerActionRow>
           {speechHint ? (

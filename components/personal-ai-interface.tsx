@@ -410,7 +410,7 @@ export function PersonalAIInterface({
               },
             ]}
           >
-            <Text style={styles.sendButtonText}>↑</Text>
+            <Text style={styles.sendButtonText}>Send</Text>
           </TouchableOpacity>
           }
         >
@@ -571,9 +571,9 @@ const styles = StyleSheet.create({
     minWidth: 52,
   },
   sendButtonText: {
-    fontSize: 22,
-    fontWeight: "700",
     color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
   },
   inputHint: {
     fontSize: 11,
