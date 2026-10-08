@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
+  Platform,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
@@ -118,7 +119,6 @@ export function TechBuilderLearnPanel({
         setMessages((prev) => [...prev, { role: "ai", text: msg }]);
       } finally {
         setLoading(false);
-        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
       }
     },
     [activeTopic, creatorId, learnMode, level, loading, messages, teach],
@@ -141,7 +141,16 @@ export function TechBuilderLearnPanel({
   const pct = profile.data?.percentComplete ?? 0;
 
   return (
-    <View style={styles.learnRoot}>
+    <ScrollView
+      ref={scrollRef}
+      {...(Platform.OS === "web" ? { className: "ur-page-scroll" } : null)}
+      style={styles.learnRoot}
+      contentContainerStyle={styles.learnPage}
+      keyboardShouldPersistTaps="handled"
+      nestedScrollEnabled
+      showsVerticalScrollIndicator
+      testID="learn-trade-scroll"
+    >
       <View style={[styles.banner, { backgroundColor: `${colors.primary}14`, borderColor: colors.primary }]}>
         <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 13 }}>
           🎓 Code on your own
@@ -270,12 +279,7 @@ export function TechBuilderLearnPanel({
         </ScrollView>
       ) : null}
 
-      <ScrollView
-        ref={scrollRef}
-        style={styles.messages}
-        contentContainerStyle={styles.messagesContent}
-        keyboardShouldPersistTaps="handled"
-      >
+      <View style={styles.messages}>
         {messages.map((msg, index) => (
           <View
             key={`${index}-${msg.role}`}
@@ -292,7 +296,7 @@ export function TechBuilderLearnPanel({
           </View>
         ))}
         {loading ? <ActivityIndicator color={colors.primary} style={{ marginTop: 8 }} /> : null}
-      </ScrollView>
+      </View>
 
       {activeTopic ? (
         <Pressable
@@ -308,7 +312,7 @@ export function TechBuilderLearnPanel({
         </Pressable>
       ) : null}
 
-      <ComposerDock>
+      <ComposerDock pinned={false}>
         <ChatSideComposer
           tools={
             <>
@@ -363,12 +367,13 @@ export function TechBuilderLearnPanel({
         />
         </ChatSideComposer>
       </ComposerDock>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  learnRoot: { flex: 1 },
+  learnRoot: { flex: 1, minHeight: 0 },
+  learnPage: { flexGrow: 1, paddingBottom: 28, gap: 4 },
   banner: { marginHorizontal: 8, marginTop: 8, padding: 12, borderRadius: 12, borderWidth: 1 },
   progressBar: { height: 4, marginHorizontal: 12, marginTop: 8, borderRadius: 2, overflow: "hidden" },
   progressFill: { height: "100%" },
@@ -380,8 +385,7 @@ const styles = StyleSheet.create({
   moduleCard: { width: 140, borderRadius: 12, borderWidth: 1, padding: 10, marginRight: 8 },
   exerciseCard: { width: 130, borderRadius: 12, borderWidth: 1, padding: 10, marginRight: 8 },
   sandboxBtn: { marginTop: 8, borderWidth: 1, borderRadius: 8, paddingVertical: 6, alignItems: "center" },
-  messages: { flex: 1, marginTop: 8 },
-  messagesContent: { padding: 12, gap: 8 },
+  messages: { minHeight: 280, marginTop: 8, padding: 12, gap: 8 },
   bubble: { borderRadius: 14, padding: 12, maxWidth: "92%" },
   userBubble: { alignSelf: "flex-end" },
   aiBubble: { alignSelf: "flex-start", borderWidth: 1 },

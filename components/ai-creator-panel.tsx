@@ -1,4 +1,4 @@
-import { Component, useCallback, useEffect, useState, useRef, type ReactNode } from "react";
+import { Component, useCallback, useEffect, useState, type ReactNode } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
-  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { AppPressable } from "@/components/app-pressable";
@@ -32,7 +32,6 @@ import { ComposerDock } from "@/components/composer-dock";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
-import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 
 import { SpecialistJobToolsPanel } from "@/components/specialist-job-tools-panel";
 import { hasSpecialistJobTools } from "@/lib/specialist-job-tools";
@@ -387,7 +386,6 @@ export function AiLearnSurface({
   const [inputText, setInputText] = useState("");
   const [textFocusNonce, setTextFocusNonce] = useState(0);
   const [loading, setLoading] = useState(false);
-  const { ref: scrollRef } = useScrollChatToNewest(messages.length + (loading ? 1 : 0));
 
   const curriculum = trpc.aiLearning.getCurriculum.useQuery({ creatorId });
   const profile = trpc.aiLearning.getProfile.useQuery({ creatorId });
@@ -472,12 +470,15 @@ export function AiLearnSurface({
   const modules = curriculum.data?.modules ?? [];
 
   return (
-    <KeyboardAvoidingView
+    <ScrollView
+      {...(Platform.OS === "web" ? { className: "ur-page-scroll" } : null)}
       style={styles.learnRoot}
-      behavior={overlap.keyboardBehavior}
-      keyboardVerticalOffset={overlap.keyboardVerticalOffset}
+      contentContainerStyle={[styles.learnPage, { paddingBottom: 28 + overlap.scrollPaddingBottom }]}
+      keyboardShouldPersistTaps="handled"
+      nestedScrollEnabled
+      showsVerticalScrollIndicator
+      testID="learn-trade-scroll"
     >
-      <View style={styles.learnColumn}>
         <View style={styles.learnChrome}>
         <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
           <View style={[styles.progressFill, { width: `${pct}%`, backgroundColor: colors.primary }]} />
@@ -608,12 +609,7 @@ export function AiLearnSurface({
         ) : null}
         </View>
 
-      <ScrollView
-        ref={scrollRef}
-        style={styles.learnMessages}
-        contentContainerStyle={{ padding: 12, gap: 10, paddingBottom: 16 + overlap.scrollPaddingBottom }}
-        keyboardShouldPersistTaps="handled"
-      >
+      <View style={styles.learnMessages}>
         <View style={[styles.learnHeader, { backgroundColor: colors.primary }]}>
           <Text style={styles.learnHeaderAvatar}>{creatorAvatar}</Text>
           <Text style={styles.learnHeaderTitle} numberOfLines={1}>
@@ -641,7 +637,7 @@ export function AiLearnSurface({
             </Text>
           </View>
         ))}
-      </ScrollView>
+      </View>
 
       {activeTopic ? (
         <Pressable
@@ -654,7 +650,7 @@ export function AiLearnSurface({
         </Pressable>
       ) : null}
 
-      <ComposerDock paddingBottom={overlap.dockPaddingBottom}>
+      <ComposerDock pinned={false} paddingBottom={overlap.dockPaddingBottom}>
         <ChatSideComposer
           tools={
             <>
@@ -709,8 +705,7 @@ export function AiLearnSurface({
         />
         </ChatSideComposer>
       </ComposerDock>
-      </View>
-    </KeyboardAvoidingView>
+    </ScrollView>
   );
 }
 
@@ -752,8 +747,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     alignItems: "center",
   },
-  learnRoot: { flex: 1, minHeight: 0, overflow: "hidden" },
-  learnColumn: { flex: 1, minHeight: 0, overflow: "hidden" },
+  learnRoot: { flex: 1, minHeight: 0 },
+  learnPage: { flexGrow: 1, gap: 8 },
   learnChrome: { flexGrow: 0, flexShrink: 0 },
   hScroll: { flexGrow: 0, flexShrink: 0, maxHeight: 88 },
   progressBar: { height: 4, marginHorizontal: 12, borderRadius: 2, overflow: "hidden" },
@@ -768,7 +763,7 @@ const styles = StyleSheet.create({
   chip: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 },
   moduleRow: { paddingHorizontal: 12, paddingBottom: 8, gap: 8, flexGrow: 0, alignItems: "stretch" },
   moduleCard: { width: 132, borderRadius: 12, borderWidth: 1.5, padding: 8 },
-  learnMessages: { flex: 1, minHeight: 120 },
+  learnMessages: { minHeight: 280, padding: 12, gap: 10 },
   learnHeader: { borderRadius: 12, padding: 12, flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 },
   learnHeaderAvatar: { fontSize: 22 },
   learnHeaderTitle: { color: "#fff", fontWeight: "700", fontSize: 16, flex: 1 },

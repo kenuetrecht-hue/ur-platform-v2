@@ -54,6 +54,14 @@ describe("AI texting clicks", () => {
       expect(source).toContain('testID="ai-text-button"');
       expect(source).toContain("onSpokenQuestion");
     }
+    for (const source of [learn, techLearn, gameLearn]) {
+      expect(source).toContain('testID="learn-trade-scroll"');
+      expect(source).toContain('className: "ur-page-scroll"');
+      expect(source).toContain("pinned={false}");
+      expect(source).toContain("CHAT_COMPOSER_INPUT");
+      expect(source).not.toMatch(/learnRoot:[^}]*overflow:\s*"hidden"/);
+      expect(source).not.toContain("learnColumn:");
+    }
 
     const handler = readFileSync("server/_core/ai-chat-handler.ts", "utf8");
     expect(handler).toContain("Answer the question they just asked");
