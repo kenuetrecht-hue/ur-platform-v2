@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { LETTERING_ON_COLOR, LETTERING_ON_WHITE } from "@/lib/gold-lettering";
+import { MarkdownMessage } from "@/components/markdown-message";
 import { trpc } from "@/lib/trpc";
 import { CreatorAIInterface } from "@/components/creator-ai-interface";
 import { AIDisclosureWrapper } from "@/components/ai-disclosure-wrapper";
@@ -116,9 +117,7 @@ export function AffiliateAssociatePanel({ referralLink }: { referralLink: string
               <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700" }}>
                 {PLATFORMS.find((x) => x.id === p.platform)?.label ?? p.platform} · {p.status}
               </Text>
-              <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11 }} numberOfLines={4}>
-                {p.body}
-              </Text>
+              <MarkdownMessage text={p.body} color={LETTERING_ON_WHITE} fontSize={13} />
               {p.status !== "posted" ? (
                 <Pressable
                   onPress={() => void sharePost(p.body, p.id)}

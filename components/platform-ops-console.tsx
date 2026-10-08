@@ -18,6 +18,7 @@ import { usePlatformOwner } from "@/lib/use-platform-owner";
 import type { AdminStaffRole } from "@/lib/admin-access-types";
 import { AiSessionProgrammingPanel } from "@/components/ai-session-programming-panel";
 import { PlatformSectionMaintenancePanel } from "@/components/platform-section-maintenance-panel";
+import { MarkdownMessage } from "@/components/markdown-message";
 import { PlatformContentProtectionPanel } from "@/components/platform-content-protection-panel";
 import { OwnerSocialPublisherPanel } from "@/components/owner-social-publisher-panel";
 import { OwnerPriceCatalogPanel } from "@/components/owner-price-catalog-panel";
@@ -742,9 +743,7 @@ export function PlatformOpsConsole({
                     {job.specialistName} · {job.kindLabel}
                   </Text>
                   <Text style={{ color: colors.muted, fontSize: 12 }}>{job.title}</Text>
-                  <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 17 }} numberOfLines={8}>
-                    {job.body}
-                  </Text>
+                  <MarkdownMessage text={job.body} color={colors.muted} fontSize={12} />
                 </View>
               ))}
             </ScrollView>

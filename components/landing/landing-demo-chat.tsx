@@ -20,6 +20,7 @@ import { Link } from "expo-router";
 import { AGE_KYC_REQUIRED_MESSAGE } from "@/lib/age-kyc-policy";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { ChatComposerInput } from "@/components/chat-composer-input";
+import { MarkdownMessage } from "@/components/markdown-message";
 import { ChatSideComposer } from "@/components/chat-side-composer";
 import { CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 
@@ -217,7 +218,7 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
       {reply ? (
         <View style={styles.replyBox}>
           <Text style={styles.replyLabel}>AI RESPONSE</Text>
-          <Text style={styles.replyText}>{reply}</Text>
+          <MarkdownMessage text={reply} color={T.text} fontSize={14} />
         </View>
       ) : null}
 

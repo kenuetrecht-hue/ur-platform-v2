@@ -88,6 +88,7 @@
     "express": "^4.22.1",
     "google-auth-library": "^10.9.1",
     "jose": "6.1.0",
+    "marked": "^18.1.0",
     "multer": "^2.3.0",
     "mysql2": "^3.16.0",
     "nativewind": "^4.2.1",

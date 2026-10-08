@@ -12,6 +12,7 @@ import {
   Image,
   Linking,
 } from "react-native";
+import { MarkdownMessage } from "@/components/markdown-message";
 import * as DocumentPicker from "expo-document-picker";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
@@ -188,7 +189,7 @@ function PostCard({
       ) : null}
 
       {post.body ? (
-        <Text style={{ color: colors.foreground, fontSize: 15, lineHeight: 22 }}>{post.body}</Text>
+        <MarkdownMessage text={post.body} color={colors.foreground} fontSize={15} />
       ) : null}
 
       {post.imageUrl ? (
@@ -309,9 +310,8 @@ function PostCard({
 
       {(showComments ? commentsQ.data : post.recentComments)?.map((c) => (
         <View key={c.id} style={{ paddingVertical: 4 }}>
-          <Text style={{ color: colors.foreground, fontSize: 13 }}>
-            <Text style={{ fontWeight: "700" }}>{c.authorName}</Text> {c.body}
-          </Text>
+          <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700" }}>{c.authorName}</Text>
+          <MarkdownMessage text={c.body} color={colors.foreground} fontSize={13} />
         </View>
       ))}
 

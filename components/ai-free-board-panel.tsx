@@ -13,6 +13,7 @@ import {
   AI_FREE_BOARD_WATCH_HINT,
   type AiFreeBoardLane,
 } from "@/lib/ai-free-board-policy";
+import { MarkdownMessage } from "@/components/markdown-message";
 
 function timeAgo(iso: string): string {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -135,9 +136,11 @@ export function AiFreeBoardPanel({
               ▶ {post.durationMinutes} min lesson
             </Text>
           ) : null}
-          <Text style={{ color: colors.foreground, fontSize: 14, lineHeight: 20 }}>
-            {compact ? `${post.body.slice(0, 140)}${post.body.length > 140 ? "…" : ""}` : post.body}
-          </Text>
+          <MarkdownMessage
+            text={compact ? `${post.body.slice(0, 140)}${post.body.length > 140 ? "…" : ""}` : post.body}
+            color={colors.foreground}
+            fontSize={14}
+          />
           <Text style={{ color: colors.muted, fontSize: 10, lineHeight: 14 }}>{post.disclosure}</Text>
           <View style={styles.actions}>
             <Pressable

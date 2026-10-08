@@ -17,6 +17,7 @@ import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { ChatSideComposer } from "@/components/chat-side-composer";
 import { ComposerDock } from "@/components/composer-dock";
 import { ChatComposerInput } from "@/components/chat-composer-input";
+import { MarkdownMessage } from "@/components/markdown-message";
 import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
@@ -368,13 +369,13 @@ export function HiveTownHallPanel() {
         {turns.slice().reverse().map((turn) => (
           <View key={turn.id} style={styles.turnBlock}>
             <View style={[styles.userBubble, { backgroundColor: colors.primary }]}>
-              <Text style={{ color: "#fff", fontSize: 14 }}>{turn.userMessage}</Text>
+              <MarkdownMessage text={turn.userMessage} color="#fff" fontSize={14} />
             </View>
 
             {turn.synthesis ? (
               <View style={[styles.synthesisBubble, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <Text style={{ color: colors.muted, fontSize: 10, marginBottom: 4 }}>🎙️ Moderator summary</Text>
-                <Text style={{ color: colors.foreground, fontSize: 14, lineHeight: 20 }}>{turn.synthesis}</Text>
+                <MarkdownMessage text={turn.synthesis} color={colors.foreground} fontSize={14} />
               </View>
             ) : null}
 
@@ -387,9 +388,7 @@ export function HiveTownHallPanel() {
                   {r.avatar} {r.name}
                 </Text>
                 <Text style={{ color: colors.muted, fontSize: 10 }}>{r.category}</Text>
-                <Text style={{ color: colors.foreground, fontSize: 13, marginTop: 4, lineHeight: 18 }}>
-                  {r.reply}
-                </Text>
+                <MarkdownMessage text={r.reply} color={colors.foreground} fontSize={13} />
               </View>
             ))}
           </View>

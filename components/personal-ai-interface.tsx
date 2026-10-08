@@ -17,6 +17,7 @@ import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { useAuth } from "@/lib/auth-context";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { ChatSideComposer, chatRailButtonStyle } from "@/components/chat-side-composer";
+import { MarkdownMessage } from "@/components/markdown-message";
 import { ComposerDock } from "@/components/composer-dock";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
@@ -308,14 +309,11 @@ export function PersonalAIInterface({
                     },
               ]}
             >
-              <Text
-                style={[
-                  styles.messageText,
-                  { color: msg.role === "user" ? "#fff" : colors.foreground },
-                ]}
-              >
-                {msg.text}
-              </Text>
+              <MarkdownMessage
+                text={msg.text}
+                color={msg.role === "user" ? "#fff" : colors.foreground}
+                fontSize={15}
+              />
             </View>
           </View>
         ))}

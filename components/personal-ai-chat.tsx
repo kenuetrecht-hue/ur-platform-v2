@@ -16,6 +16,7 @@ import { useScrollChatToNewest } from '@/hooks/use-scroll-chat-to-newest';
 import { ChatComposerInput } from '@/components/chat-composer-input';
 import { ChatSideComposer } from '@/components/chat-side-composer';
 import { ComposerDock } from '@/components/composer-dock';
+import { MarkdownMessage } from '@/components/markdown-message';
 
 interface Message {
   id: string;
@@ -199,16 +200,11 @@ export function PersonalAIChat({
                     : 'bg-surface border border-border'
                 )}
               >
-                <Text
-                  className={cn(
-                    'text-sm',
-                    message.sender === 'user'
-                      ? 'text-background'
-                      : 'text-foreground'
-                  )}
-                >
-                  {message.text}
-                </Text>
+                <MarkdownMessage
+                  text={message.text}
+                  color={message.sender === 'user' ? '#fff' : colors.foreground}
+                  fontSize={14}
+                />
                 <Text
                   className={cn(
                     'text-xs mt-1',

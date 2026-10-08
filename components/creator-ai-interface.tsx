@@ -41,6 +41,7 @@ import { AiChatSearchCitations } from "@/components/ai-chat-search-citations";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
 import { mergeUnsavedChatTail } from "@/lib/merge-unsaved-chat-tail";
 import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
+import { MarkdownMessage } from "@/components/markdown-message";
 import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 import { AiChatMessageMedia } from "@/components/ai-chat-message-media";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
@@ -821,14 +822,11 @@ export function CreatorAIInterface({
                   : [styles.aiBubble, { backgroundColor: "#FFFFFF", borderColor: colors.border }],
               ]}
             >
-              <Text
-                style={[
-                  styles.bubbleText,
-                  { color: msg.role === "user" ? "#fff" : LETTERING_ON_WHITE },
-                ]}
-              >
-                {msg.text}
-              </Text>
+              <MarkdownMessage
+                text={msg.text}
+                color={msg.role === "user" ? "#fff" : LETTERING_ON_WHITE}
+                fontSize={15}
+              />
               <AiChatMessageMedia
                 attachments={msg.attachments}
                 generatedImageUrl={msg.generatedImageUrl}

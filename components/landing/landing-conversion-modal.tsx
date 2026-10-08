@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { trpc } from "@/lib/trpc";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
 import { LANDING_DEMO_REPLY_MAX, LANDING_DEMO_VOICE_TEXT_MAX } from "@/lib/landing-demo-policy";
+import { MarkdownMessage } from "@/components/markdown-message";
 
 const displayReply = (text: string) => text.slice(0, LANDING_DEMO_REPLY_MAX);
 
@@ -61,9 +62,7 @@ export function LandingConversionModal({ visible, onClose, creatorId, creatorNam
         <View style={styles.card}>
           <Text style={styles.glowTag}>◈ HIVE RESPONSE LOCKED IN</Text>
           <Text style={styles.title}>{creatorName} replied</Text>
-          <Text style={styles.body} numberOfLines={3}>
-            {displayReply(reply)}
-          </Text>
+          <MarkdownMessage text={displayReply(reply)} color={T.muted} fontSize={14} />
 
           <Pressable
             onPress={() =>
