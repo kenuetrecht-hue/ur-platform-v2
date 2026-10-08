@@ -8,7 +8,7 @@ import { ChatSideComposer, chatRailButtonStyle } from "@/components/chat-side-co
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
 import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
-import { MarkdownMessage } from "@/components/markdown-message";
+import { MarkdownMessage, SpokenReplyText } from "@/components/markdown-message";
 
 interface VoiceChatMessage {
   id: string;
@@ -300,11 +300,11 @@ export function VoiceChatInterface({
                     : "bg-surface border border-border"
                 }`}
               >
-                <MarkdownMessage
-                  text={msg.text}
-                  color={msg.type === "user" ? "#fff" : colors.foreground}
-                  fontSize={16}
-                />
+                {msg.type === "ai" ? (
+                  <SpokenReplyText text={msg.text} color={colors.foreground} fontSize={16} />
+                ) : (
+                  <MarkdownMessage text={msg.text} color="#fff" fontSize={16} />
+                )}
                 <Text
                   className={`text-xs mt-1 ${
                     msg.type === "user" ? "text-white/70" : "text-muted"

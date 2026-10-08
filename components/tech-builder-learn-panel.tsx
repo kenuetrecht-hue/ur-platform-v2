@@ -17,7 +17,7 @@ import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-lay
 import { AppPressable } from "@/components/app-pressable";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { speakText } from "@/lib/azure-tts-service";
-import { MarkdownMessage } from "@/components/markdown-message";
+import { MarkdownMessage, SpokenReplyText } from "@/components/markdown-message";
 
 type LearnLevel = "beginner" | "intermediate" | "advanced";
 type LearnMode = "lesson" | "practice" | "certification" | "on_the_job" | "conversation";
@@ -291,11 +291,11 @@ export function TechBuilderLearnPanel({
                 : [styles.aiBubble, { backgroundColor: colors.surface, borderColor: colors.border }],
             ]}
           >
-            <MarkdownMessage
-              text={msg.text}
-              color={msg.role === "user" ? "#fff" : colors.foreground}
-              fontSize={14}
-            />
+            {msg.role === "ai" ? (
+              <SpokenReplyText text={msg.text} color={colors.foreground} fontSize={14} />
+            ) : (
+              <MarkdownMessage text={msg.text} color="#fff" fontSize={14} />
+            )}
           </View>
         ))}
         {loading ? <ActivityIndicator color={colors.primary} style={{ marginTop: 8 }} /> : null}

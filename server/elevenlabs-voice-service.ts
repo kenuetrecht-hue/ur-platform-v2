@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { applyAffiliateDisclosures } from "../lib/affiliate-disclosure";
+import { markdownToSpeech } from "../lib/safe-markdown";
 
 /**
  * ElevenLabs Voice API Integration Service
@@ -74,7 +75,7 @@ export const ELEVENLABS_VOICE_CONFIGS: Record<string, AIPersonaVoiceConfig> = {
 export async function synthesizeVoice(
   request: VoiceSynthesisRequest,
 ): Promise<VoiceSynthesisResponse> {
-  const voiceText = applyAffiliateDisclosures(request.text, "voice").text;
+  const voiceText = markdownToSpeech(applyAffiliateDisclosures(request.text, "voice").text);
   const apiKey = process.env.ELEVENLABS_API_KEY;
   
   if (!apiKey) {
@@ -171,7 +172,7 @@ export async function streamVoiceSynthesis(
     throw new Error("ELEVENLABS_API_KEY not configured");
   }
 
-  const voiceText = applyAffiliateDisclosures(request.text, "voice").text;
+  const voiceText = markdownToSpeech(applyAffiliateDisclosures(request.text, "voice").text);
 
   const voiceConfig = ELEVENLABS_VOICE_CONFIGS[request.voiceId] || {
     stability: 0.75,

@@ -41,7 +41,8 @@ import { AiChatSearchCitations } from "@/components/ai-chat-search-citations";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
 import { mergeUnsavedChatTail } from "@/lib/merge-unsaved-chat-tail";
 import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
-import { MarkdownMessage } from "@/components/markdown-message";
+import { MarkdownMessage, SpokenReplyText } from "@/components/markdown-message";
+import { markdownToSpeech } from "@/lib/safe-markdown";
 import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 import { AiChatMessageMedia } from "@/components/ai-chat-message-media";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
@@ -548,7 +549,11 @@ export function CreatorAIInterface({
   ]);
 
   const speakReplyText = useCallback(async (rawText: string) => {
-    const spoken = rawText.replace(/\s+/g, " ").trim().slice(0, 1200);
+    const spoken = markdownToSpeech(rawText).slice(0, 1200);
+    // #region agent log
+    const hashRuns = spoken.match(/#{1,6}/g) ?? [];
+    fetch('http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1b5626'},body:JSON.stringify({sessionId:'1b5626',location:'components/creator-ai-interface.tsx:speakReplyText',message:'collapsed reply before voice',data:{rawLen:rawText.length,spokenLen:spoken.length,hashRunCount:hashRuns.length,maxHashRun:hashRuns.reduce((m,r)=>Math.max(m,r.length),0),newlineCollapsed:/\n/.test(rawText)&&!/\n/.test(spoken)},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+    // #endregion
     if (!spoken || voiceMutation.isPending) return;
 
     if (isAssociateAi && !hasPaidVoice) {
@@ -822,11 +827,11 @@ export function CreatorAIInterface({
                   : [styles.aiBubble, { backgroundColor: "#FFFFFF", borderColor: colors.border }],
               ]}
             >
-              <MarkdownMessage
-                text={msg.text}
-                color={msg.role === "user" ? "#fff" : LETTERING_ON_WHITE}
-                fontSize={15}
-              />
+              {msg.role === "ai" ? (
+                <SpokenReplyText text={msg.text} color={LETTERING_ON_WHITE} fontSize={15} />
+              ) : (
+                <MarkdownMessage text={msg.text} color="#fff" fontSize={15} />
+              )}
               <AiChatMessageMedia
                 attachments={msg.attachments}
                 generatedImageUrl={msg.generatedImageUrl}

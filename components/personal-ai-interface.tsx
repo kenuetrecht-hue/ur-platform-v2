@@ -17,7 +17,9 @@ import { useAiChatOutbox } from "@/hooks/use-ai-chat-outbox";
 import { useAuth } from "@/lib/auth-context";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { ChatSideComposer, chatRailButtonStyle } from "@/components/chat-side-composer";
-import { MarkdownMessage } from "@/components/markdown-message";
+import { MarkdownMessage, SpokenReplyText } from "@/components/markdown-message";
+import { markdownToSpeech } from "@/lib/safe-markdown";
+import { mergeUnsavedChatTail } from "@/lib/merge-unsaved-chat-tail";
 import { ComposerDock } from "@/components/composer-dock";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { CHAT_COMPOSER_INPUT, CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
@@ -69,12 +71,18 @@ export function PersonalAIInterface({
   const applySyncedMessages = useCallback(
     (synced: SyncedChatMessage[]) => {
       if (loadingRef.current || synced.length === 0) return;
-      setMessages(
-        synced.map((m) => ({
-          id: m.id,
-          role: m.role,
-          text: m.text,
-        })),
+      setMessages((prev) =>
+        mergeUnsavedChatTail(
+          prev.map((message, index) => ({
+            ...message,
+            id: message.id ?? `local-${index}`,
+          })),
+          synced.map((m) => ({
+            id: m.id,
+            role: m.role,
+            text: m.text,
+          })),
+        ),
       );
     },
     [],
@@ -150,7 +158,11 @@ export function PersonalAIInterface({
 
         setMessages((prev) => [...prev, { role: "ai", text: result.reply }]);
         void refetchChatThread();
-        const spoken = result.reply.replace(/\s+/g, " ").trim().slice(0, 1200);
+        const spoken = markdownToSpeech(result.reply).slice(0, 1200);
+        // #region agent log
+        const hashRuns = spoken.match(/#{1,6}/g) ?? [];
+        fetch('http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1b5626'},body:JSON.stringify({sessionId:'1b5626',location:'components/personal-ai-interface.tsx:sendChatMessage',message:'collapsed reply before voice',data:{replyLen:result.reply.length,spokenLen:spoken.length,hashRunCount:hashRuns.length,maxHashRun:hashRuns.reduce((m,r)=>Math.max(m,r.length),0),newlineCollapsed:/\n/.test(result.reply)&&!/\n/.test(spoken)},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+        // #endregion
         const canStudioVoice = Boolean(premium.data?.creatorVoice || buyVoice.isSuccess);
         if (spoken && (options?.speak || canStudioVoice)) {
           setVoiceStatus("Reply ready — speaking it now.");
@@ -219,7 +231,7 @@ export function PersonalAIInterface({
       if (Platform.OS === "web") {
         const res = await voiceMutation.mutateAsync({
           creatorId,
-          text: lastAi.text.replace(/\s+/g, " ").trim().slice(0, 1200),
+          text: markdownToSpeech(lastAi.text).slice(0, 1200),
         });
         if (res.success && res.audioUrl) {
           try {
@@ -309,11 +321,11 @@ export function PersonalAIInterface({
                     },
               ]}
             >
-              <MarkdownMessage
-                text={msg.text}
-                color={msg.role === "user" ? "#fff" : colors.foreground}
-                fontSize={15}
-              />
+              {msg.role === "ai" ? (
+                <SpokenReplyText text={msg.text} color={colors.foreground} fontSize={15} />
+              ) : (
+                <MarkdownMessage text={msg.text} color="#fff" fontSize={15} />
+              )}
             </View>
           </View>
         ))}

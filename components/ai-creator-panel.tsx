@@ -37,7 +37,7 @@ import { SpecialistJobToolsPanel } from "@/components/specialist-job-tools-panel
 import { hasSpecialistJobTools } from "@/lib/specialist-job-tools";
 import { LETTERING_ON_COLOR } from "@/lib/gold-lettering";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
-import { MarkdownMessage } from "@/components/markdown-message";
+import { MarkdownMessage, SpokenReplyText } from "@/components/markdown-message";
 import { speakText } from "@/lib/azure-tts-service";
 import { TabPageScroll } from "@/components/tab-page-scroll";
 
@@ -633,11 +633,11 @@ export function AiLearnSurface({
                   },
             ]}
           >
-            <MarkdownMessage
-              text={msg.text}
-              color={msg.role === "user" ? "#fff" : colors.foreground}
-              fontSize={14}
-            />
+            {msg.role === "ai" ? (
+              <SpokenReplyText text={msg.text} color={colors.foreground} fontSize={14} />
+            ) : (
+              <MarkdownMessage text={msg.text} color="#fff" fontSize={14} />
+            )}
           </View>
         ))}
       </View>

@@ -13,7 +13,7 @@ import {
 } from "@/lib/voice-conversation-service";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
 import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
-import { MarkdownMessage } from "@/components/markdown-message";
+import { MarkdownMessage, SpokenReplyText } from "@/components/markdown-message";
 
 export interface VoiceChatProps {
   creatorId: string;
@@ -181,11 +181,11 @@ export function VoiceChat({ creatorId, aiName, onClose }: VoiceChatProps) {
                   borderColor: colors.border,
                 }}
               >
-                <MarkdownMessage
-                  text={message.text}
-                  color={message.speaker === "creator" ? "#FFFFFF" : colors.foreground}
-                  fontSize={14}
-                />
+                {message.speaker === "ai" ? (
+                  <SpokenReplyText text={message.text} color={colors.foreground} fontSize={14} />
+                ) : (
+                  <MarkdownMessage text={message.text} color="#FFFFFF" fontSize={14} />
+                )}
 
                 {/* Audio player for AI messages */}
                 {message.speaker === "ai" && message.audioUrl && (

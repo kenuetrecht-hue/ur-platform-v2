@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Linking, Platform, Text, View, type TextStyle } from "react-native";
 import {
+  markdownToSpeech,
   parseSafeMarkdown,
   type MdBlock,
   type MdInline,
@@ -11,6 +12,20 @@ type Props = {
   color: string;
   fontSize?: number;
 };
+
+/**
+ * The words the voice says, left on screen after playback.
+ * Saved chat still stores the original reply; this view is how you re-read it.
+ */
+export function SpokenReplyText({ text, color, fontSize = 15 }: Props) {
+  const spoken = useMemo(() => markdownToSpeech(text), [text]);
+  const lineHeight = Math.round(fontSize * 1.45);
+  return (
+    <Text style={{ color, fontSize, lineHeight }} selectable>
+      {spoken || text}
+    </Text>
+  );
+}
 
 /** Draws bold, lists, headings, and links from a message. The same component is used on the website and the phone. */
 export function MarkdownMessage({ text, color, fontSize = 15 }: Props) {
