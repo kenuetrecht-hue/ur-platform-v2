@@ -40,9 +40,14 @@ export default function AiSpecialistChatPage() {
   const initialSurface =
     params.subscribe === "1"
       ? ("pricing" as const)
-      : surface === "build" || surface === "learn" || surface === "chat" || surface === "live" || surface === "pricing"
-        ? surface
-        : undefined;
+    : surface === "build" ||
+        surface === "learn" ||
+        surface === "chat" ||
+        surface === "live" ||
+        surface === "pricing" ||
+        surface === "tools"
+      ? surface
+      : undefined;
 
   return (
     <ScreenContainer className="bg-background" style={{ flex: 1, minHeight: 0 }}>

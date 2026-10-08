@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   assertShopSendNeverAutoStarts,
@@ -212,5 +213,20 @@ describe("specialist job tools service ownership", () => {
     expect(marked.flags.length).toBeGreaterThan(0);
     const compared = reviewDocumentCompare("alpha", "beta");
     expect(compared.changed + compared.added + compared.removed).toBeGreaterThan(0);
+  });
+});
+
+describe("Tools tab stays inside the app", () => {
+  it("does not nest a page scroller inside the page scroller", () => {
+    const panel = readFileSync("components/specialist-job-tools-panel.tsx", "utf8");
+    expect(panel).not.toContain("<ScrollView style={styles.wrap}");
+    expect(panel).toContain("<View style={styles.content}>");
+    const live = readFileSync("components/ai-live-sessions-panel.tsx", "utf8");
+    expect(live).not.toContain("<ScrollView");
+    const creator = readFileSync("components/ai-creator-panel.tsx", "utf8");
+    expect(creator).toContain("SurfaceErrorBoundary");
+    expect(creator).toContain('label: "🧰 Tools"');
+    const chat = readFileSync("app/ai/[creatorId]/chat.tsx", "utf8");
+    expect(chat).toContain('surface === "tools"');
   });
 });

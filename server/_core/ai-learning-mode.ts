@@ -8,6 +8,7 @@ import {
   buildCreatorSystemPrompt,
   getCreatorAi,
   isCreatorAiId,
+  isPlatformAiRole,
   type CreatorAiDefinition,
 } from "./ai-creator-registry";
 import { assertUserCanUseAi, enforceAiGuardrails } from "./ai-guardrails";
@@ -482,12 +483,18 @@ export async function handleCreatorLearningSession(params: {
     message,
   });
 
-  const reply = sanitizeAiReplyForRole(rawReply, params.creatorId);
+  const reply = sanitizeAiReplyForRole(
+    rawReply,
+    params.creatorId,
+    params.isPlatformOwner,
+    def.name,
+  );
   const lesson = enforceAiGuardrails({
-    reply,
+    userMessage: message,
+    aiReply: reply,
     userId: params.userId,
-    isPlatformOwner: params.isPlatformOwner,
-    role: isOwnerOnlyPlatformAi(params.creatorId) ? "admin" : undefined,
+    isOwner: params.isPlatformOwner,
+    role: isPlatformAiRole(params.creatorId) ? params.creatorId : undefined,
   });
 
   aiUserMemoryService.initializeUser(params.userId, params.creatorId, "User");

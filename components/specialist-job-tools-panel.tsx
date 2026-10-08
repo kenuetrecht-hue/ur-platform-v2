@@ -80,14 +80,14 @@ export function SpecialistJobToolsPanel({
 
   if (kinds.length === 0) {
     return (
-      <View style={styles.wrap}>
+      <View>
         <Text style={{ color: colors.muted }}>This specialist does not have extra job tools.</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.wrap} contentContainerStyle={styles.content}>
+    <View style={styles.content}>
       <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18 }}>Job tools</Text>
       <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>
         Signed-in tools for {creatorName}. Educational only. Legal tools are not your lawyer. Shop send never
@@ -112,7 +112,7 @@ export function SpecialistJobToolsPanel({
           </Text>
         </Section>
       ) : null}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -541,8 +541,7 @@ export function kindsForCreator(creatorId: string): SpecialistToolKind[] {
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1 },
-  content: { padding: 16, gap: 12, paddingBottom: 40 },
+  content: { gap: 12, paddingBottom: 8 },
   card: { borderWidth: 1, borderRadius: 14, padding: 14, gap: 8 },
   title: { fontSize: 16, fontWeight: "800" },
   input: { borderWidth: 1, borderRadius: 10, padding: 10, fontSize: 13, minHeight: 44 },

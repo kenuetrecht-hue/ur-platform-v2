@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useRef } from "react";
+import { Component, useCallback, useEffect, useState, useRef, type ReactNode } from "react";
 import {
   View,
   Text,
@@ -36,11 +36,50 @@ import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 
 import { SpecialistJobToolsPanel } from "@/components/specialist-job-tools-panel";
 import { hasSpecialistJobTools } from "@/lib/specialist-job-tools";
+import { LETTERING_ON_COLOR } from "@/lib/gold-lettering";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { speakText } from "@/lib/azure-tts-service";
 import { TabPageScroll } from "@/components/tab-page-scroll";
 
 type SurfaceMode = "chat" | "learn" | "build" | "live" | "pricing" | "tools";
+
+/** A broken tab stays inside UR and offers Chat, instead of a blank page. */
+class SurfaceErrorBoundary extends Component<
+  { children: ReactNode; onBack: () => void },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError(): { failed: boolean } {
+    return { failed: true };
+  }
+
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <View style={{ padding: 20, gap: 12 }}>
+        <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800", fontSize: 16 }}>
+          This tab could not open.
+        </Text>
+        <Text style={{ color: LETTERING_ON_COLOR, fontSize: 14, lineHeight: 20 }}>
+          You are still in UR. Go back to Chat.
+        </Text>
+        <AppPressable
+          testID="surface-back-to-chat"
+          onPress={() => {
+            this.setState({ failed: false });
+            this.props.onBack();
+          }}
+          style={{ backgroundColor: "#4F46E5", borderRadius: 12, padding: 14, alignItems: "center" }}
+        >
+          <Text pointerEvents="none" style={{ color: "#fff", fontWeight: "800" }}>
+            Back to Chat
+          </Text>
+        </AppPressable>
+      </View>
+    );
+  }
+}
 type LearnLevel = "beginner" | "intermediate" | "advanced";
 type LearnMode = "lesson" | "practice" | "certification" | "on_the_job";
 
@@ -174,6 +213,7 @@ export function AiCreatorPanel({
           showTools={hasSpecialistJobTools(creatorId)}
         />
       ) : null}
+      <SurfaceErrorBoundary key={surface} onBack={() => setSurface("chat")}>
       {surface === "tools" && hasSpecialistJobTools(creatorId) ? (
         <TabPageScroll>
           <SpecialistJobToolsPanel creatorId={creatorId} creatorName={creatorName} />
@@ -246,6 +286,7 @@ export function AiCreatorPanel({
           }}
         />
       )}
+      </SurfaceErrorBoundary>
     </View>
   );
 }

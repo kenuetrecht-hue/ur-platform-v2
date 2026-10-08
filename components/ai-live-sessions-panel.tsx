@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import {
   View,
   Text,
-  ScrollView,
   Pressable,
   ActivityIndicator,
   StyleSheet,
@@ -113,7 +112,7 @@ export function AiLiveSessionsPanel({ creatorId, creatorName }: AiLiveSessionsPa
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.list}>
+    <View style={styles.list}>
       <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 4, paddingHorizontal: 4 }}>
         Back out with a refund until 1h 30m before class. Then seats lock for 30 minutes while new sign-ups
         can fill open spots. If a group hit 25 and the 25th drops out, the 24 who wait still get the class.
@@ -210,7 +209,7 @@ export function AiLiveSessionsPanel({ creatorId, creatorName }: AiLiveSessionsPa
           ))}
         </View>
       ) : null}
-    </ScrollView>
+    </View>
   );
 }
 
