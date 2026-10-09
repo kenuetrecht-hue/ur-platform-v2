@@ -8,7 +8,9 @@
  */
 
 import { applyAffiliateDisclosures } from "./affiliate-disclosure";
+import { AI_VOICE_SPEED } from "./ai-voice-delivery";
 import { markdownToSpeech } from "./safe-markdown";
+import { pickHumanSpeechVoice } from "./speak-page-copy";
 
 interface AzureTTSOptions {
   voice?: string;
@@ -85,7 +87,7 @@ class AzureTTSService {
     }
 
     const voice = options.voice || "en-US-AriaNeural";
-    const rate = options.rate || 1;
+    const rate = options.rate || AI_VOICE_SPEED;
     const pitch = options.pitch || 1;
 
     // Build SSML (Speech Synthesis Markup Language)
@@ -136,29 +138,23 @@ class AzureTTSService {
       window.speechSynthesis.cancel();
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = Math.max(0.5, Math.min(2, options.rate || 1));
+      utterance.rate = Math.max(0.5, Math.min(2, options.rate || AI_VOICE_SPEED));
       utterance.pitch = Math.max(0.5, Math.min(2, options.pitch || 1));
       utterance.volume = 1;
 
-      // Try to select a natural-sounding voice
       const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        // Prefer female voices for friendliness
-        const femaleVoice = voices.find(
-          (v) =>
-            v.name.toLowerCase().includes("female") ||
-            v.name.includes("Aria") ||
-            v.name.includes("Zira") ||
-            v.name.includes("Nova") ||
-            v.name.includes("Amber")
-        );
-
-        if (femaleVoice) {
-          utterance.voice = femaleVoice;
-        } else if (voices.length > 0) {
-          utterance.voice = voices[0];
-        }
-      }
+      const picked = pickHumanSpeechVoice(
+        voices.map((voice) => ({
+          name: voice.name,
+          lang: voice.lang,
+          localService: voice.localService,
+          default: voice.default,
+        })),
+      );
+      const match = picked
+        ? voices.find((voice) => voice.name === picked.name && voice.lang === picked.lang)
+        : undefined;
+      if (match) utterance.voice = match;
 
       // Handle errors
       utterance.onerror = (event) => {

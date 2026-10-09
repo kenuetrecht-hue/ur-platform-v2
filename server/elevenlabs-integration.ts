@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { applyAffiliateDisclosures } from "../lib/affiliate-disclosure";
+import { AI_VOICE_SPEED, smoothElevenLabsVoiceSettings } from "../lib/ai-voice-delivery";
 import { markdownToSpeech } from "../lib/safe-markdown";
 
 /**
@@ -76,10 +77,8 @@ export class ElevenLabsVoiceService {
           body: JSON.stringify({
             text: voiceText,
             model_id: config.modelId,
-            voice_settings: {
-              stability: config.stability,
-              similarity_boost: config.similarityBoost,
-            },
+            voice_settings: smoothElevenLabsVoiceSettings(config.stability, config.similarityBoost),
+            speed: AI_VOICE_SPEED,
           }),
         }
       );
@@ -179,10 +178,8 @@ export class ElevenLabsVoiceService {
         body: JSON.stringify({
           text: voiceText,
           model_id: config.modelId,
-          voice_settings: {
-            stability: config.stability,
-            similarity_boost: config.similarityBoost,
-          },
+          voice_settings: smoothElevenLabsVoiceSettings(config.stability, config.similarityBoost),
+          speed: AI_VOICE_SPEED,
         }),
       }
     );
