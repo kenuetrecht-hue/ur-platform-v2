@@ -1,17 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
   AGE_KYC_JSON_BODY_LIMIT,
+  CHAT_ATTACHMENT_JSON_BODY_LIMIT,
   DEFAULT_JSON_BODY_LIMIT,
   isPayloadTooLargeError,
   jsonBodyLimitForPath,
 } from "../server/_core/json-body-limit";
 
 describe("json body limit", () => {
-  it("keeps the 1mb cap except for the ID photo check", () => {
+  it("keeps the 1mb cap except for ID photos and AI chat attachments", () => {
     expect(jsonBodyLimitForPath("/api/trpc/auth.login")).toBe(DEFAULT_JSON_BODY_LIMIT);
     expect(jsonBodyLimitForPath("/api/trpc/ageKyc.precheck")).toBe(AGE_KYC_JSON_BODY_LIMIT);
     expect(jsonBodyLimitForPath("/api/trpc/ageKyc.precheck?batch=1")).toBe(AGE_KYC_JSON_BODY_LIMIT);
     expect(jsonBodyLimitForPath("/api/trpc/agekyc.submit")).toBe(AGE_KYC_JSON_BODY_LIMIT);
+    expect(jsonBodyLimitForPath("/api/trpc/aiCreators.sendMessage")).toBe(CHAT_ATTACHMENT_JSON_BODY_LIMIT);
+    expect(jsonBodyLimitForPath("/api/trpc/aiLanguage.chat")).toBe(CHAT_ATTACHMENT_JSON_BODY_LIMIT);
+    expect(jsonBodyLimitForPath("/api/trpc/aiLanguage.translate")).toBe(CHAT_ATTACHMENT_JSON_BODY_LIMIT);
+    expect(jsonBodyLimitForPath("/api/trpc/aiLearning.teach")).toBe(CHAT_ATTACHMENT_JSON_BODY_LIMIT);
+    expect(jsonBodyLimitForPath("/api/trpc/aiCreators.list")).toBe(DEFAULT_JSON_BODY_LIMIT);
   });
 
   it("recognizes Express payload-too-large errors", () => {

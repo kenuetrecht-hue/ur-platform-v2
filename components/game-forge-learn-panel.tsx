@@ -18,11 +18,23 @@ import { AppPressable } from "@/components/app-pressable";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { speakText } from "@/lib/azure-tts-service";
 import { MarkdownMessage, SpokenReplyText } from "@/components/markdown-message";
+import { AiChatMessageMedia } from "@/components/ai-chat-message-media";
+import { ChatAttachButtons, ChatPendingAttachments } from "@/components/chat-attachment-bar";
+import {
+  chatAttachmentCaption,
+  chatAttachmentPayload,
+  type PickedChatAttachment,
+} from "@/lib/chat-attachment-picker";
+import type { ChatMessageAttachmentPreview } from "@/lib/chat-attachment-types";
 
 type LearnLevel = "beginner" | "intermediate" | "advanced";
 type LearnMode = "lesson" | "practice" | "certification" | "on_the_job" | "conversation";
 
-type ChatMessage = { role: "user" | "ai"; text: string };
+type ChatMessage = {
+  role: "user" | "ai";
+  text: string;
+  attachments?: ChatMessageAttachmentPreview[];
+};
 
 export type GameForgeLearnPanelProps = {
   creatorId: string;
@@ -53,6 +65,7 @@ export function GameForgeLearnPanel({
   const [activeTopic, setActiveTopic] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
+  const [pendingAttachments, setPendingAttachments] = useState<PickedChatAttachment[]>([]);
   const [textFocusNonce, setTextFocusNonce] = useState(0);
   const [loading, setLoading] = useState(false);
 
@@ -84,12 +97,27 @@ export function GameForgeLearnPanel({
   }, [creatorName, level, learnMode]);
 
   const sendLearnMessage = useCallback(
-    async (raw: string, options?: { speak?: boolean }) => {
+    async (raw: string, options?: { speak?: boolean; withAttachments?: boolean }) => {
+      const files = options?.withAttachments ? pendingAttachments : [];
       const text = raw.trim().slice(0, 4000);
-      if (!text || loading) return;
+      if ((!text && files.length === 0) || loading) return;
+      const displayText = chatAttachmentCaption(files, text);
+      const message = text || "Please look at the attached photo or document.";
 
       setLoading(true);
-      setMessages((prev) => [...prev, { role: "user", text }]);
+      if (files.length > 0) setPendingAttachments([]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "user",
+          text: displayText,
+          attachments: files.map((file) => ({
+            mimeType: file.mimeType,
+            previewUri: file.previewUri,
+            fileName: file.fileName,
+          })),
+        },
+      ]);
       setInputText("");
 
       const history = messages.slice(-10).map((m) => ({
@@ -100,7 +128,8 @@ export function GameForgeLearnPanel({
       try {
         const result = await teach.mutateAsync({
           creatorId,
-          message: text,
+          message,
+          attachments: files.length ? chatAttachmentPayload(files) : undefined,
           history,
           level,
           mode: learnMode,
@@ -122,7 +151,7 @@ export function GameForgeLearnPanel({
         setLoading(false);
       }
     },
-    [activeTopic, creatorId, learnMode, level, loading, messages, teach],
+    [activeTopic, creatorId, learnMode, level, loading, messages, pendingAttachments, teach],
   );
 
   const startModule = (title: string) => {
@@ -298,6 +327,7 @@ export function GameForgeLearnPanel({
             ) : (
               <MarkdownMessage text={msg.text} color="#fff" fontSize={14} />
             )}
+            <AiChatMessageMedia attachments={msg.attachments} />
           </View>
         ))}
         {loading ? <ActivityIndicator color={colors.primary} style={{ marginTop: 8 }} /> : null}
@@ -318,9 +348,20 @@ export function GameForgeLearnPanel({
       ) : null}
 
       <ComposerDock pinned={false}>
+        <ChatPendingAttachments
+          pending={pendingAttachments}
+          onRemove={(index) => setPendingAttachments((prev) => prev.filter((_, idx) => idx !== index))}
+        />
         <ChatSideComposer
           tools={
             <>
+        <ChatAttachButtons
+          disabled={loading}
+          count={pendingAttachments.length}
+          buttonStyle={chatRailButtonStyle}
+          onPicked={(picked) => setPendingAttachments((prev) => [...prev, ...picked].slice(0, 2))}
+          onError={(message) => setMessages((prev) => [...prev, { role: "ai", text: message }])}
+        />
         <AppPressable
           testID="ai-text-button"
           accessibilityLabel="Text"
@@ -345,16 +386,16 @@ export function GameForgeLearnPanel({
           }}
           onSpokenQuestion={(question) => {
             setInputText("");
-            void sendLearnMessage(question, { speak: true });
+            void sendLearnMessage(question, { speak: true, withAttachments: true });
           }}
         />
             </>
           }
           send={
         <Pressable
-          onPress={() => void sendLearnMessage(inputText)}
-          disabled={loading || !inputText.trim()}
-          style={[styles.sendBtn, { backgroundColor: loading || !inputText.trim() ? colors.muted : colors.primary, alignSelf: "stretch", width: "100%" }]}
+          onPress={() => void sendLearnMessage(inputText, { withAttachments: true })}
+          disabled={loading || (!inputText.trim() && pendingAttachments.length === 0)}
+          style={[styles.sendBtn, { backgroundColor: loading || (!inputText.trim() && pendingAttachments.length === 0) ? colors.muted : colors.primary, alignSelf: "stretch", width: "100%" }]}
         >
           <Text style={{ color: "#fff", fontWeight: "700" }}>Send</Text>
         </Pressable>

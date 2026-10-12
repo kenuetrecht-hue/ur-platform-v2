@@ -22,6 +22,7 @@ import {
 import { sanitizeChatAttachments, type SanitizedChatAttachment } from "./chat-attachment-service";
 import { getHiveCapabilities, shouldRunWebSearch } from "./ai-hive-capabilities";
 import type { ChatSearchCitation } from "../../lib/chat-attachment-types";
+import { VISION_UPLOAD_MESSAGE_UNITS } from "../../lib/usage-caps-catalog";
 import {
   buildHiveEnhancedSystemPrompt,
   isComplexHiveProblem,
@@ -333,14 +334,6 @@ export async function handleCreatorAiChat(params: {
 
     const caps = getHiveCapabilities(params.creatorId);
     const attachments = params.attachments ?? [];
-    if (attachments.length > 0) {
-      if (!caps.photoAnalysis) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "This specialist does not support photo or document analysis.",
-        });
-      }
-    }
 
     const visionAttachments = attachments.map((a) => ({
       mimeType: a.mimeType,

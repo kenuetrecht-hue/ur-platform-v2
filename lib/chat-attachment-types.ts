@@ -9,6 +9,7 @@ export const CHAT_ATTACHMENT_MIME_TYPES = [
   "image/webp",
   "image/gif",
   "application/pdf",
+  "text/plain",
 ] as const;
 
 export type ChatAttachmentMimeType = (typeof CHAT_ATTACHMENT_MIME_TYPES)[number];

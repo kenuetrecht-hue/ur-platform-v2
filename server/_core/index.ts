@@ -126,7 +126,7 @@ async function startServer() {
   registerMuxWebhook(app);
   registerStripeWebhook(app);
 
-  // JSON body limit — 1mb everywhere except the ID photo check (three pictures).
+  // JSON body limit — 1mb everywhere except ID photos and AI chat attachments.
   app.use((req, res, next) => {
     const path = `${req.originalUrl ?? ""} ${req.url ?? ""}`;
     express.json({ limit: jsonBodyLimitForPath(path) })(req, res, next);

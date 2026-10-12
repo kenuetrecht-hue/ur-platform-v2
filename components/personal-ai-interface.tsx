@@ -18,6 +18,14 @@ import { useAuth } from "@/lib/auth-context";
 import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { ChatSideComposer, chatRailButtonStyle } from "@/components/chat-side-composer";
 import { MarkdownMessage, SpokenReplyText } from "@/components/markdown-message";
+import { AiChatMessageMedia } from "@/components/ai-chat-message-media";
+import { ChatAttachButtons, ChatPendingAttachments } from "@/components/chat-attachment-bar";
+import {
+  chatAttachmentCaption,
+  chatAttachmentPayload,
+  type PickedChatAttachment,
+} from "@/lib/chat-attachment-picker";
+import type { ChatMessageAttachmentPreview } from "@/lib/chat-attachment-types";
 import { markdownToSpeech } from "@/lib/safe-markdown";
 import { mergeUnsavedChatTail } from "@/lib/merge-unsaved-chat-tail";
 import { ComposerDock } from "@/components/composer-dock";
@@ -32,6 +40,7 @@ interface ChatMessage {
   role: "user" | "ai";
   text: string;
   pending?: boolean;
+  attachments?: ChatMessageAttachmentPreview[];
 }
 
 interface PersonalAIInterfaceProps {
@@ -61,6 +70,8 @@ export function PersonalAIInterface({
     },
   ]);
   const [inputText, setInputText] = useState("");
+  const [pendingAttachments, setPendingAttachments] = useState<PickedChatAttachment[]>([]);
+  const [attachNote, setAttachNote] = useState<string | null>(null);
   const [textFocusNonce, setTextFocusNonce] = useState(0);
   const [loading, setLoading] = useState(false);
   const loadingRef = useRef(false);
@@ -111,9 +122,12 @@ export function PersonalAIInterface({
   const deskName = creatorId === "platform-business-steward-ai" ? "Business Steward" : "ContentMate";
 
   const sendChatMessage = useCallback(
-    async (rawText: string, options?: { speak?: boolean }) => {
+    async (rawText: string, options?: { speak?: boolean; withAttachments?: boolean }) => {
+      const attachmentsToSend = options?.withAttachments === false ? [] : pendingAttachments;
       const userMessage = rawText.trim().slice(0, 2000);
-      if (!userMessage || loading) return;
+      if ((!userMessage && attachmentsToSend.length === 0) || loading) return;
+      const displayText = chatAttachmentCaption(attachmentsToSend, userMessage);
+      const messageForApi = userMessage || "Please look at the attached photo or document.";
 
       loadingRef.current = true;
       setLoading(true);
@@ -124,6 +138,13 @@ export function PersonalAIInterface({
       }
 
       if (isAuthenticated && !chatSyncConnected) {
+        if (attachmentsToSend.length > 0) {
+          if (clearedInput) setInputText(rawText.slice(0, 2000));
+          setAttachNote("The photo stays in the chat box. Send it when you're back online.");
+          loadingRef.current = false;
+          setLoading(false);
+          return;
+        }
         const item = await enqueueOutbox({
           creatorId,
           message: userMessage,
@@ -139,7 +160,22 @@ export function PersonalAIInterface({
         return;
       }
 
-      setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
+      if (attachmentsToSend.length > 0) {
+        setPendingAttachments([]);
+        setAttachNote(null);
+      }
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "user",
+          text: displayText,
+          attachments: attachmentsToSend.map((file) => ({
+            mimeType: file.mimeType,
+            previewUri: file.previewUri,
+            fileName: file.fileName,
+          })),
+        },
+      ]);
 
       try {
         const history = messages
@@ -152,8 +188,9 @@ export function PersonalAIInterface({
 
         const result = await chatMutation.mutateAsync({
           creatorId,
-          message: userMessage,
+          message: messageForApi,
           history,
+          attachments: attachmentsToSend.length ? chatAttachmentPayload(attachmentsToSend) : undefined,
         });
 
         setMessages((prev) => [...prev, { role: "ai", text: result.reply }]);
@@ -201,7 +238,7 @@ export function PersonalAIInterface({
         scrollToBottom();
       }
     },
-    [buyVoice.isSuccess, chatMutation, chatSyncConnected, creatorId, enqueueOutbox, inputText, isAuthenticated, loading, messages, premium.data?.creatorVoice, refetchChatThread, scrollToBottom, voiceMutation],
+    [buyVoice.isSuccess, chatMutation, chatSyncConnected, creatorId, enqueueOutbox, inputText, isAuthenticated, loading, messages, pendingAttachments, premium.data?.creatorVoice, refetchChatThread, scrollToBottom, voiceMutation],
   );
 
   const handleSendMessage = () => {
@@ -209,7 +246,7 @@ export function PersonalAIInterface({
   };
 
   const handleQuickAction = (action: string) => {
-    void sendChatMessage(action);
+    void sendChatMessage(action, { withAttachments: false });
   };
 
   const handleVoiceReply = async () => {
@@ -322,6 +359,7 @@ export function PersonalAIInterface({
               ) : (
                 <MarkdownMessage text={msg.text} color="#fff" fontSize={15} />
               )}
+              <AiChatMessageMedia attachments={msg.attachments} />
             </View>
           </View>
         ))}
@@ -367,9 +405,26 @@ export function PersonalAIInterface({
         {speechHint ? (
           <Text style={[styles.inputHint, { color: colors.muted }]}>{speechHint}</Text>
         ) : null}
+        {attachNote ? (
+          <Text style={[styles.inputHint, { color: colors.muted }]}>{attachNote}</Text>
+        ) : null}
+        <ChatPendingAttachments
+          pending={pendingAttachments}
+          onRemove={(index) => setPendingAttachments((prev) => prev.filter((_, idx) => idx !== index))}
+        />
         <ChatSideComposer
           tools={
             <>
+          <ChatAttachButtons
+            disabled={loading}
+            count={pendingAttachments.length}
+            buttonStyle={chatRailButtonStyle}
+            onPicked={(picked) => {
+              setPendingAttachments((prev) => [...prev, ...picked].slice(0, 2));
+              setAttachNote("It's in the chat box. Add a note if you want, then tap Send.");
+            }}
+            onError={setAttachNote}
+          />
           <TouchableOpacity
             testID="ai-text-button"
             accessibilityLabel="Text"
@@ -405,12 +460,12 @@ export function PersonalAIInterface({
           send={
           <TouchableOpacity
             onPress={handleSendMessage}
-            disabled={loading || !inputText.trim()}
+            disabled={loading || (!inputText.trim() && pendingAttachments.length === 0)}
             style={[
               styles.sendButton,
               {
                 backgroundColor: colors.primary,
-                opacity: loading || !inputText.trim() ? 0.5 : 1,
+                opacity: loading || (!inputText.trim() && pendingAttachments.length === 0) ? 0.5 : 1,
                 alignSelf: "stretch",
                 width: "100%",
               },

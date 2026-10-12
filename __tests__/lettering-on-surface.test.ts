@@ -82,7 +82,8 @@ describe("lettering on white vs colored backgrounds", () => {
 
     const personalAi = readFileSync("components/personal-ai-interface.tsx", "utf8");
     expect(personalAi).toContain("Hi! I'm ContentMate");
-    expect(personalAi).toMatch(/color[=:]\{?\s*msg\.role === "user" \? "#fff" : colors\.foreground/);
+    expect(personalAi).toMatch(/MarkdownMessage text=\{msg\.text\} color="#fff"/);
+    expect(personalAi).toMatch(/SpokenReplyText text=\{msg\.text\} color=\{colors\.foreground\}/);
 
     const usage = readFileSync("components/usage-allowance-banner.tsx", "utf8");
     expect(usage).toContain("Platform access active");

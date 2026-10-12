@@ -9,7 +9,7 @@ import { getHiveCapabilities } from "../_core/ai-hive-capabilities";
 import { assertAndConsumeStewardAdBudget } from "../_core/steward-ad-budget-service";
 import { generateImage } from "../_core/imageGeneration";
 import { ENV } from "../_core/env";
-import { sanitizeChatAttachments } from "../_core/chat-attachment-service";
+import { chatAttachmentSchema, sanitizeChatAttachments } from "../_core/chat-attachment-service";
 import { isOwnerOnlyPlatformAi, canChatOwnerOpsAi, canChatBusinessSteward, canChatWorldDirector } from "../_core/platform-ops-ai";
 import { getAdminAccessForUser } from "../_core/admin-access-service";
 import { assertAiEntitled } from "../_core/access-entitlements";
@@ -69,12 +69,6 @@ const creatorIdSchema = z
   .min(1)
   .max(64)
   .refine(isCreatorAiId, { message: "Unknown AI assistant." });
-
-const chatAttachmentSchema = z.object({
-  mimeType: z.string().trim().min(3).max(64),
-  base64: z.string().min(16).max(6_000_000),
-  fileName: z.string().trim().max(120).optional(),
-});
 
 function assertCanAccessOwnerOpsClientAi(params: {
   creatorId: string;
@@ -248,7 +242,7 @@ export const aiCreatorChatRouter = router({
         history: chatHistorySchema.max(20).optional(),
         /** Explicitly invoke multi-AI hive consultation with peer specialists */
         useHiveConsult: z.boolean().optional(),
-        /** User-owned photos/PDFs for vision analysis (specialists with photoAnalysis). */
+        /** Photos, PDFs, and text files for every assistant. */
         attachments: z.array(chatAttachmentSchema).max(2).optional(),
       }),
     )

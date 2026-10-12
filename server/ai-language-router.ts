@@ -19,6 +19,7 @@ import {
   appendAiChatTurns,
   loadAiChatHistoryForModel,
 } from "./_core/ai-chat-persistence-service";
+import { chatAttachmentSchema, sanitizeChatAttachments } from "./_core/chat-attachment-service";
 import { mapServiceErrorToTrpc } from "./_core/service-errors";
 import { notifyAiChatThreadUpdated } from "./_core/ai-chat-realtime-ws";
 import { secureProcedure, router, TRPCError } from "./_core/trpc";
@@ -65,6 +66,7 @@ export const aiLanguageRouter = router({
         message: z.string().trim().min(1).max(4000),
         history: chatHistorySchema.max(30).optional(),
         targetLanguage: z.string().max(64).optional(),
+        attachments: z.array(chatAttachmentSchema).max(2).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -101,11 +103,13 @@ export const aiLanguageRouter = router({
           ? sanitizeLanguageLabel(input.targetLanguage)
           : undefined;
 
+        const attachments = sanitizeChatAttachments(input.attachments);
         const { reply: rawReply, model } = await generateGoogleChatReply({
           systemPrompt: LANGUAGE_AI_SYSTEM_PROMPT,
           history,
           message,
           responseLanguage: targetLanguage || undefined,
+          attachments: attachments.length ? attachments : undefined,
         });
 
         const reply = enforceAiGuardrails({
@@ -158,6 +162,7 @@ export const aiLanguageRouter = router({
         text: z.string().trim().min(1).max(4000),
         sourceLanguage: z.string().max(64).optional(),
         targetLanguage: z.string().trim().min(1).max(64),
+        attachments: z.array(chatAttachmentSchema).max(2).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -200,11 +205,15 @@ Text to translate:
 ${text}
 """`;
 
+        const attachments = sanitizeChatAttachments(input.attachments);
         const { reply: rawReply, model } = await generateGoogleChatReply({
           systemPrompt: LANGUAGE_AI_SYSTEM_PROMPT,
           history: [],
-          message: prompt,
+          message: attachments.length
+            ? `${prompt}\n\nA photo or document is attached. Read that file as part of the translation.`
+            : prompt,
           responseLanguage: targetLanguage,
+          attachments: attachments.length ? attachments : undefined,
         });
 
         const translation = enforceAiGuardrails({
@@ -233,6 +242,7 @@ ${text}
           .default("lesson"),
         userMessage: z.string().trim().max(2000).optional(),
         history: chatHistorySchema.max(20).optional(),
+        attachments: z.array(chatAttachmentSchema).max(2).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -266,11 +276,15 @@ Use sections: **Goal**, **New words**, **Grammar tip**, **Example dialogue**, **
         assertNoAiTakeoverInMessage(instruction, ctx.isPlatformOwner);
         assertMessageWithinAiRole(instruction, "linguamate", ctx.isPlatformOwner);
 
+        const attachments = sanitizeChatAttachments(input.attachments);
         const { reply: rawReply, model } = await generateGoogleChatReply({
           systemPrompt: LANGUAGE_AI_SYSTEM_PROMPT,
           history: sanitizeChatHistory(input.history ?? [], 20, 4000),
-          message: instruction,
+          message: attachments.length
+            ? `${instruction}\n\nA photo or document is attached. Use what is in that file in this lesson.`
+            : instruction,
           responseLanguage: targetLanguage,
+          attachments: attachments.length ? attachments : undefined,
         });
 
         const lesson = enforceAiGuardrails({

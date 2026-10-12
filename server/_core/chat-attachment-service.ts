@@ -1,4 +1,9 @@
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import {
+  normalizeChatAttachmentMime,
+  sniffChatAttachmentMime,
+} from "../../lib/chat-attachment-mime";
 import {
   CHAT_ATTACHMENT_MAX_BYTES,
   CHAT_ATTACHMENT_MAX_COUNT,
@@ -20,6 +25,12 @@ function estimateDecodedBytes(base64: string): number {
   const padding = base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0;
   return Math.floor((base64.length * 3) / 4) - padding;
 }
+
+export const chatAttachmentSchema = z.object({
+  mimeType: z.string().trim().min(3).max(64),
+  base64: z.string().min(4).max(6_000_000),
+  fileName: z.string().trim().max(120).optional(),
+});
 
 export type SanitizedChatAttachment = {
   mimeType: ChatAttachmentMimeType;
@@ -43,14 +54,6 @@ export function sanitizeChatAttachments(
   const out: SanitizedChatAttachment[] = [];
 
   for (const item of raw) {
-    const mimeType = item.mimeType.trim().toLowerCase();
-    if (!allowed.has(mimeType)) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Unsupported attachment type. Use JPEG, PNG, WebP, GIF, or PDF.",
-      });
-    }
-
     const base64 = stripDataUrlPrefix(item.base64);
     if (!base64 || !/^[A-Za-z0-9+/=\s]+$/.test(base64.replace(/\s/g, ""))) {
       throw new TRPCError({
@@ -60,6 +63,16 @@ export function sanitizeChatAttachments(
     }
 
     const normalized = base64.replace(/\s/g, "");
+    const mimeType =
+      normalizeChatAttachmentMime(item.mimeType, item.fileName) ??
+      sniffChatAttachmentMime(normalized);
+    if (!mimeType || !allowed.has(mimeType)) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Unsupported attachment type. Use a photo, PDF, or text file.",
+      });
+    }
+
     const bytes = estimateDecodedBytes(normalized);
     if (bytes <= 0 || bytes > CHAT_ATTACHMENT_MAX_BYTES) {
       throw new TRPCError({

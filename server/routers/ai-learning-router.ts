@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { secureProcedure, securePublicProcedure, router, TRPCError } from "../_core/trpc";
+import { chatAttachmentSchema } from "../_core/chat-attachment-service";
 import { getCreatorAi, isCreatorAiId } from "../_core/ai-creator-registry";
 import {
   getCurriculumForCreator,
@@ -248,6 +249,7 @@ export const aiLearningRouter = router({
         level: levelSchema.default("beginner"),
         mode: modeSchema.default("lesson"),
         topic: z.string().max(200).optional(),
+        attachments: z.array(chatAttachmentSchema).max(2).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -259,6 +261,7 @@ export const aiLearningRouter = router({
           level: input.level as LearningLevel,
           mode: input.mode as LearningMode,
           topic: input.topic,
+          attachments: input.attachments,
           userId: String(ctx.user.id),
           userEmail: ctx.user.email,
           isPlatformOwner: ctx.isPlatformOwner,

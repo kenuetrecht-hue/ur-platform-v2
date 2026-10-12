@@ -25,6 +25,8 @@ import {
   type GoogleChatTurn,
 } from "./google-ai";
 import { sanitizeChatHistory, sanitizeUserText } from "./input-sanitize";
+import { sanitizeChatAttachments } from "./chat-attachment-service";
+import type { ChatAttachmentInput } from "../../lib/chat-attachment-types";
 import { isOwnerOnlyPlatformAi } from "./platform-ops-ai";
 import { assertAndConsumeStewardAdBudget } from "./steward-ad-budget-service";
 import { assertAiEntitled } from "./access-entitlements";
@@ -407,6 +409,7 @@ export async function handleCreatorLearningSession(params: {
   userId: string;
   userEmail?: string | null;
   isPlatformOwner: boolean;
+  attachments?: ChatAttachmentInput[];
 }): Promise<{ lesson: string; model: string; creatorName: string }> {
   if (!isGoogleCloudAiConfigured()) {
     throw new TRPCError({
@@ -477,10 +480,14 @@ export async function handleCreatorLearningSession(params: {
     .filter(Boolean)
     .join("\n\n");
 
+  const attachments = sanitizeChatAttachments(params.attachments);
   const { reply: rawReply, model } = await generateGoogleChatReply({
     systemPrompt,
     history,
-    message,
+    message: attachments.length
+      ? `${message}\n\nA photo or document is attached. Teach from what is in that file.`
+      : message,
+    attachments: attachments.length ? attachments : undefined,
   });
 
   const reply = sanitizeAiReplyForRole(

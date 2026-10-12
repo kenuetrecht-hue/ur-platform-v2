@@ -9,12 +9,21 @@ import { ChatComposerInput } from "@/components/chat-composer-input";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
 import { useScrollChatToNewest } from "@/hooks/use-scroll-chat-to-newest";
 import { MarkdownMessage, SpokenReplyText } from "@/components/markdown-message";
+import { AiChatMessageMedia } from "@/components/ai-chat-message-media";
+import { ChatAttachButtons, ChatPendingAttachments } from "@/components/chat-attachment-bar";
+import {
+  chatAttachmentCaption,
+  chatAttachmentPayload,
+  type PickedChatAttachment,
+} from "@/lib/chat-attachment-picker";
+import type { ChatMessageAttachmentPreview } from "@/lib/chat-attachment-types";
 
 interface VoiceChatMessage {
   id: string;
   type: "user" | "ai";
   text: string;
   timestamp: Date;
+  attachments?: ChatMessageAttachmentPreview[];
 }
 
 interface VoiceChatInterfaceProps {
@@ -38,6 +47,7 @@ export function VoiceChatInterface({
   const [error, setError] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [draft, setDraft] = useState("");
+  const [pendingAttachments, setPendingAttachments] = useState<PickedChatAttachment[]>([]);
   const [textFocusNonce, setTextFocusNonce] = useState(0);
   const sendChat = trpc.aiCreators.sendMessage.useMutation();
   const recognitionRef = useRef<any>(null);
@@ -139,15 +149,24 @@ export function VoiceChatInterface({
   }, []);
 
   // Handle user message and get AI response
-  const handleUserMessage = async (userText: string) => {
-    if (!userText.trim()) return;
+  const handleUserMessage = async (userText: string, files: PickedChatAttachment[] = pendingAttachments) => {
+    const typed = userText.trim().slice(0, 2000);
+    if (!typed && files.length === 0) return;
+    const displayText = chatAttachmentCaption(files, typed);
+    const messageForApi = typed || "Please look at the attached photo or document.";
 
     const userMessage: VoiceChatMessage = {
       id: Date.now().toString(),
       type: "user",
-      text: userText,
+      text: displayText,
       timestamp: new Date(),
+      attachments: files.map((file) => ({
+        mimeType: file.mimeType,
+        previewUri: file.previewUri,
+        fileName: file.fileName,
+      })),
     };
+    if (files.length > 0) setPendingAttachments([]);
 
     setMessages((prev) => [...prev, userMessage]);
     setTranscript("");
@@ -164,8 +183,9 @@ export function VoiceChatInterface({
         }));
       const result = await sendChat.mutateAsync({
         creatorId,
-        message: userText.trim().slice(0, 2000),
+        message: messageForApi,
         history,
+        attachments: files.length ? chatAttachmentPayload(files) : undefined,
       });
       const aiResponse = result.reply;
 
@@ -305,6 +325,7 @@ export function VoiceChatInterface({
                 ) : (
                   <MarkdownMessage text={msg.text} color="#fff" fontSize={16} />
                 )}
+                <AiChatMessageMedia attachments={msg.attachments} />
                 <Text
                   className={`text-xs mt-1 ${
                     msg.type === "user" ? "text-white/70" : "text-muted"
@@ -346,9 +367,23 @@ export function VoiceChatInterface({
         )}
 
         {/* Microphone Button */}
+        <ChatPendingAttachments
+          pending={pendingAttachments}
+          onRemove={(index) => setPendingAttachments((prev) => prev.filter((_, idx) => idx !== index))}
+        />
         <ChatSideComposer
           tools={
             <>
+        <ChatAttachButtons
+          disabled={isProcessing || isSpeaking}
+          count={pendingAttachments.length}
+          buttonStyle={chatRailButtonStyle}
+          onPicked={(picked) => {
+            setPendingAttachments((prev) => [...prev, ...picked].slice(0, 2));
+            setError(null);
+          }}
+          onError={setError}
+        />
         <TouchableOpacity
           testID="ai-text-button"
           accessibilityLabel="Text"
@@ -383,11 +418,11 @@ export function VoiceChatInterface({
         <TouchableOpacity
           onPress={() => {
             const question = draft.trim();
-            if (!question) return;
+            if (!question && pendingAttachments.length === 0) return;
             setDraft("");
-            void handleUserMessage(question);
+            void handleUserMessage(question, pendingAttachments);
           }}
-          disabled={isProcessing || isSpeaking || !draft.trim()}
+          disabled={isProcessing || isSpeaking || (!draft.trim() && pendingAttachments.length === 0)}
           style={{
             alignSelf: "stretch",
             width: "100%",
@@ -395,7 +430,7 @@ export function VoiceChatInterface({
             paddingVertical: 12,
             alignItems: "center",
             backgroundColor: colors.primary,
-            opacity: isProcessing || isSpeaking || !draft.trim() ? 0.5 : 1,
+            opacity: isProcessing || isSpeaking || (!draft.trim() && pendingAttachments.length === 0) ? 0.5 : 1,
           }}
         >
           <Text style={{ color: "#fff", fontWeight: "800" }}>Send</Text>

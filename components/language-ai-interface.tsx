@@ -19,6 +19,14 @@ import { VoicePromptMicButton } from "@/components/voice-prompt-mic-button";
 import { AppPressable } from "@/components/app-pressable";
 import { ChatSideComposer, chatRailButtonStyle } from "@/components/chat-side-composer";
 import { MarkdownMessage, SpokenReplyText } from "@/components/markdown-message";
+import { AiChatMessageMedia } from "@/components/ai-chat-message-media";
+import { ChatAttachButtons, ChatPendingAttachments } from "@/components/chat-attachment-bar";
+import {
+  chatAttachmentCaption,
+  chatAttachmentPayload,
+  type PickedChatAttachment,
+} from "@/lib/chat-attachment-picker";
+import type { ChatMessageAttachmentPreview } from "@/lib/chat-attachment-types";
 import { markdownToSpeech } from "@/lib/safe-markdown";
 import { mergeUnsavedChatTail } from "@/lib/merge-unsaved-chat-tail";
 import { ComposerDock } from "@/components/composer-dock";
@@ -36,6 +44,7 @@ interface ChatMessage {
   role: "user" | "ai";
   text: string;
   pending?: boolean;
+  attachments?: ChatMessageAttachmentPreview[];
 }
 
 interface LanguageAIInterfaceProps {
@@ -83,6 +92,8 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
     },
   ]);
   const [inputText, setInputText] = useState("");
+  const [pendingAttachments, setPendingAttachments] = useState<PickedChatAttachment[]>([]);
+  const [attachNote, setAttachNote] = useState<string | null>(null);
   const [textFocusNonce, setTextFocusNonce] = useState(0);
   const [speechHint, setSpeechHint] = useState<string | null>(null);
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
@@ -142,9 +153,12 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
   );
 
   const sendMessage = useCallback(
-    async (rawText: string, options?: { speak?: boolean }) => {
+    async (rawText: string, options?: { speak?: boolean; withAttachments?: boolean }) => {
+      const attachmentsToSend = options?.withAttachments === false ? [] : pendingAttachments;
       const userMessage = rawText.trim().slice(0, 4000);
-      if (!userMessage || loading || !canChat) return;
+      if ((!userMessage && attachmentsToSend.length === 0) || loading || !canChat) return;
+      const displayText = chatAttachmentCaption(attachmentsToSend, userMessage);
+      const messageForApi = userMessage || "Please look at the attached photo or document.";
 
       loadingRef.current = true;
       setLoading(true);
@@ -152,6 +166,13 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
       if (clearedInput) setInputText("");
 
       if (mode === "chat" && isAuthenticated && !chatSyncConnected) {
+        if (attachmentsToSend.length > 0) {
+          if (clearedInput) setInputText(rawText.slice(0, 4000));
+          setAttachNote("The photo stays in the chat box. Send it when you're back online.");
+          loadingRef.current = false;
+          setLoading(false);
+          return;
+        }
         const item = await enqueueOutbox({
           creatorId: "linguamate",
           message: userMessage,
@@ -168,15 +189,34 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
         return;
       }
 
-      setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
+      if (attachmentsToSend.length > 0) {
+        setPendingAttachments([]);
+        setAttachNote(null);
+      }
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "user",
+          text: displayText,
+          attachments: attachmentsToSend.map((file) => ({
+            mimeType: file.mimeType,
+            previewUri: file.previewUri,
+            fileName: file.fileName,
+          })),
+        },
+      ]);
 
       try {
         let reply = "";
+        const attachmentPayload = attachmentsToSend.length
+          ? chatAttachmentPayload(attachmentsToSend)
+          : undefined;
 
         if (mode === "translate") {
           const result = await translateMutation.mutateAsync({
-            text: userMessage,
+            text: messageForApi,
             targetLanguage,
+            attachments: attachmentPayload,
           });
           reply = result.translation;
         } else if (mode === "learn") {
@@ -184,15 +224,17 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
             targetLanguage,
             level: learnLevel,
             mode: "lesson",
-            userMessage,
+            userMessage: messageForApi,
             history: buildHistory(),
+            attachments: attachmentPayload,
           });
           reply = result.lesson;
         } else {
           const result = await chatMutation.mutateAsync({
-            message: userMessage,
+            message: messageForApi,
             history: buildHistory(),
             targetLanguage: targetLanguage || undefined,
+            attachments: attachmentPayload,
           });
           reply = result.reply;
           void refetchChatThread();
@@ -237,6 +279,7 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
       teachMutation,
       translateMutation,
       canChat,
+      pendingAttachments,
       speakText,
     ],
   );
@@ -244,7 +287,9 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
   const startLesson = (language: string) => {
     setTargetLanguage(language);
     setMode("learn");
-    void sendMessage(`Start a ${learnLevel} lesson in ${language} with essential travel phrases.`);
+    void sendMessage(`Start a ${learnLevel} lesson in ${language} with essential travel phrases.`, {
+      withAttachments: false,
+    });
   };
 
   const [drillExpected, setDrillExpected] = useState("Buenos días, ¿cómo está usted?");
@@ -420,6 +465,7 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
               ) : (
                 <MarkdownMessage text={msg.text} color="#fff" fontSize={15} />
               )}
+              <AiChatMessageMedia attachments={msg.attachments} />
             </View>
           </View>
         ))}
@@ -582,9 +628,26 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
         {speechHint ? (
           <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 6 }}>{speechHint}</Text>
         ) : null}
+        {attachNote ? (
+          <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 6 }}>{attachNote}</Text>
+        ) : null}
+        <ChatPendingAttachments
+          pending={pendingAttachments}
+          onRemove={(index) => setPendingAttachments((prev) => prev.filter((_, idx) => idx !== index))}
+        />
         <ChatSideComposer
           tools={
             <>
+          <ChatAttachButtons
+            disabled={loading || !canChat}
+            count={pendingAttachments.length}
+            buttonStyle={chatRailButtonStyle}
+            onPicked={(picked) => {
+              setPendingAttachments((prev) => [...prev, ...picked].slice(0, 2));
+              setAttachNote("It's in the chat box. Add a note if you want, then tap Send.");
+            }}
+            onError={setAttachNote}
+          />
           <AppPressable
             testID="ai-text-button"
             accessibilityLabel="Text"
@@ -624,12 +687,12 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
           <AppPressable
             testID="ai-chat-send"
             onPress={() => void sendMessage(inputText)}
-            disabled={loading || !inputText.trim() || !canChat}
+            disabled={loading || (!inputText.trim() && pendingAttachments.length === 0) || !canChat}
             style={[
               styles.sendButton,
               {
                 backgroundColor: "#0d9488",
-                opacity: loading || !inputText.trim() || !canChat ? 0.5 : 1,
+                opacity: loading || (!inputText.trim() && pendingAttachments.length === 0) || !canChat ? 0.5 : 1,
                 alignSelf: "stretch",
                 width: "100%",
               },

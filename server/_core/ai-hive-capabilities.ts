@@ -39,16 +39,12 @@ export const DEFAULT_HIVE_CAPABILITIES: HiveCapabilityFlags = {
   accessibility: true,
 };
 
-/** Per-creator overrides (photo analysis off for pure content AIs, etc.) */
+/** Per-creator overrides. Photo and document reading stays on for every AI. */
 export const HIVE_CAPABILITY_OVERRIDES: Partial<
   Record<string, Partial<HiveCapabilityFlags>>
 > = {
-  contentmate: { photoAnalysis: false, imageGeneration: true },
-  linguamate: { photoAnalysis: false, webSearch: false },
-  "ai-translator-001": { photoAnalysis: false },
-  "ai-crypto-001": { photoAnalysis: false },
-  "ai-news-001": { photoAnalysis: false },
-  "platform-administration-ai": { photoAnalysis: false },
+  contentmate: { imageGeneration: true },
+  linguamate: { webSearch: false },
   "ai-creative-001": { imageGeneration: true },
   "ai-logo-brand-001": { imageGeneration: true },
   "ai-author-001": { imageGeneration: true },
@@ -60,7 +56,11 @@ export const HIVE_CAPABILITY_OVERRIDES: Partial<
 };
 
 export function getHiveCapabilities(creatorId: string): HiveCapabilityFlags {
-  return { ...DEFAULT_HIVE_CAPABILITIES, ...HIVE_CAPABILITY_OVERRIDES[creatorId] };
+  return {
+    ...DEFAULT_HIVE_CAPABILITIES,
+    ...HIVE_CAPABILITY_OVERRIDES[creatorId],
+    photoAnalysis: true,
+  };
 }
 
 /** Domain keywords — used to route problems to the dominant specialist */

@@ -64,7 +64,7 @@ describe("AI send returns a reply", () => {
     expect(chat).toContain("void sendChatMessage(inputText)");
     expect(chat).not.toContain('systemPrompt');
     expect(learn).toContain(">Send</Text>");
-    expect(learn).toContain("void sendLearnMessage(inputText)");
+    expect(learn).toContain("void sendLearnMessage(inputText, { withAttachments: true })");
     expect(side.indexOf("{send}")).toBeLessThan(side.indexOf("styles.writingColumn"));
     expect(appChat).toContain("AiCreatorPanel");
     expect(appChat).not.toMatch(/Platform\.OS === "web"[\s\S]{0,80}Send/);

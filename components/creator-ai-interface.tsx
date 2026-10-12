@@ -50,7 +50,8 @@ import { ThanksStampsWall } from "@/components/thanks-stamps-wall";
 import { FloatingCard } from "@/components/floating-card";
 import { BUSINESS_STEWARD_AI_ID, isOwnerOpsAiId } from "@/lib/owner-platform-ops-catalog";
 import { playExclusiveAudio, stopExclusiveAudio, unlockWebAudio } from "@/lib/exclusive-audio-player";
-import { pickChatAttachments, type PickedChatAttachment } from "@/lib/chat-attachment-picker";
+import type { PickedChatAttachment } from "@/lib/chat-attachment-picker";
+import { ChatAttachButtons, ChatPendingAttachments } from "@/components/chat-attachment-bar";
 import { AppPressable } from "@/components/app-pressable";
 import { OfficeAgentDesk } from "@/components/office-agent-desk";
 
@@ -324,7 +325,6 @@ export function CreatorAIInterface({
 
   const CHAT_TIMEOUT_MS = 90_000;
 
-  const supportsPhotoAnalysis = Boolean(hiveProfile.data?.capabilities.photoAnalysis);
   const supportsImageGen = Boolean(hiveProfile.data?.capabilities.imageGeneration);
 
   const sendChatMessage = useCallback(
@@ -352,13 +352,11 @@ export function CreatorAIInterface({
       if (clearedInput) {
         setInputText("");
       }
-      if (!attachmentOverride) {
-        setPendingAttachments([]);
-      }
 
       if (isAuthenticated && !chatSyncConnected) {
         if (attachmentsToSend.length > 0) {
-          setSendStatus("Attachments require an online connection.");
+          if (clearedInput) setInputText(rawText.slice(0, 2000));
+          setSendStatus("The photo stays in the chat box. Send it when you're back online.");
           loadingRef.current = false;
           setLoading(false);
           return;
@@ -376,6 +374,10 @@ export function CreatorAIInterface({
         setSendStatus("Queued — sends when you're back online");
         scrollToBottom();
         return;
+      }
+
+      if (!attachmentOverride) {
+        setPendingAttachments([]);
       }
 
       setMessages((prev) => [
@@ -492,16 +494,10 @@ export function CreatorAIInterface({
     ],
   );
 
-  const attachFiles = useCallback(async () => {
-    if (!supportsPhotoAnalysis || loading) return;
-    try {
-      const picked = await pickChatAttachments();
-      if (picked.length === 0) return;
-      setPendingAttachments((prev) => [...prev, ...picked].slice(0, 2));
-    } catch (error) {
-      setSendStatus(error instanceof Error ? error.message : "Could not attach file.");
-    }
-  }, [loading, supportsPhotoAnalysis]);
+  const addPendingAttachments = useCallback((picked: PickedChatAttachment[]) => {
+    setPendingAttachments((prev) => [...prev, ...picked].slice(0, 2));
+    setSendStatus("It's in the chat box. Add a note if you want, then tap Send.");
+  }, []);
 
   const generateImageFromPrompt = useCallback(async () => {
     const prompt = (imageGenPrompt || inputText).trim().slice(0, 2000);
@@ -781,7 +777,7 @@ export function CreatorAIInterface({
               Hive: {hiveProfile.data.hivePeers.length} peers ·{" "}
               {hiveProfile.data.supportsHiveConsult ? "consult enabled" : "solo mode"}
               {hiveProfile.data.capabilities.webSearch ? " · web search" : ""}
-              {hiveProfile.data.capabilities.photoAnalysis ? " · photo/PDF" : ""}
+              {" · photo/file"}
               {hiveProfile.data.capabilities.imageGeneration ? " · image gen" : ""}
             </Text>
           </View>
@@ -852,62 +848,23 @@ export function CreatorAIInterface({
           }
           style={ownerOpsChat ? { marginTop: 4, paddingTop: 6 } : undefined}
         >
-          {pendingAttachments.length > 0 ? (
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 4, paddingBottom: 6 }}>
-              {pendingAttachments.map((att, i) => (
-                <View
-                  key={`pending-${i}`}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
-                    paddingHorizontal: 8,
-                    paddingVertical: 4,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    backgroundColor: colors.surface,
-                  }}
-                >
-                  <Text style={{ color: colors.foreground, fontSize: 11 }} numberOfLines={1}>
-                    {att.mimeType.startsWith("image/") ? "🖼" : "📄"}{" "}
-                    {att.fileName ?? att.mimeType}
-                  </Text>
-                  <Pressable
-                    onPress={() =>
-                      setPendingAttachments((prev) => prev.filter((_, idx) => idx !== i))
-                    }
-                    hitSlop={6}
-                  >
-                    <Text style={{ color: colors.error, fontSize: 12 }}>✕</Text>
-                  </Pressable>
-                </View>
-              ))}
-            </View>
-          ) : null}
+          <ChatPendingAttachments
+            pending={pendingAttachments}
+            onRemove={(index) =>
+              setPendingAttachments((prev) => prev.filter((_, idx) => idx !== index))
+            }
+          />
 
           <ChatComposerActionRow webClassName={toolRail === "left" ? "ur-chat-composer-rail" : undefined}>
             {toolRail === "left" ? (
               <View style={styles.toolRail}>
-                {supportsPhotoAnalysis ? (
-                  <Pressable
-                    onPress={() => void attachFiles()}
-                    disabled={loading || pendingAttachments.length >= 2}
-                    hitSlop={8}
-                    accessibilityLabel="Attachment"
-                    style={({ pressed }) => [
-                      styles.railButton,
-                      ownerOpsChat ? styles.railButtonOwner : null,
-                      {
-                        borderColor: colors.border,
-                        backgroundColor: colors.surface,
-                        opacity: pressed ? 0.85 : 1,
-                      },
-                    ]}
-                  >
-                    <Text style={{ fontSize: 18 }}>📎</Text>
-                  </Pressable>
-                ) : null}
+                <ChatAttachButtons
+                  disabled={loading}
+                  count={pendingAttachments.length}
+                  buttonStyle={[styles.railButton, ownerOpsChat ? styles.railButtonOwner : null]}
+                  onPicked={addPendingAttachments}
+                  onError={(message) => setSendStatus(message)}
+                />
                 <AppPressable
                   testID="ai-text-button"
                   accessibilityLabel="Text"
@@ -996,23 +953,13 @@ export function CreatorAIInterface({
               </View>
             ) : (
               <>
-            {supportsPhotoAnalysis ? (
-              <Pressable
-                onPress={() => void attachFiles()}
-                disabled={loading || pendingAttachments.length >= 2}
-                hitSlop={8}
-                style={({ pressed }) => [
-                  styles.attachButton,
-                  {
-                    borderColor: colors.border,
-                    backgroundColor: colors.surface,
-                    opacity: pressed ? 0.85 : 1,
-                  },
-                ]}
-              >
-                <Text style={{ fontSize: 18 }}>📎</Text>
-              </Pressable>
-            ) : null}
+            <ChatAttachButtons
+              disabled={loading}
+              count={pendingAttachments.length}
+              buttonStyle={styles.attachButton}
+              onPicked={addPendingAttachments}
+              onError={(message) => setSendStatus(message)}
+            />
             <AppPressable
               testID="ai-text-button"
               accessibilityLabel="Text"
@@ -1349,7 +1296,7 @@ export function CreatorAIInterface({
                 </View>
               ) : null}
 
-              {supportsPhotoAnalysis && pendingAttachments.length > 0 && !isPlatformOwner ? (
+              {pendingAttachments.length > 0 && !isPlatformOwner ? (
                 <UsageUpgradePanel
                   productId="images-vision"
                   creatorId={creatorId}
