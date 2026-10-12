@@ -53,7 +53,10 @@ import { playExclusiveAudio, stopExclusiveAudio, unlockWebAudio } from "@/lib/ex
 import type { PickedChatAttachment } from "@/lib/chat-attachment-picker";
 import { ChatAttachButtons, ChatPendingAttachments } from "@/components/chat-attachment-bar";
 import { AppPressable } from "@/components/app-pressable";
-import { OfficeAgentDesk } from "@/components/office-agent-desk";
+import { OfficeAgentDesk, StewardAssignPanel } from "@/components/office-agent-desk";
+import { AiLearnSurface } from "@/components/ai-creator-panel";
+
+type AiToolTab = "chat" | "email" | "call" | "bill" | "learn" | "assign" | "paint" | "hive" | "video";
 
 interface ChatMessage {
   role: "user" | "ai";
@@ -173,6 +176,8 @@ export function CreatorAIInterface({
   const [awaitingPitchConsent, setAwaitingPitchConsent] = useState(false);
   const isStewardDesk = creatorId === BUSINESS_STEWARD_AI_ID;
   const ownerOpsChat = isOwnerOpsAiId(creatorId);
+  const hasOfficeTools = creatorId === "contentmate" || isStewardDesk;
+  const [toolTab, setToolTab] = useState<AiToolTab>("chat");
   const [showExtras, setShowExtras] = useState(false);
   const [showTalkTopUp, setShowTalkTopUp] = useState(false);
   const [apiReachable, setApiReachable] = useState<boolean | null>(null);
@@ -315,6 +320,7 @@ export function CreatorAIInterface({
     setInputText(initialPrompt ?? "");
     setLoading(false);
     setSendStatus(null);
+    setToolTab("chat");
   }, [creatorId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [sendStatus, setSendStatus] = useState<string | null>(null);
@@ -676,6 +682,29 @@ export function CreatorAIInterface({
     }
   }, [assertVideo, creatorId, hasTalkTime]);
 
+  const showChatPane = !hasOfficeTools || toolTab === "chat";
+  const toolTabs: { id: AiToolTab; label: string }[] = hasOfficeTools
+    ? [
+        { id: "chat", label: "Chat" },
+        { id: "email", label: "Email" },
+        { id: "call", label: "Call" },
+        { id: "bill", label: "Bill" },
+        ...(isStewardDesk
+          ? [
+              { id: "learn" as const, label: "Learn" },
+              { id: "assign" as const, label: "Assign" },
+            ]
+          : []),
+        ...(supportsImageGen ? [{ id: "paint" as const, label: "Paint" }] : []),
+        ...(showVoiceHiveControls && !isAssociateAi
+          ? [
+              { id: "hive" as const, label: "Hive" },
+              { id: "video" as const, label: "Video" },
+            ]
+          : []),
+      ]
+    : [];
+
   return (
     <KeyboardAvoidingView
       style={[styles.root, embedded && styles.rootEmbedded, pageScroll && styles.rootPage]}
@@ -790,8 +819,137 @@ export function CreatorAIInterface({
           </>
         )}
 
-        {creatorId === "contentmate" || isStewardDesk ? <OfficeAgentDesk creatorId={creatorId} /> : null}
+        {hasOfficeTools ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingHorizontal: 12, paddingBottom: 8 }}
+          >
+            {toolTabs.map((tab) => {
+              const selected = toolTab === tab.id;
+              return (
+                <AppPressable
+                  key={tab.id}
+                  onPress={() => setToolTab(tab.id)}
+                  accessibilityLabel={tab.label}
+                  style={{
+                    borderRadius: 999,
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    backgroundColor: selected ? colors.primary : colors.surface,
+                    borderWidth: 1,
+                    borderColor: selected ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ color: selected ? "#fff" : colors.foreground, fontWeight: "800", fontSize: 13 }}>
+                    {tab.label}
+                  </Text>
+                </AppPressable>
+              );
+            })}
+          </ScrollView>
+        ) : null}
 
+        {hasOfficeTools && !showChatPane ? (
+          <View style={{ flex: 1, minHeight: 0 }}>
+            {toolTab === "email" ? <OfficeAgentDesk creatorId={creatorId} section="email" /> : null}
+            {toolTab === "call" ? <OfficeAgentDesk creatorId={creatorId} section="call" /> : null}
+            {toolTab === "bill" ? <OfficeAgentDesk creatorId={creatorId} section="bill" /> : null}
+            {toolTab === "learn" ? (
+              <AiLearnSurface
+                creatorId={creatorId}
+                creatorName={creatorName}
+                creatorAvatar={creatorAvatar}
+                overlapOptions={{ reserveTabBar: false, headerChromeHeight: 48 }}
+              />
+            ) : null}
+            {toolTab === "assign" ? <StewardAssignPanel /> : null}
+            {toolTab === "paint" ? (
+              <View style={{ padding: 12, gap: 8 }}>
+                <Text style={{ color: colors.foreground, fontWeight: "800" }}>Paint</Text>
+                <ChatComposerInput
+                  style={[styles.input, { color: colors.foreground, backgroundColor: colors.surface, borderColor: colors.border }]}
+                  placeholder="Describe the image to generate…"
+                  placeholderTextColor={colors.muted}
+                  value={imageGenPrompt}
+                  onChangeText={setImageGenPrompt}
+                  maxLength={2000}
+                />
+                <AppPressable
+                  onPress={() => void generateImageFromPrompt()}
+                  disabled={loading || imageGenMutation.isPending}
+                  style={{ backgroundColor: colors.primary, borderRadius: 8, padding: 10 }}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "800", textAlign: "center" }}>
+                    {imageGenMutation.isPending ? "Generating…" : "Generate image"}
+                  </Text>
+                </AppPressable>
+              </View>
+            ) : null}
+            {toolTab === "hive" ? (
+              <View style={{ padding: 12, gap: 8 }}>
+                <Text style={{ color: colors.foreground, fontWeight: "800" }}>Hive</Text>
+                <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+                  Turn this on when you want this AI to ask other specialists for help.
+                </Text>
+                <AppPressable
+                  onPress={() => setHiveMode((v) => !v)}
+                  style={{
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    backgroundColor: hiveMode ? colors.primary : colors.surface,
+                    padding: 10,
+                  }}
+                >
+                  <Text style={{ color: hiveMode ? "#fff" : colors.foreground, fontWeight: "700", textAlign: "center" }}>
+                    {hiveMode ? "Hive mode is on" : "Turn hive mode on"}
+                  </Text>
+                </AppPressable>
+                {handoffs.data?.suggestions.map((h) => (
+                  <AppPressable
+                    key={h.targetCreatorId}
+                    onPress={() => {
+                      if (h.route.startsWith("/3d")) {
+                        router.push("/3d-workspace" as never);
+                      } else if (h.route.startsWith("/music-studio")) {
+                        router.push("/music-studio" as never);
+                      } else {
+                        router.push({
+                          pathname: "/(tabs)/ais",
+                          params: { ai: h.targetCreatorId, prompt: h.prefillPrompt },
+                        } as never);
+                      }
+                    }}
+                    style={{ borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 10 }}
+                  >
+                    <Text style={{ color: colors.primary, fontWeight: "700" }}>{h.targetName}</Text>
+                  </AppPressable>
+                ))}
+              </View>
+            ) : null}
+            {toolTab === "video" ? (
+              <View style={{ padding: 12, gap: 8 }}>
+                <Text style={{ color: colors.foreground, fontWeight: "800" }}>Video</Text>
+                <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+                  A live video room with this AI. It stays off until you turn it on here.
+                </Text>
+                <AppPressable
+                  onPress={() => void (videoActive ? stopVideoTalk() : startVideoTalk())}
+                  disabled={assertVideo.isPending || buyVideo.isPending}
+                  style={{ backgroundColor: videoActive ? colors.primary : colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 10 }}
+                >
+                  <Text style={{ color: videoActive ? "#fff" : colors.foreground, fontWeight: "800", textAlign: "center" }}>
+                    {videoActive ? "Video talk is on" : "Start video talk"}
+                  </Text>
+                </AppPressable>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {showChatPane ? (
+        <>
         <ScrollView
           ref={scrollViewRef}
           style={[styles.messages, pageScroll && styles.messagesPage]}
@@ -928,7 +1086,7 @@ export function CreatorAIInterface({
                     </Text>
                   )}
                 </AppPressable>
-                {supportsImageGen ? (
+                {supportsImageGen && !hasOfficeTools ? (
                   <Pressable
                     onPress={() => {
                       setShowImageGen((v) => !v);
@@ -997,7 +1155,7 @@ export function CreatorAIInterface({
                 void sendChatMessage(question, undefined, { speak: true });
               }}
             />
-            {supportsImageGen ? (
+            {supportsImageGen && !hasOfficeTools ? (
               <Pressable
                 onPress={() => {
                   setShowImageGen((v) => !v);
@@ -1165,7 +1323,7 @@ export function CreatorAIInterface({
             </Text>
           ) : null}
 
-          {showVoiceHiveControls ? (
+          {showVoiceHiveControls && !hasOfficeTools ? (
             <Pressable
               onPress={() => setShowExtras((v) => !v)}
               style={[styles.extrasToggle, { borderColor: colors.border, backgroundColor: colors.surface }]}
@@ -1177,7 +1335,7 @@ export function CreatorAIInterface({
             </Pressable>
           ) : null}
 
-          {showVoiceHiveControls && showExtras ? (
+          {showVoiceHiveControls && !hasOfficeTools && showExtras ? (
             <>
               {showVoiceHiveControls && !isAssociateAi && talkLowBalance ? (
                 <AiTalkLowBalanceNotice
@@ -1307,6 +1465,8 @@ export function CreatorAIInterface({
             </>
           ) : null}
         </ComposerDock>
+        </>
+        ) : null}
       </View>
       </View>
     </KeyboardAvoidingView>
