@@ -11,6 +11,19 @@ function normalizeDatabaseUrl(url) {
   return url.replace(/@localhost(?=[:/])/g, "@127.0.0.1");
 }
 
+function isUsableMysqlUrl(url) {
+  if (!url.startsWith("mysql://") && !url.startsWith("mysql2://")) return false;
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname;
+    if (!host) return false;
+    if (host === "localhost" || host === "127.0.0.1") return true;
+    return host.includes(".");
+  } catch (err) {
+    return false;
+  }
+}
+
 function getDatabaseUrl() {
   const named = [
     process.env.MYSQL_DATABASE_URL,
@@ -20,7 +33,7 @@ function getDatabaseUrl() {
   ];
   for (let i = 0; i < named.length; i += 1) {
     const raw = (named[i] || "").trim();
-    if (raw.startsWith("mysql://") || raw.startsWith("mysql2://")) {
+    if (isUsableMysqlUrl(raw)) {
       return normalizeDatabaseUrl(raw);
     }
   }
@@ -41,17 +54,6 @@ function getDatabaseUrl() {
         port +
         "/" +
         encodeURIComponent(database),
-    );
-  }
-  const raw = (process.env.DATABASE_URL || "").trim();
-  if (raw.startsWith("postgres://") || raw.startsWith("postgresql://")) {
-    throw new Error(
-      "DATABASE_URL is Postgres. Set MYSQL_DATABASE_URL to a mysql://… string, or add a Railway MySQL database.",
-    );
-  }
-  if (raw) {
-    throw new Error(
-      "DATABASE_URL must be mysql://… (this project uses drizzle-orm/mysql2, not PostgreSQL).",
     );
   }
   return null;

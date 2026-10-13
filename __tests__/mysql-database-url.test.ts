@@ -27,6 +27,29 @@ describe("MySQL database URL resolver", () => {
     ).toMatch(/mysql:\/\//i);
   });
 
+  it("skips a broken mysql address and uses the Railway MySQL pieces", () => {
+    expect(
+      resolveMysqlDatabaseUrl({
+        MYSQL_DATABASE_URL: "mysql://a:bc",
+        DATABASE_URL: "postgresql://placeholder",
+        MYSQLHOST: "mysql.railway.internal",
+        MYSQLUSER: "root",
+        MYSQLPASSWORD: "pw",
+        MYSQLDATABASE: "railway",
+        MYSQLPORT: "3306",
+      }),
+    ).toBe("mysql://root:pw@mysql.railway.internal:3306/railway");
+  });
+
+  it("does not treat a host-less mysql string as a database", () => {
+    expect(
+      resolveMysqlDatabaseUrl({
+        MYSQL_DATABASE_URL: "mysql://root",
+        DATABASE_URL: "postgresql://placeholder",
+      }),
+    ).toBeNull();
+  });
+
   it("builds a URL from Railway MySQL plugin pieces", () => {
     expect(
       mysqlUrlFromRailwayPieces({

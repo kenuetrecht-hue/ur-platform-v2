@@ -7,6 +7,20 @@ export function isMysqlConnectionUrl(url: string): boolean {
   return url.startsWith("mysql://") || url.startsWith("mysql2://");
 }
 
+/** A real MySQL address has a host. A short or broken mysql:// string is ignored. */
+export function isUsableMysqlUrl(url: string): boolean {
+  if (!isMysqlConnectionUrl(url)) return false;
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname;
+    if (!host) return false;
+    if (host === "localhost" || host === "127.0.0.1") return true;
+    return host.includes(".");
+  } catch {
+    return false;
+  }
+}
+
 export function isPostgresConnectionUrl(url: string): boolean {
   return url.startsWith("postgres://") || url.startsWith("postgresql://");
 }
@@ -45,7 +59,7 @@ export function resolveMysqlDatabaseUrl(envMap: NodeJS.ProcessEnv = process.env)
     readEnv(envMap, "DATABASE_URL"),
   ];
   for (const url of named) {
-    if (isMysqlConnectionUrl(url)) return normalizeDatabaseUrl(url);
+    if (isUsableMysqlUrl(url)) return normalizeDatabaseUrl(url);
   }
   return mysqlUrlFromRailwayPieces(envMap);
 }
