@@ -55,6 +55,7 @@ import { ChatAttachButtons, ChatPendingAttachments } from "@/components/chat-att
 import { AppPressable } from "@/components/app-pressable";
 import { OfficeAgentDesk, StewardAssignPanel } from "@/components/office-agent-desk";
 import { AiLearnSurface } from "@/components/ai-creator-panel";
+import { AI_CHAT_MEMBER_MESSAGE_MAX, AI_CHAT_OWNER_HISTORY_TURNS, AI_CHAT_OWNER_MESSAGE_MAX } from "@/lib/ai-chat-limits";
 
 type AiToolTab = "chat" | "email" | "call" | "bill" | "learn" | "assign" | "paint" | "hive" | "video";
 
@@ -291,6 +292,8 @@ export function CreatorAIInterface({
   const handoffs = trpc.aiCreators.getHandoffs.useQuery({ creatorId });
   const isAssociateAi = creatorId === AFFILIATE_ASSOCIATE_ID;
   const { isPlatformOwner } = usePlatformOwner();
+  const chatMessageMax = isPlatformOwner ? AI_CHAT_OWNER_MESSAGE_MAX : AI_CHAT_MEMBER_MESSAGE_MAX;
+  const chatHistoryTurns = isPlatformOwner ? AI_CHAT_OWNER_HISTORY_TURNS : 10;
   const talkMinutes = talkStatus.data?.minutesRemaining ?? premium.data?.talkMinutesRemaining ?? 0;
   const talkMsLeft = talkStatus.data?.millisecondsRemaining ?? talkMinutes * 60_000;
   const talkLoseBy = talkStatus.data?.earliestLoseByLabel;
@@ -335,7 +338,7 @@ export function CreatorAIInterface({
 
   const sendChatMessage = useCallback(
     async (rawText: string, attachmentOverride?: PickedChatAttachment[], options?: { speak?: boolean }) => {
-      const userMessage = rawText.trim().slice(0, 2000);
+      const userMessage = rawText.trim().slice(0, chatMessageMax);
       const attachmentsToSend = attachmentOverride ?? pendingAttachments;
       if ((!userMessage && attachmentsToSend.length === 0) || loading) return;
 
@@ -361,7 +364,7 @@ export function CreatorAIInterface({
 
       if (isAuthenticated && !chatSyncConnected) {
         if (attachmentsToSend.length > 0) {
-          if (clearedInput) setInputText(rawText.slice(0, 2000));
+          if (clearedInput) setInputText(rawText.slice(0, chatMessageMax));
           setSendStatus("The photo stays in the chat box. Send it when you're back online.");
           loadingRef.current = false;
           setLoading(false);
@@ -402,7 +405,7 @@ export function CreatorAIInterface({
       try {
         const priorTurns = messages
           .filter((m) => m.role === "user" || m.role === "ai")
-          .slice(-10)
+          .slice(-chatHistoryTurns)
           .map((m) => ({
             role: m.role === "ai" ? ("assistant" as const) : ("user" as const),
             content: m.text,
@@ -497,6 +500,8 @@ export function CreatorAIInterface({
       pendingAttachments,
       scrollToBottom,
       refetchChatThread,
+      chatMessageMax,
+      chatHistoryTurns,
     ],
   );
 
@@ -1051,7 +1056,7 @@ export function CreatorAIInterface({
                     setVoiceStatus("Mic on — AI voice stopped so it does not echo.");
                   }}
                   onTranscript={(text, hint) => {
-                    if (text) setInputText(text.slice(0, 2000));
+                    if (text) setInputText(text.slice(0, chatMessageMax));
                     setSpeechHint(hint || null);
                   }}
                   onSpokenQuestion={(question) => {
@@ -1147,7 +1152,7 @@ export function CreatorAIInterface({
                 setVoiceStatus("Mic on — AI voice stopped so it does not echo.");
               }}
               onTranscript={(text, hint) => {
-                if (text) setInputText(text.slice(0, 2000));
+                if (text) setInputText(text.slice(0, chatMessageMax));
                 setSpeechHint(hint || null);
               }}
               onSpokenQuestion={(question) => {
@@ -1196,7 +1201,7 @@ export function CreatorAIInterface({
               value={inputText}
               onChangeText={setInputText}
               focusNonce={textFocusNonce}
-              maxLength={2000}
+              maxLength={chatMessageMax}
               onFocus={() => {
                 if (Platform.OS !== "web") return;
                 requestAnimationFrame(() => {

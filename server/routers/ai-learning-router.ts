@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AI_CHAT_HISTORY_CONTENT_MAX, AI_CHAT_OWNER_HISTORY_TURNS, AI_CHAT_OWNER_MESSAGE_MAX } from "../../lib/ai-chat-limits";
 import { secureProcedure, securePublicProcedure, router, TRPCError } from "../_core/trpc";
 import { chatAttachmentSchema } from "../_core/chat-attachment-service";
 import { getCreatorAi, isCreatorAiId } from "../_core/ai-creator-registry";
@@ -81,7 +82,7 @@ const creatorIdSchema = z
 const chatHistorySchema = z.array(
   z.object({
     role: z.enum(["user", "assistant"]),
-    content: z.string().max(4000),
+    content: z.string().max(AI_CHAT_HISTORY_CONTENT_MAX),
   }),
 );
 
@@ -244,8 +245,8 @@ export const aiLearningRouter = router({
     .input(
       z.object({
         creatorId: creatorIdSchema,
-        message: z.string().trim().min(1).max(4000),
-        history: chatHistorySchema.max(20).optional(),
+        message: z.string().trim().min(1).max(AI_CHAT_OWNER_MESSAGE_MAX),
+        history: chatHistorySchema.max(AI_CHAT_OWNER_HISTORY_TURNS).optional(),
         level: levelSchema.default("beginner"),
         mode: modeSchema.default("lesson"),
         topic: z.string().max(200).optional(),

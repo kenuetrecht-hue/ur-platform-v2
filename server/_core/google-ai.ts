@@ -4,6 +4,7 @@ import { VertexAI, type GenerateContentResult } from "@google-cloud/vertexai";
 import { sanitizeLanguageLabel, sanitizeModelPrompt, sanitizeUserText } from "./input-sanitize";
 import { InternalServiceError } from "./service-errors";
 import { ENV } from "./env";
+import { AI_CHAT_HISTORY_CONTENT_MAX, AI_CHAT_OWNER_HISTORY_TURNS } from "../../lib/ai-chat-limits";
 import {
   getContentmateGeminiApiKey,
   isContentmateGeminiConfigured,
@@ -58,7 +59,7 @@ export type ImagenGenerateResult = {
 };
 
 const MAX_MESSAGE_LENGTH = 4000;
-const MAX_HISTORY_TURNS = 30;
+const MAX_HISTORY_TURNS = AI_CHAT_OWNER_HISTORY_TURNS;
 const MAX_PROMPT_LENGTH = 2000;
 
 /** Models to try in order when using the Gemini API key (Vertex uses ENV.googleGeminiModel only). */
@@ -412,7 +413,7 @@ function sanitizeParams(params: GoogleChatParams): GoogleChatParams {
       : undefined,
     history: params.history.slice(-MAX_HISTORY_TURNS).map((turn) => ({
       role: turn.role,
-      content: sanitizeUserText(turn.content, MAX_MESSAGE_LENGTH),
+      content: sanitizeUserText(turn.content, AI_CHAT_HISTORY_CONTENT_MAX),
     })),
     maxOutputTokens,
     temperature,

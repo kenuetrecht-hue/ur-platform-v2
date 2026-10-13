@@ -25,6 +25,13 @@ import {
   type GoogleChatTurn,
 } from "./google-ai";
 import { sanitizeChatHistory, sanitizeUserText } from "./input-sanitize";
+import {
+  AI_CHAT_HISTORY_CONTENT_MAX,
+  AI_CHAT_MEMBER_HISTORY_CONTENT_MAX,
+  AI_CHAT_MEMBER_HISTORY_TURNS,
+  AI_CHAT_OWNER_HISTORY_TURNS,
+  AI_CHAT_OWNER_MESSAGE_MAX,
+} from "../../lib/ai-chat-limits";
 import { sanitizeChatAttachments } from "./chat-attachment-service";
 import type { ChatAttachmentInput } from "../../lib/chat-attachment-types";
 import { isOwnerOnlyPlatformAi } from "./platform-ops-ai";
@@ -457,7 +464,10 @@ export async function handleCreatorLearningSession(params: {
 
   assertUserCanUseAi(params.userId, params.isPlatformOwner);
   await assertUserIsAgeVerified(params.userId);
-  const message = sanitizeUserText(params.message, 4000);
+  const message = sanitizeUserText(
+    params.message,
+    params.isPlatformOwner ? AI_CHAT_OWNER_MESSAGE_MAX : 4000,
+  );
   assertNoAiTakeoverInMessage(message, params.isPlatformOwner);
   assertMissionUseAllowed(message, params.isPlatformOwner);
   assertMessageWithinAiRole(message, params.creatorId, params.isPlatformOwner);
@@ -466,7 +476,11 @@ export async function handleCreatorLearningSession(params: {
     assertOwnerChatAllowed();
   }
 
-  const history = sanitizeChatHistory(params.history ?? [], 20, 4000);
+  const history = sanitizeChatHistory(
+    params.history ?? [],
+    params.isPlatformOwner ? AI_CHAT_OWNER_HISTORY_TURNS : AI_CHAT_MEMBER_HISTORY_TURNS,
+    params.isPlatformOwner ? AI_CHAT_HISTORY_CONTENT_MAX : AI_CHAT_MEMBER_HISTORY_CONTENT_MAX,
+  );
   const memoryBlock = await getUserMemoryPromptBlock(params.userId, params.creatorId);
   const systemPrompt = [
     buildLearningPrompt(

@@ -54,12 +54,13 @@ import { notifyAiChatThreadUpdated } from "../_core/ai-chat-realtime-ws";
 import { assertUserCanUseAi } from "../_core/ai-guardrails";
 import { assertNoAiTakeoverInMessage } from "../_core/ai-control";
 import { assertAndConsumeCredit } from "../_core/usage-credits-service";
+import { AI_CHAT_HISTORY_CONTENT_MAX, AI_CHAT_MEMBER_HISTORY_TURNS, AI_CHAT_OWNER_HISTORY_TURNS, AI_CHAT_OWNER_MESSAGE_MAX } from "../../lib/ai-chat-limits";
 
 
 const chatHistorySchema = z.array(
   z.object({
     role: z.enum(["user", "assistant"]),
-    content: z.string().max(4000),
+    content: z.string().max(AI_CHAT_HISTORY_CONTENT_MAX),
   }),
 );
 
@@ -176,6 +177,7 @@ export const aiCreatorChatRouter = router({
         const existing = await listAiChatMessages({
           userId: ctx.user.id,
           creatorId: input.creatorId,
+          limit: ctx.isPlatformOwner ? AI_CHAT_OWNER_HISTORY_TURNS : undefined,
         });
         if (existing) return existing;
         const created = await getOrCreateAiChatThread({
@@ -214,7 +216,7 @@ export const aiCreatorChatRouter = router({
           userId: ctx.user.id,
           creatorId: input.creatorId,
           since: sinceDate,
-          limit: sinceDate ? 100 : 40,
+          limit: sinceDate ? 100 : ctx.isPlatformOwner ? AI_CHAT_OWNER_HISTORY_TURNS : 40,
         });
         if (!thread) {
           const created = await getOrCreateAiChatThread({
@@ -238,8 +240,8 @@ export const aiCreatorChatRouter = router({
     .input(
       z.object({
         creatorId: creatorIdSchema,
-        message: z.string().trim().min(1).max(2000),
-        history: chatHistorySchema.max(20).optional(),
+        message: z.string().trim().min(1).max(AI_CHAT_OWNER_MESSAGE_MAX),
+        history: chatHistorySchema.max(AI_CHAT_OWNER_HISTORY_TURNS).optional(),
         /** Explicitly invoke multi-AI hive consultation with peer specialists */
         useHiveConsult: z.boolean().optional(),
         /** Photos, PDFs, and text files for every assistant. */
@@ -261,7 +263,7 @@ export const aiCreatorChatRouter = router({
       let serverHistory = await loadAiChatHistoryForModel({
         userId: ctx.user.id,
         creatorId: input.creatorId,
-        maxTurns: 20,
+        maxTurns: ctx.isPlatformOwner ? AI_CHAT_OWNER_HISTORY_TURNS : AI_CHAT_MEMBER_HISTORY_TURNS,
       });
       while (serverHistory.length > 0 && serverHistory[0]?.role === "assistant") {
         serverHistory = serverHistory.slice(1);

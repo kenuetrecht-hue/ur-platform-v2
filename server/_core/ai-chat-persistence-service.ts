@@ -7,6 +7,7 @@ import { and, asc, desc, eq, gt } from "drizzle-orm";
 import { aiChatMessages, aiChatThreads } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { sanitizeUserText } from "./input-sanitize";
+import { AI_CHAT_OWNER_HISTORY_TURNS } from "../../lib/ai-chat-limits";
 
 export type PersistedChatRole = "user" | "assistant";
 
@@ -145,7 +146,7 @@ export async function listAiChatMessages(params: {
   limit?: number;
   since?: Date;
 }): Promise<PersistedChatThread | null> {
-  const limit = Math.min(params.limit ?? MAX_LOAD_MESSAGES, MAX_LOAD_MESSAGES);
+  const limit = Math.min(params.limit ?? MAX_LOAD_MESSAGES, Math.max(MAX_LOAD_MESSAGES, AI_CHAT_OWNER_HISTORY_TURNS));
 
   const dbResult = await runWithDb(async (db) => {
     const threadRow = await db

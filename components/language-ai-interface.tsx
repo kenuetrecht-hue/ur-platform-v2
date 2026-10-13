@@ -11,6 +11,8 @@ import {
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/lib/auth-context";
+import { usePlatformOwner } from "@/lib/use-platform-owner";
+import { AI_CHAT_OWNER_HISTORY_TURNS, AI_CHAT_OWNER_MESSAGE_MAX } from "@/lib/ai-chat-limits";
 import { useOverlapInsets } from "@/hooks/use-overlap-insets";
 import { LAYOUT_OVERLAP } from "@/lib/layout-overlap";
 import { useAiChatSync, type SyncedChatMessage } from "@/hooks/use-ai-chat-sync";
@@ -76,6 +78,9 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
     headerChromeHeight: reserveTabBar ? LAYOUT_OVERLAP.AIS_TAB_CHROME_HEIGHT + 100 : 0,
   });
   const { isAuthenticated } = useAuth();
+  const { isPlatformOwner } = usePlatformOwner();
+  const languageMessageMax = isPlatformOwner ? AI_CHAT_OWNER_MESSAGE_MAX : 4000;
+  const languageHistoryTurns = isPlatformOwner ? AI_CHAT_OWNER_HISTORY_TURNS : 12;
   const subAccess = trpc.aiSubscription.getAccess.useQuery(
     { creatorId: "linguamate" },
     { enabled: isAuthenticated },
@@ -144,18 +149,18 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
     () =>
       messages
         .filter((m) => m.role === "user" || m.role === "ai")
-        .slice(-12)
+        .slice(-languageHistoryTurns)
         .map((m) => ({
           role: m.role === "ai" ? ("assistant" as const) : ("user" as const),
           content: m.text,
         })),
-    [messages],
+    [messages, languageHistoryTurns],
   );
 
   const sendMessage = useCallback(
     async (rawText: string, options?: { speak?: boolean; withAttachments?: boolean }) => {
       const attachmentsToSend = options?.withAttachments === false ? [] : pendingAttachments;
-      const userMessage = rawText.trim().slice(0, 4000);
+      const userMessage = rawText.trim().slice(0, languageMessageMax);
       if ((!userMessage && attachmentsToSend.length === 0) || loading || !canChat) return;
       const displayText = chatAttachmentCaption(attachmentsToSend, userMessage);
       const messageForApi = userMessage || "Please look at the attached photo or document.";
@@ -167,7 +172,7 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
 
       if (mode === "chat" && isAuthenticated && !chatSyncConnected) {
         if (attachmentsToSend.length > 0) {
-          if (clearedInput) setInputText(rawText.slice(0, 4000));
+          if (clearedInput) setInputText(rawText.slice(0, languageMessageMax));
           setAttachNote("The photo stays in the chat box. Send it when you're back online.");
           loadingRef.current = false;
           setLoading(false);
@@ -281,6 +286,7 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
       canChat,
       pendingAttachments,
       speakText,
+      languageMessageMax,
     ],
   );
 
@@ -673,7 +679,7 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
               setVoiceStatus("Mic on — AI voice stopped so it does not echo.");
             }}
             onTranscript={(text, hint) => {
-              if (text) setInputText(text.slice(0, 4000));
+              if (text) setInputText(text.slice(0, languageMessageMax));
               setSpeechHint(hint || null);
             }}
             onSpokenQuestion={(question) => {
@@ -718,7 +724,7 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
             value={inputText}
             onChangeText={setInputText}
             focusNonce={textFocusNonce}
-            maxLength={4000}
+            maxLength={languageMessageMax}
             editable={!loading && canChat}
             onSubmitEditing={() => void sendMessage(inputText)}
           />

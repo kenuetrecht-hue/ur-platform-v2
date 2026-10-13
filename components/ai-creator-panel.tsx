@@ -15,6 +15,8 @@ import { trpc } from "@/lib/trpc";
 import { CreatorAIInterface } from "@/components/creator-ai-interface";
 import { LanguageAIInterface } from "@/components/language-ai-interface";
 import { OWNER_OPS_AI_IDS } from "@/lib/owner-platform-ops-catalog";
+import { usePlatformOwner } from "@/lib/use-platform-owner";
+import { AI_CHAT_OWNER_HISTORY_TURNS, AI_CHAT_OWNER_MESSAGE_MAX } from "@/lib/ai-chat-limits";
 import { useRouter } from "expo-router";
 import { TechBuilderSandboxPanel } from "@/components/tech-builder-sandbox-panel";
 import { TechBuilderLearnPanel } from "@/components/tech-builder-learn-panel";
@@ -386,6 +388,9 @@ export function AiLearnSurface({
   overlapOptions?: { reserveTabBar?: boolean; headerChromeHeight?: number };
 }) {
   const colors = useColors();
+  const { isPlatformOwner } = usePlatformOwner();
+  const learnMessageMax = isPlatformOwner ? AI_CHAT_OWNER_MESSAGE_MAX : 4000;
+  const learnHistoryTurns = isPlatformOwner ? AI_CHAT_OWNER_HISTORY_TURNS : 10;
   const overlap = useOverlapInsets({
     headerChromeHeight: overlapOptions?.headerChromeHeight ?? LAYOUT_OVERLAP.AIS_TAB_CHROME_HEIGHT,
     reserveTabBar: overlapOptions?.reserveTabBar ?? true,
@@ -435,7 +440,7 @@ export function AiLearnSurface({
   const sendLearnMessage = useCallback(
     async (raw: string, options?: { speak?: boolean; withAttachments?: boolean }) => {
       const files = options?.withAttachments ? pendingAttachments : [];
-      const text = raw.trim().slice(0, 4000);
+      const text = raw.trim().slice(0, learnMessageMax);
       if ((!text && files.length === 0) || loading) return;
       const displayText = chatAttachmentCaption(files, text);
       const message = text || "Please look at the attached photo or document.";
@@ -456,7 +461,7 @@ export function AiLearnSurface({
       ]);
       setInputText("");
 
-      const history = messages.slice(-10).map((m) => ({
+      const history = messages.slice(-learnHistoryTurns).map((m) => ({
         role: m.role === "ai" ? ("assistant" as const) : ("user" as const),
         content: m.text,
       }));
@@ -487,7 +492,7 @@ export function AiLearnSurface({
         setLoading(false);
       }
     },
-    [activeTopic, creatorId, learnMode, level, loading, messages, pendingAttachments, teach],
+    [activeTopic, creatorId, learnMode, level, loading, messages, pendingAttachments, teach, learnMessageMax, learnHistoryTurns],
   );
 
   const startModule = (title: string) => {
@@ -721,7 +726,7 @@ export function AiLearnSurface({
           fullWidth
           disabled={loading}
           onTranscript={(text) => {
-            if (text) setInputText(text.slice(0, 4000));
+            if (text) setInputText(text.slice(0, learnMessageMax));
           }}
           onSpokenQuestion={(question) => {
             setInputText("");
@@ -747,7 +752,7 @@ export function AiLearnSurface({
           placeholder="Ask for a lesson, practice quiz, or certification topic…"
           placeholderTextColor={colors.muted}
           style={[styles.input, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
-          maxLength={4000}
+          maxLength={learnMessageMax}
         />
         </ChatSideComposer>
       </ComposerDock>

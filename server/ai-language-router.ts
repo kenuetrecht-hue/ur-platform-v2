@@ -14,6 +14,12 @@ import {
   sanitizeLanguageLabel,
   sanitizeUserText,
 } from "./_core/input-sanitize";
+import {
+  AI_CHAT_HISTORY_CONTENT_MAX,
+  AI_CHAT_MEMBER_HISTORY_CONTENT_MAX,
+  AI_CHAT_OWNER_HISTORY_TURNS,
+  AI_CHAT_OWNER_MESSAGE_MAX,
+} from "../lib/ai-chat-limits";
 import { LANGUAGE_AI_SYSTEM_PROMPT } from "./_core/multilingual-prompts";
 import {
   appendAiChatTurns,
@@ -53,9 +59,20 @@ function consumeLinguamateMessage(ctx: {
 const chatHistorySchema = z.array(
   z.object({
     role: z.enum(["user", "assistant"]),
-    content: z.string().max(4000),
+    content: z.string().max(AI_CHAT_HISTORY_CONTENT_MAX),
   }),
 );
+
+function ownerChatBounds(isPlatformOwner: boolean): { turns: number; content: number; message: number } {
+  if (isPlatformOwner) {
+    return {
+      turns: AI_CHAT_OWNER_HISTORY_TURNS,
+      content: AI_CHAT_HISTORY_CONTENT_MAX,
+      message: AI_CHAT_OWNER_MESSAGE_MAX,
+    };
+  }
+  return { turns: 30, content: AI_CHAT_MEMBER_HISTORY_CONTENT_MAX, message: 4000 };
+}
 
 const languageLevelSchema = z.enum(["beginner", "intermediate", "advanced"]);
 
@@ -63,8 +80,8 @@ export const aiLanguageRouter = router({
   chat: secureProcedure("aiLanguage")
     .input(
       z.object({
-        message: z.string().trim().min(1).max(4000),
-        history: chatHistorySchema.max(30).optional(),
+        message: z.string().trim().min(1).max(AI_CHAT_OWNER_MESSAGE_MAX),
+        history: chatHistorySchema.max(AI_CHAT_OWNER_HISTORY_TURNS).optional(),
         targetLanguage: z.string().max(64).optional(),
         attachments: z.array(chatAttachmentSchema).max(2).optional(),
       }),
@@ -83,22 +100,23 @@ export const aiLanguageRouter = router({
         await assertUserIsAgeVerified(ctx.user.id);
         assertUserCanUseAi(String(ctx.user.id), ctx.isPlatformOwner);
 
-        const message = sanitizeUserText(input.message, 4000);
+        const bounds = ownerChatBounds(ctx.isPlatformOwner);
+        const message = sanitizeUserText(input.message, bounds.message);
         assertNoAiTakeoverInMessage(message, ctx.isPlatformOwner);
         assertMessageWithinAiRole(message, "linguamate", ctx.isPlatformOwner);
 
         let serverHistory = await loadAiChatHistoryForModel({
           userId: Number(ctx.user.id),
           creatorId: "linguamate",
-          maxTurns: 30,
+          maxTurns: bounds.turns,
         });
         while (serverHistory.length > 0 && serverHistory[0]?.role === "assistant") {
           serverHistory = serverHistory.slice(1);
         }
         const history =
           serverHistory.length > 0
-            ? sanitizeChatHistory(serverHistory, 30, 4000)
-            : sanitizeChatHistory(input.history ?? [], 30, 4000);
+            ? sanitizeChatHistory(serverHistory, bounds.turns, bounds.content)
+            : sanitizeChatHistory(input.history ?? [], bounds.turns, bounds.content);
         const targetLanguage = input.targetLanguage
           ? sanitizeLanguageLabel(input.targetLanguage)
           : undefined;
@@ -159,7 +177,7 @@ export const aiLanguageRouter = router({
   translate: secureProcedure("aiLanguage")
     .input(
       z.object({
-        text: z.string().trim().min(1).max(4000),
+        text: z.string().trim().min(1).max(AI_CHAT_OWNER_MESSAGE_MAX),
         sourceLanguage: z.string().max(64).optional(),
         targetLanguage: z.string().trim().min(1).max(64),
         attachments: z.array(chatAttachmentSchema).max(2).optional(),
@@ -179,7 +197,7 @@ export const aiLanguageRouter = router({
         await assertUserIsAgeVerified(ctx.user.id);
         assertUserCanUseAi(String(ctx.user.id), ctx.isPlatformOwner);
 
-        const text = sanitizeUserText(input.text, 4000);
+        const text = sanitizeUserText(input.text, ownerChatBounds(ctx.isPlatformOwner).message);
         assertNoAiTakeoverInMessage(text, ctx.isPlatformOwner);
         assertMessageWithinAiRole(text, "linguamate", ctx.isPlatformOwner);
         const targetLanguage = sanitizeLanguageLabel(input.targetLanguage);
@@ -240,8 +258,8 @@ ${text}
         mode: z
           .enum(["lesson", "practice", "conversation", "vocabulary"])
           .default("lesson"),
-        userMessage: z.string().trim().max(2000).optional(),
-        history: chatHistorySchema.max(20).optional(),
+        userMessage: z.string().trim().max(AI_CHAT_OWNER_MESSAGE_MAX).optional(),
+        history: chatHistorySchema.max(AI_CHAT_OWNER_HISTORY_TURNS).optional(),
         attachments: z.array(chatAttachmentSchema).max(2).optional(),
       }),
     )
@@ -268,8 +286,9 @@ ${text}
           ? `Topic: ${sanitizeUserText(input.topic, 200)}.`
           : "Choose a practical everyday topic for this level.";
 
+        const teachBounds = ownerChatBounds(ctx.isPlatformOwner);
         const instruction = input.userMessage
-          ? sanitizeUserText(input.userMessage, 2000)
+          ? sanitizeUserText(input.userMessage, teachBounds.message)
           : `Start a ${input.mode} session in ${targetLanguage} for a ${input.level} learner. ${topicLine}
 Use sections: **Goal**, **New words**, **Grammar tip**, **Example dialogue**, **Your turn** (a prompt for the learner).`;
 
@@ -279,7 +298,7 @@ Use sections: **Goal**, **New words**, **Grammar tip**, **Example dialogue**, **
         const attachments = sanitizeChatAttachments(input.attachments);
         const { reply: rawReply, model } = await generateGoogleChatReply({
           systemPrompt: LANGUAGE_AI_SYSTEM_PROMPT,
-          history: sanitizeChatHistory(input.history ?? [], 20, 4000),
+          history: sanitizeChatHistory(input.history ?? [], teachBounds.turns, teachBounds.content),
           message: attachments.length
             ? `${instruction}\n\nA photo or document is attached. Use what is in that file in this lesson.`
             : instruction,

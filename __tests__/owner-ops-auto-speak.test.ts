@@ -1,8 +1,6 @@
-import { TRPCError } from "@trpc/server";
 import { describe, expect, it, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import {
-  OWNER_CHAT_DAILY_CAP,
   OWNER_CHAT_UNLIMITED_MONTHLY_CENTS,
   ownerChatIsUnlimited,
   sumMonthPlatformRevenueCents,
@@ -36,21 +34,16 @@ describe("owner chat allowance", () => {
     expect(ownerChatIsUnlimited(500_000)).toBe(true);
   });
 
-  it("lets the owner talk, and stops a 21st chat the same day until the site makes $5,000", () => {
+  it("lets the owner keep talking with no daily stop", () => {
     _forceOwnerChatRevenueForTests(0);
     expect(getOwnerOpsAutoSpeakStatus(now).autoSpeak).toBe(true);
-    expect(getOwnerOpsAutoSpeakStatus(now).unlimited).toBe(false);
-    expect(getOwnerOpsAutoSpeakStatus(now).dailyCap).toBe(OWNER_CHAT_DAILY_CAP);
+    expect(getOwnerOpsAutoSpeakStatus(now).unlimited).toBe(true);
+    expect(getOwnerOpsAutoSpeakStatus(now).dailyCap).toBeNull();
 
-    for (let i = 0; i < OWNER_CHAT_DAILY_CAP; i++) {
+    for (let i = 0; i < 25; i++) {
       assertOwnerChatAllowed(now);
       recordOwnerChat(now);
     }
-    expect(getOwnerOpsAutoSpeakStatus(now).dailyRemaining).toBe(0);
-    expect(() => assertOwnerChatAllowed(now)).toThrow(TRPCError);
-
-    _forceOwnerChatRevenueForTests(OWNER_CHAT_UNLIMITED_MONTHLY_CENTS);
-    expect(getOwnerOpsAutoSpeakStatus(now).unlimited).toBe(true);
     expect(() => assertOwnerChatAllowed(now)).not.toThrow();
   });
 

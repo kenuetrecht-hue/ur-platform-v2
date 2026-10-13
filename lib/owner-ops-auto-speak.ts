@@ -1,11 +1,10 @@
 /**
- * While the site has not made this much in the current month, the owner's
- * own AI chats are capped per day so constant talking does not run the API bill.
- * At this mark the daily cap comes off.
+ * Kept for revenue reporting. The owner's own AI chats are not capped.
+ * Member chats are limited in the usage meter.
  */
 export const OWNER_CHAT_UNLIMITED_MONTHLY_CENTS = 500_000;
 
-/** Owner AI chats allowed per Indiana day while monthly revenue is under the mark. */
+/** Earlier daily stop for the owner. It is no longer applied. */
 export const OWNER_CHAT_DAILY_CAP = 20;
 
 const PLATFORM_REVENUE_TYPES = new Set([

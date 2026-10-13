@@ -38,6 +38,7 @@ import {
   isGoogleCloudAiConfigured,
   type GoogleChatTurn,
 } from "./google-ai";
+import { AI_CHAT_HISTORY_CONTENT_MAX, AI_CHAT_MEMBER_HISTORY_CONTENT_MAX, AI_CHAT_MEMBER_HISTORY_TURNS, AI_CHAT_MEMBER_MESSAGE_MAX, AI_CHAT_OWNER_HISTORY_TURNS, AI_CHAT_OWNER_MESSAGE_MAX } from "../../lib/ai-chat-limits";
 import { sanitizeChatHistory, sanitizeUserText } from "./input-sanitize";
 import { mapServiceErrorToTrpc } from "./service-errors";
 import { resolveAiReplyOrFallback } from "../../lib/ai-empty-reply";
@@ -255,7 +256,11 @@ export async function handleCreatorAiChat(params: {
 
     const message = sanitizeUserText(
       params.message,
-      params.ctx.landingDemo ? LANDING_DEMO_MESSAGE_MAX : 2000,
+      params.ctx.landingDemo
+        ? LANDING_DEMO_MESSAGE_MAX
+        : params.ctx.isPlatformOwner
+          ? AI_CHAT_OWNER_MESSAGE_MAX
+          : AI_CHAT_MEMBER_MESSAGE_MAX,
     );
     assertNoAiTakeoverInMessage(message, params.ctx.isPlatformOwner);
     assertMissionUseAllowed(message, params.ctx.isPlatformOwner);
@@ -326,7 +331,11 @@ export async function handleCreatorAiChat(params: {
       }
     }
 
-    const history = sanitizeChatHistory(params.history ?? [], 20, 4000);
+    const history = sanitizeChatHistory(
+      params.history ?? [],
+      params.ctx.isPlatformOwner ? AI_CHAT_OWNER_HISTORY_TURNS : AI_CHAT_MEMBER_HISTORY_TURNS,
+      params.ctx.isPlatformOwner ? AI_CHAT_HISTORY_CONTENT_MAX : AI_CHAT_MEMBER_HISTORY_CONTENT_MAX,
+    );
     const nativeReplyLanguage =
       params.ctx.isPlatformOwner || params.ctx.landingDemo
         ? undefined
