@@ -95,13 +95,83 @@ export function sanitizeTrailLabel(raw: string): string | null {
   return text;
 }
 
-function dayKey(date: Date): string {
-  return new Intl.DateTimeFormat("en-CA", {
+const WEEKDAY_FROM_MONDAY: Record<string, number> = {
+  Mon: 0,
+  Tue: 1,
+  Wed: 2,
+  Thu: 3,
+  Fri: 4,
+  Sat: 5,
+  Sun: 6,
+};
+
+function zonedParts(date: Date): { year: number; month: number; day: number; weekday: string } {
+  const bag: Record<string, string> = {};
+  for (const part of new Intl.DateTimeFormat("en-US", {
+    timeZone: VISITOR_TRAIL_TIME_ZONE,
+    weekday: "short",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date)) {
+    if (part.type !== "literal") bag[part.type] = part.value;
+  }
+  return {
+    year: Number(bag.year),
+    month: Number(bag.month),
+    day: Number(bag.day),
+    weekday: bag.weekday ?? "Mon",
+  };
+}
+
+function zonedOffsetMs(instant: Date): number {
+  const bag: Record<string, string> = {};
+  for (const part of new Intl.DateTimeFormat("en-US", {
     timeZone: VISITOR_TRAIL_TIME_ZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(date);
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(instant)) {
+    if (part.type !== "literal") bag[part.type] = part.value;
+  }
+  const hour = bag.hour === "24" ? 0 : Number(bag.hour);
+  const asIfUtc = Date.UTC(
+    Number(bag.year),
+    Number(bag.month) - 1,
+    Number(bag.day),
+    hour,
+    Number(bag.minute),
+    Number(bag.second),
+  );
+  return asIfUtc - instant.getTime();
+}
+
+function midnightInIndiana(year: number, month: number, day: number): Date {
+  const guess = Date.UTC(year, month - 1, day, 0, 0, 0);
+  return new Date(guess - zonedOffsetMs(new Date(guess)));
+}
+
+/** Today starts at midnight. This week starts Monday morning. Both use Indiana time. */
+export function visitorTrailWindow(now: Date): { dayStart: Date; weekStart: Date } {
+  const parts = zonedParts(now);
+  const dayStart = midnightInIndiana(parts.year, parts.month, parts.day);
+  const back = WEEKDAY_FROM_MONDAY[parts.weekday] ?? 0;
+  const weekDate = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
+  weekDate.setUTCDate(weekDate.getUTCDate() - back);
+  const weekStart = midnightInIndiana(
+    weekDate.getUTCFullYear(),
+    weekDate.getUTCMonth() + 1,
+    weekDate.getUTCDate(),
+  );
+  return { dayStart, weekStart };
 }
 
 function clockLabel(iso: string): string {
@@ -167,17 +237,17 @@ function journeyFor(person: PersonBuild): string {
   return steps.join(" → ");
 }
 
+function inWindow(iso: string, start: Date, now: Date): boolean {
+  const time = new Date(iso).getTime();
+  return Number.isFinite(time) && time >= start.getTime() && time <= now.getTime() + 60_000;
+}
+
 export function summarizeVisitorTrail(events: VisitorTrailEvent[], now: Date): VisitorTrailReport {
-  const weekStart = now.getTime() - 7 * 24 * 60 * 60 * 1000;
-  const inWeek = events.filter((event) => {
-    const time = new Date(event.createdAt).getTime();
-    return Number.isFinite(time) && time >= weekStart && time <= now.getTime() + 60_000;
-  });
+  const { dayStart, weekStart } = visitorTrailWindow(now);
+  const inWeek = events.filter((event) => inWindow(event.createdAt, weekStart, now));
+  const inToday = inWeek.filter((event) => inWindow(event.createdAt, dayStart, now));
   const people = buildPeople(inWeek);
-  const today = dayKey(now);
-  const todayPeople = people.filter((person) =>
-    person.events.some((event) => dayKey(new Date(event.createdAt)) === today),
-  );
+  const todayPeople = buildPeople(inToday);
   const unsigned = people.filter((person) => !person.signedUp);
 
   const lastPages = new Map<string, number>();

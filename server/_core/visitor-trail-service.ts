@@ -6,6 +6,7 @@ import {
   sanitizeTrailLabel,
   sanitizeTrailPath,
   summarizeVisitorTrail,
+  visitorTrailWindow,
   type VisitorTrailEvent,
   type VisitorTrailKind,
   type VisitorTrailReport,
@@ -97,6 +98,6 @@ export async function loadVisitorTrailEvents(since: Date): Promise<VisitorTrailE
 }
 
 export async function getVisitorTrailReport(now: Date): Promise<VisitorTrailReport> {
-  const since = new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000);
-  return summarizeVisitorTrail(await loadVisitorTrailEvents(since), now);
+  const { weekStart } = visitorTrailWindow(now);
+  return summarizeVisitorTrail(await loadVisitorTrailEvents(weekStart), now);
 }

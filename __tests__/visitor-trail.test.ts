@@ -65,6 +65,46 @@ describe("visitor trail", () => {
     expect(report.recent[0]?.signedUp).toBe(true);
   });
 
+  it("clears today at Indiana midnight and clears the week on Monday morning", () => {
+    const lateSunday = event({
+      visitorId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      kind: "page",
+      path: "/",
+      createdAt: "2026-10-13T03:30:00.000Z",
+    });
+    const afterMidnight = summarizeVisitorTrail([lateSunday], new Date("2026-10-13T04:30:00.000Z"));
+    expect(afterMidnight.todayVisitors).toBe(0);
+    expect(afterMidnight.todayUnsigned).toBe(0);
+    expect(afterMidnight.weekVisitors).toBe(1);
+
+    const beforeMidnight = summarizeVisitorTrail([lateSunday], new Date("2026-10-13T03:50:00.000Z"));
+    expect(beforeMidnight.todayVisitors).toBe(1);
+    expect(beforeMidnight.todayUnsigned).toBe(1);
+
+    const lastWeek = event({
+      visitorId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      kind: "page",
+      path: "/login",
+      createdAt: "2026-10-11T22:00:00.000Z",
+    });
+    const thisWeek = event({
+      visitorId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      kind: "page",
+      path: "/signup",
+      signedIn: true,
+      createdAt: "2026-10-12T16:00:00.000Z",
+    });
+    const monday = summarizeVisitorTrail(
+      [lastWeek, thisWeek],
+      new Date("2026-10-12T19:00:00.000Z"),
+    );
+    expect(monday.todayVisitors).toBe(1);
+    expect(monday.weekVisitors).toBe(1);
+    expect(monday.weekSignedUp).toBe(1);
+    expect(monday.weekUnsigned).toBe(0);
+    expect(monday.stoppedOn).toEqual([]);
+  });
+
   it("wires the trail onto the public site and the owner People tab only", () => {
     const tracker = readFileSync("components/visitor-trail-tracker.tsx", "utf8");
     const panel = readFileSync("components/visitor-trail-panel.tsx", "utf8");

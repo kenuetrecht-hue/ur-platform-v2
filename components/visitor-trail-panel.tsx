@@ -51,8 +51,10 @@ export function VisitorTrailPanel() {
         Who came to the website
       </Text>
       <Text style={{ color: LETTERING_ON_WHITE, fontSize: 13, lineHeight: 18 }}>
-        Pages they opened, buttons they pressed, and how long they stayed. This does not save
-        passwords, chat messages, or anything they type. Your own visits are left out.
+        Pages they opened, buttons they pressed, and how long they stayed. Today’s numbers
+        clear at midnight. This week’s numbers, and the lists below, clear Monday morning.
+        Indiana time. This does not save passwords, chat messages, or anything they type.
+        Your own visits are left out.
       </Text>
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
@@ -64,7 +66,7 @@ export function VisitorTrailPanel() {
       </View>
 
       <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 14 }}>
-        Where people stopped
+        Where people stopped this week
       </Text>
       {(data?.stoppedOn.length ?? 0) === 0 ? (
         <Text style={{ color: LETTERING_ON_WHITE, fontSize: 13 }}>
@@ -79,7 +81,7 @@ export function VisitorTrailPanel() {
       )}
 
       <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 14 }}>
-        Pages where they slowed down
+        Pages where they slowed down this week
       </Text>
       {(data?.slowPages.length ?? 0) === 0 ? (
         <Text style={{ color: LETTERING_ON_WHITE, fontSize: 13 }}>No long pauses yet.</Text>
@@ -91,7 +93,7 @@ export function VisitorTrailPanel() {
         ))
       )}
 
-      <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 14 }}>Buttons they pressed</Text>
+      <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 14 }}>Buttons they pressed this week</Text>
       {(data?.topButtons.length ?? 0) === 0 ? (
         <Text style={{ color: LETTERING_ON_WHITE, fontSize: 13 }}>No button presses yet.</Text>
       ) : (
@@ -105,7 +107,7 @@ export function VisitorTrailPanel() {
         ))
       )}
 
-      <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 14 }}>Recent visits</Text>
+      <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 14 }}>Recent visits this week</Text>
       {data?.recent.map((person) => (
         <Text
           key={`${person.visitorLabel}-${person.lastSeenLabel}`}
