@@ -17,6 +17,8 @@ import {
   type PickedChatAttachment,
 } from "@/lib/chat-attachment-picker";
 import type { ChatMessageAttachmentPreview } from "@/lib/chat-attachment-types";
+import { CHAT_PHOTO_LOOK_MESSAGE, plainChatError } from "@/lib/chat-photo-send";
+import { refreshChatAccessToken } from "@/lib/refresh-chat-session";
 
 interface VoiceChatMessage {
   id: string;
@@ -153,7 +155,7 @@ export function VoiceChatInterface({
     const typed = userText.trim().slice(0, 2000);
     if (!typed && files.length === 0) return;
     const displayText = chatAttachmentCaption(files, typed);
-    const messageForApi = typed || "Please look at the attached photo or document.";
+    const messageForApi = typed || CHAT_PHOTO_LOOK_MESSAGE;
 
     const userMessage: VoiceChatMessage = {
       id: Date.now().toString(),
@@ -166,7 +168,14 @@ export function VoiceChatInterface({
         fileName: file.fileName,
       })),
     };
-    if (files.length > 0) setPendingAttachments([]);
+    if (files.length > 0) {
+      const signedIn = await refreshChatAccessToken();
+      if (!signedIn) {
+        setError("Sign in, then press Send again. Your picture is still in the chat box.");
+        return;
+      }
+      setPendingAttachments([]);
+    }
 
     setMessages((prev) => [...prev, userMessage]);
     setTranscript("");
@@ -209,7 +218,8 @@ export function VoiceChatInterface({
         setIsSpeaking(false);
       }
     } catch (err) {
-      setError(`Error processing message: ${err instanceof Error ? err.message : String(err)}`);
+      if (files.length > 0) setPendingAttachments(files);
+      setError(plainChatError(err, "Error processing message."));
     } finally {
       setIsProcessing(false);
     }

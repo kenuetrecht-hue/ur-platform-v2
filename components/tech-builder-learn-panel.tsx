@@ -26,6 +26,8 @@ import {
   type PickedChatAttachment,
 } from "@/lib/chat-attachment-picker";
 import type { ChatMessageAttachmentPreview } from "@/lib/chat-attachment-types";
+import { CHAT_PHOTO_LOOK_MESSAGE, plainChatError } from "@/lib/chat-photo-send";
+import { refreshChatAccessToken } from "@/lib/refresh-chat-session";
 
 type LearnLevel = "beginner" | "intermediate" | "advanced";
 type LearnMode = "lesson" | "practice" | "certification" | "on_the_job" | "conversation";
@@ -102,7 +104,19 @@ export function TechBuilderLearnPanel({
       const text = raw.trim().slice(0, 4000);
       if ((!text && files.length === 0) || loading) return;
       const displayText = chatAttachmentCaption(files, text);
-      const message = text || "Please look at the attached photo or document.";
+      const message = text || CHAT_PHOTO_LOOK_MESSAGE;
+
+      if (files.length > 0) {
+        const signedIn = await refreshChatAccessToken();
+        if (!signedIn) {
+          setInputText(raw.slice(0, 4000));
+          setMessages((prev) => [
+            ...prev,
+            { role: "ai", text: "Sign in, then press Send again. Your picture is still in the chat box." },
+          ]);
+          return;
+        }
+      }
 
       setLoading(true);
       if (files.length > 0) setPendingAttachments([]);
@@ -145,7 +159,8 @@ export function TechBuilderLearnPanel({
           }
         }
       } catch (error) {
-        const msg = error instanceof Error ? error.message : "Lesson unavailable. Try again.";
+        if (files.length > 0) setPendingAttachments(files);
+        const msg = plainChatError(error, "Lesson unavailable. Try again.");
         setMessages((prev) => [...prev, { role: "ai", text: msg }]);
       } finally {
         setLoading(false);

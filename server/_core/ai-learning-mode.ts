@@ -33,6 +33,7 @@ import {
   AI_CHAT_OWNER_MESSAGE_MAX,
 } from "../../lib/ai-chat-limits";
 import { sanitizeChatAttachments } from "./chat-attachment-service";
+import { withChatVisionInstruction } from "./chat-vision-prompt";
 import type { ChatAttachmentInput } from "../../lib/chat-attachment-types";
 import { isOwnerOnlyPlatformAi } from "./platform-ops-ai";
 import { assertAndConsumeStewardAdBudget } from "./steward-ad-budget-service";
@@ -496,10 +497,10 @@ export async function handleCreatorLearningSession(params: {
 
   const attachments = sanitizeChatAttachments(params.attachments);
   const { reply: rawReply, model } = await generateGoogleChatReply({
-    systemPrompt,
+    systemPrompt: withChatVisionInstruction(systemPrompt, attachments),
     history,
     message: attachments.length
-      ? `${message}\n\nA photo or document is attached. Teach from what is in that file.`
+      ? `${message}\n\nA photo or document is attached. Teach from what is in that file, including what is missing.`
       : message,
     attachments: attachments.length ? attachments : undefined,
   });

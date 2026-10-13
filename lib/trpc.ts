@@ -45,7 +45,8 @@ export function createTRPCClient() {
                 ? url.href
                 : url.url;
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 25_000);
+          // Photo reads need the same wait as the chat box (90s). A short cut dropped the picture.
+          const timeout = setTimeout(() => controller.abort(), 90_000);
           const onAbort = () => controller.abort();
           options?.signal?.addEventListener("abort", onAbort);
           return fetch(resolveTrpcFetchUrl(href, getTrpcApiUrl()), {

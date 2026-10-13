@@ -20,6 +20,7 @@ import {
   sanitizeAiReplyForRole,
 } from "./ai-roles";
 import { sanitizeChatAttachments, type SanitizedChatAttachment } from "./chat-attachment-service";
+import { withChatVisionInstruction } from "./chat-vision-prompt";
 import { getHiveCapabilities, shouldRunWebSearch } from "./ai-hive-capabilities";
 import type { ChatSearchCitation } from "../../lib/chat-attachment-types";
 import { VISION_UPLOAD_MESSAGE_UNITS } from "../../lib/usage-caps-catalog";
@@ -491,6 +492,8 @@ export async function handleCreatorAiChat(params: {
           name: job.specialistName,
         }));
       }
+
+      systemPrompt = withChatVisionInstruction(systemPrompt, visionAttachments);
 
       const result = await generateGoogleChatReply({
         systemPrompt,

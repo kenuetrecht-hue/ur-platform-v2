@@ -48,6 +48,8 @@ import {
   type PickedChatAttachment,
 } from "@/lib/chat-attachment-picker";
 import type { ChatMessageAttachmentPreview } from "@/lib/chat-attachment-types";
+import { CHAT_PHOTO_LOOK_MESSAGE, CHAT_PHOTO_SIGN_IN_MESSAGE, plainChatError } from "@/lib/chat-photo-send";
+import { refreshChatAccessToken } from "@/lib/refresh-chat-session";
 import { speakText } from "@/lib/azure-tts-service";
 import { TabPageScroll } from "@/components/tab-page-scroll";
 
@@ -443,7 +445,16 @@ export function AiLearnSurface({
       const text = raw.trim().slice(0, learnMessageMax);
       if ((!text && files.length === 0) || loading) return;
       const displayText = chatAttachmentCaption(files, text);
-      const message = text || "Please look at the attached photo or document.";
+      const message = text || CHAT_PHOTO_LOOK_MESSAGE;
+
+      if (files.length > 0) {
+        const signedIn = await refreshChatAccessToken();
+        if (!signedIn) {
+          setInputText(raw.slice(0, learnMessageMax));
+          setMessages((prev) => [...prev, { role: "ai", text: CHAT_PHOTO_SIGN_IN_MESSAGE }]);
+          return;
+        }
+      }
 
       setLoading(true);
       if (files.length > 0) setPendingAttachments([]);
@@ -486,7 +497,8 @@ export function AiLearnSurface({
           }
         }
       } catch (error) {
-        const msg = error instanceof Error ? error.message : "Lesson unavailable. Try again.";
+        if (files.length > 0) setPendingAttachments(files);
+        const msg = plainChatError(error, "Lesson unavailable. Try again.");
         setMessages((prev) => [...prev, { role: "ai", text: msg }]);
       } finally {
         setLoading(false);

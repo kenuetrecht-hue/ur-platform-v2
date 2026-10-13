@@ -37,6 +37,26 @@ describe("AI send returns a reply", () => {
     expect(result.creatorId).toBe("ai-marina-mechanic-001");
   });
 
+  it("sends a lawnmower photo with instructions to name what is missing", async () => {
+    await handleCreatorAiChat({
+      creatorId: "ai-small-engine-001",
+      message: "Give me information about this lawn mower.",
+      history: [],
+      attachments: [{ mimeType: "image/jpeg", base64: "/9j/AAAA" }],
+      ctx: {
+        userId: "owner-photo-test",
+        isPlatformOwner: true,
+        landingDemo: true,
+      },
+    });
+
+    const sent = vi.mocked(generateGoogleChatReply).mock.calls[0]?.[0];
+    expect(sent?.attachments).toEqual([{ mimeType: "image/jpeg", base64: "/9j/AAAA" }]);
+    expect(sent?.systemPrompt).toContain("Looks missing from the thing itself");
+    expect(sent?.systemPrompt).toContain("Not in the photo");
+    expect(sent?.message).toContain("lawn mower");
+  });
+
   it("refuses a chat that tries to take control of the AI", async () => {
     await expect(
       handleCreatorAiChat({

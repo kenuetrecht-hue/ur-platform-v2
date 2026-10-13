@@ -43,6 +43,7 @@ import {
   generateGoogleChatReply,
   type GoogleChatTurn,
 } from "./google-ai";
+import { withChatVisionInstruction } from "./chat-vision-prompt";
 
 async function formatMemoryContext(userId: string, creatorId: string): Promise<string> {
   await ensureUserMemoryHydrated(userId, creatorId);
@@ -373,7 +374,10 @@ export async function runHiveConsultation(params: {
   });
 
   const { reply, model } = await generateGoogleChatReply({
-    systemPrompt: basePromptResult.systemPrompt + synthesisBlock,
+    systemPrompt: withChatVisionInstruction(
+      basePromptResult.systemPrompt + synthesisBlock,
+      params.attachments,
+    ),
     history: params.history ?? [],
     message: params.message,
     attachments: params.attachments?.length ? params.attachments : undefined,

@@ -26,6 +26,7 @@ import {
   loadAiChatHistoryForModel,
 } from "./_core/ai-chat-persistence-service";
 import { chatAttachmentSchema, sanitizeChatAttachments } from "./_core/chat-attachment-service";
+import { withChatVisionInstruction } from "./_core/chat-vision-prompt";
 import { mapServiceErrorToTrpc } from "./_core/service-errors";
 import { notifyAiChatThreadUpdated } from "./_core/ai-chat-realtime-ws";
 import { secureProcedure, router, TRPCError } from "./_core/trpc";
@@ -123,7 +124,7 @@ export const aiLanguageRouter = router({
 
         const attachments = sanitizeChatAttachments(input.attachments);
         const { reply: rawReply, model } = await generateGoogleChatReply({
-          systemPrompt: LANGUAGE_AI_SYSTEM_PROMPT,
+          systemPrompt: withChatVisionInstruction(LANGUAGE_AI_SYSTEM_PROMPT, attachments),
           history,
           message,
           responseLanguage: targetLanguage || undefined,
@@ -225,10 +226,10 @@ ${text}
 
         const attachments = sanitizeChatAttachments(input.attachments);
         const { reply: rawReply, model } = await generateGoogleChatReply({
-          systemPrompt: LANGUAGE_AI_SYSTEM_PROMPT,
+          systemPrompt: withChatVisionInstruction(LANGUAGE_AI_SYSTEM_PROMPT, attachments),
           history: [],
           message: attachments.length
-            ? `${prompt}\n\nA photo or document is attached. Read that file as part of the translation.`
+            ? `${prompt}\n\nA photo or document is attached. Read that file, say what is missing or cut off, then translate what you can see.`
             : prompt,
           responseLanguage: targetLanguage,
           attachments: attachments.length ? attachments : undefined,
@@ -297,10 +298,10 @@ Use sections: **Goal**, **New words**, **Grammar tip**, **Example dialogue**, **
 
         const attachments = sanitizeChatAttachments(input.attachments);
         const { reply: rawReply, model } = await generateGoogleChatReply({
-          systemPrompt: LANGUAGE_AI_SYSTEM_PROMPT,
+          systemPrompt: withChatVisionInstruction(LANGUAGE_AI_SYSTEM_PROMPT, attachments),
           history: sanitizeChatHistory(input.history ?? [], teachBounds.turns, teachBounds.content),
           message: attachments.length
-            ? `${instruction}\n\nA photo or document is attached. Use what is in that file in this lesson.`
+            ? `${instruction}\n\nA photo or document is attached. Use what is in that file, and say what is missing, in this lesson.`
             : instruction,
           responseLanguage: targetLanguage,
           attachments: attachments.length ? attachments : undefined,

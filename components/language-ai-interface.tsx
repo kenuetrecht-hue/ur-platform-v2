@@ -29,6 +29,8 @@ import {
   type PickedChatAttachment,
 } from "@/lib/chat-attachment-picker";
 import type { ChatMessageAttachmentPreview } from "@/lib/chat-attachment-types";
+import { CHAT_PHOTO_LOOK_MESSAGE, CHAT_PHOTO_SIGN_IN_MESSAGE, plainChatError } from "@/lib/chat-photo-send";
+import { refreshChatAccessToken } from "@/lib/refresh-chat-session";
 import { markdownToSpeech } from "@/lib/safe-markdown";
 import { mergeUnsavedChatTail } from "@/lib/merge-unsaved-chat-tail";
 import { ComposerDock } from "@/components/composer-dock";
@@ -163,7 +165,7 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
       const userMessage = rawText.trim().slice(0, languageMessageMax);
       if ((!userMessage && attachmentsToSend.length === 0) || loading || !canChat) return;
       const displayText = chatAttachmentCaption(attachmentsToSend, userMessage);
-      const messageForApi = userMessage || "Please look at the attached photo or document.";
+      const messageForApi = userMessage || CHAT_PHOTO_LOOK_MESSAGE;
 
       loadingRef.current = true;
       setLoading(true);
@@ -195,6 +197,14 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
       }
 
       if (attachmentsToSend.length > 0) {
+        const signedIn = await refreshChatAccessToken();
+        if (!signedIn) {
+          if (clearedInput) setInputText(rawText.slice(0, languageMessageMax));
+          setAttachNote(CHAT_PHOTO_SIGN_IN_MESSAGE);
+          loadingRef.current = false;
+          setLoading(false);
+          return;
+        }
         setPendingAttachments([]);
         setAttachNote(null);
       }
@@ -257,10 +267,8 @@ export function LanguageAIInterface({ onClose, pageScroll = false, reserveTabBar
           }
         }
       } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Sorry, I encountered an error. Please try again.";
+        if (attachmentsToSend.length > 0) setPendingAttachments(attachmentsToSend);
+        const message = plainChatError(error, "Sorry, I encountered an error. Please try again.");
         setMessages((prev) => [...prev, { role: "ai", text: message }]);
       } finally {
         loadingRef.current = false;

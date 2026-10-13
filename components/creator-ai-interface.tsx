@@ -37,6 +37,8 @@ import { AiTalkLowBalanceNotice } from "@/components/ai-talk-low-balance-notice"
 import { AiTalkTimePanel } from "@/components/ai-talk-time-panel";
 import { isTalkTimeLowBalance } from "@/lib/ai-talk-time-policy";
 import type { ChatMessageAttachmentPreview, ChatSearchCitation } from "@/lib/chat-attachment-types";
+import { CHAT_PHOTO_LOOK_MESSAGE, CHAT_PHOTO_SIGN_IN_MESSAGE } from "@/lib/chat-photo-send";
+import { refreshChatAccessToken } from "@/lib/refresh-chat-session";
 import { AiChatSearchCitations } from "@/components/ai-chat-search-citations";
 import { newestConversationFirst } from "@/lib/chat-newest-first";
 import { mergeUnsavedChatTail } from "@/lib/merge-unsaved-chat-tail";
@@ -250,6 +252,9 @@ export function CreatorAIInterface({
         "update CONTENTMATE_GEMINI_API_KEY in .env, save, then restart pnpm dev."
       );
     }
+    if (/please login|\b10001\b/i.test(raw)) {
+      return CHAT_PHOTO_SIGN_IN_MESSAGE;
+    }
     return raw || "Sorry, I encountered an error. Please try again.";
   }
 
@@ -385,6 +390,17 @@ export function CreatorAIInterface({
         return;
       }
 
+      if (attachmentsToSend.length > 0) {
+        const signedIn = await refreshChatAccessToken();
+        if (!signedIn) {
+          if (clearedInput) setInputText(rawText.slice(0, chatMessageMax));
+          setSendStatus(CHAT_PHOTO_SIGN_IN_MESSAGE);
+          loadingRef.current = false;
+          setLoading(false);
+          return;
+        }
+      }
+
       if (!attachmentOverride) {
         setPendingAttachments([]);
       }
@@ -417,7 +433,7 @@ export function CreatorAIInterface({
         const result = await Promise.race([
           chatMutation.mutateAsync({
             creatorId,
-            message: userMessage || "Please analyze the attached file(s).",
+            message: userMessage || CHAT_PHOTO_LOOK_MESSAGE,
             history: priorTurns,
             useHiveConsult: hiveMode,
             attachments: attachmentsToSend.length
@@ -476,6 +492,9 @@ export function CreatorAIInterface({
         setSendStatus(errText.slice(0, 120));
         if (clearedInput) {
           setInputText(userMessage);
+        }
+        if (!attachmentOverride && attachmentsToSend.length > 0) {
+          setPendingAttachments(attachmentsToSend);
         }
       } finally {
         loadingRef.current = false;
