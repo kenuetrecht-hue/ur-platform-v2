@@ -436,6 +436,7 @@ export default function Workspace3DScreen() {
           ) : null}
 
           {activeTab === "ais" ? (
+          <>
           <View style={{ gap: 6 }}>
             <Text style={[styles.section, { color: LETTERING_ON_COLOR, paddingHorizontal: 16 }]}>
               Collaborating AIs
@@ -479,6 +480,7 @@ export default function Workspace3DScreen() {
               </>
             ) : null}
           </View>
+          </>
           ) : null}
 
           {activeTab === "printers" ? (
