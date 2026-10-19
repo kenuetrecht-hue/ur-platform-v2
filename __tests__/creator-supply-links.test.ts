@@ -31,9 +31,9 @@ describe("creator supply links", () => {
   });
 
   it("adds a small UR share on a member order", () => {
-    expect(memberPrintifyRetailCents(2000)).toBe(2240);
-    expect(memberPrintifyRetailCents(800)).toBe(925);
-    expect(memberPrintifyRetailCents(100)).toBe(225);
+    expect(memberPrintifyRetailCents(2000)).toBe(2120);
+    expect(memberPrintifyRetailCents(800)).toBe(850);
+    expect(memberPrintifyRetailCents(100)).toBe(150);
     expect(memberPrintifyRetailCents(10000)).toBe(10600);
     expect(memberPrintifyRetailCents(50)).toBeNull();
     const offers = mapPrintifyShopProducts({
@@ -66,6 +66,6 @@ describe("creator supply links", () => {
         profiles: [{ countries: ["US"], first_item: { cost: 450, currency: "USD" } }],
       }),
     ).toBe(450);
-    expect(memberPrintifyRetailCents(700 + 450)).toBe(1288);
+    expect(memberPrintifyRetailCents(700 + 450)).toBe(1219);
   });
 });
