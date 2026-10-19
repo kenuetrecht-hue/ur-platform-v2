@@ -79,7 +79,7 @@ export const HOME_MAIN_DOORS: HomeDoor[] = [
   { id: "legal", label: "Legal Masters", emoji: "⚖️", href: { pathname: "/ais", params: { group: "legalMasters", ai: "ai-attorney-criminal-001" } } },
   { id: "credit", label: "Credit Attorney", emoji: "📑", href: { pathname: "/ais", params: { group: "legalMasters", ai: "ai-attorney-credit-001" } } },
   { id: "order-merch", label: "Order merch", emoji: "👕", href: "/creator-merch" },
-  { id: "merch", label: "Merch 3D Lab", emoji: "🎨", href: { pathname: "/3d-workspace", params: { project: "merchandise" } } },
+  { id: "merch", label: "Design merch", emoji: "🎨", href: { pathname: "/3d-workspace", params: { tab: "merch", project: "merchandise" } } },
   { id: "blueprint", label: "Blueprint Reader", emoji: "📐", href: { pathname: "/(tabs)/ais", params: { ai: "ai-blueprint-reader-001" } } },
   { id: "cnc", label: "CNC & Mill", emoji: "🛠️", href: { pathname: "/(tabs)/ais", params: { ai: "ai-cnc-master-001" } } },
   { id: "culinary", label: "Culinary Arts", emoji: "👨‍🍳", href: { pathname: "/(tabs)/ais", params: { ai: "ai-culinary-001" } } },

@@ -19,6 +19,7 @@ import type { CadDrawTool, CadPlanPoint } from "@/lib/workspace-cad";
 import { createLayerFromDrawTool, resizeCadLayer } from "@/lib/workspace-cad";
 import type { BuildKitId } from "@/lib/workspace-build-kits";
 import { createBuildKitLayers, createStarterRoomDesignState } from "@/lib/workspace-build-kits";
+import { createMerchStarterDesign, type MerchStarterId } from "@/lib/merch-starter-templates";
 import { applyPhysicsPositions } from "@/lib/workspace-physics";
 
 function loadLocalDesign(sessionId: string): WorkspaceDesignState | null {
@@ -182,6 +183,13 @@ export function useWorkspaceDesign(sessionId: string | null) {
     persist(createStarterRoomDesignState());
   }, [persist]);
 
+  const loadMerchStarter = useCallback(
+    (id: MerchStarterId) => {
+      persist(createMerchStarterDesign(id));
+    },
+    [persist],
+  );
+
   const addCadDraw = useCallback(
     (tool: CadDrawTool, start: CadPlanPoint, end: CadPlanPoint) => {
       const layer = createLayerFromDrawTool(tool, start, end);
@@ -224,6 +232,7 @@ export function useWorkspaceDesign(sessionId: string | null) {
     addBuildKit,
     addCadDraw,
     loadStarterRoom,
+    loadMerchStarter,
     updateCadDimensions,
     applyPhysicsPositionsToDesign,
     updateLayerById,

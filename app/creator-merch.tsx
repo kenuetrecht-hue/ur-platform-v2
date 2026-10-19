@@ -141,9 +141,13 @@ export default function CreatorMerchScreen() {
                 ))}
               </View>
             ) : null}
-            <AppPressable onPress={() => router.push("/3d-workspace")}>
+            <AppPressable
+              onPress={() =>
+                router.push({ pathname: "/3d-workspace", params: { tab: "merch", project: "merchandise" } })
+              }
+            >
               <Text pointerEvents="none" style={{ color: LETTERING_ON_COLOR, fontWeight: "800" }}>
-                Design it in the 3D workspace
+                Start from a free template
               </Text>
             </AppPressable>
           </View>

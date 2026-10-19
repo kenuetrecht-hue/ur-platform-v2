@@ -43,10 +43,18 @@ import {
   UR_3D_WORKSPACE_VS_WORLD,
   WORKSPACE_3D_PROJECT_TYPES,
 } from "@/lib/ur-3d-workspace";
+import { MERCH_STARTER_TEMPLATES, type MerchStarterId } from "@/lib/merch-starter-templates";
 import type { CadCameraView, CadDrawTool, CadPlanPoint } from "@/lib/workspace-cad";
 
 const WORKSPACE_TABS = [
-  { id: "builder", label: "Builder", emoji: "🎮" },
+  { id: "draw", label: "Draw", emoji: "✏️" },
+  { id: "merch", label: "Merch", emoji: "👕" },
+  { id: "project", label: "Project", emoji: "📁" },
+  { id: "blueprint", label: "Blueprint", emoji: "📐" },
+  { id: "layers", label: "Layers", emoji: "🧱" },
+  { id: "physics", label: "Physics", emoji: "⚪" },
+  { id: "ais", label: "AIs", emoji: "🤖" },
+  { id: "printers", label: "Printers", emoji: "🖨️" },
   { id: "pricing", label: "Pricing", emoji: "💳" },
 ] as const;
 
@@ -81,7 +89,7 @@ export default function Workspace3DScreen() {
   const router = useRouter();
   const utils = trpc.useUtils();
   const { isAuthenticated } = useAuth();
-  const params = useLocalSearchParams<{ pricing?: string; project?: string }>();
+  const params = useLocalSearchParams<{ pricing?: string; project?: string; tab?: string }>();
 
   const { data: catalogData } = trpc.aiCreators.list.useQuery(undefined, { staleTime: 60_000 });
   const workspaceAccess = trpc.workspace3d.getAccess.useQuery(undefined, {
@@ -117,9 +125,15 @@ export default function Workspace3DScreen() {
   const [cameraView, setCameraView] = useState<CadCameraView>("iso");
   const [drawPending, setDrawPending] = useState<CadPlanPoint | null>(null);
   const [drewSegment, setDrewSegment] = useState(false);
-  const [activeTab, setActiveTab] = useState<WorkspaceTabId>(
-    params.pricing === "1" ? "pricing" : "builder",
-  );
+  const [activeTab, setActiveTab] = useState<WorkspaceTabId>(() => {
+    const requested = Array.isArray(params.tab) ? params.tab[0] : params.tab;
+    if (params.pricing === "1") return "pricing";
+    if (requested && WORKSPACE_TABS.some((tab) => tab.id === requested)) {
+      return requested as WorkspaceTabId;
+    }
+    if (params.project === "merchandise") return "merch";
+    return "draw";
+  });
 
   const maxConcurrentAis = workspaceAccess.data?.hasAccess
     ? workspaceAccess.data.maxConcurrentAiSlots
@@ -180,6 +194,17 @@ export default function Workspace3DScreen() {
 
   const viewportHeight = Platform.OS === "web" ? 520 : 280;
 
+  const startMerchTemplate = (id: MerchStarterId) => {
+    const template = MERCH_STARTER_TEMPLATES.find((item) => item.id === id);
+    designApi.loadMerchStarter(id);
+    setProjectType("merchandise");
+    setProjectName(template?.label ?? "Merch design");
+    setDescription("Free starter. The gold piece is the spot for a logo or phrase.");
+    setActiveAiId("ai-3d-specialist");
+    setCameraView("iso");
+    setActiveTab("draw");
+  };
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -196,27 +221,51 @@ export default function Workspace3DScreen() {
             subtitle={UR_3D_WORKSPACE_SUBTITLE}
           />
 
-          <WorkspaceWebHandoffBanner variant="general" />
-
-          <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12, lineHeight: 18, paddingHorizontal: 16 }}>
-            {UR_3D_WORKSPACE_VS_WORLD}
-          </Text>
-          <Text style={{ color: LETTERING_ON_COLOR, fontSize: 11, lineHeight: 16, paddingHorizontal: 16 }}>
-            {UR_3D_WORKSPACE_LEGAL}
-          </Text>
-
-          <XrHeadsetPanel context="workspace" />
-
           <AiHubTabRow
             tabs={WORKSPACE_TABS.map((t) => ({ id: t.id, label: t.label, emoji: t.emoji }))}
             activeId={activeTab}
             onSelect={(id) => setActiveTab(id as WorkspaceTabId)}
           />
 
-          {activeTab === "pricing" ? (
-            <Workspace3dPricingPanel />
-          ) : (
+          {activeTab === "pricing" ? <Workspace3dPricingPanel /> : null}
+
+          {activeTab === "merch" ? (
+            <View style={{ paddingHorizontal: 16, gap: 10 }}>
+              <Text style={{ color: LETTERING_ON_COLOR, fontSize: 13, lineHeight: 19 }}>
+                Free starters. Pick one and the gold piece is the spot for a logo or phrase. These are teaching shapes, not official brand products. Order the printed item from Home → Order merch after the design is in your Printify shop.
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {MERCH_STARTER_TEMPLATES.map((template) => (
+                  <WorkspaceTapButton
+                    key={template.id}
+                    onPress={() => startMerchTemplate(template.id)}
+                    style={[styles.chip, { backgroundColor: "#FFFFFF", borderColor: colors.border, minWidth: 140 }]}
+                  >
+                    <Text style={{ fontSize: 22 }}>{template.emoji}</Text>
+                    <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800", fontSize: 13 }}>{template.label}</Text>
+                    <Text style={{ color: LETTERING_ON_WHITE, fontSize: 11 }}>{template.hint}</Text>
+                  </WorkspaceTapButton>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {activeTab === "blueprint" ? <BlueprintReaderPanel /> : null}
+          {activeTab === "layers" ? (
+            <WorkspaceDesignLayersPanel designApi={designApi} sessionSaved={Boolean(sessionId)} />
+          ) : null}
+          {activeTab === "physics" ? <WorkspacePhysicsPanel designApi={designApi} /> : null}
+
+          {activeTab === "draw" ? (
             <>
+          <WorkspaceWebHandoffBanner variant="general" />
+          <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12, lineHeight: 18, paddingHorizontal: 16 }}>
+            {UR_3D_WORKSPACE_VS_WORLD}
+          </Text>
+          <Text style={{ color: LETTERING_ON_COLOR, fontSize: 11, lineHeight: 16, paddingHorizontal: 16 }}>
+            {UR_3D_WORKSPACE_LEGAL}
+          </Text>
+          <XrHeadsetPanel context="workspace" />
           {!workspaceAccess.data?.hasAccess && isAuthenticated ? (
             <Pressable
               onPress={() => setActiveTab("pricing")}
@@ -257,8 +306,6 @@ export default function Workspace3DScreen() {
           <Pressable onPress={() => router.push("/playroom")} style={{ paddingHorizontal: 16 }}>
             <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "600" }}>🎪 Open AI Playroom →</Text>
           </Pressable>
-
-          <BlueprintReaderPanel />
 
           <WorkspaceBabylonViewport
             design={designApi.design}
@@ -310,11 +357,10 @@ export default function Workspace3DScreen() {
               <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "700", fontSize: 12, textAlign: "center" }}>Starter 12×12 room</Text>
             </WorkspaceTapButton>
           </View>
+            </>
+          ) : null}
 
-          <WorkspacePhysicsPanel designApi={designApi} />
-
-          <WorkspaceDesignLayersPanel designApi={designApi} sessionSaved={Boolean(sessionId)} />
-
+          {activeTab === "project" ? (
           <View style={{ paddingHorizontal: 16, gap: 8 }}>
             <Text style={[styles.section, { color: LETTERING_ON_COLOR }]}>Project type</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
@@ -387,7 +433,9 @@ export default function Workspace3DScreen() {
               )}
             </Pressable>
           </View>
+          ) : null}
 
+          {activeTab === "ais" ? (
           <View style={{ gap: 6 }}>
             <Text style={[styles.section, { color: LETTERING_ON_COLOR, paddingHorizontal: 16 }]}>
               Collaborating AIs
@@ -431,7 +479,9 @@ export default function Workspace3DScreen() {
               </>
             ) : null}
           </View>
+          ) : null}
 
+          {activeTab === "printers" ? (
           <View style={{ paddingHorizontal: 16 }}>
             <EquipmentHubPanel
               projectSessionId={sessionId}
@@ -440,8 +490,7 @@ export default function Workspace3DScreen() {
               designTriangleCount={designLayerSummary(designApi.design).totalTriangles}
             />
           </View>
-            </>
-          )}
+          ) : null}
         </ScrollView>
         </PlatformSectionGate>
       </ScreenContainer>
