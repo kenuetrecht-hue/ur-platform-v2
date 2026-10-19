@@ -534,9 +534,9 @@ export function SocialFeedPanel({
         onPress={() => router.push("/creator-merch")}
         style={{ marginHorizontal: 16, marginBottom: 8, backgroundColor: "#FFFFFF", borderRadius: 12, padding: 12 }}
       >
-        <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800" }}>Order a shirt, mug, or poster</Text>
+        <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800" }}>Order a shirt, mug, poster, or business cards</Text>
         <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12, lineHeight: 18 }}>
-          Printed by Printify. The price includes UR’s share.
+          Any member can order. The price includes a small UR share.
         </Text>
       </Pressable>
 

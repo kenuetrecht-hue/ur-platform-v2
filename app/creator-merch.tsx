@@ -52,11 +52,11 @@ export default function CreatorMerchScreen() {
           <TabScreenHeader
             icon="👕"
             title="Printify merch"
-            subtitle="Any signed-in member can order. UR keeps the markup."
+            subtitle="Any signed-in member can order. UR adds a small share."
           />
           <View style={{ paddingHorizontal: 16, gap: 12 }}>
             <Text style={{ color: LETTERING_ON_COLOR, fontSize: 13, lineHeight: 19 }}>
-              This is a purchase from UR. The price covers Printify’s print cost and US shipping, then leaves UR at least $4. Creators who list their own design in their store still keep 85%.
+              This is a purchase from UR. The price is Printify’s print cost and US shipping, plus a small UR share: 12%, at least $1.25, and never more than $6. Creators who list their own design in their store still keep 85%.
             </Text>
             {supply.isLoading ? <ActivityIndicator color={LETTERING_ON_COLOR} /> : null}
             {supply.error ? (

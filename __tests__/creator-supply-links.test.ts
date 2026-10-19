@@ -30,10 +30,11 @@ describe("creator supply links", () => {
     expect(route).not.toContain("return { ready: true, token");
   });
 
-  it("keeps at least $4 and half the cost for UR on a member order", () => {
-    expect(memberPrintifyRetailCents(2000)).toBe(3000);
-    expect(memberPrintifyRetailCents(800)).toBe(1200);
-    expect(memberPrintifyRetailCents(100)).toBe(501);
+  it("adds a small UR share on a member order", () => {
+    expect(memberPrintifyRetailCents(2000)).toBe(2240);
+    expect(memberPrintifyRetailCents(800)).toBe(925);
+    expect(memberPrintifyRetailCents(100)).toBe(225);
+    expect(memberPrintifyRetailCents(10000)).toBe(10600);
     expect(memberPrintifyRetailCents(50)).toBeNull();
     const offers = mapPrintifyShopProducts({
       data: [
@@ -65,6 +66,6 @@ describe("creator supply links", () => {
         profiles: [{ countries: ["US"], first_item: { cost: 450, currency: "USD" } }],
       }),
     ).toBe(450);
-    expect(memberPrintifyRetailCents(700 + 450)).toBe(1725);
+    expect(memberPrintifyRetailCents(700 + 450)).toBe(1288);
   });
 });

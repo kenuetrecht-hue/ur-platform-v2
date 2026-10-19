@@ -19,7 +19,7 @@ export function CreatorSupplyLinks() {
     >
       <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800", fontSize: 15 }}>Your create links</Text>
       <Text style={{ color: LETTERING_ON_WHITE, fontSize: 13, lineHeight: 18 }}>
-        Cartoon Studio is for filming with cartoon characters. Any member can order Printify merch from the social feed. UR keeps the markup on those orders. Creators who list their own design still keep 85%. Design shapes in the 3D workspace.
+        Cartoon Studio is for filming with cartoon characters. Any member can order Printify merch from Home or the social feed. UR keeps a small share on those orders. Creators who list their own design still keep 85%. Design shapes in the 3D workspace.
       </Text>
       <AppPressable
         testID="creator-open-cartoon"

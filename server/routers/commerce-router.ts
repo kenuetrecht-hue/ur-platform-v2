@@ -93,7 +93,7 @@ export const commerceRouter = router({
         userId: String(ctx.user.id),
         userEmail: ctx.user.email ?? "",
         productName: offer.title,
-        description: "Printed and shipped by Printify. UR keeps the markup on this member order.",
+        description: "Printed and shipped by Printify. UR keeps a small share on this member order.",
         priceCents: offer.retailCents,
         billingStateCode: input.region,
         successPath: "/creator-merch?order=success",

@@ -89,7 +89,7 @@ export function mapPrintifyShopProducts(body: unknown): PrintifyShopOffer[] {
       blueprintId,
       printProviderId,
     });
-    if (offers.length >= 16) break;
+    if (offers.length >= 80) break;
   }
   return offers;
 }
