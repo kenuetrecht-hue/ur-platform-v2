@@ -25,6 +25,12 @@ describe("password recovery links", () => {
       `${PUBLIC_WEBSITE_ORIGIN}/new-password`,
     );
     expect(passwordResetRedirectUrl()).toBe(`${PUBLIC_WEBSITE_ORIGIN}/new-password`);
+    expect(passwordResetRedirectUrl("http://localhost:3000")).toBe(
+      `${PUBLIC_WEBSITE_ORIGIN}/new-password`,
+    );
+    expect(passwordResetRedirectUrl("http://127.0.0.1:8082")).toBe(
+      `${PUBLIC_WEBSITE_ORIGIN}/new-password`,
+    );
   });
 
   it("keeps people on New password when the email link logs them in", () => {

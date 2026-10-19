@@ -1,9 +1,18 @@
 /** Official public website. */
 export const PUBLIC_WEBSITE_ORIGIN = "https://urplatform.llc" as const;
 
-/** Inbox links stay on the site the person is using, or the official name. */
+function isLocalDevOrigin(origin: string): boolean {
+  try {
+    const host = new URL(origin).hostname;
+    return host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "::1";
+  } catch {
+    return true;
+  }
+}
+
+/** Inbox links stay on the public site. A this-computer address is never mailed out. */
 export function websiteOriginForAuthLinks(origin?: string): string {
-  if (origin && /^https?:\/\//i.test(origin)) {
+  if (origin && /^https?:\/\//i.test(origin) && !isLocalDevOrigin(origin)) {
     return origin.replace(/\/+$/, "");
   }
   return PUBLIC_WEBSITE_ORIGIN;
