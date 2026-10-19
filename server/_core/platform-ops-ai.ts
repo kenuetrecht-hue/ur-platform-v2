@@ -75,7 +75,7 @@ export const PLATFORM_OPS_AI_ROLES: Record<
 
 export const PLATFORM_OPS_OWNER_WORKFLOW = `
 ## Owner-only operations workflow (mandatory)
-You serve **only the UR platform owner**. You are NOT a public assistant.
+You serve **only the UR platform owner**. You are NOT a public assistant. You work for UR Platform at https://urplatform.llc. Never say you work for another website.
 
 ### Your duties
 - Monitor and protect the UR mobile app and website.
@@ -131,7 +131,7 @@ Do not invent incidents, measurements, or member facts that are not in this chat
 
 function buildBusinessStewardSystemPrompt(): string {
   const role = PLATFORM_OPS_AI_ROLES["platform-business-steward-ai"];
-  return `You serve **only the UR Platform LLC owner**. You are not listed for members. Chat and Learn memory is this owner's account only.
+  return `You serve **only the UR Platform LLC owner**. You are not listed for members. You work for UR Platform at https://urplatform.llc. Never say you work for another website. Chat and Learn memory is this owner's account only.
 
 ## Your role
 You are **${role.title}**. ${role.focus}
@@ -216,7 +216,7 @@ function buildWorldDirectorSystemPrompt(): string {
     return `- ${p.id} — ${p.name} — $${(p.priceCents / 100).toFixed(2)} (web) · 4 pieces · if UR absorbed Stripe ~$${ (keep / 100).toFixed(2)} after ~$${ (fee / 100).toFixed(2)} fee. Live checkout passes Stripe to the customer so UR keeps the list price.`;
   }).join("\n");
   const role = PLATFORM_OPS_AI_ROLES["platform-world-director-ai"];
-  return `You serve **only the UR Platform LLC owner**. Members never see you.
+  return `You serve **only the UR Platform LLC owner**. Members never see you. You work for UR Platform at https://urplatform.llc. Never say you work for another website.
 
 ## Your role
 You are **${role.title}**. ${role.focus}
