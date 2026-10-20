@@ -38,21 +38,12 @@ function formatConnectedMs(ms: number): string {
   return `${minutes}:${String(seconds).padStart(2, "0")}.${String(millis).padStart(3, "0")}`;
 }
 
-function routeRemoteAudio(el: HTMLAudioElement): void {
-  el.muted = false;
+function playCallMedia(el: HTMLMediaElement): void {
+  el.muted = el.dataset.localPreview === "1";
   el.volume = 1;
   const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
   if (session) session.type = "playback";
   void el.play().catch(() => undefined);
-  const setSinkId = (el as HTMLAudioElement & { setSinkId?: (id: string) => Promise<void> }).setSinkId;
-  if (!setSinkId || !navigator.mediaDevices?.enumerateDevices) return;
-  void navigator.mediaDevices
-    .enumerateDevices()
-    .then((devices) => {
-      const speaker = devices.find((device) => device.kind === "audiooutput" && /speaker|loud/i.test(device.label));
-      if (speaker?.deviceId) return setSinkId.call(el, speaker.deviceId);
-    })
-    .catch(() => undefined);
 }
 
 function preferCallCodecs(pc: RTCPeerConnection): void {
@@ -130,6 +121,9 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const relayReadyRef = useRef(false);
+  const localPreviewStream = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const appliedIce = useRef(new Set<string>());
@@ -171,6 +165,44 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
   const readyToConnect = webRtc && (!tokenMode || Boolean(accessRoom.data));
 
   useEffect(() => {
+    if (!webRtc || typeof document === "undefined") return;
+    const host = stageRef.current;
+    if (!host) return;
+    const make = (local: boolean) => {
+      const el = document.createElement("video");
+      el.autoplay = true;
+      el.playsInline = true;
+      el.setAttribute("playsinline", "true");
+      el.dataset.localPreview = local ? "1" : "0";
+      el.muted = local;
+      el.style.width = "100%";
+      el.style.height = "220px";
+      el.style.objectFit = "cover";
+      el.style.background = "#111";
+      el.style.borderRadius = "12px";
+      return el;
+    };
+    const local = make(true);
+    const remote = make(false);
+    host.replaceChildren(local, remote);
+    localVideoRef.current = local;
+    remoteVideoRef.current = remote;
+    if (localPreviewStream.current) {
+      local.srcObject = localPreviewStream.current;
+      playCallMedia(local);
+    }
+    if (remoteStreamRef.current) {
+      remote.srcObject = remoteStreamRef.current;
+      playCallMedia(remote);
+    }
+    return () => {
+      local.srcObject = null;
+      remote.srcObject = null;
+      host.replaceChildren();
+    };
+  }, [webRtc]);
+
+  useEffect(() => {
     if (webRtc) return;
     setStatus("Opening camera in the secure browser…");
     join.mutate({ roomId });
@@ -203,7 +235,12 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
               : await iceServersMut.mutateAsync({ roomId });
           if (ice.iceServers?.length) iceServers = ice.iceServers;
           relayReady = ice.relayReady === true;
+          relayReadyRef.current = relayReady;
+          if (!relayReady) {
+            setError("The relay between the two phones is not connected, so picture and voice cannot cross yet.");
+          }
         } catch {
+          relayReadyRef.current = false;
           setError("The call relay did not answer. Stay on the call, or hang up and try again.");
         }
         let stream: MediaStream;
@@ -231,6 +268,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
           return;
         }
         localStreamRef.current = stream;
+        localPreviewStream.current = stream;
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
           try {
@@ -257,14 +295,14 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
           ev.track.enabled = true;
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = remote;
-            remoteVideoRef.current.muted = true;
-            void remoteVideoRef.current.play().catch(() => undefined);
+            remoteVideoRef.current.muted = false;
+            playCallMedia(remoteVideoRef.current);
           }
           if (ev.track.kind === "audio") {
             remoteAudioRef.current = ensureRemoteAudio(remoteAudioRef.current);
             if (remoteAudioRef.current) {
               remoteAudioRef.current.srcObject = remote;
-              routeRemoteAudio(remoteAudioRef.current);
+              playCallMedia(remoteAudioRef.current);
             }
           }
         };
@@ -349,7 +387,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
         } else {
           await signalAnswer.mutateAsync({ roomId, sdp });
         }
-        setStatus("Connected · encrypted");
+        setStatus("Answered · waiting for picture and voice");
       } catch {
         setError("The call setup did not finish. Hang up and call again.");
       }
@@ -364,7 +402,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
       try {
         await pc.setRemoteDescription(JSON.parse(roomData.answerSdp!) as RTCSessionDescriptionInit);
         setRemoteReady((n) => n + 1);
-        setStatus("Connected · encrypted");
+        setStatus("Answered · waiting for picture and voice");
       } catch {
         setError("The call setup did not finish. Hang up and call again.");
       }
@@ -431,8 +469,15 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
   };
 
   const turnSoundOn = () => {
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.muted = false;
+      playCallMedia(remoteVideoRef.current);
+    }
     remoteAudioRef.current = ensureRemoteAudio(remoteAudioRef.current);
-    if (remoteAudioRef.current) routeRemoteAudio(remoteAudioRef.current);
+    if (remoteAudioRef.current && remoteStreamRef.current) {
+      remoteAudioRef.current.srcObject = remoteStreamRef.current;
+      playCallMedia(remoteAudioRef.current);
+    }
   };
 
   const who = peerLabel?.trim() || "this person";
@@ -461,10 +506,8 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
 
       {webRtc ? (
         <View style={styles.videoRow}>
-          {/* @ts-expect-error web video element */}
-          <video ref={localVideoRef} autoPlay muted playsInline style={styles.video} />
-          {/* @ts-expect-error web video element */}
-          <video ref={remoteVideoRef} autoPlay muted playsInline style={styles.video} />
+          {/* @ts-expect-error web host for the real camera elements */}
+          <div ref={stageRef} style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }} />
         </View>
       ) : (
         <View style={[styles.nativePlaceholder, { backgroundColor: "#FFFFFF" }]}>
@@ -477,7 +520,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
 
       {webRtc ? (
         <Pressable onPress={turnSoundOn} style={[styles.sound, { backgroundColor: colors.primary }]}>
-          <Text style={styles.btnText}>Sound</Text>
+          <Text style={styles.btnText}>Turn on picture and sound</Text>
         </Pressable>
       ) : null}
       <Pressable onPress={hangUp} style={[styles.hangUp, { backgroundColor: "#c0392b" }]}>
