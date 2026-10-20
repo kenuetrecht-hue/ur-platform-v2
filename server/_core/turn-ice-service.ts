@@ -162,6 +162,7 @@ async function defaultCloudflareTurn(params: {
 export async function getIceServersForCall(params: { userId: string }): Promise<{
   iceServers: UrIceServer[];
   turn: TurnPublicStatus;
+  relayReady: boolean;
 }> {
   const extra: UrIceServer[] = [];
   const keyId = cloudflareTurnKeyId();
@@ -187,5 +188,9 @@ export async function getIceServersForCall(params: { userId: string }): Promise<
   return {
     iceServers: mergeIceServers(extra),
     turn: getTurnPublicStatus(),
+    relayReady: extra.some((server) => {
+      const urls = Array.isArray(server.urls) ? server.urls : [server.urls];
+      return urls.some((url) => url.startsWith("turn:") || url.startsWith("turns:"));
+    }),
   };
 }

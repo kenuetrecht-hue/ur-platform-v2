@@ -35,6 +35,14 @@ export function IncomingVideoCallDock() {
     staleTime: 60_000,
   }).data?.publicKey;
   const ringing = (incoming.data ?? []).filter((call) => call.status === "ringing" && call.id !== active?.roomId);
+  const notices = trpc.social.callNotices.useQuery(undefined, {
+    enabled: isAuthenticated,
+    refetchInterval: 4000,
+    staleTime: 0,
+  });
+  const dismissNotice = trpc.social.dismissCallNotice.useMutation({
+    onSuccess: () => void notices.refetch(),
+  });
   const ringKey = ringing.map((call) => call.id).join(",");
   const ringingRef = useRef(ringing);
   ringingRef.current = ringing;
@@ -88,7 +96,7 @@ export function IncomingVideoCallDock() {
     return () => stopCallRingtone();
   }, [ringKey, pushReady]);
 
-  if (!isAuthenticated || (!active && ringing.length === 0)) return null;
+  if (!isAuthenticated || (!active && ringing.length === 0 && (notices.data ?? []).length === 0)) return null;
 
   const screen = (
     <View
@@ -152,6 +160,33 @@ export function IncomingVideoCallDock() {
           </Pressable>
         </View>
       ) : null}
+      {!ringing[0] && !active
+        ? (notices.data ?? []).slice(-1).map((notice) => (
+            <View
+              key={notice.id}
+              style={{
+                position: "absolute",
+                top: 12,
+                left: 12,
+                right: 12,
+                backgroundColor: "#111827",
+                borderRadius: 12,
+                padding: 14,
+                gap: 8,
+              }}
+            >
+              <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800", fontSize: 16 }}>
+                {notice.callerName} tried to call you on UR Platform
+              </Text>
+              <Pressable
+                onPress={() => dismissNotice.mutate({ noticeId: notice.id })}
+                style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 10, alignItems: "center" }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "800" }}>Got it</Text>
+              </Pressable>
+            </View>
+          ))
+        : null}
     </View>
   );
 

@@ -17,6 +17,7 @@ import { ENV, isOwnerEmailConfigured, assertProductionOwnerSecurity } from "./en
 import { assertServerSecretsSafe, redactSecrets } from "./secrets";
 import { getMuxEnginePublicStatus } from "./mux-video-engine";
 import { getTurnPublicStatus } from "./turn-ice-service";
+import { readyCallRingPublicKey } from "./call-ring-service";
 import { logSocialPublisherStartup } from "./social-publisher-service";
 import { registerMuxWebhook } from "./mux-webhook";
 import { registerStripeWebhook } from "./stripe-webhook";
@@ -345,6 +346,7 @@ async function startServer() {
     }
   });
   void logGeminiStartupCheck();
+  void readyCallRingPublicKey();
   const mux = getMuxEnginePublicStatus();
   console.log(
     `[video] Primary engine: Mux — ${mux.configured ? "configured" : "not configured (add MUX_TOKEN_ID + MUX_TOKEN_SECRET)"}`,

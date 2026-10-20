@@ -4,7 +4,9 @@ import {
   _resetCallRingsForTests,
   buildCallRingPayload,
   callRingCallerLabel,
+  listCallNotices,
   listCallRingSubscriptions,
+  recordCallNotice,
   saveCallRingSubscription,
   shouldRepeatCallRing,
 } from "../server/_core/call-ring-service";
@@ -21,6 +23,7 @@ describe("incoming video call rings the phone", () => {
     };
     expect(payload.title).toBe("Incoming video call");
     expect(payload.body).toContain("Ada");
+    expect(payload.body).toContain("UR Platform");
     expect(payload.body).not.toContain("@");
     expect(payload.url).toBe("/messages");
   });
@@ -57,5 +60,19 @@ describe("incoming video call rings the phone", () => {
     expect(worker).toContain('addEventListener("push"');
     expect(worker).toContain('addEventListener("notificationclick"');
     expect(worker).toContain("ur-incoming-call");
+  });
+
+  it("keeps a note that someone tried to call, even after the ring stops", async () => {
+    _resetCallRingsForTests();
+    recordCallNotice({
+      callerUserId: "owner",
+      calleeUserId: "buddy",
+      callerName: "Kenneth",
+      roomId: "room-9",
+    });
+    const notes = await listCallNotices("buddy");
+    expect(notes).toHaveLength(1);
+    expect(notes[0]?.callerName).toBe("Kenneth");
+    expect(notes[0]?.callerName).not.toContain("@");
   });
 });

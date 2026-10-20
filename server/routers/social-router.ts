@@ -68,7 +68,10 @@ import { CREATOR_VIDEO_CALL_SKU, creatorCallPriceError } from "../../lib/creator
 import { getIceServersForCall } from "../_core/turn-ice-service";
 import {
   callRingCallerLabel,
-  getCallRingPublicKey,
+  readyCallRingPublicKey,
+  recordCallNotice,
+  dismissCallNotice,
+  listCallNotices,
   ringUserForVideoCall,
   saveCallRingSubscription,
 } from "../_core/call-ring-service";
@@ -177,13 +180,20 @@ function requireCallAccess(roomId: string, token: string) {
 }
 
 function ringCallee(
-  room: { id: string; calleeUserId: string },
+  room: { id: string; calleeUserId: string; callerUserId: string },
   callerName: string | null | undefined,
 ): void {
+  const callerLabel = callRingCallerLabel(callerName ?? undefined);
   ringUserForVideoCall({
     calleeUserId: room.calleeUserId,
     roomId: room.id,
-    callerLabel: callRingCallerLabel(callerName ?? undefined),
+    callerLabel,
+  });
+  recordCallNotice({
+    callerUserId: room.callerUserId,
+    calleeUserId: room.calleeUserId,
+    callerName: callerLabel,
+    roomId: room.id,
   });
 }
 
@@ -464,6 +474,11 @@ export const socialRouter = router({
     .input(z.object({ friendUserId: z.string().trim().min(1).max(80) }))
     .mutation(async ({ ctx, input }) => {
       await assertUserIsAgeVerified(ctx.user.id);
+      await ensureOwnerWelcomeFriendship({
+        userId: String(ctx.user.id),
+        email: ctx.user.email ?? "",
+        displayName: ctx.user.name ?? "Friend",
+      });
       const room = createVideoCall({
         callerUserId: String(ctx.user.id),
         calleeUserId: input.friendUserId,
@@ -514,9 +529,18 @@ export const socialRouter = router({
     listIncomingCalls(String(ctx.user.id)).map(toPublicVideoCall),
   ),
 
-  callRingPublicKey: secureProcedure("social").query(() => ({
-    publicKey: getCallRingPublicKey(),
+  callRingPublicKey: secureProcedure("social").query(async () => ({
+    publicKey: await readyCallRingPublicKey(),
   })),
+
+  callNotices: secureProcedure("social").query(async ({ ctx }) => listCallNotices(String(ctx.user.id))),
+
+  dismissCallNotice: secureProcedure("social")
+    .input(z.object({ noticeId: z.string().trim().min(1).max(80) }))
+    .mutation(({ ctx, input }) => {
+      dismissCallNotice(String(ctx.user.id), input.noticeId);
+      return { ok: true as const };
+    }),
 
   registerCallRing: secureProcedure("social")
     .input(

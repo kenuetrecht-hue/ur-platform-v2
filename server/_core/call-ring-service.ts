@@ -8,6 +8,17 @@
 import { createRequire } from "node:module";
 import { getVideoCallRoom } from "./video-call-service";
 import { getWebPushVapidPrivateKey, getWebPushVapidPublicKey } from "./secrets";
+import {
+  deleteCallNotice,
+  loadCallNotices,
+  loadCallRingKeyPair,
+  loadCallRingSubscriptions,
+  newCallNoticeId,
+  persistCallNotice,
+  persistCallRingKeyPair,
+  persistCallRingSubscription,
+  type StoredCallNotice,
+} from "./call-ring-persistence";
 
 type PushSubscription = {
   endpoint: string;
@@ -28,27 +39,60 @@ const MAX_SUBS_PER_USER = 5;
 const RING_REPEAT_MS = [0, 4000, 8000, 12000] as const;
 
 const subscriptions = new Map<string, PushSubscription[]>();
+const notices = new Map<string, StoredCallNotice[]>();
 let vapidPublicKey = "";
+let vapidPrivateKey = "";
 let vapidReady = false;
+let warming: Promise<string> | null = null;
 
 function loadWebPush(): WebPush {
   const require = createRequire(import.meta.url);
   return require("web-push") as WebPush;
 }
 
-function ensureVapid(): string {
-  if (vapidReady && vapidPublicKey) return vapidPublicKey;
+function applyVapidPair(pair: { publicKey: string; privateKey: string }): string {
   const webpush = loadWebPush();
-  const fromEnvPublic = getWebPushVapidPublicKey();
-  const fromEnvPrivate = getWebPushVapidPrivateKey();
-  const pair =
-    fromEnvPublic && fromEnvPrivate
-      ? { publicKey: fromEnvPublic, privateKey: fromEnvPrivate }
-      : webpush.generateVAPIDKeys();
   webpush.setVapidDetails("https://urplatform.llc", pair.publicKey, pair.privateKey);
   vapidPublicKey = pair.publicKey;
+  vapidPrivateKey = pair.privateKey;
   vapidReady = true;
   return vapidPublicKey;
+}
+
+function ensureVapid(): string {
+  if (vapidReady && vapidPublicKey && vapidPrivateKey) return vapidPublicKey;
+  const fromEnvPublic = getWebPushVapidPublicKey();
+  const fromEnvPrivate = getWebPushVapidPrivateKey();
+  if (fromEnvPublic && fromEnvPrivate) {
+    return applyVapidPair({ publicKey: fromEnvPublic, privateKey: fromEnvPrivate });
+  }
+  const webpush = loadWebPush();
+  return applyVapidPair(webpush.generateVAPIDKeys());
+}
+
+/** One ring key for this website, so a phone allowed earlier still rings after a restart. */
+export async function readyCallRingPublicKey(): Promise<string> {
+  if (vapidReady && vapidPublicKey) return vapidPublicKey;
+  if (!warming) {
+    warming = (async () => {
+      const fromEnvPublic = getWebPushVapidPublicKey();
+      const fromEnvPrivate = getWebPushVapidPrivateKey();
+      if (fromEnvPublic && fromEnvPrivate) {
+        return applyVapidPair({ publicKey: fromEnvPublic, privateKey: fromEnvPrivate });
+      }
+      const stored = await loadCallRingKeyPair();
+      if (stored) return applyVapidPair(stored);
+      const webpush = loadWebPush();
+      const pair = webpush.generateVAPIDKeys();
+      applyVapidPair(pair);
+      await persistCallRingKeyPair(pair);
+      return pair.publicKey;
+    })().catch(() => {
+      warming = null;
+      return "";
+    });
+  }
+  return warming;
 }
 
 export function getCallRingPublicKey(): string {
@@ -68,7 +112,7 @@ export function callRingCallerLabel(name: string | undefined): string {
 export function buildCallRingPayload(params: { callerLabel: string; roomId: string }): string {
   return JSON.stringify({
     title: "Incoming video call",
-    body: `${params.callerLabel} is calling you on UR`,
+    body: `${params.callerLabel} is calling you on UR Platform. Open the site to answer.`,
     url: "/messages",
     roomId: params.roomId,
   });
@@ -90,14 +134,27 @@ export function saveCallRingSubscription(userId: string, subscription: PushSubsc
     },
   });
   subscriptions.set(userId, current.slice(-MAX_SUBS_PER_USER));
+  void persistCallRingSubscription({
+    userId,
+    endpoint,
+    p256dh: subscription.keys.p256dh.trim(),
+    auth: subscription.keys.auth.trim(),
+  });
 }
 
 export function listCallRingSubscriptions(userId: string): PushSubscription[] {
   return [...(subscriptions.get(userId) ?? [])];
 }
 
+async function subscriptionsFor(userId: string): Promise<PushSubscription[]> {
+  const stored = await loadCallRingSubscriptions(userId);
+  for (const row of stored) saveCallRingSubscription(userId, row);
+  return listCallRingSubscriptions(userId);
+}
+
 async function sendOnce(userId: string, payload: string): Promise<void> {
-  const rows = listCallRingSubscriptions(userId);
+  await readyCallRingPublicKey();
+  const rows = await subscriptionsFor(userId);
   if (rows.length === 0) return;
   let webpush: WebPush;
   try {
@@ -109,7 +166,7 @@ async function sendOnce(userId: string, payload: string): Promise<void> {
   const kept: PushSubscription[] = [];
   for (const row of rows) {
     try {
-      await webpush.sendNotification(row, payload, { TTL: 30, urgency: "high" });
+      await webpush.sendNotification(row, payload, { TTL: 120, urgency: "high" });
       kept.push(row);
     } catch (error) {
       const status = (error as { statusCode?: number }).statusCode;
@@ -140,6 +197,45 @@ export function ringUserForVideoCall(params: {
   }
 }
 
+export function recordCallNotice(params: {
+  callerUserId: string;
+  calleeUserId: string;
+  callerName: string;
+  roomId: string;
+}): StoredCallNotice {
+  const notice: StoredCallNotice = {
+    id: newCallNoticeId(),
+    callerUserId: params.callerUserId,
+    calleeUserId: params.calleeUserId,
+    callerName: callRingCallerLabel(params.callerName),
+    roomId: params.roomId,
+    createdAt: new Date().toISOString(),
+  };
+  const list = notices.get(params.calleeUserId) ?? [];
+  list.push(notice);
+  notices.set(params.calleeUserId, list.slice(-20));
+  void persistCallNotice(notice);
+  return notice;
+}
+
+export async function listCallNotices(userId: string): Promise<StoredCallNotice[]> {
+  const stored = await loadCallNotices(userId);
+  const list = notices.get(userId) ?? [];
+  for (const row of stored) {
+    if (!list.some((item) => item.id === row.id)) list.push(row);
+  }
+  notices.set(userId, list.slice(-20));
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  return (notices.get(userId) ?? []).filter((row) => new Date(row.createdAt).getTime() >= weekAgo);
+}
+
+export function dismissCallNotice(userId: string, noticeId: string): void {
+  const list = (notices.get(userId) ?? []).filter((row) => row.id !== noticeId);
+  notices.set(userId, list);
+  void deleteCallNotice(noticeId);
+}
+
 export function _resetCallRingsForTests(): void {
   subscriptions.clear();
+  notices.clear();
 }

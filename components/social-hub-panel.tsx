@@ -20,6 +20,7 @@ import { InternetCenterMailPanel } from "@/components/internet-center-mail-panel
 import { CreatorTipButton } from "@/components/creator-tip-button";
 import { CreatorCallButton } from "@/components/creator-call-button";
 import { brandHighlightSurface } from "@/lib/brand-theme";
+import { subscribeCallRing } from "@/lib/call-ring-client";
 
 type Tab = SocialHubTab;
 
@@ -36,6 +37,9 @@ export function SocialHubPanel() {
   const [videoPeerLabel, setVideoPeerLabel] = useState("");
   const [callingPeerId, setCallingPeerId] = useState<string | null>(null);
   const [videoIsCaller, setVideoIsCaller] = useState(true);
+  const [ringNote, setRingNote] = useState<string | null>(null);
+  const ringKey = trpc.social.callRingPublicKey.useQuery(undefined, { staleTime: 60_000 });
+  const registerRing = trpc.social.registerCallRing.useMutation();
   const params = useLocalSearchParams<{ creatorCall?: string; creator?: string }>();
   const startedPaidCall = useRef<string | null>(null);
 
@@ -147,6 +151,29 @@ export function SocialHubPanel() {
         messageBadge={unreadMail}
         pendingFriends={pending.length}
       />
+      <Pressable
+        onPress={() => {
+          const publicKey = ringKey.data?.publicKey ?? "";
+          void subscribeCallRing({
+            publicKey,
+            register: (subscription) => registerRing.mutateAsync(subscription),
+          }).then((ok) => {
+            setRingNote(
+              ok
+                ? "This phone will ring when someone calls you on UR Platform, even if you are signed out."
+                : "Tap Allow when the phone asks. On an iPhone, add UR to the home screen first, then allow notifications.",
+            );
+          });
+        }}
+        style={[styles.btn, { backgroundColor: "#111827", marginHorizontal: 16, marginTop: 8 }]}
+      >
+        <Text style={styles.btnText}>Let this phone ring for calls</Text>
+      </Pressable>
+      {ringNote ? (
+        <Text style={{ color: colors.gold, fontSize: 12, lineHeight: 18, marginHorizontal: 16, marginTop: 6 }}>
+          {ringNote}
+        </Text>
+      ) : null}
       {(incomingCalls.data ?? [])
         .filter((call) => call.status === "ringing")
         .map((call) => (

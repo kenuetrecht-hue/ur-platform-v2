@@ -195,14 +195,16 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
       try {
         setStatus("Starting camera…");
         let iceServers = UR_STUN_ICE_SERVERS;
+        let relayReady = false;
         try {
           const ice =
             tokenMode && accessToken
               ? await accessIceServersMut.mutateAsync({ roomId, token: accessToken })
               : await iceServersMut.mutateAsync({ roomId });
           if (ice.iceServers?.length) iceServers = ice.iceServers;
+          relayReady = ice.relayReady === true;
         } catch {
-          /* STUN still works if TURN is not configured. */
+          setError("The call relay did not answer. Stay on the call, or hang up and try again.");
         }
         let stream: MediaStream;
         try {
@@ -264,6 +266,20 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
               remoteAudioRef.current.srcObject = remote;
               routeRemoteAudio(remoteAudioRef.current);
             }
+          }
+        };
+
+        pc.oniceconnectionstatechange = () => {
+          if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
+            setStatus("Connected · encrypted");
+            setError(null);
+          }
+          if (pc.iceConnectionState === "failed") {
+            setError(
+              relayReady
+                ? "The two phones could not connect. Allow the camera and microphone on both phones, then call again."
+                : "The relay that carries the picture and voice between the two phones did not connect. Call again.",
+            );
           }
         };
 
