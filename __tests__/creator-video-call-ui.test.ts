@@ -24,6 +24,9 @@ describe("1-to-1 call UI is on website and app screens", () => {
     expect(panel).toContain("CALL_VIDEO_MAX_BITRATE");
     expect(readFileSync("server/_core/video-call-service.ts", "utf8")).toContain("assertSecureSessionDescription");
     expect(panel).toContain("remoteAudioRef");
+    expect(panel).toContain("play-and-record");
+    expect(panel).not.toContain('session.type = "playback"');
+    expect(panel).toContain("Turn sound on");
     expect(panel).toContain("Only this person is being called.");
     expect(panel).not.toContain("<audio");
     expect(readFileSync("components/incoming-video-call-dock.tsx", "utf8")).toContain("is calling you");

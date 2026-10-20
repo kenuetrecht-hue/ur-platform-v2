@@ -38,12 +38,18 @@ function formatConnectedMs(ms: number): string {
   return `${minutes}:${String(seconds).padStart(2, "0")}.${String(millis).padStart(3, "0")}`;
 }
 
-function playCallMedia(el: HTMLMediaElement): void {
-  el.muted = el.dataset.localPreview === "1";
-  el.volume = 1;
+function armCallAudio(): void {
   const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
-  if (session) session.type = "playback";
-  void el.play().catch(() => undefined);
+  // play-and-record keeps the mic open and plays their voice. "playback" silences a call.
+  if (session) session.type = "play-and-record";
+}
+
+function playCallMedia(el: HTMLMediaElement): Promise<void> {
+  const local = el.dataset.localPreview === "1";
+  el.muted = local;
+  el.volume = 1;
+  armCallAudio();
+  return el.play();
 }
 
 function preferCallCodecs(pc: RTCPeerConnection): void {
@@ -125,6 +131,8 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
   const relayReadyRef = useRef(false);
   const localPreviewStream = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
+  const speakerCtxRef = useRef<AudioContext | null>(null);
+  const speakerSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const appliedIce = useRef(new Set<string>());
   const closedRef = useRef(false);
@@ -193,7 +201,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
     }
     if (remoteStreamRef.current) {
       remote.srcObject = remoteStreamRef.current;
-      playCallMedia(remote);
+      void playCallMedia(remote).catch(() => undefined);
     }
     return () => {
       local.srcObject = null;
@@ -226,6 +234,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
     async function startWebRtc() {
       try {
         setStatus("Starting camera…");
+        armCallAudio();
         let iceServers = UR_STUN_ICE_SERVERS;
         let relayReady = false;
         try {
@@ -293,17 +302,16 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
           const remote = remoteStreamRef.current;
           if (!remote.getTracks().some((track) => track.id === ev.track.id)) remote.addTrack(ev.track);
           ev.track.enabled = true;
+          const heard = new MediaStream(remote.getTracks());
+          remoteStreamRef.current = heard;
           if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = remote;
+            remoteVideoRef.current.srcObject = heard;
             remoteVideoRef.current.muted = false;
-            playCallMedia(remoteVideoRef.current);
+            void playCallMedia(remoteVideoRef.current).catch(() => undefined);
           }
           if (ev.track.kind === "audio") {
             remoteAudioRef.current = ensureRemoteAudio(remoteAudioRef.current);
-            if (remoteAudioRef.current) {
-              remoteAudioRef.current.srcObject = remote;
-              playCallMedia(remoteAudioRef.current);
-            }
+            if (remoteAudioRef.current) remoteAudioRef.current.srcObject = new MediaStream(heard.getAudioTracks());
           }
         };
 
@@ -367,6 +375,10 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
       remoteAudioRef.current?.remove();
       remoteAudioRef.current = null;
+      speakerSourceRef.current?.disconnect();
+      speakerSourceRef.current = null;
+      void speakerCtxRef.current?.close().catch(() => undefined);
+      speakerCtxRef.current = null;
     };
   }, [roomId, resolvedIsCaller, readyToConnect, tokenMode, accessToken]);
 
@@ -469,15 +481,60 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
   };
 
   const turnSoundOn = () => {
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.muted = false;
-      playCallMedia(remoteVideoRef.current);
+    armCallAudio();
+    const remote = remoteStreamRef.current ?? new MediaStream();
+    for (const receiver of pcRef.current?.getReceivers() ?? []) {
+      const track = receiver.track;
+      if (!track || track.kind !== "audio") continue;
+      if (!remote.getTracks().some((row) => row.id === track.id)) remote.addTrack(track);
+    }
+    remoteStreamRef.current = remote;
+    const voice = remote.getAudioTracks();
+    voice.forEach((track) => {
+      track.enabled = true;
+    });
+    localPreviewStream.current?.getAudioTracks().forEach((track) => {
+      track.enabled = true;
+    });
+    if (voice.length === 0) {
+      setError("Their voice has not arrived yet. Stay on the call a moment, then tap Turn sound on.");
+      return;
+    }
+    const picture = remoteVideoRef.current;
+    if (picture && remote) {
+      picture.srcObject = new MediaStream(remote.getTracks());
+      picture.muted = false;
     }
     remoteAudioRef.current = ensureRemoteAudio(remoteAudioRef.current);
-    if (remoteAudioRef.current && remoteStreamRef.current) {
-      remoteAudioRef.current.srcObject = remoteStreamRef.current;
-      playCallMedia(remoteAudioRef.current);
+    const speaker = picture ?? remoteAudioRef.current;
+    if (!speaker) {
+      setError("Tap Turn sound on again. The phone blocked the voice.");
+      return;
     }
+    void playCallMedia(speaker)
+      .then(() => {
+        setError(null);
+        setStatus("Sound is on");
+      })
+      .catch(() => {
+        if (!speaker || typeof AudioContext === "undefined") {
+          setError("Tap Turn sound on again. The phone blocked the voice.");
+          return;
+        }
+        try {
+          speakerSourceRef.current?.disconnect();
+          const ctx = speakerCtxRef.current ?? new AudioContext();
+          speakerCtxRef.current = ctx;
+          void ctx.resume();
+          const source = ctx.createMediaStreamSource(new MediaStream(voice));
+          source.connect(ctx.destination);
+          speakerSourceRef.current = source;
+          setError(null);
+          setStatus("Sound is on");
+        } catch {
+          setError("Tap Turn sound on again. The phone blocked the voice.");
+        }
+      });
   };
 
   const who = peerLabel?.trim() || "this person";
@@ -520,7 +577,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
 
       {webRtc ? (
         <Pressable onPress={turnSoundOn} style={[styles.sound, { backgroundColor: colors.primary }]}>
-          <Text style={styles.btnText}>Turn on picture and sound</Text>
+          <Text style={styles.btnText}>Turn sound on</Text>
         </Pressable>
       ) : null}
       <Pressable onPress={hangUp} style={[styles.hangUp, { backgroundColor: "#c0392b" }]}>
