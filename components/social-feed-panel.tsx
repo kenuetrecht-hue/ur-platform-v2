@@ -37,7 +37,13 @@ import {
 } from "@/lib/creator-content-protection-core";
 import { SocialPostAssistantBar } from "@/components/social-post-assistant-bar";
 import { brandDisclosureSurface, brandHighlightSurface, brandGradientPair, withAlpha } from "@/lib/brand-theme";
-import { FEED_PIN_CENTS, formatSocialUsd, socialDailyPrompt } from "@/lib/social-money";
+import {
+  CREATOR_CHANNEL_CENTS,
+  CREATOR_CHANNEL_DAYS,
+  FEED_PIN_CENTS,
+  formatSocialUsd,
+  socialDailyPrompt,
+} from "@/lib/social-money";
 import { ContentProtectionReportSheet } from "@/components/content-protection-report-sheet";
 import { LinearGradient } from "expo-linear-gradient";
 import { CreatorTipButton } from "@/components/creator-tip-button";
@@ -515,10 +521,19 @@ export function SocialFeedPanel({
   const [gradStart, gradEnd] = brandGradientPair(colors);
 
   return (
-    <View style={{ flex: 1 }}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
       <View style={[styles.disclosureBar, brandDisclosureSurface(colors), { backgroundColor: colors.surface }]}>
         <Text style={{ color: colors.onWhite, fontSize: 10, lineHeight: 14 }}>
           {PLATFORM_DISCLOSURE_SHORT}
+        </Text>
+      </View>
+
+      <View style={{ marginHorizontal: 16, marginTop: 12, gap: 4 }}>
+        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "900" }}>Post on UR</Text>
+        <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+          This post stays on UR Platform. It does not go to Facebook, TikTok, or anywhere else.
+          A paid follow is {formatSocialUsd(CREATOR_CHANNEL_CENTS)} for {CREATOR_CHANNEL_DAYS} days.
+          Pin your own post for {formatSocialUsd(FEED_PIN_CENTS)} for 24 hours.
         </Text>
       </View>
 
@@ -611,9 +626,9 @@ export function SocialFeedPanel({
         </Text>
       </Pressable>
 
-      <Pressable onPress={() => setShowComposer((v) => !v)} style={{ paddingHorizontal: 16, paddingVertical: 6 }}>
-        <Text style={{ color: colors.primary, fontWeight: "700" }}>
-          {showComposer ? "▼ Hide composer" : "✏️ What's on your mind?"}
+      <Pressable onPress={() => setShowComposer((v) => !v)} style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+        <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 15 }}>
+          {showComposer ? "Hide the post box" : "Write a post on UR"}
         </Text>
       </Pressable>
 
@@ -869,13 +884,13 @@ export function SocialFeedPanel({
             {createPost.isPending ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.postBtnText}>Post free — like Facebook & TikTok</Text>
+              <Text style={styles.postBtnText}>Post on UR</Text>
             )}
           </Pressable>
         </View>
       ) : null}
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 40 }}>
+      <View style={{ padding: 16, gap: 14 }}>
         {feed.isLoading ? (
           <ActivityIndicator color={colors.primary} />
         ) : (feed.data?.posts ?? []).length === 0 ? (
@@ -894,8 +909,8 @@ export function SocialFeedPanel({
             />
           ))
         )}
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollView>
   );
 }
 
