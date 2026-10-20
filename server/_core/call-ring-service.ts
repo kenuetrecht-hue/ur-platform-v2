@@ -109,12 +109,18 @@ export function callRingCallerLabel(name: string | undefined): string {
   return trimmed;
 }
 
+export function callAnswerPath(roomId: string): string {
+  const safe = roomId.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 80);
+  return safe ? `/call/${safe}?pickUp=1` : "/messages";
+}
+
 export function buildCallRingPayload(params: { callerLabel: string; roomId: string }): string {
+  const roomId = params.roomId.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 80);
   return JSON.stringify({
     title: "Incoming video call",
-    body: `${params.callerLabel} is calling you on UR Platform. Open the site to answer.`,
-    url: "/messages",
-    roomId: params.roomId,
+    body: `${params.callerLabel} is calling you on UR Platform. Tap Answer the call to talk with them.`,
+    url: callAnswerPath(roomId),
+    roomId,
   });
 }
 

@@ -446,10 +446,12 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
       ]}
     >
       <Text style={{ color: LETTERING_ON_COLOR, fontWeight: "800", fontSize: 22 }}>
-        {resolvedIsCaller ? `Calling ${who}` : who}
+        {resolvedIsCaller ? `Calling ${who}` : `Talking with ${who}`}
       </Text>
       <Text style={{ color: LETTERING_ON_COLOR, fontSize: 13 }}>
-        {resolvedIsCaller ? "Only this person is being called." : "You are on this call."}
+        {resolvedIsCaller
+          ? "Only this person is being called."
+          : "This is the video call with the person who called you."}
       </Text>
       <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12 }}>{status}</Text>
       <Text style={{ color: LETTERING_ON_COLOR, fontSize: 12, fontVariant: ["tabular-nums"] }}>

@@ -24,8 +24,9 @@ describe("incoming video call rings the phone", () => {
     expect(payload.title).toBe("Incoming video call");
     expect(payload.body).toContain("Ada");
     expect(payload.body).toContain("UR Platform");
+    expect(payload.body).toContain("Answer");
     expect(payload.body).not.toContain("@");
-    expect(payload.url).toBe("/messages");
+    expect(payload.url).toBe("/call/room-1?pickUp=1");
   });
 
   it("keeps only https push subscriptions for that person", () => {
@@ -60,6 +61,8 @@ describe("incoming video call rings the phone", () => {
     expect(worker).toContain('addEventListener("push"');
     expect(worker).toContain('addEventListener("notificationclick"');
     expect(worker).toContain("ur-incoming-call");
+    expect(worker).toContain('title: "Answer the call"');
+    expect(worker).toContain("ur-answer-call");
   });
 
   it("keeps a note that someone tried to call, even after the ring stops", async () => {

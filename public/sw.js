@@ -13,11 +13,24 @@ self.addEventListener("fetch", () => {
   // for Chrome's "install from website" check.
 });
 
-self.addEventListener("push", (event) => {
-  let payload = {
+function safeRoomId(value) {
+  return typeof value === "string" && /^[a-zA-Z0-9-]{1,80}$/.test(value) ? value : "";
+}
+
+function safeCallPath(value, roomId, decline) {
+  const answer = roomId ? `/call/${roomId}?pickUp=1` : "";
+  if (decline && roomId) return `/call/${roomId}?decline=1`;
+  if (answer && value === answer) return answer;
+  if (answer) return answer;
+  return "/messages";
+}
+
+function readPushPayload(event) {
+  const payload = {
     title: "Incoming video call",
-    body: "Someone is calling you on UR",
+    body: "Someone is calling you on UR Platform. Tap Answer to pick up.",
     url: "/messages",
+    roomId: "",
   };
   try {
     if (event.data) {
@@ -29,7 +42,12 @@ self.addEventListener("push", (event) => {
         if (typeof parsed.body === "string" && parsed.body.length > 0 && parsed.body.length < 180) {
           payload.body = parsed.body;
         }
-        if (typeof parsed.url === "string" && parsed.url.startsWith("/") && !parsed.url.startsWith("//")) {
+        payload.roomId = safeRoomId(parsed.roomId);
+        if (
+          payload.roomId &&
+          typeof parsed.url === "string" &&
+          parsed.url === `/call/${payload.roomId}?pickUp=1`
+        ) {
           payload.url = parsed.url;
         }
       }
@@ -37,6 +55,28 @@ self.addEventListener("push", (event) => {
   } catch {
     /* keep the default incoming-call copy */
   }
+  return payload;
+}
+
+async function openCallPage(target, message) {
+  const absolute = new URL(target, self.location.origin).href;
+  const list = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  for (const client of list) {
+    client.postMessage(message);
+    if (typeof client.navigate === "function") {
+      try {
+        await client.navigate(absolute);
+      } catch {
+        /* The focused page still receives the message above. */
+      }
+    }
+    if (typeof client.focus === "function") return client.focus();
+  }
+  if (self.clients.openWindow) return self.clients.openWindow(absolute);
+}
+
+self.addEventListener("push", (event) => {
+  const payload = readPushPayload(event);
   event.waitUntil(
     self.registration
       .showNotification(payload.title, {
@@ -46,12 +86,16 @@ self.addEventListener("push", (event) => {
         requireInteraction: true,
         vibrate: [180, 120, 180, 120, 420],
         icon: "/pwa-icon-192.png",
-        data: { url: payload.url },
+        actions: [
+          { action: "answer", title: "Answer the call" },
+          { action: "decline", title: "Decline" },
+        ],
+        data: { url: safeCallPath(payload.url, payload.roomId, false), roomId: payload.roomId },
       })
       .then(() => self.clients.matchAll({ type: "window", includeUncontrolled: true }))
       .then((list) => {
         for (const client of list) {
-          client.postMessage({ type: "ur-incoming-call" });
+          client.postMessage({ type: "ur-incoming-call", roomId: payload.roomId });
         }
       }),
   );
@@ -59,16 +103,14 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target =
-    event.notification.data && typeof event.notification.data.url === "string"
-      ? event.notification.data.url
-      : "/messages";
+  const data = event.notification.data || {};
+  const roomId = safeRoomId(data.roomId);
+  const decline = event.action === "decline";
+  const target = safeCallPath(data.url, roomId, decline);
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
-      for (const client of list) {
-        if ("focus" in client) return client.focus();
-      }
-      if (self.clients.openWindow) return self.clients.openWindow(target);
+    openCallPage(target, {
+      type: decline ? "ur-decline-call" : "ur-answer-call",
+      roomId,
     }),
   );
 });

@@ -81,8 +81,8 @@ export default function RootLayout() {
                         contentStyle: { backgroundColor: "transparent" },
                       }}
                     />
-                    <IncomingVideoCallDock />
                   </PlatformDisclosureFrame>
+                  <IncomingVideoCallDock />
                 </AuthRouteGuard>
               </AuthProvider>
               <StatusBar style="auto" />

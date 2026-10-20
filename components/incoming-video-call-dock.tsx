@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import { createPortal } from "react-dom";
+import { useGlobalSearchParams } from "expo-router";
 import { FriendVideoCallPanel } from "@/components/friend-video-call-panel";
 import { useAuth } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
@@ -16,9 +17,17 @@ import { LETTERING_ON_COLOR } from "@/lib/gold-lettering";
 import { trpc } from "@/lib/trpc";
 
 /** Rings on every signed-in page so a social video call is not missed off the Friends tab. */
+function callRoomId(value: unknown): string {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return typeof raw === "string" && /^[a-zA-Z0-9-]{1,80}$/.test(raw) ? raw : "";
+}
+
 export function IncomingVideoCallDock() {
   const colors = useColors();
   const { isAuthenticated } = useAuth();
+  const params = useGlobalSearchParams<{ answerCall?: string; declineCall?: string }>();
+  const answerFromLink = callRoomId(params.answerCall);
+  const declineFromLink = callRoomId(params.declineCall);
   const incoming = trpc.social.incomingVideoCalls.useQuery(undefined, {
     enabled: isAuthenticated,
     refetchInterval: 1500,
@@ -26,6 +35,10 @@ export function IncomingVideoCallDock() {
   });
   const [active, setActive] = useState<{ roomId: string; peerUserId: string; peerLabel: string } | null>(null);
   const decline = trpc.social.endVideoCall.useMutation();
+  const declineRef = useRef(decline.mutate);
+  declineRef.current = decline.mutate;
+  const declinedRooms = useRef(new Set<string>());
+  const openedFromLink = useRef("");
   const [pushReady, setPushReady] = useState(false);
   const registerRing = trpc.social.registerCallRing.useMutation();
   const registerRef = useRef(registerRing.mutateAsync);
@@ -61,9 +74,36 @@ export function IncomingVideoCallDock() {
   }, [isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated || !answerFromLink || openedFromLink.current === answerFromLink) return;
+    openedFromLink.current = answerFromLink;
+    const match = (incoming.data ?? []).find((call) => call.id === answerFromLink);
+    setActive({
+      roomId: answerFromLink,
+      peerUserId: match?.callerUserId ?? "",
+      peerLabel: match?.callerName || "A friend",
+    });
+  }, [isAuthenticated, answerFromLink, incoming.data]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !declineFromLink || declinedRooms.current.has(declineFromLink)) return;
+    declinedRooms.current.add(declineFromLink);
+    declineRef.current({ roomId: declineFromLink });
+  }, [isAuthenticated, declineFromLink]);
+
+  useEffect(() => {
     if (!isAuthenticated || typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
     const onMessage = (event: MessageEvent) => {
-      if (event.data && event.data.type === "ur-incoming-call") void incoming.refetch();
+      const data = event.data as { type?: string; roomId?: string } | null;
+      if (!data || typeof data.type !== "string") return;
+      if (data.type === "ur-incoming-call") void incoming.refetch();
+      const roomId = callRoomId(data.roomId);
+      if (data.type === "ur-answer-call" && roomId) {
+        setActive({ roomId, peerUserId: "", peerLabel: "A friend" });
+      }
+      if (data.type === "ur-decline-call" && roomId && !declinedRooms.current.has(roomId)) {
+        declinedRooms.current.add(roomId);
+        declineRef.current({ roomId });
+      }
     };
     navigator.serviceWorker.addEventListener("message", onMessage);
     return () => navigator.serviceWorker.removeEventListener("message", onMessage);
@@ -90,7 +130,9 @@ export function IncomingVideoCallDock() {
     if (first && !pushReady) {
       showForegroundCallNotice(
         first.id,
-        first.kind === "creator" ? "A paid call is ringing on UR" : "A friend is calling you on UR",
+        first.kind === "creator"
+          ? "A paid call is ringing on UR Platform. Tap Answer to pick up."
+          : `${first.callerName || "A friend"} is calling you on UR Platform. Tap Answer to pick up.`,
       );
     }
     return () => stopCallRingtone();

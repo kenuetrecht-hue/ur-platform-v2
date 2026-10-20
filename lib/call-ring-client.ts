@@ -68,16 +68,25 @@ export function showForegroundCallNotice(roomId: string, body: string): void {
   if (notifiedRooms.has(roomId)) return;
   notifiedRooms.add(roomId);
   if (Platform.OS === "web") {
-    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
-    try {
-      new Notification("Incoming video call", {
-        body,
-        requireInteraction: true,
-        tag: "ur-video-call",
-      });
-    } catch {
-      /* the in-app banner and ringtone still run */
-    }
+    const safeRoom = /^[a-zA-Z0-9-]{1,80}$/.test(roomId) ? roomId : "";
+    void navigator.serviceWorker?.ready
+      .then((registration) =>
+        registration.showNotification("Incoming video call", {
+          body,
+          requireInteraction: true,
+          tag: "ur-video-call",
+          renotify: true,
+          actions: [
+            { action: "answer", title: "Answer the call" },
+            { action: "decline", title: "Decline" },
+          ],
+          data: {
+            url: safeRoom ? `/call/${safeRoom}?pickUp=1` : "/messages",
+            roomId: safeRoom,
+          },
+        }),
+      )
+      .catch(() => undefined);
     return;
   }
   void presentNativeCallNotice(body);
