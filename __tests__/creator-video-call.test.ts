@@ -16,6 +16,7 @@ import {
 import {
   createCreatorVideoCall,
   createVideoCall,
+  listIncomingCalls,
   endVideoCall,
   getVideoCallRoom,
   heartbeatVideoCall,
@@ -199,6 +200,14 @@ describe("creator video call rooms", () => {
     expect(friendRoom.kind).toBe("friend");
     expect(friendRoom.callerName).toBe("A friend");
     expect(friendRoom.paidCents).toBeUndefined();
+    expect(friendRoom.calleeUserId).toBe("u2");
+
+    registerSocialUser({ userId: "buddy-now", email: "b@test.com", displayName: "B" });
+    const retargeted = createVideoCall({ callerUserId: "u1", calleeUserId: "u2", callerName: "A" });
+    expect(retargeted.calleeUserId).toBe("buddy-now");
+    expect(listIncomingCalls("buddy-now").some((call) => call.id === retargeted.id)).toBe(true);
+    expect(listIncomingCalls("u2").some((call) => call.id === retargeted.id)).toBe(false);
+    registerSocialUser({ userId: "u2", email: "b@test.com", displayName: "B" });
 
     enrollContentCreator({
       userId: "creator-paid-call",

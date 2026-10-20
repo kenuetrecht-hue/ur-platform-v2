@@ -93,6 +93,10 @@ export function SocialHubPanel() {
   const rideAlong = trpc.social.setRideAlong.useMutation({
     onSuccess: () => void utils.social.dashboard.invalidate(),
   });
+  const incomingCalls = trpc.social.incomingVideoCalls.useQuery(undefined, {
+    refetchInterval: 1500,
+    staleTime: 0,
+  });
   const startFriendCall = trpc.social.createVideoCall.useMutation({
     onSuccess: (room, variables) => {
       setCallingPeerId(null);
@@ -143,6 +147,17 @@ export function SocialHubPanel() {
         messageBadge={unreadMail}
         pendingFriends={pending.length}
       />
+      {(incomingCalls.data ?? [])
+        .filter((call) => call.status === "ringing")
+        .map((call) => (
+          <Pressable
+            key={call.id}
+            onPress={() => openCall(call.id, call.callerUserId, false)}
+            style={[styles.btn, { backgroundColor: "#1e8e3e", marginHorizontal: 16, marginTop: 12 }]}
+          >
+            <Text style={styles.btnText}>Answer {call.callerName || "a friend"}</Text>
+          </Pressable>
+        ))}
 
       {videoRoomId && videoFriendId ? (
         <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>

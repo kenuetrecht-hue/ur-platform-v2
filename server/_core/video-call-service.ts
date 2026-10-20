@@ -7,7 +7,7 @@
 import { randomUUID } from "crypto";
 import { TRPCError } from "@trpc/server";
 import { assertIceCandidate, assertSecureSessionDescription } from "./call-media-guard";
-import { listFriends } from "./social-service";
+import { listFriends, resolveUserIdByEmail } from "./social-service";
 import { consumeCreatorCallTicket } from "./creator-call-ticket-service";
 import {
   endCallMeter,
@@ -145,6 +145,14 @@ function publicCallerName(name: string | undefined): string {
   return trimmed;
 }
 
+/** Ring the account that email points at now, even if the friend row still has an older id. */
+export function currentCalleeUserId(callerUserId: string, requestedCalleeUserId: string): string {
+  const friend = listFriends(callerUserId).find((row) => row.peerUserId === requestedCalleeUserId);
+  const fresh = friend?.peerEmail ? resolveUserIdByEmail(friend.peerEmail) : null;
+  if (fresh && fresh !== callerUserId) return fresh;
+  return requestedCalleeUserId;
+}
+
 export function createVideoCall(params: {
   callerUserId: string;
   calleeUserId: string;
@@ -154,7 +162,7 @@ export function createVideoCall(params: {
   return putRoom({
     kind: "friend",
     callerUserId: params.callerUserId,
-    calleeUserId: params.calleeUserId,
+    calleeUserId: currentCalleeUserId(params.callerUserId, params.calleeUserId),
     callerName: publicCallerName(params.callerName),
   });
 }

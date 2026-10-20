@@ -135,6 +135,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
   const appliedIce = useRef(new Set<string>());
   const closedRef = useRef(false);
   const [status, setStatus] = useState("Connecting…");
+  const [remoteReady, setRemoteReady] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [mediaReady, setMediaReady] = useState(false);
   const webRtc = canUseWebRtc();
@@ -145,7 +146,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
   const heartbeat = trpc.social.heartbeatVideoCall.useMutation();
   const room = trpc.social.getVideoCall.useQuery(
     { roomId },
-    { refetchInterval: 1000, enabled: Boolean(roomId) && !tokenMode },
+    { refetchInterval: 1000, staleTime: 0, enabled: Boolean(roomId) && !tokenMode },
   );
   const signalOffer = trpc.social.signalVideoOffer.useMutation();
   const signalAnswer = trpc.social.signalVideoAnswer.useMutation();
@@ -154,7 +155,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
 
   const accessRoom = trpc.social.accessGetVideoCall.useQuery(
     { roomId, token: accessToken ?? "" },
-    { refetchInterval: 1000, enabled: tokenMode && Boolean(roomId && accessToken) },
+    { refetchInterval: 1000, staleTime: 0, enabled: tokenMode && Boolean(roomId && accessToken) },
   );
   const accessJoin = trpc.social.accessJoinVideoCall.useMutation();
   const accessEnd = trpc.social.accessEndVideoCall.useMutation();
@@ -321,6 +322,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
     if (pc.currentRemoteDescription) return;
     void (async () => {
       await pc.setRemoteDescription(JSON.parse(roomData.offerSdp!) as RTCSessionDescriptionInit);
+      setRemoteReady((n) => n + 1);
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       await tuneCallSenders(pc);
@@ -340,6 +342,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
     if (pc.currentRemoteDescription) return;
     void (async () => {
       await pc.setRemoteDescription(JSON.parse(roomData.answerSdp!) as RTCSessionDescriptionInit);
+      setRemoteReady((n) => n + 1);
       setStatus("Connected · encrypted");
     })();
   }, [roomData?.answerSdp, resolvedIsCaller, webRtc, mediaReady]);
@@ -347,18 +350,25 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
   useEffect(() => {
     if (!webRtc || !mediaReady || !pcRef.current || !roomData?.iceCandidates?.length) return;
     const pc = pcRef.current;
+    if (!pc.remoteDescription) return;
     const selfId = resolvedIsCaller ? roomData.callerUserId : roomData.calleeUserId;
     for (const row of roomData.iceCandidates) {
       if (row.fromUserId === selfId) continue;
       if (appliedIce.current.has(row.candidate)) continue;
       appliedIce.current.add(row.candidate);
-      try {
-        void pc.addIceCandidate(JSON.parse(row.candidate) as RTCIceCandidateInit);
-      } catch {
-        /* Ignore malformed candidates. */
-      }
+      void pc.addIceCandidate(JSON.parse(row.candidate) as RTCIceCandidateInit).catch(() => {
+        appliedIce.current.delete(row.candidate);
+      });
     }
-  }, [roomData?.iceCandidates, roomData?.callerUserId, roomData?.calleeUserId, resolvedIsCaller, webRtc, mediaReady]);
+  }, [
+    roomData?.iceCandidates,
+    roomData?.callerUserId,
+    roomData?.calleeUserId,
+    resolvedIsCaller,
+    webRtc,
+    mediaReady,
+    remoteReady,
+  ]);
 
   useEffect(() => {
     if (!roomId) return;

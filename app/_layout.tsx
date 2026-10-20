@@ -75,13 +75,13 @@ export default function RootLayout() {
                 <AuthRouteGuard>
                   <PlatformDisclosureFrame>
                     <OwnerEmergencyAlarm />
-                    <IncomingVideoCallDock />
                     <Stack
                       screenOptions={{
                         headerShown: false,
                         contentStyle: { backgroundColor: "transparent" },
                       }}
                     />
+                    <IncomingVideoCallDock />
                   </PlatformDisclosureFrame>
                 </AuthRouteGuard>
               </AuthProvider>

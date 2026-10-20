@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
+import { createPortal } from "react-dom";
 import { FriendVideoCallPanel } from "@/components/friend-video-call-panel";
 import { useAuth } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
@@ -20,7 +21,8 @@ export function IncomingVideoCallDock() {
   const { isAuthenticated } = useAuth();
   const incoming = trpc.social.incomingVideoCalls.useQuery(undefined, {
     enabled: isAuthenticated,
-    refetchInterval: 2500,
+    refetchInterval: 1500,
+    staleTime: 0,
   });
   const [active, setActive] = useState<{ roomId: string; peerUserId: string; peerLabel: string } | null>(null);
   const decline = trpc.social.endVideoCall.useMutation();
@@ -88,21 +90,17 @@ export function IncomingVideoCallDock() {
 
   if (!isAuthenticated || (!active && ringing.length === 0)) return null;
 
-  return (
+  const screen = (
     <View
       pointerEvents="box-none"
-      style={
-        Boolean(ringing[0]) && !active
-          ? {
-              position: Platform.OS === "web" ? ("fixed" as "absolute") : "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 260,
-            }
-          : { position: "absolute", top: 64, left: 12, right: 12, zIndex: 50, gap: 8 }
-      }
+      style={{
+        position: Platform.OS === "web" ? ("fixed" as "absolute") : "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 2147483000,
+      }}
     >
       {active ? (
         <FriendVideoCallPanel
@@ -156,4 +154,9 @@ export function IncomingVideoCallDock() {
       ) : null}
     </View>
   );
+
+  if (Platform.OS === "web" && typeof document !== "undefined") {
+    return createPortal(screen, document.body);
+  }
+  return screen;
 }
