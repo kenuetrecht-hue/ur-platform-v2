@@ -6,10 +6,12 @@
 import { z } from "zod";
 import { secureProcedure, securePublicProcedure, router } from "../_core/trpc";
 import * as db from "../db";
+import { isBetaTestingOpen, BETA_BASIC_DISCOUNT_PERCENT } from "../../lib/beta-test-offer";
 import {
   getLaunchDate,
   getLaunchWindowEnd,
   LAUNCH_CREATOR_SLOTS,
+  LAUNCH_DAY_LABEL,
   LAUNCH_SIGNUP_WINDOW_DAYS,
 } from "../../lib/launch-promotion-config";
 
@@ -202,6 +204,9 @@ export const stampsPersistenceRouter = router({
 
     return {
       isActive,
+      betaOpen: isBetaTestingOpen(new Date(), launchDate),
+      betaBasicDiscountPercent: BETA_BASIC_DISCOUNT_PERCENT,
+      launchDayLabel: LAUNCH_DAY_LABEL,
       launchDate: launchDate.toISOString(),
       windowEnd: windowEnd.toISOString(),
       windowDays: LAUNCH_SIGNUP_WINDOW_DAYS,

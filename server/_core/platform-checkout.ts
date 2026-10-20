@@ -1,9 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import {
+  applyBetaBasicDiscountCents,
+  qualifiesForBetaBasicDiscount,
+} from "../../lib/beta-test-offer";
+import {
   getCommerceMode,
   isSimulatedCommerceMode,
   LIVE_CHECKOUT_UNAVAILABLE_NOTICE,
 } from "../../lib/dev-commerce-mode";
+import { getUserById } from "../db";
 import { createPlatformCheckoutSession } from "./stripe-checkout-service";
 import { mapServiceErrorToTrpc } from "./service-errors";
 
@@ -37,13 +42,19 @@ export async function redirectToLiveCheckout(params: {
       message: LIVE_CHECKOUT_UNAVAILABLE_NOTICE,
     });
   }
+  const chargeSubtotalCents = await betaBasicChargeCents(params.userId, params.priceCents);
+  const description =
+    chargeSubtotalCents < params.priceCents
+      ? `${params.description} Beta member price, 10% off until launch day.`
+      : params.description;
   try {
     const checkout = await createPlatformCheckoutSession({
       userId: params.userId,
       userEmail: params.userEmail,
       productName: params.productName,
-      description: params.description,
+      description,
       priceCents: params.priceCents,
+      chargeSubtotalCents,
       billingStateCode: params.billingStateCode ?? "",
       successPath: params.successPath,
       cancelPath: params.cancelPath,
@@ -62,4 +73,24 @@ export async function redirectToLiveCheckout(params: {
   } catch (error) {
     mapServiceErrorToTrpc(error);
   }
+}
+
+/** Basic beta members pay 10% less on UR-owned prices. Creators keep the full catalog price. */
+async function betaBasicChargeCents(userId: string, listCents: number): Promise<number> {
+  const id = Number(userId);
+  if (!Number.isInteger(id) || id < 1) return listCents;
+  try {
+    const { hydrateCreatorRosterFromDatabase, getContentCreatorProfile } = await import(
+      "./partner-program-service"
+    );
+    await hydrateCreatorRosterFromDatabase();
+    if (getContentCreatorProfile(userId)) return listCents;
+  } catch {
+    return listCents;
+  }
+  const user = await getUserById(id);
+  const joinedAt = user?.createdAt ? new Date(user.createdAt) : null;
+  if (!joinedAt || Number.isNaN(joinedAt.getTime())) return listCents;
+  if (!qualifiesForBetaBasicDiscount(joinedAt)) return listCents;
+  return applyBetaBasicDiscountCents(listCents);
 }

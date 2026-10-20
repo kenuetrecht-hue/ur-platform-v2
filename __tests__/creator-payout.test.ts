@@ -14,7 +14,7 @@ describe("Creator Uphold / blockchain payouts", () => {
       userId: "cr-pay-1",
       userEmail: "c@test.com",
       displayName: "Creator",
-      enrolledAt: new Date("2026-10-01T00:00:00.000Z"),
+      enrolledAt: new Date("2027-03-01T00:00:00.000Z"),
     });
     const result = processInstantCreatorPayout({
       creatorUserId: "cr-pay-1",

@@ -194,7 +194,7 @@ describe("creator video call rooms", () => {
       userId: "creator-call-1",
       userEmail: "c1@test.com",
       displayName: "Caller",
-      enrolledAt: new Date("2026-10-01T00:00:00.000Z"),
+      enrolledAt: new Date("2027-03-01T00:00:00.000Z"),
     });
     expect(setCreatorVideoCallPrice({ creatorUserId: "creator-call-1", priceCents: 100 }).videoCallPriceCents).toBe(100);
     expect(setCreatorVideoCallPrice({ creatorUserId: "creator-call-1", priceCents: 500_000 }).videoCallPriceCents).toBe(
@@ -219,7 +219,7 @@ describe("creator video call rooms", () => {
       userId: "creator-call-5",
       userEmail: "c5@test.com",
       displayName: "Five",
-      enrolledAt: new Date("2026-10-01T00:00:00.000Z"),
+      enrolledAt: new Date("2027-03-01T00:00:00.000Z"),
     });
     expect(() => setCreatorVideoCallPrice({ creatorUserId: "creator-call-5", priceCents: 500 })).toThrow(/\$5\.00/);
   });
@@ -251,7 +251,7 @@ describe("creator video call rooms", () => {
       userId: "creator-paid-call",
       userEmail: "cp@test.com",
       displayName: "Paid",
-      enrolledAt: new Date("2026-10-01T00:00:00.000Z"),
+      enrolledAt: new Date("2027-03-01T00:00:00.000Z"),
     });
     expect(() =>
       createCreatorVideoCall({ callerUserId: "u1", creatorUserId: "creator-paid-call" }),
@@ -303,7 +303,7 @@ describe("creator video call rooms", () => {
       userId: "creator-fulfill-call",
       userEmail: "cf@test.com",
       displayName: "Fulfill",
-      enrolledAt: new Date("2026-10-01T00:00:00.000Z"),
+      enrolledAt: new Date("2027-03-01T00:00:00.000Z"),
     });
     const result = fulfillStripeCheckoutSession({
       id: "cs_test_creator_call_1",
@@ -331,7 +331,7 @@ describe("creator video call rooms", () => {
       userId: "creator-settle-call",
       userEmail: "cs@test.com",
       displayName: "Settle",
-      enrolledAt: new Date("2026-10-01T00:00:00.000Z"),
+      enrolledAt: new Date("2027-03-01T00:00:00.000Z"),
     });
     const answeredTicket = grantCreatorCallTicket({
       buyerUserId: "fan-ok",
@@ -400,7 +400,7 @@ describe("creator video call rooms", () => {
       userId: "creator-public-room",
       userEmail: "pub@test.com",
       displayName: "Public",
-      enrolledAt: new Date("2026-10-01T00:00:00.000Z"),
+      enrolledAt: new Date("2027-03-01T00:00:00.000Z"),
     });
     grantCreatorCallTicket({
       buyerUserId: "fan-public",
@@ -425,7 +425,7 @@ describe("creator video call rooms", () => {
       userId: "creator-mismatch",
       userEmail: "mm@test.com",
       displayName: "Mismatch",
-      enrolledAt: new Date("2026-10-01T00:00:00.000Z"),
+      enrolledAt: new Date("2027-03-01T00:00:00.000Z"),
     });
     const ticket = grantCreatorCallTicket({
       buyerUserId: "fan-a",
@@ -451,7 +451,7 @@ describe("creator video call rooms", () => {
       userId: "creator-webhook-guard",
       userEmail: "wg@test.com",
       displayName: "Webhook",
-      enrolledAt: new Date("2026-10-01T00:00:00.000Z"),
+      enrolledAt: new Date("2027-03-01T00:00:00.000Z"),
     });
     grantCreatorCallTicket({
       buyerUserId: "fan-wg",

@@ -57,7 +57,7 @@ describe("Stripe Connect creator split (tips 100% / sales 85-15)", () => {
       userId: "stripe-split-creator-1",
       userEmail: "split@test.com",
       displayName: "Split Tester",
-      enrolledAt: new Date("2026-10-01T00:00:00.000Z"),
+      enrolledAt: new Date("2027-03-01T00:00:00.000Z"),
     });
     attachStripeConnectPayout("stripe-split-creator-1", "acct_sim_split1");
 
@@ -94,7 +94,7 @@ describe("Stripe Connect creator split (tips 100% / sales 85-15)", () => {
       userId: "stripe-split-creator-2",
       userEmail: "tipfulfill@test.com",
       displayName: "Tip Fulfill",
-      enrolledAt: new Date("2026-10-01T00:00:00.000Z"),
+      enrolledAt: new Date("2027-03-01T00:00:00.000Z"),
     });
     const first = fulfillStripeCheckoutSession({
       id: "cs_test_creator_tip_1",
@@ -129,7 +129,7 @@ describe("Stripe Connect creator split (tips 100% / sales 85-15)", () => {
       userId: "stripe-split-creator-3",
       userEmail: "salefulfill@test.com",
       displayName: "Sale Fulfill",
-      enrolledAt: new Date("2026-10-01T00:00:00.000Z"),
+      enrolledAt: new Date("2027-03-01T00:00:00.000Z"),
     });
     const result = fulfillStripeCheckoutSession({
       id: "cs_test_creator_sale_1",

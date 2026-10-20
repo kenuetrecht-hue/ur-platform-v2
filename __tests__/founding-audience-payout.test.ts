@@ -142,7 +142,7 @@ describe("founding audience payout wiring", () => {
     });
 
     expect(getCreatorSaleShare("fa-after300", hitTwoThousand)).toBeCloseTo(0.925, 5);
-    const atTwoK = getCreatorDashboard("fa-after300");
+    const atTwoK = getCreatorDashboard("fa-after300", hitTwoThousand);
     expect(atTwoK.enrolled).toBe(true);
     if (atTwoK.enrolled) {
       expect(atTwoK.foundingAudience?.active).toBe(true);
@@ -160,7 +160,7 @@ describe("founding audience payout wiring", () => {
     });
 
     expect(getCreatorSaleShare("fa-after300", hitFourThousand)).toBeCloseTo(0.94, 5);
-    const atFourK = getCreatorDashboard("fa-after300");
+    const atFourK = getCreatorDashboard("fa-after300", hitFourThousand);
     expect(atFourK.enrolled).toBe(true);
     if (atFourK.enrolled) {
       expect(atFourK.foundingAudience?.meetsBoostAudience).toBe(true);

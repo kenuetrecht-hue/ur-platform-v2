@@ -254,19 +254,26 @@ export async function createPlatformCheckoutSession(params: {
   productName: string;
   description: string;
   priceCents: number;
+  /** Amount UR is owed before tax. Defaults to the catalog price. */
+  chargeSubtotalCents?: number;
   billingStateCode: string;
   successPath: string;
   cancelPath: string;
   metadata: Record<string, string>;
 }): Promise<{ checkoutUrl: string; sessionId: string; totalCents: number }> {
   assertLiveCheckoutAllowed();
-  const checkout = calculateCustomerCheckout(params.priceCents, params.billingStateCode || "IN");
+  const listCents = params.priceCents;
+  const chargeCents =
+    params.chargeSubtotalCents != null && params.chargeSubtotalCents > 0
+      ? params.chargeSubtotalCents
+      : listCents;
+  const checkout = calculateCustomerCheckout(chargeCents, params.billingStateCode || "IN");
   const origin = getPlatformPublicOrigin();
   const adapter = await getAdapter();
   const metadata: Record<string, string> = {
     userId: clipMeta(params.userId),
     billingStateCode: clipMeta(params.billingStateCode || "IN"),
-    priceCents: String(params.priceCents),
+    priceCents: String(listCents),
   };
   for (const [key, value] of Object.entries(params.metadata)) {
     if (!key || key.length > 40) continue;

@@ -14,14 +14,17 @@ import {
   updatePromotionalState,
 } from "@/lib/promotional-banner-system";
 import {
+  LAUNCH_DAY_LABEL,
   LAUNCH_PROMOTION_HEADLINE,
   LAUNCH_PROMOTION_TIERS,
   LAUNCH_SIGNUP_WINDOW_DAYS,
   PLATFORM_FEE_PERCENT,
+  getLaunchDate,
   launchFeeKeepOn100,
   parseAffiliateRefFromInput,
   buildCreatorSignupHref,
 } from "@/lib/launch-promotion-config";
+import { BETA_BASIC_DISCOUNT_PERCENT, isBetaTestingOpen } from "@/lib/beta-test-offer";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
 import { CREATOR_CHANNEL_CENTS, CREATOR_CHANNEL_DAYS, formatSocialUsd } from "@/lib/social-money";
 import { trpc } from "@/lib/trpc";
@@ -68,6 +71,13 @@ export function LandingPromoBanner() {
   const tier1Remaining = stats.data?.tier1?.remaining ?? (tier1 ? tier1.capacity - tier1Joined : 100);
   const totalRemaining = stats.data?.totalRemaining ?? promoState.totalSpotsRemaining;
   const isActive = stats.data?.isActive ?? promoState.isActive;
+  const betaOpen = stats.data?.betaOpen ?? isBetaTestingOpen();
+  const launchMs = Date.parse(stats.data?.launchDate ?? getLaunchDate().toISOString());
+  const untilLaunchMs = Math.max(0, launchMs - Date.now());
+  const launchDays = Math.floor(untilLaunchMs / 86_400_000);
+  const launchHours = Math.floor((untilLaunchMs % 86_400_000) / 3_600_000);
+  const launchMinutes = Math.floor((untilLaunchMs % 3_600_000) / 60_000);
+  const creatorKeep = launchFeeKeepOn100(50);
 
   const parsedRef = useMemo(() => parseAffiliateRefFromInput(affiliateInput), [affiliateInput]);
 
@@ -90,9 +100,31 @@ export function LandingPromoBanner() {
       <View style={[styles.glow, { pointerEvents: "none" }]} />
 
       <Text style={styles.tag}>
-        {LAUNCH_SIGNUP_WINDOW_DAYS}-DAY LAUNCH · {totalRemaining} SPOTS LEFT · {tier1Remaining} IN THE FIRST 100
+        {betaOpen
+          ? `BETA UNTIL ${LAUNCH_DAY_LABEL.toUpperCase()}`
+          : `${LAUNCH_SIGNUP_WINDOW_DAYS}-DAY LAUNCH · ${totalRemaining} SPOTS LEFT · ${tier1Remaining} IN THE FIRST 100`}
       </Text>
-      <Text style={styles.headline}>{LAUNCH_PROMOTION_HEADLINE}</Text>
+      <Text style={styles.headline}>{betaOpen ? "Beta is open" : LAUNCH_PROMOTION_HEADLINE}</Text>
+      {betaOpen ? (
+        <View style={styles.dealRow}>
+          <Text style={styles.dealWho}>Launch day is {LAUNCH_DAY_LABEL}</Text>
+          <Text style={styles.dealKeep}>
+            Content creators who join before then are in the first 100.
+          </Text>
+          <Text style={styles.dealMoney}>
+            You keep 50% of UR's {PLATFORM_FEE_PERCENT}% fee for 6 months. On $100 you keep{" "}
+            {creatorKeep.youKeep}. UR keeps {creatorKeep.urKeeps}. You also get 2 lifetime drawing
+            entries and 1 free weekly ticket for life.
+          </Text>
+          <Text style={styles.dealMoney}>
+            Everyone else who joins before launch day gets {BETA_BASIC_DISCOUNT_PERCENT}% off UR's own
+            prices until {LAUNCH_DAY_LABEL}. That includes the AI text pass, the feed pin, and face
+            looks. Tax and the card fee are extra. A creator's price stays the same, so the creator
+            still gets paid.
+          </Text>
+        </View>
+      ) : null}
+      {betaOpen ? <Text style={styles.sectionTitle}>{LAUNCH_PROMOTION_HEADLINE}</Text> : null}
       <Text style={styles.sub}>
         Signup order picks your spot. No coupon. Everyday pay is $85 of $100 for you. UR keeps $15.
       </Text>
@@ -139,16 +171,20 @@ export function LandingPromoBanner() {
         {CREATOR_CHANNEL_DAYS} days. The creator keeps 85% of that. Tax and the card fee are extra. Your
         follow counts toward their 2,000.
       </Text>
-      {!isActive ? <Text style={styles.closedNote}>The 30-day signup clock has ended.</Text> : null}
+      {!isActive && !betaOpen ? (
+        <Text style={styles.closedNote}>The 30-day signup clock has ended.</Text>
+      ) : null}
 
-      {isActive ? <View style={styles.countdownCard}>
-        <Text style={styles.countdownLabel}>Launch signup window ends in</Text>
+      {betaOpen || isActive ? <View style={styles.countdownCard}>
+        <Text style={styles.countdownLabel}>
+          {betaOpen ? `Launch day, ${LAUNCH_DAY_LABEL}, is in` : "Launch signup window ends in"}
+        </Text>
         <View style={styles.countdownRow}>
-          <CountdownUnit value={promoState.daysRemaining} label="days" />
+          <CountdownUnit value={betaOpen ? launchDays : promoState.daysRemaining} label="days" />
           <Text style={styles.countdownSep}>:</Text>
-          <CountdownUnit value={promoState.hoursRemaining} label="hrs" padded />
+          <CountdownUnit value={betaOpen ? launchHours : promoState.hoursRemaining} label="hrs" padded />
           <Text style={styles.countdownSep}>:</Text>
-          <CountdownUnit value={promoState.minutesRemaining} label="min" padded />
+          <CountdownUnit value={betaOpen ? launchMinutes : promoState.minutesRemaining} label="min" padded />
         </View>
       </View> : null}
 

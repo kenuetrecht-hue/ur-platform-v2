@@ -139,6 +139,18 @@ export async function getUserByEmail(email: string) {
   return matches[0];
 }
 
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db || !Number.isInteger(id) || id < 1) return undefined;
+  try {
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0];
+  } catch (error) {
+    logDbFailure("Failed to get user by id", error);
+    return undefined;
+  }
+}
+
 export async function listUsersByEmail(email: string) {
   const db = await getDb();
   if (!db) {

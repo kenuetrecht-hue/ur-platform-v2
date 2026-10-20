@@ -59,7 +59,7 @@ describe("social money", () => {
       userId: authorId,
       userEmail: "social-money-author@test.com",
       displayName: "Money Author",
-      enrolledAt: new Date("2026-10-01T00:00:00.000Z"),
+      enrolledAt: new Date("2027-03-01T00:00:00.000Z"),
     });
     const post = createFeedPost({
       authorUserId: authorId,

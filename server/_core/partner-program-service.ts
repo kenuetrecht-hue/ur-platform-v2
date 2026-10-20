@@ -626,7 +626,7 @@ export function recordCreatorTransaction(params: {
   return { creator, affiliateBonusTriggered, affiliateUserId, countedTowardAffiliatePayout };
 }
 
-export function getCreatorDashboard(userId: string) {
+export function getCreatorDashboard(userId: string, now = new Date()) {
   const profile = getContentCreatorProfile(userId);
   if (!profile) {
     return { enrolled: false as const };
@@ -644,12 +644,12 @@ export function getCreatorDashboard(userId: string) {
     payoutStatus: profile.referredByAffiliateUserId
       ? describeAffiliateReferralProgress({
           freeServiceEndsAt: profile.freeServiceEndsAt ? new Date(profile.freeServiceEndsAt) : null,
-          now: new Date(),
+          now,
           qualifyingTransactionCount: profile.qualifyingTransactionCount,
           bonusPaid: profile.affiliateBonusPaid,
         })
       : null,
-    foundingAudience: getFoundingAudienceStatus(userId),
+    foundingAudience: getFoundingAudienceStatus(userId, now),
     foundingAudienceRule: FOUNDING_AUDIENCE_YEAR_RULE,
     audience: getCreatorAudienceLedger(userId),
     audienceRule: CREATOR_AUDIENCE_FOLLOW_RULE,

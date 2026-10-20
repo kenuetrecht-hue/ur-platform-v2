@@ -7,11 +7,15 @@ import {
   updatePromotionalState,
 } from "@/lib/promotional-banner-system";
 import {
+  LAUNCH_DAY_LABEL,
   LAUNCH_PROMOTION_HEADLINE,
   LAUNCH_PROMOTION_TIERS,
   LAUNCH_SIGNUP_WINDOW_DAYS,
   PLATFORM_FEE_PERCENT,
+  getLaunchDate,
+  launchFeeKeepOn100,
 } from "@/lib/launch-promotion-config";
+import { BETA_BASIC_DISCOUNT_PERCENT, isBetaTestingOpen } from "@/lib/beta-test-offer";
 import { FOUNDING_AUDIENCE_YEAR_RULE_SHORT } from "@/lib/founding-audience-year-discount";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
@@ -56,8 +60,15 @@ export function HomeLaunchPromoBanner() {
 
   const totalRemaining = stats.data?.totalRemaining ?? promoState.totalSpotsRemaining;
   const isActive = stats.data?.isActive ?? promoState.isActive;
+  const betaOpen = stats.data?.betaOpen ?? isBetaTestingOpen();
+  const launchMs = Date.parse(stats.data?.launchDate ?? getLaunchDate().toISOString());
+  const untilLaunchMs = Math.max(0, launchMs - Date.now());
+  const launchDays = Math.floor(untilLaunchMs / 86_400_000);
+  const launchHours = Math.floor((untilLaunchMs % 86_400_000) / 3_600_000);
+  const launchMinutes = Math.floor((untilLaunchMs % 3_600_000) / 60_000);
+  const creatorKeep = launchFeeKeepOn100(50);
 
-  if (!isActive) {
+  if (!isActive && !betaOpen) {
     return (
       <View style={[styles.inactiveWrap, { borderColor: colors.border, backgroundColor: colors.surface }]}>
         <Text style={[styles.inactiveTitle, { color: colors.onWhite }]}>
@@ -94,22 +105,27 @@ export function HomeLaunchPromoBanner() {
   return (
     <BrandGradient variant="brand" style={styles.wrap}>
       <Text style={styles.tag}>
-        {LAUNCH_SIGNUP_WINDOW_DAYS}-DAY LAUNCH · {totalRemaining} SPOTS LEFT
+        {betaOpen
+          ? `BETA UNTIL ${LAUNCH_DAY_LABEL.toUpperCase()}`
+          : `${LAUNCH_SIGNUP_WINDOW_DAYS}-DAY LAUNCH · ${totalRemaining} SPOTS LEFT`}
       </Text>
-      <Text style={styles.headline}>{LAUNCH_PROMOTION_HEADLINE}</Text>
+      <Text style={styles.headline}>{betaOpen ? "Beta is open" : LAUNCH_PROMOTION_HEADLINE}</Text>
       <Text style={styles.sub}>
-        First 300 creators lock tier discounts on the {PLATFORM_FEE_PERCENT}% platform fee. No coupon
-        — signup order is your code. {FOUNDING_AUDIENCE_YEAR_RULE_SHORT}
+        {betaOpen
+          ? `Launch day is ${LAUNCH_DAY_LABEL}. Creators who join before then are in the first 100 and keep 50% of UR's ${PLATFORM_FEE_PERCENT}% fee for 6 months. On $100 that is ${creatorKeep.youKeep} for you and ${creatorKeep.urKeeps} for UR. Everyone else who joins before launch day gets ${BETA_BASIC_DISCOUNT_PERCENT}% off UR's own prices until then. A creator's price stays the same.`
+          : `First 300 creators lock tier discounts on the ${PLATFORM_FEE_PERCENT}% platform fee. No coupon — signup order is your code. ${FOUNDING_AUDIENCE_YEAR_RULE_SHORT}`}
       </Text>
 
       <View style={styles.countdownCard}>
-        <Text style={styles.countdownLabel}>Contest ends in</Text>
+        <Text style={styles.countdownLabel}>
+          {betaOpen ? `Launch day, ${LAUNCH_DAY_LABEL}, is in` : "Contest ends in"}
+        </Text>
         <View style={styles.countdownRow}>
-          <CountdownUnit value={promoState.daysRemaining} label="days" />
+          <CountdownUnit value={betaOpen ? launchDays : promoState.daysRemaining} label="days" />
           <Text style={styles.countdownSep}>:</Text>
-          <CountdownUnit value={promoState.hoursRemaining} label="hrs" padded />
+          <CountdownUnit value={betaOpen ? launchHours : promoState.hoursRemaining} label="hrs" padded />
           <Text style={styles.countdownSep}>:</Text>
-          <CountdownUnit value={promoState.minutesRemaining} label="min" padded />
+          <CountdownUnit value={betaOpen ? launchMinutes : promoState.minutesRemaining} label="min" padded />
         </View>
       </View>
 

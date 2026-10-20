@@ -6,7 +6,7 @@ import { randomUUID } from "crypto";
 import { TRPCError } from "@trpc/server";
 import { recordTransaction } from "./transaction-ledger-service";
 import { getContentCreatorProfile, getFoundingAudienceStatus } from "./partner-program-service";
-import { launchAdvantageDurationDays, launchHundredBandFromSlot } from "../../lib/founding-audience-year-discount";
+import { launchAdvantageDurationDays, launchBandForEnrollment } from "../../lib/founding-audience-year-discount";
 import { LAUNCH_PROMOTION_TIERS, PLATFORM_FEE_PERCENT } from "../../lib/launch-promotion-config";
 
 /** Creators receive 85% of each sale instantly; platform retains 15%. */
@@ -18,7 +18,7 @@ export function saleShareToPercent(share: number): number {
 }
 
 function launchTierCreatorShare(now: Date, enrolledAt: Date, launchSlot: number | null): number | null {
-  const band = launchHundredBandFromSlot(launchSlot);
+  const band = launchBandForEnrollment({ enrolledAt, launchSlot });
   if (!band) return null;
   const ends = new Date(enrolledAt.getTime() + launchAdvantageDurationDays(band) * 24 * 60 * 60 * 1000);
   if (now.getTime() >= ends.getTime()) return null;

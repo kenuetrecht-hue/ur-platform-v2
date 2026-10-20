@@ -12,6 +12,7 @@
  * After the 30 days, new creators get regular 85/15.
  */
 
+import { enrolledDuringCreatorBeta } from "./beta-test-offer";
 import {
   getLaunchDate,
   getLaunchWindowEnd,
@@ -63,6 +64,17 @@ export function launchHundredBandFromSlot(slot: number | null | undefined): Laun
   return null;
 }
 
+/** Beta joiners are the first hundred. After launch day, the slot number picks the band. */
+export function launchBandForEnrollment(params: {
+  enrolledAt: Date;
+  launchSlot?: number | null;
+  launchDate?: Date;
+}): LaunchHundredBand {
+  const launchDate = params.launchDate ?? getLaunchDate();
+  if (enrolledDuringCreatorBeta(params.enrolledAt, launchDate)) return 1;
+  return launchHundredBandFromSlot(params.launchSlot);
+}
+
 export function launchAdvantageDurationDays(band: LaunchHundredBand): number {
   if (!band) return 0;
   return LAUNCH_PROMOTION_TIERS[band - 1]!.durationDays;
@@ -71,8 +83,9 @@ export function launchAdvantageDurationDays(band: LaunchHundredBand): number {
 export function launchAdvantageEndsAt(params: {
   enrolledAt: Date;
   launchSlot?: number | null;
+  launchDate?: Date;
 }): Date {
-  const band = launchHundredBandFromSlot(params.launchSlot);
+  const band = launchBandForEnrollment(params);
   const days = launchAdvantageDurationDays(band);
   return new Date(params.enrolledAt.getTime() + daysToMs(days));
 }
@@ -80,9 +93,10 @@ export function launchAdvantageEndsAt(params: {
 export function foundingAudienceYearClockStartsAt(params: {
   enrolledAt: Date;
   launchSlot?: number | null;
+  launchDate?: Date;
   twoThousandReachedAt?: Date | null;
 }): Date {
-  const inFirst300 = launchHundredBandFromSlot(params.launchSlot) != null;
+  const inFirst300 = launchBandForEnrollment(params) != null;
   if (inFirst300) return launchAdvantageEndsAt(params);
   return params.twoThousandReachedAt ?? launchAdvantageEndsAt(params);
 }
@@ -90,6 +104,7 @@ export function foundingAudienceYearClockStartsAt(params: {
 export function foundingAudienceYearEndsAt(params: {
   enrolledAt: Date;
   launchSlot?: number | null;
+  launchDate?: Date;
   twoThousandReachedAt?: Date | null;
 }): Date {
   const yearStart = foundingAudienceYearClockStartsAt(params);
@@ -189,19 +204,26 @@ export function resolveFoundingAudienceYear(params: {
     paidChannelSubscriberCount: paid,
   });
   const verified = params.verified === true;
-  const launchBand = launchHundredBandFromSlot(params.launchSlot);
+  const launchBand = launchBandForEnrollment({
+    enrolledAt: params.enrolledAt,
+    launchSlot: params.launchSlot,
+    launchDate,
+  });
   const advantageEnd = launchAdvantageEndsAt({
     enrolledAt: params.enrolledAt,
     launchSlot: params.launchSlot,
+    launchDate,
   });
   const yearStart = foundingAudienceYearClockStartsAt({
     enrolledAt: params.enrolledAt,
     launchSlot: params.launchSlot,
+    launchDate,
     twoThousandReachedAt: params.twoThousandReachedAt,
   });
   const yearEnd = foundingAudienceYearEndsAt({
     enrolledAt: params.enrolledAt,
     launchSlot: params.launchSlot,
+    launchDate,
     twoThousandReachedAt: params.twoThousandReachedAt,
   });
   const waitingOnLaunchAdvantage = now.getTime() < advantageEnd.getTime();

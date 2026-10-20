@@ -99,8 +99,17 @@ export function launchFeeKeepOn100(discountPercent: number): { youKeep: string; 
 export const LAUNCH_PROMOTION_SUBLINE =
   `First ${LAUNCH_CREATOR_SLOTS} creators lock in a discounted platform fee. After these 30 days, new creators get regular 85/15. During the window, bring 2,000 different people (1,000 followers + 1,000 paid subscribers) for a full year of 50% off, or 4,000 (2,000 + 2,000) for 60% off that year — the year starts after your launch deal if you are in the first 300, or the moment you hit 2,000 after slot 300.`;
 
-/** Default go-live anchor — override with EXPO_PUBLIC_LAUNCH_DATE or LAUNCH_DATE in .env */
-const DEFAULT_LAUNCH_DATE_ISO = "2026-08-12T05:00:00.000Z";
+/** Launch day is January 1, 2027, midnight US Eastern. Override with EXPO_PUBLIC_LAUNCH_DATE or LAUNCH_DATE. */
+const DEFAULT_LAUNCH_DATE_ISO = "2027-01-01T05:00:00.000Z";
+
+/** Beta opened October 20, 2026, midnight US Eastern. Creators and basic members who join from here until launch day. */
+const BETA_START_ISO = "2026-10-20T04:00:00.000Z";
+
+export const LAUNCH_DAY_LABEL = "January 1, 2027";
+
+export function getBetaStart(): Date {
+  return new Date(BETA_START_ISO);
+}
 
 /** Shared launch date for countdown + tier assignment (homepage, app home, server). */
 export function getLaunchDate(): Date {
