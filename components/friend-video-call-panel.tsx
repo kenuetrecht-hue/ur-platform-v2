@@ -86,9 +86,10 @@ async function tuneCallSenders(pc: RTCPeerConnection): Promise<void> {
       const encoding = params.encodings[0];
       if (!encoding) continue;
       if (track.kind === "video") {
-        params.degradationPreference = "balanced";
+        params.degradationPreference = "maintain-resolution";
         encoding.maxBitrate = CALL_VIDEO_MAX_BITRATE;
         encoding.maxFramerate = CALL_VIDEO_MAX_FRAMERATE;
+        encoding.scaleResolutionDownBy = 1;
       } else if (track.kind === "audio") {
         encoding.maxBitrate = CALL_AUDIO_MAX_BITRATE;
       }
@@ -184,7 +185,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
       el.dataset.localPreview = local ? "1" : "0";
       el.muted = local;
       el.style.width = "100%";
-      el.style.height = "220px";
+      el.style.height = local ? "28vh" : "52vh";
       el.style.objectFit = "cover";
       el.style.background = "#111";
       el.style.borderRadius = "12px";
@@ -319,6 +320,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
           if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
             setStatus("Connected · encrypted");
             setError(null);
+            void tuneCallSenders(pc);
           }
           if (pc.iceConnectionState === "failed") {
             setError(

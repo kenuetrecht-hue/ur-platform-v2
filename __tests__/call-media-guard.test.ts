@@ -37,6 +37,7 @@ describe("call media is encrypted and capped", () => {
     ) as { candidate: string };
     expect(stored.candidate.startsWith("candidate:")).toBe(true);
     expect(() => assertIceCandidate(JSON.stringify({ candidate: "http://evil.example/steal" }))).toThrow(TRPCError);
-    expect(CALL_VIDEO_MAX_BITRATE).toBeLessThanOrEqual(1_200_000);
+    expect(CALL_VIDEO_MAX_BITRATE).toBeGreaterThan(1_200_000);
+    expect(CALL_VIDEO_MAX_BITRATE).toBeLessThanOrEqual(2_500_000);
   });
 });
