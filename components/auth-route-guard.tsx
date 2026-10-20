@@ -126,7 +126,8 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
       segments[0] === "owner-ai" ||
       segments[0] === "3d-workspace" ||
       segments[0] === "playroom" ||
-      segments[0] === "world";
+      segments[0] === "world" ||
+      segments[0] === "face-filters";
 
     if (
       !isAuthenticated &&

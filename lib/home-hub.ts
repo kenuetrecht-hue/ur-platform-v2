@@ -57,6 +57,7 @@ export const HOME_STUDIO_DOORS: HomeDoor[] = [
   { id: "world", label: "UR World", emoji: "🏙️", href: "/world" },
   { id: "music", label: "Music Studio", emoji: "🎚️", href: "/music-studio" },
   { id: "cartoon", label: "Cartoon Studio", emoji: "🎬", href: "/cartoon-studio" },
+  { id: "face-filters", label: "Face filters", emoji: "📸", href: "/face-filters" },
   { id: "lab3d", label: "3D Workspace", emoji: "⬡", href: "/3d-workspace" },
   { id: "playroom", label: "AI Playroom", emoji: "🎮", href: "/playroom" },
 ];
@@ -80,6 +81,7 @@ export const HOME_MAIN_DOORS: HomeDoor[] = [
   { id: "credit", label: "Credit Attorney", emoji: "📑", href: { pathname: "/ais", params: { group: "legalMasters", ai: "ai-attorney-credit-001" } } },
   { id: "order-merch", label: "Order merch", emoji: "👕", href: "/creator-merch" },
   { id: "merch", label: "Design merch", emoji: "🎨", href: { pathname: "/3d-workspace", params: { tab: "merch", project: "merchandise" } } },
+  { id: "face-filters-door", label: "Face filters", emoji: "📸", href: "/face-filters" },
   { id: "blueprint", label: "Blueprint Reader", emoji: "📐", href: { pathname: "/(tabs)/ais", params: { ai: "ai-blueprint-reader-001" } } },
   { id: "cnc", label: "CNC & Mill", emoji: "🛠️", href: { pathname: "/(tabs)/ais", params: { ai: "ai-cnc-master-001" } } },
   { id: "culinary", label: "Culinary Arts", emoji: "👨‍🍳", href: { pathname: "/(tabs)/ais", params: { ai: "ai-culinary-001" } } },

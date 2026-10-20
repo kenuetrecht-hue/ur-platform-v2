@@ -766,6 +766,15 @@ export const creatorVideoCallPrices = mysqlTable("creatorVideoCallPrices", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+/** Paid unlock for Logo & Brand's Monday face looks. */
+export const faceFilterPasses = mysqlTable("faceFilterPasses", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  userId: varchar("userId", { length: 128 }).notNull(),
+  planId: varchar("planId", { length: 16 }).notNull(),
+  expiresAt: varchar("expiresAt", { length: 40 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 /** Paid creator cross-post allowance. One row per creator. */
 export const creatorSocialPushLots = mysqlTable("creatorSocialPushLots", {
   userId: varchar("userId", { length: 128 }).primaryKey(),

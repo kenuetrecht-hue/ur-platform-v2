@@ -26,6 +26,7 @@ import { grantReplayFromStripe } from "./class-replay-service";
 import { grantCreatorSocialPush } from "./creator-social-push-service";
 import { placeMemberPrintifyOrder } from "./commerce-fulfillment-adapters";
 import { grantOfficeAgent } from "./office-agent-service";
+import { grantFaceFilterPass } from "./face-filter-pass-service";
 
 const PLATFORM_KINDS = new Set([
   "usage_credit",
@@ -47,6 +48,7 @@ const PLATFORM_KINDS = new Set([
   "creator_social_push",
   "member_printify",
   "office_agent",
+  "face_filter_pass",
 ]);
 
 function emailOf(metadata: Record<string, string>): string {
@@ -202,6 +204,12 @@ export function fulfillPlatformPurchase(
       return { handled: true, ignored: false };
     case "office_agent":
       grantOfficeAgent(userId);
+      return { handled: true, ignored: false };
+    case "face_filter_pass":
+      grantFaceFilterPass({
+        userId,
+        planId: metadata.planId === "month" ? "month" : "week",
+      });
       return { handled: true, ignored: false };
     case "member_printify":
       void placeMemberPrintifyOrder({

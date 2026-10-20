@@ -23,6 +23,7 @@ const SUPPLEMENTAL_MIGRATIONS = [
   { file: "drizzle/creator-audience-migration.sql", label: "creator-audience" },
   { file: "drizzle/visitor-trail-migration.sql", label: "visitor-trail" },
   { file: "drizzle/call-ring-migration.sql", label: "call-ring" },
+  { file: "drizzle/face-filter-passes-migration.sql", label: "face-filter-passes" },
   { file: "drizzle/0006_creator_video_call_prices.sql", label: "creator-video-call-prices" },
 ];
 

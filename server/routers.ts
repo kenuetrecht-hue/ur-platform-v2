@@ -28,6 +28,7 @@ import { forgeAgentRouter } from "./routers/forge-agent-router";
 import { aiLiveSessionRouter } from "./routers/ai-live-session-router";
 import { partnerDashboardRouter } from "./routers/partner-dashboard-router";
 import { socialRouter } from "./routers/social-router";
+import { faceFilterRouter } from "./routers/face-filter-router";
 import { contentProtectionRouter } from "./routers/content-protection-router";
 import { commerceRouter } from "./routers/commerce-router";
 import { urWorldRouter } from "./routers/ur-world-router";
@@ -251,6 +252,7 @@ export const appRouter = router({
   aiLiveSessions: aiLiveSessionRouter,
   partnerDashboard: partnerDashboardRouter,
   social: socialRouter,
+  faceFilters: faceFilterRouter,
   contentProtection: contentProtectionRouter,
   commerce: commerceRouter,
   urWorld: urWorldRouter,
