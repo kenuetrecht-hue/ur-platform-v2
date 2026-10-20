@@ -131,6 +131,44 @@ describe("TURN ice", () => {
     expect(ice.iceServers.some((s) => s.username && s.credential)).toBe(true);
   });
 
+  it("accepts Cloudflare TURN credentials when iceServers is one object", async () => {
+    _setTurnEnvForTests({
+      CLOUDFLARE_TURN_KEY_ID: "key-1",
+      CLOUDFLARE_TURN_API_TOKEN: "token-1",
+    });
+    const original = globalThis.fetch;
+    globalThis.fetch = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          iceServers: {
+            urls: [
+              "stun:stun.cloudflare.com:3478",
+              "turn:turn.cloudflare.com:53?transport=udp",
+              "turn:turn.cloudflare.com:3478?transport=udp",
+              "turns:turn.cloudflare.com:5349?transport=tcp",
+            ],
+            username: "user-a",
+            credential: "cred-a",
+          },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    ) as typeof fetch;
+    try {
+      const ice = await getIceServersForCall({ userId: "u1" });
+      expect(ice.turn.provider).toBe("cloudflare");
+      expect(ice.relayReady).toBe(true);
+      const blob = JSON.stringify(ice.iceServers);
+      expect(blob).toContain("turn:turn.cloudflare.com:3478?transport=udp");
+      expect(blob).toContain("turns:turn.cloudflare.com:5349?transport=tcp");
+      expect(blob).toContain("user-a");
+      expect(blob).not.toContain(":53?");
+      expect(blob).not.toContain("token-1");
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
   it("ignores EXPO_PUBLIC TURN secrets so they cannot leak from the client bundle", async () => {
     _setTurnEnvForTests({
       EXPO_PUBLIC_TURN_URLS: "turn:evil.example:3478",

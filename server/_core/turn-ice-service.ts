@@ -121,6 +121,37 @@ function coturnIceServers(userId: string): UrIceServer[] {
   return [];
 }
 
+/** Cloudflare returns either `{ iceServers: { urls } }` or `{ iceServers: [...] }`. */
+export function normalizeCloudflareIcePayload(payload: unknown): UrIceServer[] {
+  if (!payload || typeof payload !== "object") return [];
+  const body = payload as Record<string, unknown>;
+  const raw = body.iceServers ?? body.ice_servers;
+  const list = Array.isArray(raw) ? raw : raw && typeof raw === "object" ? [raw] : [];
+  const servers: UrIceServer[] = [];
+  for (const item of list) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    const urlsRaw = row.urls ?? row.url;
+    const urls = (Array.isArray(urlsRaw) ? urlsRaw : typeof urlsRaw === "string" ? [urlsRaw] : []).filter(
+      (url): url is string => typeof url === "string" && /^(turns?|stuns?):/i.test(url),
+    );
+    if (urls.length === 0) continue;
+    const username = typeof row.username === "string" ? row.username : undefined;
+    const credential =
+      typeof row.credential === "string"
+        ? row.credential
+        : typeof row.password === "string"
+          ? row.password
+          : undefined;
+    servers.push({
+      urls: urls.length === 1 ? urls[0]! : urls,
+      ...(username ? { username } : {}),
+      ...(credential ? { credential } : {}),
+    });
+  }
+  return stripPort53(servers);
+}
+
 function stripPort53(servers: UrIceServer[]): UrIceServer[] {
   return servers
     .map((server) => {
@@ -150,13 +181,15 @@ async function defaultCloudflareTurn(params: {
     },
   );
   if (!response.ok) {
-    throw new Error("TURN credential request failed.");
+    const failed = new Error("TURN credential request failed.");
+    (failed as Error & { status?: number }).status = response.status;
+    throw failed;
   }
-  const payload = (await response.json()) as { iceServers?: UrIceServer[] };
-  if (!Array.isArray(payload.iceServers) || payload.iceServers.length === 0) {
+  const servers = normalizeCloudflareIcePayload(await response.json());
+  if (servers.length === 0) {
     throw new Error("TURN credential request returned no servers.");
   }
-  return stripPort53(payload.iceServers);
+  return servers;
 }
 
 export async function getIceServersForCall(params: { userId: string }): Promise<{
@@ -178,10 +211,11 @@ export async function getIceServersForCall(params: { userId: string }): Promise<
         })),
       );
     } catch (error) {
-      console.warn("[turn] Cloudflare TURN credentials unavailable.");
-      if (!process.env.NODE_ENV || process.env.NODE_ENV !== "production") {
-        void error;
-      }
+      const status =
+        typeof error === "object" && error && "status" in error ? Number((error as { status?: unknown }).status) : 0;
+      console.warn(
+        `[turn] Cloudflare TURN credentials unavailable.${Number.isFinite(status) && status > 0 ? ` status ${status}` : ""}`,
+      );
     }
   }
   extra.push(...coturnIceServers(params.userId));

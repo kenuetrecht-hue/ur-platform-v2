@@ -717,6 +717,7 @@ export function runPlatformHealthChecks(): HealthCheckFinding[] {
     "commerce",
     "landing",
     "aiSubscription",
+    "calls",
   ];
   for (const ns of namespaces) {
     const circuit = getNamespaceCircuitStatus(ns);

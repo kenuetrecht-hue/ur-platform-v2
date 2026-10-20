@@ -337,18 +337,22 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
     const pc = pcRef.current;
     if (pc.currentRemoteDescription) return;
     void (async () => {
-      await pc.setRemoteDescription(JSON.parse(roomData.offerSdp!) as RTCSessionDescriptionInit);
-      setRemoteReady((n) => n + 1);
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      await tuneCallSenders(pc);
-      const sdp = JSON.stringify(answer);
-      if (tokenMode && accessToken) {
-        await accessAnswer.mutateAsync({ roomId, token: accessToken, sdp });
-      } else {
-        await signalAnswer.mutateAsync({ roomId, sdp });
+      try {
+        await pc.setRemoteDescription(JSON.parse(roomData.offerSdp!) as RTCSessionDescriptionInit);
+        setRemoteReady((n) => n + 1);
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        await tuneCallSenders(pc);
+        const sdp = JSON.stringify(answer);
+        if (tokenMode && accessToken) {
+          await accessAnswer.mutateAsync({ roomId, token: accessToken, sdp });
+        } else {
+          await signalAnswer.mutateAsync({ roomId, sdp });
+        }
+        setStatus("Connected · encrypted");
+      } catch {
+        setError("The call setup did not finish. Hang up and call again.");
       }
-      setStatus("Connected · encrypted");
     })();
   }, [roomData?.offerSdp, resolvedIsCaller, roomId, webRtc, tokenMode, accessToken, mediaReady]);
 
@@ -357,9 +361,13 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
     const pc = pcRef.current;
     if (pc.currentRemoteDescription) return;
     void (async () => {
-      await pc.setRemoteDescription(JSON.parse(roomData.answerSdp!) as RTCSessionDescriptionInit);
-      setRemoteReady((n) => n + 1);
-      setStatus("Connected · encrypted");
+      try {
+        await pc.setRemoteDescription(JSON.parse(roomData.answerSdp!) as RTCSessionDescriptionInit);
+        setRemoteReady((n) => n + 1);
+        setStatus("Connected · encrypted");
+      } catch {
+        setError("The call setup did not finish. Hang up and call again.");
+      }
     })();
   }, [roomData?.answerSdp, resolvedIsCaller, webRtc, mediaReady]);
 
@@ -396,7 +404,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
       }
     };
     tick();
-    const id = setInterval(tick, 1000);
+    const id = setInterval(tick, 2000);
     return () => clearInterval(id);
   }, [roomId, tokenMode, accessToken]);
 

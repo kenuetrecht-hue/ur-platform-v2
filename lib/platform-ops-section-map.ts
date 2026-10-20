@@ -21,6 +21,7 @@ export function apiNamespaceToSection(namespace: string): PlatformSectionId | nu
     case "jobsite":
       return "jobsite";
     case "video":
+    case "calls":
     case "commerce":
       return "commerce";
     default:

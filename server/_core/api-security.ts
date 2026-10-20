@@ -35,6 +35,7 @@ export type ApiNamespace =
   | "usageCredits"
   | "jobsite"
   | "video"
+  | "calls"
   | "default";
 
 type WindowBucket = {
@@ -84,6 +85,8 @@ const NAMESPACE_USER_LIMITS: Record<ApiNamespace, number> = {
   usageCredits: 40,
   jobsite: 80,
   video: 300,
+  // A call polls the room and sends a heartbeat for as long as it lasts.
+  calls: 20_000,
   default: 500,
 };
 
@@ -98,7 +101,8 @@ const globalIpBuckets = new Map<string, WindowBucket>();
 const circuitBreakers = new Map<ApiNamespace, CircuitState>();
 const blockedIps = new Set<string>();
 
-const GLOBAL_IP_LIMIT_PER_MINUTE = 200;
+// Two phones on one home network share this budget. A call is several requests a second.
+const GLOBAL_IP_LIMIT_PER_MINUTE = 1_500;
 
 /** Per-namespace IP limits (requests / minute). Auth and landing stay tight against bots. */
 const NAMESPACE_IP_LIMITS_PER_MINUTE: Partial<Record<ApiNamespace, number>> = {
@@ -106,9 +110,13 @@ const NAMESPACE_IP_LIMITS_PER_MINUTE: Partial<Record<ApiNamespace, number>> = {
   landing: 30,
   social: 80,
   commerce: 20,
-  video: 20,
+  video: 60,
+  calls: 900,
 };
 const DEFAULT_IP_LIMIT_PER_MINUTE = 180;
+
+/** Call polling is steady traffic from a signed-in member, not a flood to ban. */
+const NAMESPACES_WITHOUT_IP_BAN: ReadonlySet<ApiNamespace> = new Set(["calls"]);
 
 function parseAllowedOrigins(): Set<string> {
   const origins = new Set<string>([
@@ -211,6 +219,13 @@ export function _resetBlockedIpsForTests(): void {
   blockedIps.clear();
 }
 
+export function _resetApiLimitsForTests(): void {
+  userNamespaceBuckets.clear();
+  ipNamespaceBuckets.clear();
+  globalIpBuckets.clear();
+  blockedIps.clear();
+}
+
 function getCircuit(namespace: ApiNamespace): CircuitState {
   let circuit = circuitBreakers.get(namespace);
   if (!circuit) {
@@ -302,7 +317,9 @@ export function checkIpNamespaceLimit(namespace: ApiNamespace, ip: string): void
   const allowed = checkWindowLimit(ipNamespaceBuckets, key, limit, MINUTE_MS);
 
   if (!allowed) {
-    blockIp(ip, `namespace ${namespace} abuse`);
+    if (!NAMESPACES_WITHOUT_IP_BAN.has(namespace)) {
+      blockIp(ip, `namespace ${namespace} abuse`);
+    }
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
       message: "Too many requests from this network.",

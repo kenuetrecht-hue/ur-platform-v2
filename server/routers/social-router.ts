@@ -470,7 +470,7 @@ export const socialRouter = router({
     };
   }),
 
-  createVideoCall: secureProcedure("social")
+  createVideoCall: secureProcedure("calls")
     .input(z.object({ friendUserId: z.string().trim().min(1).max(80) }))
     .mutation(async ({ ctx, input }) => {
       await assertUserIsAgeVerified(ctx.user.id);
@@ -488,14 +488,14 @@ export const socialRouter = router({
       return toPublicVideoCall(room);
     }),
 
-  joinVideoCall: secureProcedure("social")
+  joinVideoCall: secureProcedure("calls")
     .input(z.object({ roomId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       await assertUserIsAgeVerified(ctx.user.id);
       return toPublicVideoCall(joinVideoCall({ roomId: input.roomId, userId: String(ctx.user.id) }));
     }),
 
-  heartbeatVideoCall: secureProcedure("social")
+  heartbeatVideoCall: secureProcedure("calls")
     .input(z.object({ roomId: z.string().uuid() }))
     .mutation(({ ctx, input }) =>
       toPublicVideoCall(heartbeatVideoCall({ roomId: input.roomId, userId: String(ctx.user.id) })),
@@ -508,14 +508,14 @@ export const socialRouter = router({
       return getIceServersForCall({ userId: String(ctx.user.id) });
     }),
 
-  endVideoCall: secureProcedure("social")
+  endVideoCall: secureProcedure("calls")
     .input(z.object({ roomId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const room = endVideoCall({ roomId: input.roomId, userId: String(ctx.user.id) });
       return settlePublicVideoCall(room);
     }),
 
-  getVideoCall: secureProcedure("social")
+  getVideoCall: secureProcedure("calls")
     .input(z.object({ roomId: z.string().uuid() }))
     .query(({ ctx, input }) => {
       const room = getVideoCallRoom(input.roomId);
@@ -525,7 +525,7 @@ export const socialRouter = router({
       return toPublicVideoCall(room);
     }),
 
-  incomingVideoCalls: secureProcedure("social").query(({ ctx }) =>
+  incomingVideoCalls: secureProcedure("calls").query(({ ctx }) =>
     listIncomingCalls(String(ctx.user.id)).map(toPublicVideoCall),
   ),
 
@@ -533,9 +533,9 @@ export const socialRouter = router({
     publicKey: await readyCallRingPublicKey(),
   })),
 
-  callNotices: secureProcedure("social").query(async ({ ctx }) => listCallNotices(String(ctx.user.id))),
+  callNotices: secureProcedure("calls").query(async ({ ctx }) => listCallNotices(String(ctx.user.id))),
 
-  dismissCallNotice: secureProcedure("social")
+  dismissCallNotice: secureProcedure("calls")
     .input(z.object({ noticeId: z.string().trim().min(1).max(80) }))
     .mutation(({ ctx, input }) => {
       dismissCallNotice(String(ctx.user.id), input.noticeId);
@@ -560,21 +560,21 @@ export const socialRouter = router({
       return { ok: true as const };
     }),
 
-  signalVideoOffer: secureProcedure("social")
+  signalVideoOffer: secureProcedure("calls")
     .input(z.object({ roomId: z.string().uuid(), sdp: z.string().trim().min(1).max(50000) }))
     .mutation(async ({ ctx, input }) => {
       await assertUserIsAgeVerified(ctx.user.id);
       return toPublicVideoCall(setVideoOffer(input.roomId, String(ctx.user.id), input.sdp));
     }),
 
-  signalVideoAnswer: secureProcedure("social")
+  signalVideoAnswer: secureProcedure("calls")
     .input(z.object({ roomId: z.string().uuid(), sdp: z.string().trim().min(1).max(50000) }))
     .mutation(async ({ ctx, input }) => {
       await assertUserIsAgeVerified(ctx.user.id);
       return toPublicVideoCall(setVideoAnswer(input.roomId, String(ctx.user.id), input.sdp));
     }),
 
-  signalIceCandidate: secureProcedure("social")
+  signalIceCandidate: secureProcedure("calls")
     .input(z.object({ roomId: z.string().uuid(), candidate: z.string().trim().min(1).max(8000) }))
     .mutation(async ({ ctx, input }) => {
       await assertUserIsAgeVerified(ctx.user.id);
@@ -719,7 +719,7 @@ export const socialRouter = router({
       };
     }),
 
-  startCreatorCall: secureProcedure("social")
+  startCreatorCall: secureProcedure("calls")
     .input(z.object({ creatorUserId: z.string().trim().min(1).max(80) }))
     .mutation(async ({ ctx, input }) => {
       await assertUserIsAgeVerified(ctx.user.id);
@@ -732,7 +732,7 @@ export const socialRouter = router({
       return toPublicVideoCall(room);
     }),
 
-  mintCallAccess: secureProcedure("social")
+  mintCallAccess: secureProcedure("calls")
     .input(z.object({ roomId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       await assertUserIsAgeVerified(ctx.user.id);
@@ -750,7 +750,7 @@ export const socialRouter = router({
       }
     }),
 
-  accessGetVideoCall: securePublicProcedure("social")
+  accessGetVideoCall: securePublicProcedure("calls")
     .input(z.object({ roomId: z.string().uuid(), token: z.string().trim().min(16).max(2000) }))
     .query(({ input }) => {
       const payload = requireCallAccess(input.roomId, input.token);
@@ -761,14 +761,14 @@ export const socialRouter = router({
       return { ...toPublicVideoCall(room), isCaller: room.callerUserId === payload.userId };
     }),
 
-  accessJoinVideoCall: securePublicProcedure("social")
+  accessJoinVideoCall: securePublicProcedure("calls")
     .input(z.object({ roomId: z.string().uuid(), token: z.string().trim().min(16).max(2000) }))
     .mutation(({ input }) => {
       const payload = requireCallAccess(input.roomId, input.token);
       return toPublicVideoCall(joinVideoCall({ roomId: input.roomId, userId: payload.userId }));
     }),
 
-  accessHeartbeatVideoCall: securePublicProcedure("social")
+  accessHeartbeatVideoCall: securePublicProcedure("calls")
     .input(z.object({ roomId: z.string().uuid(), token: z.string().trim().min(16).max(2000) }))
     .mutation(({ input }) => {
       const payload = requireCallAccess(input.roomId, input.token);
@@ -783,7 +783,7 @@ export const socialRouter = router({
       return getIceServersForCall({ userId: payload.userId });
     }),
 
-  accessEndVideoCall: securePublicProcedure("social")
+  accessEndVideoCall: securePublicProcedure("calls")
     .input(z.object({ roomId: z.string().uuid(), token: z.string().trim().min(16).max(2000) }))
     .mutation(async ({ input }) => {
       const payload = requireCallAccess(input.roomId, input.token);
@@ -791,7 +791,7 @@ export const socialRouter = router({
       return settlePublicVideoCall(room);
     }),
 
-  accessSignalVideoOffer: securePublicProcedure("social")
+  accessSignalVideoOffer: securePublicProcedure("calls")
     .input(
       z.object({
         roomId: z.string().uuid(),
@@ -804,7 +804,7 @@ export const socialRouter = router({
       return toPublicVideoCall(setVideoOffer(input.roomId, payload.userId, input.sdp));
     }),
 
-  accessSignalVideoAnswer: securePublicProcedure("social")
+  accessSignalVideoAnswer: securePublicProcedure("calls")
     .input(
       z.object({
         roomId: z.string().uuid(),
@@ -817,7 +817,7 @@ export const socialRouter = router({
       return toPublicVideoCall(setVideoAnswer(input.roomId, payload.userId, input.sdp));
     }),
 
-  accessSignalIceCandidate: securePublicProcedure("social")
+  accessSignalIceCandidate: securePublicProcedure("calls")
     .input(
       z.object({
         roomId: z.string().uuid(),
