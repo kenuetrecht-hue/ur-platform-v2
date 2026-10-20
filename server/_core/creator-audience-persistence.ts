@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import {
   contentCreatorProfiles,
   creatorChannelFollows,
+  creatorChannelTerms,
   creatorPaidChannelSubs,
 } from "../../drizzle/schema";
 import { getDb } from "../db";
@@ -45,6 +46,13 @@ export async function loadCreatorRosterFromDb(): Promise<{
       db.select().from(creatorChannelFollows),
       db.select().from(creatorPaidChannelSubs),
     ]);
+    const terms = new Map<string, string>();
+    try {
+      const termRows = await db.select().from(creatorChannelTerms);
+      for (const row of termRows) terms.set(row.id, row.expiresAt);
+    } catch (error) {
+      console.warn("[creator-audience] channel terms unavailable:", error);
+    }
 
     return {
       creators: creatorRows.map((row) => ({
@@ -68,6 +76,7 @@ export async function loadCreatorRosterFromDb(): Promise<{
         subscriberUserId: row.subscriberUserId,
         creatorUserId: row.creatorUserId,
         subscribedAt: row.subscribedAt.toISOString(),
+        expiresAt: terms.get(`${row.subscriberUserId}:${row.creatorUserId}`),
       })),
     };
   } catch (error) {
@@ -165,6 +174,12 @@ export async function persistPaidChannelSub(record: CreatorPaidSubscription): Pr
       .onDuplicateKeyUpdate({
         set: { subscribedAt: new Date(record.subscribedAt) },
       });
+    if (record.expiresAt) {
+      await db
+        .insert(creatorChannelTerms)
+        .values({ id, expiresAt: record.expiresAt })
+        .onDuplicateKeyUpdate({ set: { expiresAt: record.expiresAt } });
+    }
   } catch (error) {
     console.warn("[creator-audience] persist paid sub failed:", error);
   }
@@ -176,9 +191,9 @@ export async function deletePaidChannelSub(subscriberUserId: string, creatorUser
   if (!db) return;
 
   try {
-    await db
-      .delete(creatorPaidChannelSubs)
-      .where(eq(creatorPaidChannelSubs.id, `${subscriberUserId}:${creatorUserId}`));
+    const id = `${subscriberUserId}:${creatorUserId}`;
+    await db.delete(creatorPaidChannelSubs).where(eq(creatorPaidChannelSubs.id, id));
+    await db.delete(creatorChannelTerms).where(eq(creatorChannelTerms.id, id));
   } catch (error) {
     console.warn("[creator-audience] delete paid sub failed:", error);
   }

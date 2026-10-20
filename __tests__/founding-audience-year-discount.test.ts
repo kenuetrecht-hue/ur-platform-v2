@@ -10,13 +10,18 @@ import {
   meetsFoundingAudienceThresholds,
   resolveFoundingAudienceYear,
 } from "../lib/founding-audience-year-discount";
-import { getLaunchDate, getLaunchWindowEnd } from "../lib/launch-promotion-config";
+import { getLaunchDate, getLaunchWindowEnd, launchFeeKeepOn100 } from "../lib/launch-promotion-config";
 
 const LAUNCH = getLaunchDate();
 const IN_WINDOW = new Date(LAUNCH.getTime() + 2 * 24 * 60 * 60 * 1000);
 const AFTER_WINDOW = new Date(getLaunchWindowEnd(LAUNCH).getTime() + 24 * 60 * 60 * 1000);
 
 describe("founding audience year discount", () => {
+  it("gives the 90-day group 60% of the 15% fee", () => {
+    expect(launchFeeKeepOn100(60)).toEqual({ youKeep: "$94.00", urKeeps: "$6.00" });
+    expect(launchFeeKeepOn100(50)).toEqual({ youKeep: "$92.50", urKeeps: "$7.50" });
+  });
+
   it("maps first, second, and third hundred", () => {
     expect(launchHundredBandFromSlot(1)).toBe(1);
     expect(launchHundredBandFromSlot(100)).toBe(1);

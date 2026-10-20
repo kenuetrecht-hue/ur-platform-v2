@@ -62,6 +62,14 @@ import {
   LIVE_CHECKOUT_UNAVAILABLE_NOTICE,
 } from "../../lib/dev-commerce-mode";
 import { createCreatorMarketplaceCheckout, settleCreatorCallOnEnd } from "../_core/stripe-checkout-service";
+import { redirectToLiveCheckout } from "../_core/platform-checkout";
+import {
+  CREATOR_CHANNEL_CENTS,
+  CREATOR_CHANNEL_PRODUCT,
+  FEED_PIN_CENTS,
+  FEED_PIN_KIND,
+  formatSocialUsd,
+} from "../../lib/social-money";
 import { isStripeConnectReady } from "../_core/stripe-connect-service";
 import { mapServiceErrorToTrpc } from "../_core/service-errors";
 import { CREATOR_VIDEO_CALL_SKU, creatorCallPriceError } from "../../lib/creator-call-pricing";
@@ -72,14 +80,17 @@ import {
   recordCallNotice,
   dismissCallNotice,
   listCallNotices,
+  notifyFriendsOfPost,
   ringUserForVideoCall,
   saveCallRingSubscription,
 } from "../_core/call-ring-service";
 import {
   addPostComment,
   assertVideoPostForRating,
+  assertCanPinPost,
   createFeedPost,
   deleteFeedPost,
+  grantFeedPin,
   getFeed,
   getFeedStats,
   getTrendingHashtags,
@@ -120,7 +131,7 @@ const createPostInputSchema = z
     imageUrl: z.string().max(2000).optional(),
     videoUrl: z.string().max(2000).optional(),
     linkUrl: z.string().max(2000).optional(),
-    visibility: z.enum(["public", "friends"]).optional(),
+    visibility: z.enum(["public", "friends", "members"]).optional(),
     aiAssisted: z.boolean().optional(),
     contentRightsMode: z.enum(["original", "licensed_repost"]).default("original"),
     rightsConfirmed: z.literal(true, {
@@ -398,18 +409,95 @@ export const socialRouter = router({
       });
     }),
 
-  subscribePaidChannel: secureProcedure("social")
-    .input(z.object({ creatorUserId: z.string().trim().min(1).max(80) }))
-    .mutation(({ ctx, input }) => {
+  subscribePaidChannel: secureCheckoutProcedure("social")
+    .input(
+      z.object({
+        creatorUserId: z.string().trim().min(1).max(80),
+        clientPlatform: z.enum(["web", "native"]),
+        acceptedNoRefund: acceptedNoRefundSchema,
+        billingStateCode: z.string().trim().length(2).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
       const creator = requireEnrolledCreator(input.creatorUserId);
+      const buyerUserId = String(ctx.user.id);
+      if (buyerUserId === creator.userId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "You cannot subscribe to yourself." });
+      }
+      assertPaymentChannelAllowed({
+        subtotalCents: CREATOR_CHANNEL_CENTS,
+        clientPlatform: input.clientPlatform,
+      });
+      assertAndRecordNoRefundAck({
+        userId: buyerUserId,
+        userEmail: ctx.user.email ?? undefined,
+        sku: CREATOR_CHANNEL_PRODUCT,
+        amountCents: CREATOR_CHANNEL_CENTS,
+        acceptedNoRefund: true,
+        ipAddress: ctx.ip,
+      });
+
+      if (!isSimulatedCommerceMode()) {
+        if (getCommerceMode() !== "live") {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: LIVE_CHECKOUT_UNAVAILABLE_NOTICE,
+          });
+        }
+        const billingStateCode = input.billingStateCode?.trim().toUpperCase();
+        if (!billingStateCode || billingStateCode.length !== 2) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Select your billing state so tax and the card fee go on your card.",
+          });
+        }
+        if (!isStripeConnectReady(creator.userId)) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "This creator has not connected a Stripe bank account yet.",
+          });
+        }
+        try {
+          const checkout = await createCreatorMarketplaceCheckout({
+            buyerUserId,
+            buyerEmail: ctx.user.email ?? "",
+            creatorUserId: creator.userId,
+            kind: "sale",
+            subtotalCents: CREATOR_CHANNEL_CENTS,
+            billingStateCode,
+            productName: `Paid follow ${creator.displayName}`,
+            successPath: "/messages?channel=paid",
+            cancelPath: "/messages?channel=cancel",
+            extraMetadata: { product: CREATOR_CHANNEL_PRODUCT },
+          });
+          return {
+            mode: "checkout" as const,
+            checkoutUrl: checkout.checkoutUrl,
+            sessionId: checkout.sessionId,
+            priceCents: CREATOR_CHANNEL_CENTS,
+            creatorGetsCents: checkout.split.creatorCents,
+            notice: `Follow stays free. This paid follow is ${formatSocialUsd(CREATOR_CHANNEL_CENTS)} for 30 days. They keep 85%. UR keeps 15%. Tax and the card fee are extra.`,
+          };
+        } catch (error) {
+          mapServiceErrorToTrpc(error);
+        }
+      }
+
+      assertSimulatedPurchaseAllowed();
       startPaidChannelSubscription({
-        subscriberUserId: String(ctx.user.id),
+        subscriberUserId: buyerUserId,
         creatorUserId: creator.userId,
+        renew: true,
       });
-      return getMyCreatorAudienceStatus({
-        fanUserId: String(ctx.user.id),
-        creatorUserId: creator.userId,
-      });
+      return {
+        mode: "simulated" as const,
+        priceCents: CREATOR_CHANNEL_CENTS,
+        notice: `Practice mode. Paid follow is on for 30 days at ${formatSocialUsd(CREATOR_CHANNEL_CENTS)}.`,
+        ...getMyCreatorAudienceStatus({
+          fanUserId: buyerUserId,
+          creatorUserId: creator.userId,
+        }),
+      };
     }),
 
   cancelPaidChannel: secureProcedure("social")
@@ -933,7 +1021,67 @@ export const socialRouter = router({
         licenseType: input.licenseType,
       });
       const loyalty = awardSocialPostPoints(socialUser(ctx));
+      notifyFriendsOfPost({
+        authorUserId: userId,
+        authorName: post.authorName,
+        visibility: post.visibility,
+      });
       return { ...post, loyaltyPointsAwarded: loyalty.points };
+    }),
+
+  pinPost: secureCheckoutProcedure("social")
+    .input(
+      z.object({
+        postId: z.string().uuid(),
+        clientPlatform: z.enum(["web", "native"]),
+        acceptedNoRefund: acceptedNoRefundSchema,
+        billingStateCode: z.string().trim().length(2).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const buyerUserId = String(ctx.user.id);
+      assertCanPinPost(input.postId, buyerUserId);
+      assertPaymentChannelAllowed({
+        subtotalCents: FEED_PIN_CENTS,
+        clientPlatform: input.clientPlatform,
+      });
+      assertAndRecordNoRefundAck({
+        userId: buyerUserId,
+        userEmail: ctx.user.email ?? undefined,
+        sku: FEED_PIN_KIND,
+        amountCents: FEED_PIN_CENTS,
+        acceptedNoRefund: true,
+        ipAddress: ctx.ip,
+      });
+      if (!isSimulatedCommerceMode()) {
+        const billingStateCode = input.billingStateCode?.trim().toUpperCase();
+        if (!billingStateCode || billingStateCode.length !== 2) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Select your billing state so tax and the card fee go on your card.",
+          });
+        }
+      }
+      const redirect = await redirectToLiveCheckout({
+        userId: buyerUserId,
+        userEmail: ctx.user.email ?? "",
+        productName: "Pin a post for 24 hours",
+        description: "Your post stays at the top of the UR feed for 24 hours. This fee stays with UR. Tax and the card fee are extra.",
+        priceCents: FEED_PIN_CENTS,
+        billingStateCode: input.billingStateCode,
+        successPath: "/messages?pin=paid",
+        cancelPath: "/messages?pin=cancel",
+        metadata: { kind: FEED_PIN_KIND, postId: input.postId },
+      });
+      if (redirect) return { ...redirect, priceCents: FEED_PIN_CENTS };
+      assertSimulatedPurchaseAllowed();
+      const pin = grantFeedPin({ postId: input.postId, buyerUserId });
+      return {
+        mode: "simulated" as const,
+        priceCents: FEED_PIN_CENTS,
+        expiresAt: pin.expiresAt,
+        notice: `Pinned for 24 hours in practice mode. ${formatSocialUsd(FEED_PIN_CENTS)} stays with UR.`,
+      };
     }),
 
   deletePost: secureProcedure("social")

@@ -15,16 +15,16 @@ import {
 } from "@/lib/promotional-banner-system";
 import {
   LAUNCH_PROMOTION_HEADLINE,
-  LAUNCH_PROMOTION_SUBLINE,
   LAUNCH_PROMOTION_TIERS,
   LAUNCH_SIGNUP_WINDOW_DAYS,
   PLATFORM_FEE_PERCENT,
+  launchFeeKeepOn100,
   parseAffiliateRefFromInput,
   buildCreatorSignupHref,
 } from "@/lib/launch-promotion-config";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
+import { CREATOR_CHANNEL_CENTS, CREATOR_CHANNEL_DAYS, formatSocialUsd } from "@/lib/social-money";
 import { trpc } from "@/lib/trpc";
-import { TapToRead } from "@/components/tap-to-read";
 
 function CountdownUnit({ value, label, padded }: { value: number; label: string; padded?: boolean }) {
   const display = padded ? String(value).padStart(2, "0") : value;
@@ -66,7 +66,6 @@ export function LandingPromoBanner() {
   const tier1 = promoState.tiers[0];
   const tier1Joined = creatorCounts.tier1;
   const tier1Remaining = stats.data?.tier1?.remaining ?? (tier1 ? tier1.capacity - tier1Joined : 100);
-  const tier1Progress = tier1 ? Math.min(100, (tier1Joined / tier1.capacity) * 100) : 0;
   const totalRemaining = stats.data?.totalRemaining ?? promoState.totalSpotsRemaining;
   const isActive = stats.data?.isActive ?? promoState.isActive;
 
@@ -81,17 +80,6 @@ export function LandingPromoBanner() {
     router.push(buildCreatorSignupHref(parsedRef) as never);
   };
 
-  if (!isActive) {
-    return (
-      <View style={[styles.wrap, styles.inactive]}>
-        <Text style={styles.inactiveText}>Launch window closed — create an account to join the platform.</Text>
-        <Pressable onPress={() => router.push("/signup")} style={styles.cta}>
-          <Text style={styles.ctaText}>Sign up →</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
   return (
     <LinearGradient
       colors={[T.brandBlue, T.brandPurple]}
@@ -102,14 +90,58 @@ export function LandingPromoBanner() {
       <View style={[styles.glow, { pointerEvents: "none" }]} />
 
       <Text style={styles.tag}>
-        {LAUNCH_SIGNUP_WINDOW_DAYS}-DAY LAUNCH · {totalRemaining} SPOTS LEFT · {tier1Remaining} TIER 1
+        {LAUNCH_SIGNUP_WINDOW_DAYS}-DAY LAUNCH · {totalRemaining} SPOTS LEFT · {tier1Remaining} IN THE FIRST 100
       </Text>
       <Text style={styles.headline}>{LAUNCH_PROMOTION_HEADLINE}</Text>
-      <TapToRead title="How the 30-day creator launch works">
-        {LAUNCH_PROMOTION_SUBLINE}
-      </TapToRead>
+      <Text style={styles.sub}>
+        Signup order picks your spot. No coupon. Everyday pay is $85 of $100 for you. UR keeps $15.
+      </Text>
+      {LAUNCH_PROMOTION_TIERS.map((tier) => {
+        const money = launchFeeKeepOn100(tier.platformFeeDiscountPercent);
+        return (
+          <View key={tier.tier} style={styles.dealRow}>
+            <Text style={styles.dealWho}>
+              {tier.range} · {tier.durationLabel}
+            </Text>
+            <Text style={styles.dealKeep}>Your pay is {money.youKeep} of every $100.</Text>
+            <Text style={styles.dealMoney}>
+              You keep {tier.platformFeeDiscountPercent}% of UR's {PLATFORM_FEE_PERCENT}% fee. UR keeps {money.urKeeps}.
+            </Text>
+            {tier.tier === 1 ? (
+              <Text style={styles.dealMoney}>2 lifetime drawing entries. 1 free weekly ticket for life.</Text>
+            ) : null}
+          </View>
+        );
+      })}
+      <Text style={styles.sectionTitle}>Every one of these 300</Text>
+      <Text style={styles.sub}>
+        Your first day, you keep the whole $100. Someone who referred you earns $5 only after that day,
+        then 5 sales. Sales on the first day do not count.
+      </Text>
+      <Text style={styles.sectionTitle}>Bring people in these 30 days</Text>
+      <Text style={styles.sub}>
+        1,000 followers and 1,000 paid subscribers — 2,000 different people — adds a full year where you
+        keep 50% of UR's fee. For these first 300, that year starts after the deal above ends. On $100
+        that year you keep $92.50.
+      </Text>
+      <Text style={styles.sub}>
+        2,000 followers and 2,000 paid subscribers — 4,000 different people — makes that year the 60%
+        fee deal. You keep $94. UR keeps $6.
+      </Text>
+      <Text style={styles.sectionTitle}>Creator 301 and later, still inside the 30 days</Text>
+      <Text style={styles.sub}>
+        Everyday pay: you keep $85, UR keeps $15. Hit 2,000 people and the $92.50 year starts that day.
+        Hit 4,000 and the rest of that year is $94.
+      </Text>
+      <Text style={styles.sectionTitle}>Followers</Text>
+      <Text style={styles.sub}>
+        Join free. Follow a creator free. A paid follow is {formatSocialUsd(CREATOR_CHANNEL_CENTS)} for{" "}
+        {CREATOR_CHANNEL_DAYS} days. The creator keeps 85% of that. Tax and the card fee are extra. Your
+        follow counts toward their 2,000.
+      </Text>
+      {!isActive ? <Text style={styles.closedNote}>The 30-day signup clock has ended.</Text> : null}
 
-      <View style={styles.countdownCard}>
+      {isActive ? <View style={styles.countdownCard}>
         <Text style={styles.countdownLabel}>Launch signup window ends in</Text>
         <View style={styles.countdownRow}>
           <CountdownUnit value={promoState.daysRemaining} label="days" />
@@ -118,45 +150,7 @@ export function LandingPromoBanner() {
           <Text style={styles.countdownSep}>:</Text>
           <CountdownUnit value={promoState.minutesRemaining} label="min" padded />
         </View>
-      </View>
-
-      <View style={styles.tierFeatured}>
-        <Text style={styles.tierFeaturedTitle}>
-          {LAUNCH_PROMOTION_TIERS[0]!.medal} {LAUNCH_PROMOTION_TIERS[0]!.label}
-        </Text>
-        <Text style={styles.tierFeaturedRange}>{LAUNCH_PROMOTION_TIERS[0]!.range}</Text>
-        <Text style={styles.tierFeaturedHeadline}>
-          {LAUNCH_PROMOTION_TIERS[0]!.platformFeeDiscountPercent}% off the {PLATFORM_FEE_PERCENT}% platform fee ·{" "}
-          {LAUNCH_PROMOTION_TIERS[0]!.durationLabel}
-        </Text>
-        <Text style={styles.tierFeaturedBody}>
-          {tier1Joined} / 100 joined · {tier1Remaining} spots left
-        </Text>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${tier1Progress}%` }]} />
-        </View>
-        <TapToRead title="Tier 1 extras">
-          {LAUNCH_PROMOTION_TIERS[0]!.extras.map((line) => (
-            <Text key={line} style={styles.tierBullet}>
-              · {line}
-            </Text>
-          ))}
-        </TapToRead>
-      </View>
-
-      <View style={styles.tierRow}>
-        {LAUNCH_PROMOTION_TIERS.slice(1).map((tier) => (
-          <View key={tier.tier} style={styles.miniTier}>
-            <Text style={styles.miniTierLabel}>
-              {tier.medal} Tier {tier.tier}
-            </Text>
-            <Text style={styles.miniTierRange}>{tier.range}</Text>
-            <Text style={styles.miniTierDetail}>
-              {tier.platformFeeDiscountPercent}% off platform fee · {tier.durationLabel}
-            </Text>
-          </View>
-        ))}
-      </View>
+      </View> : null}
 
       <View style={styles.affiliateBox}>
         <Text style={styles.affiliateLabel}>Referred by an affiliate? (optional)</Text>
@@ -186,19 +180,12 @@ export function LandingPromoBanner() {
 
       <Pressable onPress={join} style={styles.cta}>
         <Text style={styles.ctaText}>
-          {parsedRef ? `Join with referral ${parsedRef} →` : "Sign up →"}
+          {parsedRef ? `Join as a creator with ${parsedRef} →` : "Sign up as a creator →"}
         </Text>
       </Pressable>
-
-      <Text style={styles.footerNote}>
-        Tier is assigned automatically by signup order during the {LAUNCH_SIGNUP_WINDOW_DAYS}-day window.
-        No coupon needed — your slot is your promotion. Bring 2,000 different people in these 30 days
-        (1,000 followers + 1,000 paid subscribers): a full year of 50% off. Bring 4,000 (2,000
-        followers + 2,000 paid subscribers) in those same 30 days and that year is 60% off instead.
-        If you are in the first 300, the year starts after your launch deal ends. After slot 300, 50%
-        starts when you hit 2,000; 4,000 in 30 days upgrades the rest of that year to 60%. After 30
-        days, new creators get regular 85/15.
-      </Text>
+      <Pressable onPress={() => router.push("/signup")} style={styles.cta}>
+        <Text style={styles.ctaText}>Join free as a follower →</Text>
+      </Pressable>
       <Pressable onPress={() => router.push("/e-manual")}>
         <Text style={styles.footerNote}>
           Free e-manual for every new member — tap here to read and print it.
@@ -240,6 +227,19 @@ const styles = StyleSheet.create({
   },
   headline: { color: "#FFFFFF", fontSize: 26, fontWeight: "900" },
   sub: { color: "rgba(255,255,255,0.92)", fontSize: 14, lineHeight: 21 },
+  sectionTitle: { color: "#FFFFFF", fontSize: 16, fontWeight: "900", marginTop: 4 },
+  dealRow: {
+    backgroundColor: "rgba(0,0,0,0.18)",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+    padding: 12,
+    gap: 2,
+  },
+  dealWho: { color: "#FFFFFF", fontSize: 15, fontWeight: "900" },
+  dealKeep: { color: "#FFD700", fontSize: 14, fontWeight: "800", lineHeight: 20 },
+  dealMoney: { color: "rgba(255,255,255,0.9)", fontSize: 13, lineHeight: 18 },
+  closedNote: { color: "#FDE68A", fontSize: 13, fontWeight: "700", textAlign: "center" },
   countdownCard: {
     backgroundColor: "rgba(0,0,0,0.2)",
     borderRadius: 14,

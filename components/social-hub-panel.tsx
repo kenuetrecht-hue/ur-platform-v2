@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   StyleSheet,
   Switch,
+  Platform,
+  Linking,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
@@ -21,6 +23,7 @@ import { CreatorTipButton } from "@/components/creator-tip-button";
 import { CreatorCallButton } from "@/components/creator-call-button";
 import { brandHighlightSurface } from "@/lib/brand-theme";
 import { subscribeCallRing } from "@/lib/call-ring-client";
+import { CREATOR_CHANNEL_CENTS, formatSocialUsd } from "@/lib/social-money";
 
 type Tab = SocialHubTab;
 
@@ -31,6 +34,7 @@ export function SocialHubPanel() {
   const [friendEmail, setFriendEmail] = useState("");
   const [creatorUserId, setCreatorUserId] = useState("");
   const [creatorName, setCreatorName] = useState("");
+  const [billingState, setBillingState] = useState("");
   const [mailComposeTo, setMailComposeTo] = useState<string | undefined>();
   const [videoRoomId, setVideoRoomId] = useState<string | null>(null);
   const [videoFriendId, setVideoFriendId] = useState<string | null>(null);
@@ -83,11 +87,18 @@ export function SocialHubPanel() {
     },
   });
   const paidSub = trpc.social.subscribePaidChannel.useMutation({
-    onSuccess: () => {
+    onSuccess: (result) => {
+      const checkoutUrl = "checkoutUrl" in result ? result.checkoutUrl : "";
+      if (checkoutUrl) {
+        if (Platform.OS === "web" && typeof window !== "undefined") window.location.assign(checkoutUrl);
+        else void Linking.openURL(checkoutUrl);
+        return;
+      }
       void utils.social.dashboard.invalidate();
       void utils.partnerDashboard.creatorDashboard.invalidate();
     },
   });
+  const loyalty = trpc.loyalty.getStatus.useQuery();
   const cancelPaid = trpc.social.cancelPaidChannel.useMutation({
     onSuccess: () => {
       void utils.social.dashboard.invalidate();
@@ -169,6 +180,11 @@ export function SocialHubPanel() {
       >
         <Text style={styles.btnText}>Let this phone ring for calls</Text>
       </Pressable>
+      <Text style={{ color: colors.gold, fontSize: 12, lineHeight: 18, marginHorizontal: 16, marginTop: 6 }}>
+        {loyalty.data
+          ? `${loyalty.data.currentStreakDays} days in a row on UR`
+          : "Your visit streak shows here after you sign in."}
+      </Text>
       {ringNote ? (
         <Text style={{ color: colors.gold, fontSize: 12, lineHeight: 18, marginHorizontal: 16, marginTop: 6 }}>
           {ringNote}
@@ -300,10 +316,9 @@ export function SocialHubPanel() {
           <>
             <Text style={[styles.title, { color: colors.gold }]}>Follow or subscribe</Text>
             <Text style={{ color: colors.gold, fontSize: 12, lineHeight: 18 }}>
-              Follow is free. A follower is interested in the free content but is not paying. A paid
-              subscriber pays for the creator's information — that is the creator's real income.
-              Free videos do not pay the creator; they advertise paid merch, paid subscriptions, and
-              paid classes. The creator's goal is paid subscribers. Only you can unfollow or cancel.
+              Follow is free. A paid follow is {formatSocialUsd(CREATOR_CHANNEL_CENTS)} for 30 days.
+              The creator keeps 85%. UR keeps 15%. Tax and the card fee are extra. Paid members get a
+              member badge, members-only posts, and this week's face looks. No refunds.
             </Text>
             <TextInput
               value={creatorUserId}
@@ -326,12 +341,28 @@ export function SocialHubPanel() {
             >
               <Text style={styles.btnText}>Follow (free)</Text>
             </Pressable>
+            <TextInput
+              value={billingState}
+              onChangeText={(value) => setBillingState(value.toUpperCase().slice(0, 2))}
+              placeholder="Billing state, like IN"
+              placeholderTextColor={colors.gold}
+              autoCapitalize="characters"
+              maxLength={2}
+              style={[styles.input, { borderColor: colors.border, color: colors.gold, backgroundColor: "transparent" }]}
+            />
             <Pressable
               disabled={!creatorUserId.trim() || paidSub.isPending}
-              onPress={() => paidSub.mutate({ creatorUserId: creatorUserId.trim() })}
+              onPress={() =>
+                paidSub.mutate({
+                  creatorUserId: creatorUserId.trim(),
+                  clientPlatform: Platform.OS === "web" ? "web" : "native",
+                  acceptedNoRefund: true,
+                  billingStateCode: billingState.trim().length === 2 ? billingState.trim() : undefined,
+                })
+              }
               style={[styles.btn, { backgroundColor: colors.primary }]}
             >
-              <Text style={styles.btnText}>Paid subscribe to channel</Text>
+              <Text style={styles.btnText}>Paid follow · {formatSocialUsd(CREATOR_CHANNEL_CENTS)} / 30 days</Text>
             </Pressable>
             <Pressable
               disabled={!creatorUserId.trim() || !creatorName.trim() || subscribe.isPending}

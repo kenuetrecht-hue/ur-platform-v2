@@ -52,7 +52,9 @@ import {
 } from "../../lib/landing-demo-policy";
 import { isOwnerOnlyPlatformAi, canChatOwnerOpsAi } from "./platform-ops-ai";
 import { assertAiEntitled } from "./access-entitlements";
-import { assertAndConsumeAiUsage } from "./ai-usage-meter";
+import { canUseFreeTaste, FREE_TASTE_MAX_INPUT_CHARS, FREE_TASTE_MAX_OUTPUT_TOKENS, FREE_TASTE_SHORT_REPLY_RULE } from "../../lib/free-taste-policy";
+import { claimFreeTaste } from "./free-taste-service";
+import { assertAndConsumeAiUsage, getAiUsageStatus } from "./ai-usage-meter";
 import { tryConsumeCredit } from "./usage-credits-service";
 import {
   assertAndConsumeStewardAdBudget,
@@ -365,7 +367,37 @@ export async function handleCreatorAiChat(params: {
       });
     }
 
+    let freeTaste = false;
+    if (
+      !params.ctx.landingDemo &&
+      !params.ctx.isPlatformOwner &&
+      !isAffiliateOnlyAi(params.creatorId) &&
+      canUseFreeTaste(params.creatorId) &&
+      getAiUsageStatus({
+        userId,
+        email: params.ctx.userEmail,
+        creatorId: params.creatorId,
+        isPlatformOwner: false,
+      }).source === "none"
+    ) {
+      if (attachments.length > 0 || params.useHiveConsult === true) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Photos and multi-AI chats need a text pass. Free messages are short text only.",
+        });
+      }
+      if (message.length > FREE_TASTE_MAX_INPUT_CHARS) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `A free message stays under ${FREE_TASTE_MAX_INPUT_CHARS} characters so it does not run a bill. A text pass sends a longer note.`,
+        });
+      }
+      await claimFreeTaste(userId);
+      freeTaste = true;
+    }
+
     const useHive =
+      !freeTaste &&
       !shouldCommission &&
       !params.ctx.landingDemo &&
       !isAffiliateOnlyAi(params.creatorId) &&
@@ -462,8 +494,11 @@ export async function handleCreatorAiChat(params: {
       }
 
       let systemPrompt: string;
-      if (params.ctx.landingDemo || isAffiliateOnlyAi(params.creatorId)) {
+      if (params.ctx.landingDemo || isAffiliateOnlyAi(params.creatorId) || freeTaste) {
         systemPrompt = basePrompt;
+        if (freeTaste) {
+          systemPrompt += `\n\n${FREE_TASTE_SHORT_REPLY_RULE}`;
+        }
       } else {
         systemPrompt = await buildHiveEnhancedSystemPrompt({
           creatorId: params.creatorId,
@@ -497,9 +532,9 @@ export async function handleCreatorAiChat(params: {
 
       const result = await generateGoogleChatReply({
         systemPrompt,
-        history: params.ctx.landingDemo ? [] : history,
+        history: params.ctx.landingDemo || freeTaste ? [] : history,
         message,
-        maxOutputTokens: params.ctx.landingDemo ? 80 : undefined,
+        maxOutputTokens: freeTaste ? FREE_TASTE_MAX_OUTPUT_TOKENS : params.ctx.landingDemo ? 80 : undefined,
         temperature: params.ctx.landingDemo ? 0.85 : undefined,
         attachments: visionAttachments.length ? visionAttachments : undefined,
         responseLanguage: nativeReplyLanguage,
@@ -617,6 +652,7 @@ export async function handleCreatorAiChat(params: {
     }
 
     if (
+      !freeTaste &&
       !params.ctx.landingDemo &&
       !params.ctx.isPlatformOwner &&
       !isAffiliateOnlyAi(params.creatorId)

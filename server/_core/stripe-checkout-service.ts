@@ -31,6 +31,8 @@ import {
 } from "./creator-call-ticket-service";
 import { CREATOR_VIDEO_CALL_SKU } from "../../lib/creator-call-pricing";
 import { fulfillPlatformPurchase } from "./platform-purchase-fulfillment";
+import { startPaidChannelSubscription } from "./creator-audience-service";
+import { CREATOR_CHANNEL_CENTS, CREATOR_CHANNEL_PRODUCT } from "../../lib/social-money";
 
 export const STRIPE_TALK_PACK_KIND = "talk_pack";
 export const STRIPE_CREATOR_SALE_KIND = "creator_sale";
@@ -419,6 +421,20 @@ export function fulfillStripeCheckoutSession(session: {
         creditCreatorTipEarnings(creatorUserId, priceCents);
       } catch {
         /* Settlement still books; creator profile credit needs an enrolled creator. */
+      }
+    }
+    if (metadata.product === CREATOR_CHANNEL_PRODUCT && priceCents === CREATOR_CHANNEL_CENTS) {
+      const buyerUserId = metadata.userId?.trim();
+      if (buyerUserId) {
+        try {
+          startPaidChannelSubscription({
+            subscriberUserId: buyerUserId,
+            creatorUserId,
+            renew: true,
+          });
+        } catch {
+          /* The sale is booked even if the member month could not be extended. */
+        }
       }
     }
     fulfilledSessionIds.add(session.id);

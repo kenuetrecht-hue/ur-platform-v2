@@ -37,6 +37,7 @@ import {
 } from "@/lib/creator-content-protection-core";
 import { SocialPostAssistantBar } from "@/components/social-post-assistant-bar";
 import { brandDisclosureSurface, brandHighlightSurface, brandGradientPair, withAlpha } from "@/lib/brand-theme";
+import { FEED_PIN_CENTS, formatSocialUsd, socialDailyPrompt } from "@/lib/social-money";
 import { ContentProtectionReportSheet } from "@/components/content-protection-report-sheet";
 import { LinearGradient } from "expo-linear-gradient";
 import { CreatorTipButton } from "@/components/creator-tip-button";
@@ -98,6 +99,8 @@ function PostCard({
     }>;
     authorIsCreator?: boolean;
     isFreeShareable?: boolean;
+    membersOnly?: boolean;
+    pinnedUntil?: string | null;
     rating?: { average: number; count: number; myStars: number | null } | null;
   };
   myUserId: string;
@@ -110,6 +113,21 @@ function PostCard({
   const [showComments, setShowComments] = useState(false);
   const [showStamps, setShowStamps] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [pinState, setPinState] = useState("");
+  const [pinNote, setPinNote] = useState<string | null>(null);
+  const pinPost = trpc.social.pinPost.useMutation({
+    onSuccess: (result) => {
+      const checkoutUrl = "checkoutUrl" in result ? result.checkoutUrl : "";
+      if (checkoutUrl) {
+        if (Platform.OS === "web" && typeof window !== "undefined") window.location.assign(checkoutUrl);
+        else void Linking.openURL(checkoutUrl);
+        return;
+      }
+      setPinNote("expiresAt" in result ? "Pinned for 24 hours." : null);
+      onRefresh();
+    },
+    onError: (err) => setPinNote(err.message),
+  });
   const like = trpc.social.toggleLike.useMutation({ onSuccess: () => onRefresh() });
   const comment = trpc.social.addComment.useMutation({
     onSuccess: () => {
@@ -151,12 +169,57 @@ function PostCard({
               <Text style={{ color: colors.primary, fontWeight: "700" }}> · {CREATOR_VERIFIED_BADGE_HINT}</Text>
             ) : null}
           </Text>
-          <Text style={{ color: colors.muted, fontSize: 11 }}>{timeAgo(post.createdAt)} · {post.kind}</Text>
+          <Text style={{ color: colors.muted, fontSize: 11 }}>
+            {timeAgo(post.createdAt)} · {post.kind}
+            {post.membersOnly ? " · Members" : ""}
+            {post.pinnedUntil ? " · Pinned" : ""}
+          </Text>
         </View>
         {post.authorUserId === myUserId ? (
-          <Pressable onPress={() => del.mutate({ postId: post.id })}>
-            <Text style={{ color: colors.muted, fontSize: 12 }}>Delete</Text>
-          </Pressable>
+          <View style={{ alignItems: "flex-end", gap: 6 }}>
+            {post.pinnedUntil ? (
+              <Text style={{ color: colors.muted, fontSize: 12 }}>Pinned 24h</Text>
+            ) : (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <TextInput
+                  value={pinState}
+                  onChangeText={(value) => setPinState(value.toUpperCase().slice(0, 2))}
+                  placeholder="ST"
+                  placeholderTextColor={colors.muted}
+                  autoCapitalize="characters"
+                  maxLength={2}
+                  style={{
+                    width: 42,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    color: colors.foreground,
+                    borderRadius: 6,
+                    paddingHorizontal: 6,
+                    paddingVertical: 4,
+                    fontSize: 12,
+                  }}
+                />
+                <Pressable
+                  onPress={() =>
+                    pinPost.mutate({
+                      postId: post.id,
+                      clientPlatform: Platform.OS === "web" ? "web" : "native",
+                      acceptedNoRefund: true,
+                      billingStateCode: pinState.trim().length === 2 ? pinState.trim() : undefined,
+                    })
+                  }
+                >
+                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
+                    Pin {formatSocialUsd(FEED_PIN_CENTS)}
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+            {pinNote ? <Text style={{ color: colors.muted, fontSize: 11 }}>{pinNote}</Text> : null}
+            <Pressable onPress={() => del.mutate({ postId: post.id })}>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>Delete</Text>
+            </Pressable>
+          </View>
         ) : (
           <Pressable onPress={() => setReportOpen(true)}>
             <Text style={{ color: colors.muted, fontSize: 12 }}>Report</Text>
@@ -352,7 +415,7 @@ export function SocialFeedPanel({
   const [body, setBody] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
-  const [visibility, setVisibility] = useState<"public" | "friends">("public");
+  const [visibility, setVisibility] = useState<"public" | "friends" | "members">("public");
   const [showComposer, setShowComposer] = useState(true);
   const [aiAssisted, setAiAssisted] = useState(false);
   const [contentRightsMode, setContentRightsMode] = useState<ContentRightsMode>("original");
@@ -458,6 +521,14 @@ export function SocialFeedPanel({
           {PLATFORM_DISCLOSURE_SHORT}
         </Text>
       </View>
+
+      <Pressable
+        onPress={() => router.push("/face-filters")}
+        style={{ marginHorizontal: 16, marginTop: 8 }}
+      >
+        <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700" }}>Today on UR</Text>
+        <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>{socialDailyPrompt()}</Text>
+      </Pressable>
 
       {stats.data ? (
         <View style={[styles.statsRow, { borderColor: withAlpha(colors.secondary, 0.15) }]}>
@@ -720,7 +791,7 @@ export function SocialFeedPanel({
           ) : null}
 
           <View style={styles.visibilityRow}>
-            {(["public", "friends"] as const).map((v) => (
+            {(["public", "friends", "members"] as const).map((v) => (
               <Pressable
                 key={v}
                 onPress={() => setVisibility(v)}
@@ -733,7 +804,7 @@ export function SocialFeedPanel({
                 ]}
               >
                 <Text style={{ color: visibility === v ? "#fff" : colors.foreground, fontSize: 12, fontWeight: "600" }}>
-                  {v === "public" ? "🌍 Public" : "👥 Friends only"}
+                  {v === "public" ? "🌍 Public" : v === "friends" ? "👥 Friends only" : "Members"}
                 </Text>
               </Pressable>
             ))}

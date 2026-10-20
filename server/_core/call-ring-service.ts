@@ -7,6 +7,8 @@
 
 import { createRequire } from "node:module";
 import { getVideoCallRoom } from "./video-call-service";
+import { listFriends } from "./social-service";
+import { hasPaidChannelSubscription } from "./creator-audience-service";
 import { getWebPushVapidPrivateKey, getWebPushVapidPublicKey } from "./secrets";
 import {
   deleteCallNotice,
@@ -180,6 +182,39 @@ async function sendOnce(userId: string, payload: string): Promise<void> {
     }
   }
   subscriptions.set(userId, kept);
+}
+
+export function buildSocialPostNotice(authorName: string): string {
+  const name = callRingCallerLabel(authorName);
+  return JSON.stringify({
+    title: "New post on UR Platform",
+    body: `${name} posted on UR Platform.`,
+    url: "/messages",
+    roomId: "",
+  });
+}
+
+export function friendPostAlertRecipients(params: {
+  authorUserId: string;
+  visibility: "public" | "friends" | "members";
+}): string[] {
+  return listFriends(params.authorUserId)
+    .map((friend) => friend.peerUserId)
+    .filter((peerUserId) => {
+      if (params.visibility !== "members") return true;
+      return hasPaidChannelSubscription(peerUserId, params.authorUserId);
+    });
+}
+
+export function notifyFriendsOfPost(params: {
+  authorUserId: string;
+  authorName: string;
+  visibility: "public" | "friends" | "members";
+}): void {
+  const payload = buildSocialPostNotice(params.authorName);
+  for (const peerUserId of friendPostAlertRecipients(params)) {
+    void sendOnce(peerUserId, payload);
+  }
 }
 
 export function ringUserForVideoCall(params: {

@@ -10,8 +10,16 @@ import { isOwnerEmail } from "./owner-auth";
 import { ENV } from "./env";
 import { hasActiveAiSubscription, getActiveAiSubscription } from "./ai-subscription-service";
 import { hasLoyaltyTextAccess } from "./loyalty-streak-service";
+import { canUseFreeTaste } from "../../lib/free-taste-policy";
 
-export type AccessSource = "owner" | "owner_grant" | "membership" | "ai_subscription" | "loyalty" | "none";
+export type AccessSource =
+  | "owner"
+  | "owner_grant"
+  | "membership"
+  | "ai_subscription"
+  | "loyalty"
+  | "free_taste"
+  | "none";
 
 export type PlatformFeature = "ai_chat" | "ai_learn" | "ai_hive" | "ai_sandbox";
 
@@ -162,6 +170,9 @@ export function assertAiEntitled(params: {
     }
     if (hasLoyaltyTextAccess(uid, params.creatorId)) {
       return { hasAiAccess: true, source: "loyalty" };
+    }
+    if (params.feature === "ai_chat" && canUseFreeTaste(params.creatorId)) {
+      return { hasAiAccess: true, source: "free_taste" };
     }
   }
 

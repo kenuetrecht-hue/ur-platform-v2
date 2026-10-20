@@ -27,8 +27,10 @@ import { spendThanksStampForReaction } from "./ur-thanks-stamps-service";
 import { getVideoRating, type VideoRatingSummary } from "./video-rating-service";
 import { CREATOR_FREE_VIDEO_SHARE_NOTICE } from "../../lib/creator-free-content-policy";
 import { rankForMemberInterests } from "../../lib/content-rank";
+import { FEED_PIN_HOURS } from "../../lib/social-money";
+import { hasPaidChannelSubscription } from "./creator-audience-service";
 
-export type PostVisibility = "public" | "friends";
+export type PostVisibility = "public" | "friends" | "members";
 export type PostKind = "text" | "photo" | "video" | "link";
 
 export type SocialUserProfile = {
@@ -91,7 +93,15 @@ export type FeedPostView = FeedPost & {
   stampReactions: FeedStampReaction[];
   authorIsCreator: boolean;
   isFreeShareable: boolean;
+  membersOnly: boolean;
+  pinnedUntil: string | null;
   rating: VideoRatingSummary | null;
+};
+
+type FeedPin = {
+  postId: string;
+  buyerUserId: string;
+  expiresAt: string;
 };
 
 const profiles = new Map<string, SocialUserProfile>();
@@ -100,6 +110,33 @@ const likes = new Map<string, Set<string>>(); // postId -> userIds
 const comments: FeedComment[] = [];
 const shares = new Map<string, number>();
 const stampReactions: Array<FeedStampReaction & { postId: string; userId: string }> = [];
+const pins = new Map<string, FeedPin>();
+
+function activePin(postId: string, at = Date.now()): FeedPin | null {
+  const pin = pins.get(postId);
+  if (!pin) return null;
+  return Date.parse(pin.expiresAt) > at ? pin : null;
+}
+
+export function assertCanPinPost(postId: string, userId: string): void {
+  const post = posts.get(postId);
+  if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found." });
+  if (post.authorUserId !== userId) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Only you can pin your own post." });
+  }
+}
+
+export function grantFeedPin(params: { postId: string; buyerUserId: string; hours?: number }): FeedPin {
+  assertCanPinPost(params.postId, params.buyerUserId);
+  const hours = params.hours ?? FEED_PIN_HOURS;
+  const pin: FeedPin = {
+    postId: params.postId,
+    buyerUserId: params.buyerUserId,
+    expiresAt: new Date(Date.now() + hours * 60 * 60 * 1000).toISOString(),
+  };
+  pins.set(params.postId, pin);
+  return pin;
+}
 
 const AVATAR_EMOJIS = ["😊", "🙂", "😎", "🤩", "🧑‍🔧", "👷", "🎬", "🔗", "✨", "🚀"];
 
@@ -207,6 +244,8 @@ function enrichPost(post: FeedPost, viewerUserId: string): FeedPostView {
       .map(({ postId: _p, userId: _u, ...rest }) => rest),
     authorIsCreator: Boolean(getContentCreatorProfile(post.authorUserId)),
     isFreeShareable: post.visibility === "public",
+    membersOnly: post.visibility === "members",
+    pinnedUntil: activePin(post.id)?.expiresAt ?? null,
     rating:
       post.kind === "video" || Boolean(post.videoUrl)
         ? getVideoRating(post.id, viewerUserId)
@@ -215,8 +254,11 @@ function enrichPost(post: FeedPost, viewerUserId: string): FeedPostView {
 }
 
 function canViewPost(post: FeedPost, viewerUserId: string): boolean {
-  if (post.visibility === "public") return true;
   if (post.authorUserId === viewerUserId) return true;
+  if (post.visibility === "public") return true;
+  if (post.visibility === "members") {
+    return hasPaidChannelSubscription(viewerUserId, post.authorUserId);
+  }
   const friends = listFriends(viewerUserId);
   return friends.some((f) => f.peerUserId === post.authorUserId);
 }
@@ -280,6 +322,14 @@ export function createFeedPost(params: {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Add text, a photo, or a video." });
   }
 
+  const visibility = params.visibility ?? "public";
+  if (visibility === "members" && !getContentCreatorProfile(params.authorUserId)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Members-only posts are for enrolled creators.",
+    });
+  }
+
   const postId = randomUUID();
 
   try {
@@ -319,7 +369,7 @@ export function createFeedPost(params: {
     imageUrl: imageUrl || undefined,
     videoUrl: videoUrl || undefined,
     linkUrl: linkUrl || undefined,
-    visibility: params.visibility ?? "public",
+    visibility,
     hashtags: extractHashtags(body),
     likeCount: 0,
     commentCount: 0,
@@ -346,6 +396,7 @@ export function deleteFeedPost(params: { postId: string; userId: string }): bool
   }
   posts.delete(params.postId);
   likes.delete(params.postId);
+  pins.delete(params.postId);
   for (let i = comments.length - 1; i >= 0; i--) {
     if (comments[i]!.postId === params.postId) comments.splice(i, 1);
   }
@@ -512,6 +563,8 @@ export function getFeed(params: {
   } else {
     list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
+
+  list.sort((a, b) => Number(Boolean(activePin(b.id))) - Number(Boolean(activePin(a.id))));
 
   if (params.sort !== "forYou" && params.cursor) {
     const cursorTime = new Date(params.cursor).getTime();

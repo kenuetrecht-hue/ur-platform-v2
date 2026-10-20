@@ -27,6 +27,8 @@ import { grantCreatorSocialPush } from "./creator-social-push-service";
 import { placeMemberPrintifyOrder } from "./commerce-fulfillment-adapters";
 import { grantOfficeAgent } from "./office-agent-service";
 import { grantFaceFilterPass } from "./face-filter-pass-service";
+import { grantFeedPin } from "./social-feed-service";
+import { FEED_PIN_CENTS } from "../../lib/social-money";
 
 const PLATFORM_KINDS = new Set([
   "usage_credit",
@@ -49,6 +51,7 @@ const PLATFORM_KINDS = new Set([
   "member_printify",
   "office_agent",
   "face_filter_pass",
+  "feed_pin",
 ]);
 
 function emailOf(metadata: Record<string, string>): string {
@@ -210,6 +213,14 @@ export function fulfillPlatformPurchase(
         userId,
         planId: metadata.planId === "month" ? "month" : "week",
       });
+      return { handled: true, ignored: false };
+    case "feed_pin":
+      try {
+        if (priceCents !== FEED_PIN_CENTS) return { handled: false, ignored: true };
+        grantFeedPin({ postId: metadata.postId ?? "", buyerUserId: userId });
+      } catch {
+        return { handled: false, ignored: true };
+      }
       return { handled: true, ignored: false };
     case "member_printify":
       void placeMemberPrintifyOrder({

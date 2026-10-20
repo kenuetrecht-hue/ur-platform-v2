@@ -17,6 +17,7 @@ import {
   FOUNDING_AUDIENCE_PAID_SUBSCRIBERS_REQUIRED,
 } from "../../lib/founding-audience-year-discount";
 import { getLaunchWindowEnd } from "../../lib/launch-promotion-config";
+import { CREATOR_CHANNEL_DAYS } from "../../lib/social-money";
 
 export type CreatorFollow = {
   followerUserId: string;
@@ -28,7 +29,15 @@ export type CreatorPaidSubscription = {
   subscriberUserId: string;
   creatorUserId: string;
   subscribedAt: string;
+  expiresAt?: string;
 };
+
+const CHANNEL_TERM_MS = CREATOR_CHANNEL_DAYS * 24 * 60 * 60 * 1000;
+
+function isPaidSubActive(record: CreatorPaidSubscription, at = Date.now()): boolean {
+  if (!record.expiresAt) return false;
+  return Date.parse(record.expiresAt) > at;
+}
 
 export type CreatorAudienceCounts = {
   followerCount: number;
@@ -117,11 +126,18 @@ export function unfollowCreatorChannel(params: {
   followerUserId: string;
   creatorUserId: string;
 }): boolean {
-  if (paidSubs.has(paidKey(params.followerUserId, params.creatorUserId))) {
+  const paid = paidSubs.get(paidKey(params.followerUserId, params.creatorUserId));
+  if (paid && isPaidSubActive(paid)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Cancel your paid subscription before unfollowing.",
     });
+  }
+  if (paid) {
+    paidSubs.delete(paidKey(params.followerUserId, params.creatorUserId));
+    if (persistAudience) {
+      void deletePaidChannelSub(params.followerUserId, params.creatorUserId);
+    }
   }
   const removed = follows.delete(followKey(params.followerUserId, params.creatorUserId));
   if (removed && persistAudience) {
@@ -133,6 +149,7 @@ export function unfollowCreatorChannel(params: {
 export function startPaidChannelSubscription(params: {
   subscriberUserId: string;
   creatorUserId: string;
+  renew?: boolean;
 }): CreatorPaidSubscription {
   if (params.subscriberUserId === params.creatorUserId) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "You cannot subscribe to yourself." });
@@ -143,11 +160,15 @@ export function startPaidChannelSubscription(params: {
   });
   const key = paidKey(params.subscriberUserId, params.creatorUserId);
   const existing = paidSubs.get(key);
-  if (existing) return existing;
+  const now = Date.now();
+  if (existing && isPaidSubActive(existing, now) && !params.renew) return existing;
+  const base =
+    existing && params.renew && isPaidSubActive(existing, now) ? Date.parse(existing.expiresAt ?? "") : now;
   const record: CreatorPaidSubscription = {
     subscriberUserId: params.subscriberUserId,
     creatorUserId: params.creatorUserId,
-    subscribedAt: new Date().toISOString(),
+    subscribedAt: existing?.subscribedAt ?? new Date(now).toISOString(),
+    expiresAt: new Date((Number.isFinite(base) ? base : now) + CHANNEL_TERM_MS).toISOString(),
   };
   paidSubs.set(key, record);
   if (persistAudience) void persistPaidChannelSub(record);
@@ -170,7 +191,15 @@ export function isFollowingCreator(followerUserId: string, creatorUserId: string
 }
 
 export function hasPaidChannelSubscription(subscriberUserId: string, creatorUserId: string): boolean {
-  return paidSubs.has(paidKey(subscriberUserId, creatorUserId));
+  const record = paidSubs.get(paidKey(subscriberUserId, creatorUserId));
+  return record ? isPaidSubActive(record) : false;
+}
+
+export function userHasActivePaidChannel(userId: string, at = Date.now()): boolean {
+  for (const record of paidSubs.values()) {
+    if (record.subscriberUserId === userId && isPaidSubActive(record, at)) return true;
+  }
+  return false;
 }
 
 export function listCreatorFollowers(creatorUserId: string): CreatorFollow[] {
@@ -181,7 +210,7 @@ export function listCreatorFollowers(creatorUserId: string): CreatorFollow[] {
 
 export function listCreatorPaidSubscribers(creatorUserId: string): CreatorPaidSubscription[] {
   return [...paidSubs.values()]
-    .filter((s) => s.creatorUserId === creatorUserId)
+    .filter((s) => s.creatorUserId === creatorUserId && isPaidSubActive(s))
     .sort((a, b) => Date.parse(b.subscribedAt) - Date.parse(a.subscribedAt));
 }
 
@@ -297,6 +326,7 @@ export function grantAudienceRelationshipsForTests(params: {
       subscriberUserId,
       creatorUserId: params.creatorUserId,
       subscribedAt: now,
+      expiresAt: "2099-01-01T00:00:00.000Z",
     });
   }
   return getCreatorAudienceCounts(params.creatorUserId);

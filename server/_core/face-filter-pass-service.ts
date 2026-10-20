@@ -12,6 +12,7 @@ import {
 } from "../../lib/face-filter-pricing";
 import { faceFilterWeekEndsAt, weeklyFaceSet } from "../../lib/face-filter-week";
 import { loadFaceFilterPasses, persistFaceFilterPass } from "./face-filter-pass-persistence";
+import { userHasActivePaidChannel } from "./creator-audience-service";
 
 type Pass = {
   id: string;
@@ -59,7 +60,8 @@ export function grantFaceFilterPass(params: {
 export function faceFiltersUnlocked(userId: string, isPlatformOwner: boolean, at = new Date()): boolean {
   if (isPlatformOwner) return true;
   const now = at.getTime();
-  return (passes.get(userId) ?? []).some((pass) => new Date(pass.expiresAt).getTime() > now);
+  if ((passes.get(userId) ?? []).some((pass) => new Date(pass.expiresAt).getTime() > now)) return true;
+  return userHasActivePaidChannel(userId, now);
 }
 
 export async function faceFilterCatalog(userId: string, isPlatformOwner: boolean) {

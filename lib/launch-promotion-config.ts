@@ -85,7 +85,17 @@ export const LAUNCH_PROMOTION_TIERS: LaunchPromotionTier[] = [
   },
 ];
 
-export const LAUNCH_PROMOTION_HEADLINE = "30-day creator launch";
+export const LAUNCH_PROMOTION_HEADLINE = "First 300 creators";
+
+/** What a creator keeps on a $100 sale when they keep this percent of UR's 15% fee. */
+export function launchFeeKeepOn100(discountPercent: number): { youKeep: string; urKeeps: string } {
+  const urFee = PLATFORM_FEE_PERCENT * (1 - discountPercent / 100);
+  const youKeep = 100 - urFee;
+  return {
+    youKeep: `$${youKeep.toFixed(2)}`,
+    urKeeps: `$${urFee.toFixed(2)}`,
+  };
+}
 export const LAUNCH_PROMOTION_SUBLINE =
   `First ${LAUNCH_CREATOR_SLOTS} creators lock in a discounted platform fee. After these 30 days, new creators get regular 85/15. During the window, bring 2,000 different people (1,000 followers + 1,000 paid subscribers) for a full year of 50% off, or 4,000 (2,000 + 2,000) for 60% off that year — the year starts after your launch deal if you are in the first 300, or the moment you hit 2,000 after slot 300.`;
 

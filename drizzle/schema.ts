@@ -806,6 +806,12 @@ export const creatorPaidChannelSubs = mysqlTable("creatorPaidChannelSubs", {
   subscribedAt: timestamp("subscribedAt").notNull(),
 });
 
+/** When a paid channel month ends. Missing row means the old free grant is not active. */
+export const creatorChannelTerms = mysqlTable("creatorChannelTerms", {
+  id: varchar("id", { length: 260 }).primaryKey(),
+  expiresAt: varchar("expiresAt", { length: 40 }).notNull(),
+});
+
 /** Anonymous website trail for the owner: pages, buttons, and time on a page. */
 export const visitorTrailEvents = mysqlTable("visitorTrailEvents", {
   id: varchar("id", { length: 36 }).primaryKey(),

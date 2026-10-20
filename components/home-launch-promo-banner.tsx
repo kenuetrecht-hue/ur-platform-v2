@@ -118,7 +118,7 @@ export function HomeLaunchPromoBanner() {
           {activeTier?.medal} Now filling: {activeTier?.label}
         </Text>
         <Text style={styles.tierDetail}>
-          {activeTier?.platformFeeDiscountPercent}% off platform fee · {activeTier?.durationLabel} ·{" "}
+          You keep {activeTier?.platformFeeDiscountPercent}% of the {PLATFORM_FEE_PERCENT}% fee · {activeTier?.durationLabel} ·{" "}
           {activeTierRemaining} spots left in this tier
         </Text>
         <View style={styles.tierRow}>

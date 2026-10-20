@@ -105,6 +105,7 @@ export function TechnoFuturistExperience() {
             <Text style={styles.lede}>
               {LANDING_PLATFORM_UNITY_LINE} For adults 18 and older.
             </Text>
+            <LandingPromoBanner />
             <LandingWhatWeOffer />
             <TapToRead title="Why we require ID and a selfie">
               You photograph a government ID (front and back) and a matching selfie before you
@@ -118,8 +119,6 @@ export function TechnoFuturistExperience() {
             <View style={styles.heroCtaRow}>
               <LandingDeviceDownloadLinks variant="hero" />
             </View>
-
-            <LandingPromoBanner />
 
             <LandingAiCategoryHub
               selectedCreatorId={demoCreatorId}
