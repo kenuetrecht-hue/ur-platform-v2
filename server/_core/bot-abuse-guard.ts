@@ -80,9 +80,11 @@ export function assertAuthChallengeAllowed(params: {
 
   assertHumanClient(params.userAgent, ip);
 
+  // Logging back in is allowed once the ID and selfie already passed.
+  if (params.action === "login") return;
+
   const challenges = bumpWindow(challengeByIp, ip, TEN_MIN_MS);
   if (challenges > AUTH_CHALLENGE_MAX_PER_IP_PER_10_MIN) {
-    blockIp(ip, "auth challenge flood");
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
       message: "Too many security checks from this network. Try again later.",
@@ -92,7 +94,6 @@ export function assertAuthChallengeAllowed(params: {
   if (params.action === "signup") {
     const signups = bumpWindow(signupByIp, ip, HOUR_MS);
     if (signups > SIGNUP_MAX_PER_IP_PER_HOUR) {
-      blockIp(ip, "signup velocity");
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
         message: "Too many signups from this network. Try again later.",

@@ -114,7 +114,7 @@ function namespaceSecurity(namespace: ApiNamespace) {
   return middleware(async ({ ctx, next }) => {
     assertNamespaceCircuitClosed(namespace);
 
-    if (isIpBlocked(ctx.ip)) {
+    if (isIpBlocked(ctx.ip) && namespace !== "auth") {
       throw new TRPCError({ code: "FORBIDDEN", message: "Access denied." });
     }
 

@@ -31,11 +31,20 @@ describe("video call rate limits", () => {
     expect(isIpBlocked("203.0.113.77")).toBe(false);
   });
 
-  it("slows a login flood without locking the member out of the rest of the site", () => {
+  it("lets a return login through after the ID pictures without banning the network", () => {
     _resetApiLimitsForTests();
     const ip = "203.0.113.41";
+    for (let i = 0; i < 80; i += 1) {
+      checkIpNamespaceLimit("auth", ip);
+    }
+    expect(isIpBlocked(ip)).toBe(false);
+  });
+
+  it("slows a login flood without locking the member out of the rest of the site", () => {
+    _resetApiLimitsForTests();
+    const ip = "203.0.113.42";
     let slowed = false;
-    for (let i = 0; i < 25; i += 1) {
+    for (let i = 0; i < 260; i += 1) {
       try {
         checkIpNamespaceLimit("auth", ip);
       } catch {

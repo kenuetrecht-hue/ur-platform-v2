@@ -107,9 +107,9 @@ const blockedIps = new Map<string, number>();
 // Two phones on one home network share this budget. A call is several requests a second.
 const GLOBAL_IP_LIMIT_PER_MINUTE = 1_500;
 
-/** Per-namespace IP limits (requests / minute). Auth and landing stay tight against bots. */
+/** Per-namespace IP limits (requests / minute). Auth stays open for ID plus return login. */
 const NAMESPACE_IP_LIMITS_PER_MINUTE: Partial<Record<ApiNamespace, number>> = {
-  auth: 20,
+  auth: 240,
   landing: 30,
   social: 80,
   commerce: 20,
@@ -429,7 +429,8 @@ export function strictCorsMiddleware(
 
 /** Express middleware: global IP rate limit + blocklist for all /api routes */
 export function isAgeKycApiPath(path: string): boolean {
-  return path.toLowerCase().includes("/api/age-kyc");
+  const lower = path.toLowerCase();
+  return lower.includes("/api/age-kyc") || lower.includes("agekyc.");
 }
 
 export function apiIpGuardMiddleware(
