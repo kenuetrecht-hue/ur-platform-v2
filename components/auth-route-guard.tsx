@@ -267,28 +267,6 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     !isEmanualRoute(segments) &&
     !isCallRoute(segments);
 
-  if (accountDoorClosed && (kycQuery.isLoading || kycQuery.isError)) {
-    // #region agent log
-    fetch("http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a0cdff" },
-      body: JSON.stringify({
-        sessionId: "a0cdff",
-        runId: "pre-fix",
-        hypothesisId: "A",
-        location: "auth-route-guard.tsx:accountDoor",
-        message: "account open blocked",
-        data: {
-          loading: kycQuery.isLoading,
-          error: kycQuery.isError,
-          reason: String(kycQuery.error?.message ?? "").slice(0, 160),
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-  }
-
   if (accountDoorClosed && kycQuery.isLoading) {
     return <UrBootShell label="Opening your account…" />;
   }

@@ -356,23 +356,7 @@ export function checkIpNamespaceLimit(namespace: ApiNamespace, ip: string): void
   const allowed = checkWindowLimit(ipNamespaceBuckets, key, limit, MINUTE_MS);
 
   if (!allowed) {
-    const ban = !NAMESPACES_WITHOUT_IP_BAN.has(namespace);
-    // #region agent log
-    fetch("http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a0cdff" },
-      body: JSON.stringify({
-        sessionId: "a0cdff",
-        runId: "pre-fix",
-        hypothesisId: "B",
-        location: "api-security.ts:checkIpNamespaceLimit",
-        message: "namespace rate limit hit",
-        data: { namespace, ban, cloudflarePeer: isCloudflareEdgeIp(ip) },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-    if (ban) {
+    if (!NAMESPACES_WITHOUT_IP_BAN.has(namespace)) {
       blockIp(ip, `namespace ${namespace} abuse`);
     }
     throw new TRPCError({
