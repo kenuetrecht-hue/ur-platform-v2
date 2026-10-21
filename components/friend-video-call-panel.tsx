@@ -44,6 +44,22 @@ function armCallAudio(): void {
   if (session) session.type = "play-and-record";
 }
 
+let primedCallAudio: AudioContext | null = null;
+
+/** Call this inside the tap that accepts or starts the call so the phone allows voice. */
+export function primeCallAudio(): void {
+  armCallAudio();
+  if (typeof window === "undefined" || typeof AudioContext === "undefined") return;
+  try {
+    if (!primedCallAudio || primedCallAudio.state === "closed") {
+      primedCallAudio = new AudioContext();
+    }
+    void primedCallAudio.resume();
+  } catch {
+    primedCallAudio = null;
+  }
+}
+
 function playCallMedia(el: HTMLMediaElement): Promise<void> {
   const local = el.dataset.localPreview === "1";
   el.muted = local;
@@ -134,6 +150,8 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
   const remoteStreamRef = useRef<MediaStream | null>(null);
   const speakerCtxRef = useRef<AudioContext | null>(null);
   const speakerSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const connectSoundRef = useRef<(quiet: boolean) => void>(() => {});
+  const micMutedRef = useRef(false);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const appliedIce = useRef(new Set<string>());
   const closedRef = useRef(false);
@@ -141,6 +159,8 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
   const [remoteReady, setRemoteReady] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [mediaReady, setMediaReady] = useState(false);
+  const [micMuted, setMicMuted] = useState(false);
+  const [soundBlocked, setSoundBlocked] = useState(false);
   const webRtc = canUseWebRtc();
   const tokenMode = Boolean(accessToken);
 
@@ -235,7 +255,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
     async function startWebRtc() {
       try {
         setStatus("Starting camera…");
-        armCallAudio();
+        primeCallAudio();
         let iceServers = UR_STUN_ICE_SERVERS;
         let relayReady = false;
         try {
@@ -307,12 +327,13 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
           remoteStreamRef.current = heard;
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = heard;
-            remoteVideoRef.current.muted = false;
-            void playCallMedia(remoteVideoRef.current).catch(() => undefined);
+            remoteVideoRef.current.muted = true;
+            void remoteVideoRef.current.play().catch(() => undefined);
           }
           if (ev.track.kind === "audio") {
             remoteAudioRef.current = ensureRemoteAudio(remoteAudioRef.current);
             if (remoteAudioRef.current) remoteAudioRef.current.srcObject = new MediaStream(heard.getAudioTracks());
+            connectSoundRef.current(true);
           }
         };
 
@@ -321,6 +342,7 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
             setStatus("Connected · encrypted");
             setError(null);
             void tuneCallSenders(pc);
+            connectSoundRef.current(true);
           }
           if (pc.iceConnectionState === "failed") {
             setError(
@@ -482,8 +504,9 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
     onClose();
   };
 
-  const turnSoundOn = () => {
-    armCallAudio();
+  const connectRemoteSound = (quiet: boolean) => {
+    if (micMutedRef.current) return;
+    primeCallAudio();
     const remote = remoteStreamRef.current ?? new MediaStream();
     for (const receiver of pcRef.current?.getReceivers() ?? []) {
       const track = receiver.track;
@@ -499,44 +522,96 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
       track.enabled = true;
     });
     if (voice.length === 0) {
-      setError("Their voice has not arrived yet. Stay on the call a moment, then tap Turn sound on.");
+      // #region agent log
+      fetch("http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"a0cdff"},body:JSON.stringify({sessionId:"a0cdff",location:"friend-video-call-panel.tsx:connectRemoteSound",message:"no remote voice yet",data:{quiet},timestamp:Date.now(),hypothesisId:"C"})}).catch(()=>{});
+      // #endregion
+      if (!quiet) setError("Their voice has not arrived yet. Stay on the call a moment.");
       return;
     }
     const picture = remoteVideoRef.current;
-    if (picture && remote) {
+    if (picture) {
       picture.srcObject = new MediaStream(remote.getTracks());
-      picture.muted = false;
+      picture.muted = true;
     }
     remoteAudioRef.current = ensureRemoteAudio(remoteAudioRef.current);
-    const speaker = picture ?? remoteAudioRef.current;
-    if (!speaker) {
-      setError("Tap Turn sound on again. The phone blocked the voice.");
-      return;
-    }
-    void playCallMedia(speaker)
-      .then(() => {
-        setError(null);
-        setStatus("Sound is on");
-      })
-      .catch(() => {
-        if (!speaker || typeof AudioContext === "undefined") {
-          setError("Tap Turn sound on again. The phone blocked the voice.");
-          return;
-        }
-        try {
+    const speaker = remoteAudioRef.current ?? picture;
+    const heard = () => {
+      setSoundBlocked(false);
+      setError(null);
+      // #region agent log
+      fetch("http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"a0cdff"},body:JSON.stringify({sessionId:"a0cdff",location:"friend-video-call-panel.tsx:connectRemoteSound",message:"remote voice connected",data:{voice:voice.length,quiet,ctx:primedCallAudio?.state ?? "none"},timestamp:Date.now(),hypothesisId:"A"})}).catch(()=>{});
+      // #endregion
+    };
+    const throughSpeaker = () => {
+      try {
+        const ctx = primedCallAudio ?? speakerCtxRef.current ?? new AudioContext();
+        speakerCtxRef.current = ctx;
+        primedCallAudio = ctx;
+        void ctx.resume().then(() => {
+          if (micMutedRef.current) return;
+          if (ctx.state !== "running") {
+            setSoundBlocked(true);
+            if (!quiet) setError("Tap Unmute so the phone allows the voice.");
+            // #region agent log
+            fetch("http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"a0cdff"},body:JSON.stringify({sessionId:"a0cdff",location:"friend-video-call-panel.tsx:connectRemoteSound",message:"call audio stayed suspended",data:{state:ctx.state,quiet},timestamp:Date.now(),hypothesisId:"D"})}).catch(()=>{});
+            // #endregion
+            return;
+          }
           speakerSourceRef.current?.disconnect();
-          const ctx = speakerCtxRef.current ?? new AudioContext();
-          speakerCtxRef.current = ctx;
-          void ctx.resume();
           const source = ctx.createMediaStreamSource(new MediaStream(voice));
           source.connect(ctx.destination);
           speakerSourceRef.current = source;
-          setError(null);
-          setStatus("Sound is on");
-        } catch {
-          setError("Tap Turn sound on again. The phone blocked the voice.");
-        }
-      });
+          heard();
+        }).catch(() => {
+          setSoundBlocked(true);
+          if (!quiet) setError("Tap Unmute so the phone allows the voice.");
+        });
+      } catch {
+        setSoundBlocked(true);
+        if (!quiet) setError("Tap Unmute so the phone allows the voice.");
+      }
+    };
+    if (!speaker || primedCallAudio?.state === "running") {
+      throughSpeaker();
+      return;
+    }
+    void playCallMedia(speaker).then(() => {
+      try {
+        speakerSourceRef.current?.disconnect();
+      } catch {
+        /* already disconnected */
+      }
+      speakerSourceRef.current = null;
+      heard();
+    }).catch(() => {
+      // #region agent log
+      fetch("http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"a0cdff"},body:JSON.stringify({sessionId:"a0cdff",location:"friend-video-call-panel.tsx:connectRemoteSound",message:"element play blocked, using call audio",data:{voice:voice.length,ctx:primedCallAudio?.state ?? "none"},timestamp:Date.now(),hypothesisId:"A"})}).catch(()=>{});
+      // #endregion
+      throughSpeaker();
+    });
+  };
+  connectSoundRef.current = connectRemoteSound;
+
+  const toggleMute = () => {
+    const next = !micMutedRef.current;
+    micMutedRef.current = next;
+    setMicMuted(next);
+    localPreviewStream.current?.getAudioTracks().forEach((track) => {
+      track.enabled = !next;
+    });
+    if (remoteVideoRef.current) remoteVideoRef.current.muted = true;
+    if (remoteAudioRef.current) remoteAudioRef.current.muted = next;
+    if (next) {
+      try {
+        speakerSourceRef.current?.disconnect();
+      } catch {
+        /* already disconnected */
+      }
+      speakerSourceRef.current = null;
+      setStatus("Muted");
+      return;
+    }
+    connectRemoteSound(false);
   };
 
   const who = peerLabel?.trim() || "this person";
@@ -578,8 +653,8 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
       )}
 
       {webRtc ? (
-        <Pressable onPress={turnSoundOn} style={[styles.sound, { backgroundColor: colors.primary }]}>
-          <Text style={styles.btnText}>Turn sound on</Text>
+        <Pressable onPress={toggleMute} style={[styles.sound, { backgroundColor: colors.primary }]}>
+          <Text style={styles.btnText}>{micMuted || soundBlocked ? "Unmute" : "Mute"}</Text>
         </Pressable>
       ) : null}
       <Pressable onPress={hangUp} style={[styles.hangUp, { backgroundColor: "#c0392b" }]}>

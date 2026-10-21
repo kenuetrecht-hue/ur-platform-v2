@@ -6,6 +6,7 @@ import { getClientPlatform, openExternalCheckoutUrl, openWebBrowserCheckout } fr
 import { NoRefundPurchaseAck } from "@/components/no-refund-purchase-ack";
 import { BillingStatePicker } from "@/components/billing-state-picker";
 import { formatCallPriceCents } from "@/lib/creator-call-pricing";
+import { primeCallAudio } from "@/components/friend-video-call-panel";
 import type { UsStateCode } from "@/lib/us-state-taxes";
 
 const CALL_WEB_PATH = "/(tabs)/messages";
@@ -72,6 +73,7 @@ export function CreatorCallButton({
           <BillingStatePicker value={billingState} onChange={setBillingState} />
           <Pressable
             onPress={() => {
+              primeCallAudio();
               if (Platform.OS !== "web") {
                 start.mutate(
                   { creatorUserId },

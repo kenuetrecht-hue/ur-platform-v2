@@ -26,7 +26,10 @@ describe("1-to-1 call UI is on website and app screens", () => {
     expect(panel).toContain("remoteAudioRef");
     expect(panel).toContain("play-and-record");
     expect(panel).not.toContain('session.type = "playback"');
-    expect(panel).toContain("Turn sound on");
+    expect(panel).toContain("primeCallAudio");
+    expect(panel).toContain("Mute");
+    expect(panel).not.toContain("Turn sound on");
+    expect(readFileSync("components/incoming-video-call-dock.tsx", "utf8")).toContain("primeCallAudio()");
     expect(panel).toContain("Only this person is being called.");
     expect(panel).not.toContain("<audio");
     expect(readFileSync("components/incoming-video-call-dock.tsx", "utf8")).toContain("is calling you");

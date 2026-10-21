@@ -15,7 +15,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { TransactionHistoryList } from "@/components/transaction-history-list";
-import { FriendVideoCallPanel } from "@/components/friend-video-call-panel";
+import { FriendVideoCallPanel, primeCallAudio } from "@/components/friend-video-call-panel";
 import { SocialFeedPanel } from "@/components/social-feed-panel";
 import { SocialHubTabBar, type SocialHubTab } from "@/components/social-hub-tab-bar";
 import { InternetCenterMailPanel } from "@/components/internet-center-mail-panel";
@@ -138,6 +138,7 @@ export function SocialHubPanel() {
   }, [params.creatorCall, params.creator]);
 
   const openCall = (roomId: string, peerUserId: string, asCaller: boolean) => {
+    primeCallAudio();
     setVideoRoomId(roomId);
     setVideoFriendId(peerUserId);
     setVideoIsCaller(asCaller);
@@ -294,6 +295,7 @@ export function SocialHubPanel() {
                   <Pressable
                     disabled={startFriendCall.isPending || Boolean(videoRoomId)}
                     onPress={() => {
+                      primeCallAudio();
                       setCallingPeerId(f.peerUserId);
                       setVideoPeerLabel(f.peerName || f.peerEmail);
                       startFriendCall.mutate({ friendUserId: f.peerUserId });

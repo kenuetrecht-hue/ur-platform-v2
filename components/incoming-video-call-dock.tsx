@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import { createPortal } from "react-dom";
 import { useGlobalSearchParams } from "expo-router";
-import { FriendVideoCallPanel } from "@/components/friend-video-call-panel";
+import { FriendVideoCallPanel, primeCallAudio } from "@/components/friend-video-call-panel";
 import { useAuth } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
 import {
@@ -183,13 +183,14 @@ export function IncomingVideoCallDock() {
             Incoming video call. Only you are being called.
           </Text>
           <Pressable
-            onPress={() =>
+            onPress={() => {
+              primeCallAudio();
               setActive({
                 roomId: ringing[0].id,
                 peerUserId: ringing[0].callerUserId,
                 peerLabel: ringing[0].callerName || "A friend",
-              })
-            }
+              });
+            }}
             style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 16, alignItems: "center" }}
           >
             <Text style={{ color: "#fff", fontWeight: "800", fontSize: 18 }}>Answer</Text>
