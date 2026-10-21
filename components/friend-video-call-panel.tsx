@@ -522,9 +522,6 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
       track.enabled = true;
     });
     if (voice.length === 0) {
-      // #region agent log
-      fetch("http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"a0cdff"},body:JSON.stringify({sessionId:"a0cdff",location:"friend-video-call-panel.tsx:connectRemoteSound",message:"no remote voice yet",data:{quiet},timestamp:Date.now(),hypothesisId:"C"})}).catch(()=>{});
-      // #endregion
       if (!quiet) setError("Their voice has not arrived yet. Stay on the call a moment.");
       return;
     }
@@ -538,9 +535,6 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
     const heard = () => {
       setSoundBlocked(false);
       setError(null);
-      // #region agent log
-      fetch("http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"a0cdff"},body:JSON.stringify({sessionId:"a0cdff",location:"friend-video-call-panel.tsx:connectRemoteSound",message:"remote voice connected",data:{voice:voice.length,quiet,ctx:primedCallAudio?.state ?? "none"},timestamp:Date.now(),hypothesisId:"A"})}).catch(()=>{});
-      // #endregion
     };
     const throughSpeaker = () => {
       try {
@@ -552,9 +546,6 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
           if (ctx.state !== "running") {
             setSoundBlocked(true);
             if (!quiet) setError("Tap Unmute so the phone allows the voice.");
-            // #region agent log
-            fetch("http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"a0cdff"},body:JSON.stringify({sessionId:"a0cdff",location:"friend-video-call-panel.tsx:connectRemoteSound",message:"call audio stayed suspended",data:{state:ctx.state,quiet},timestamp:Date.now(),hypothesisId:"D"})}).catch(()=>{});
-            // #endregion
             return;
           }
           speakerSourceRef.current?.disconnect();
@@ -584,9 +575,6 @@ export function FriendVideoCallPanel({ roomId, isCaller, onClose, accessToken, p
       speakerSourceRef.current = null;
       heard();
     }).catch(() => {
-      // #region agent log
-      fetch("http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"a0cdff"},body:JSON.stringify({sessionId:"a0cdff",location:"friend-video-call-panel.tsx:connectRemoteSound",message:"element play blocked, using call audio",data:{voice:voice.length,ctx:primedCallAudio?.state ?? "none"},timestamp:Date.now(),hypothesisId:"A"})}).catch(()=>{});
-      // #endregion
       throughSpeaker();
     });
   };
