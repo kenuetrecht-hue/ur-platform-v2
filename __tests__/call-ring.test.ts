@@ -63,6 +63,10 @@ describe("incoming video call rings the phone", () => {
     expect(worker).toContain("ur-incoming-call");
     expect(worker).toContain('title: "Answer the call"');
     expect(worker).toContain("ur-answer-call");
+    expect(worker).toContain("clients.openWindow");
+    expect(worker.indexOf("clients.openWindow")).toBeGreaterThan(worker.indexOf("client.navigate"));
+    expect(dock).toContain("roomOpenedFromNotification");
+    expect(dock).toContain('get("pickUp")');
   });
 
   it("keeps a note that someone tried to call, even after the ring stops", async () => {

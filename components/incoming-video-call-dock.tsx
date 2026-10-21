@@ -22,6 +22,15 @@ function callRoomId(value: unknown): string {
   return typeof raw === "string" && /^[a-zA-Z0-9-]{1,80}$/.test(raw) ? raw : "";
 }
 
+/** The notification already opened this call, so do not cover it with another Answer screen. */
+function roomOpenedFromNotification(): string {
+  if (typeof window === "undefined") return "";
+  const match = window.location.pathname.match(/\/call\/([a-zA-Z0-9-]{1,80})\/?$/);
+  if (!match) return "";
+  const pickUp = new URLSearchParams(window.location.search).get("pickUp");
+  return pickUp === "1" ? match[1] : "";
+}
+
 export function IncomingVideoCallDock() {
   const colors = useColors();
   const { isAuthenticated } = useAuth();
@@ -47,7 +56,10 @@ export function IncomingVideoCallDock() {
     enabled: isAuthenticated,
     staleTime: 60_000,
   }).data?.publicKey;
-  const ringing = (incoming.data ?? []).filter((call) => call.status === "ringing" && call.id !== active?.roomId);
+  const openedFromNotification = roomOpenedFromNotification();
+  const ringing = (incoming.data ?? []).filter(
+    (call) => call.status === "ringing" && call.id !== active?.roomId && call.id !== openedFromNotification,
+  );
   const notices = trpc.social.callNotices.useQuery(undefined, {
     enabled: isAuthenticated,
     refetchInterval: 4000,

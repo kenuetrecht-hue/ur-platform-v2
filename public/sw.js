@@ -62,17 +62,23 @@ async function openCallPage(target, message) {
   const absolute = new URL(target, self.location.origin).href;
   const list = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
   for (const client of list) {
+    if (!String(client.url || "").startsWith(self.location.origin)) continue;
     client.postMessage(message);
     if (typeof client.navigate === "function") {
       try {
-        await client.navigate(absolute);
+        const next = await client.navigate(absolute);
+        if (next && typeof next.focus === "function") return next.focus();
       } catch {
-        /* The focused page still receives the message above. */
+        /* This window could not move to the call. Open one that can. */
       }
     }
-    if (typeof client.focus === "function") return client.focus();
   }
-  if (self.clients.openWindow) return self.clients.openWindow(absolute);
+  if (self.clients.openWindow) {
+    const opened = await self.clients.openWindow(absolute);
+    if (opened) return opened;
+  }
+  const first = list[0];
+  if (first && typeof first.focus === "function") return first.focus();
 }
 
 self.addEventListener("push", (event) => {
