@@ -1,8 +1,11 @@
 import { useAuth } from "@/lib/auth-context";
 import { useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
+import { Text, View } from "react-native";
 import { trpc } from "@/lib/trpc";
 import { UrBootShell } from "@/components/ur-boot-shell";
+import { PrimaryActionButton } from "@/components/primary-action-button";
+import { useColors } from "@/hooks/use-colors";
 import { ConductAgreementGate } from "@/components/conduct-agreement-gate";
 import { SecurityIncidentGate } from "@/components/security-incident-gate";
 import { WorldReviewHoldGate } from "@/components/world-review-hold-gate";
@@ -83,6 +86,7 @@ function isPublicRoute(segments: string[]): boolean {
  */
 export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
+  const colors = useColors();
   const segments = useSegments();
   const router = useRouter();
   const [clientReady, setClientReady] = useState(false);
@@ -91,7 +95,12 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     enabled: clientReady && isAuthenticated,
     retry: 2,
     staleTime: 45_000,
-    refetchInterval: (query) => (query.state.status === "error" ? 8_000 : false),
+    refetchInterval: (query) => {
+      if (query.state.status !== "error") return false;
+      const message = String(query.state.error?.message ?? "");
+      if (/too many|access denied|wait ten minutes/i.test(message)) return false;
+      return 8_000;
+    },
   });
   const conductQuery = trpc.conduct.status.useQuery(undefined, {
     enabled: clientReady && isAuthenticated,
@@ -248,18 +257,71 @@ export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
     return <UrBootShell label="Checking your sign-in…" />;
   }
 
-  if (
+  const accountDoorClosed =
     clientReady &&
     isAuthenticated &&
-    kycQuery.isLoading &&
     !isAgeVerifyRoute(segments) &&
     !isAuthRoute(segments) &&
     !isDownloadRoute(segments) &&
     !isPublicLegalRoute(segments) &&
     !isEmanualRoute(segments) &&
-    !isCallRoute(segments)
-  ) {
+    !isCallRoute(segments);
+
+  if (accountDoorClosed && (kycQuery.isLoading || kycQuery.isError)) {
+    // #region agent log
+    fetch("http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a0cdff" },
+      body: JSON.stringify({
+        sessionId: "a0cdff",
+        runId: "pre-fix",
+        hypothesisId: "A",
+        location: "auth-route-guard.tsx:accountDoor",
+        message: "account open blocked",
+        data: {
+          loading: kycQuery.isLoading,
+          error: kycQuery.isError,
+          reason: String(kycQuery.error?.message ?? "").slice(0, 160),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+  }
+
+  if (accountDoorClosed && kycQuery.isLoading) {
     return <UrBootShell label="Opening your account…" />;
+  }
+
+  if (accountDoorClosed && kycQuery.isError && kycQuery.data?.verified !== true) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: colors.background,
+          gap: 14,
+          padding: 24,
+        }}
+        testID="account-open-retry"
+      >
+        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "800", textAlign: "center" }}>
+          Your sign-in worked.
+        </Text>
+        <Text style={{ color: colors.muted, fontSize: 15, lineHeight: 22, textAlign: "center" }}>
+          The site could not finish opening your account. Wait one minute, then tap Try again.
+        </Text>
+        <PrimaryActionButton
+          label="Try again"
+          onPress={() => {
+            void kycQuery.refetch();
+          }}
+          backgroundColor={colors.primary}
+          testID="account-open-retry-button"
+        />
+      </View>
+    );
   }
 
   const kycVerified = kycQuery.data?.verified === true;

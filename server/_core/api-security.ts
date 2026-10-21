@@ -99,7 +99,9 @@ const userNamespaceBuckets = new Map<string, WindowBucket>();
 const ipNamespaceBuckets = new Map<string, WindowBucket>();
 const globalIpBuckets = new Map<string, WindowBucket>();
 const circuitBreakers = new Map<ApiNamespace, CircuitState>();
-const blockedIps = new Set<string>();
+/** Matches the member-facing “wait ten minutes” copy. A block must not last for the life of the process. */
+const IP_BLOCK_MS = 10 * 60 * 1000;
+const blockedIps = new Map<string, number>();
 
 // Two phones on one home network share this budget. A call is several requests a second.
 const GLOBAL_IP_LIMIT_PER_MINUTE = 1_500;
@@ -115,8 +117,12 @@ const NAMESPACE_IP_LIMITS_PER_MINUTE: Partial<Record<ApiNamespace, number>> = {
 };
 const DEFAULT_IP_LIMIT_PER_MINUTE = 180;
 
-/** Call polling is steady traffic from a signed-in member, not a flood to ban. */
-const NAMESPACES_WITHOUT_IP_BAN: ReadonlySet<ApiNamespace> = new Set(["calls"]);
+/**
+ * Call polling is steady traffic from a signed-in member, not a flood to ban.
+ * Auth is the same door as the ID check: a burst of account-status calls must
+ * slow down, not lock the member out of the whole site.
+ */
+const NAMESPACES_WITHOUT_IP_BAN: ReadonlySet<ApiNamespace> = new Set(["calls", "auth"]);
 
 function parseAllowedOrigins(): Set<string> {
   const origins = new Set<string>([
@@ -163,15 +169,42 @@ export function isAllowedBrowserOrigin(origin: string): boolean {
 
 const ALLOWED_ORIGINS = parseAllowedOrigins();
 
+function normalizeIp(raw: string): string {
+  let ip = raw.trim();
+  if (ip.startsWith("::ffff:")) ip = ip.slice("::ffff:".length);
+  if (ip === "::1") return "127.0.0.1";
+  return ip;
+}
+
+/** Cloudflare’s edge addresses. Railway’s first forwarded hop is often one of these, not the member. */
+export function isCloudflareEdgeIp(ip: string): boolean {
+  const parts = ip.split(".").map((part) => Number(part));
+  if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return false;
+  const [a, b] = parts;
+  if (a === 172 && b >= 64 && b <= 71) return true;
+  if (a === 104 && b >= 16 && b <= 31) return true;
+  if (a === 162 && (b === 158 || b === 159)) return true;
+  return false;
+}
+
+function plausibleClientIp(ip: string): boolean {
+  return ip.length > 0 && ip.length <= 64 && ip !== "unknown" && /^[0-9a-fA-F:.]+$/.test(ip);
+}
+
 export function getClientIp(req: Request): string {
   const forwarded = req.headers["x-forwarded-for"];
-  const raw =
+  const firstForwarded =
     typeof forwarded === "string" && forwarded.length > 0
-      ? (forwarded.split(",")[0]?.trim() ?? "unknown")
-      : (req.socket.remoteAddress ?? "unknown");
-  if (raw.startsWith("::ffff:")) return raw.slice("::ffff:".length);
-  if (raw === "::1") return "127.0.0.1";
-  return raw || "unknown";
+      ? (forwarded.split(",")[0]?.trim() ?? "")
+      : "";
+  const peer = normalizeIp(firstForwarded || req.socket.remoteAddress || "unknown");
+  const cfHeader = req.headers["cf-connecting-ip"];
+  const cfRaw = typeof cfHeader === "string" ? (cfHeader.split(",")[0]?.trim() ?? "") : "";
+  const cf = cfRaw ? normalizeIp(cfRaw) : "";
+  if (isCloudflareEdgeIp(peer) && plausibleClientIp(cf) && !isCloudflareEdgeIp(cf)) {
+    return cf;
+  }
+  return peer || "unknown";
 }
 
 export function getRequestId(req: Request): string {
@@ -203,12 +236,18 @@ function checkWindowLimit(
 }
 
 export function blockIp(ip: string, reason?: string): void {
-  blockedIps.add(ip);
+  blockedIps.set(ip, Date.now() + IP_BLOCK_MS);
   console.warn(`[security] Blocked IP ${ip}${reason ? `: ${reason}` : ""}`);
 }
 
 export function isIpBlocked(ip: string): boolean {
-  return blockedIps.has(ip);
+  const until = blockedIps.get(ip);
+  if (until == null) return false;
+  if (Date.now() >= until) {
+    blockedIps.delete(ip);
+    return false;
+  }
+  return true;
 }
 
 export function unblockIp(ip: string): void {
@@ -317,7 +356,23 @@ export function checkIpNamespaceLimit(namespace: ApiNamespace, ip: string): void
   const allowed = checkWindowLimit(ipNamespaceBuckets, key, limit, MINUTE_MS);
 
   if (!allowed) {
-    if (!NAMESPACES_WITHOUT_IP_BAN.has(namespace)) {
+    const ban = !NAMESPACES_WITHOUT_IP_BAN.has(namespace);
+    // #region agent log
+    fetch("http://127.0.0.1:7903/ingest/f833c44a-4cd7-4853-a999-ca20011e1ed8", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a0cdff" },
+      body: JSON.stringify({
+        sessionId: "a0cdff",
+        runId: "pre-fix",
+        hypothesisId: "B",
+        location: "api-security.ts:checkIpNamespaceLimit",
+        message: "namespace rate limit hit",
+        data: { namespace, ban, cloudflarePeer: isCloudflareEdgeIp(ip) },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+    if (ban) {
       blockIp(ip, `namespace ${namespace} abuse`);
     }
     throw new TRPCError({
