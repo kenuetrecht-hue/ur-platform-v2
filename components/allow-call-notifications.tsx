@@ -75,7 +75,7 @@ export function AllowCallNotifications({ tone = "card" }: { tone?: "card" | "lan
     <View style={onDark ? styles.landing : styles.card}>
       <Text style={onDark ? styles.landingTitle : styles.cardTitle}>Phone notifications</Text>
       <Text style={onDark ? styles.landingBody : styles.cardBody}>
-        Tap once after the app is installed. The phone will ask you to allow alerts.
+        Tap once after the app is installed. The phone will ask you to allow alerts. That yes is required. Then set Chrome or UR alerts to Pop on screen, so a call can show over a game.
       </Text>
       <Pressable
         onPress={() => void allow()}

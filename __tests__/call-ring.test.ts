@@ -61,7 +61,10 @@ describe("incoming video call rings the phone", () => {
     expect(worker).toContain('addEventListener("push"');
     expect(worker).toContain('addEventListener("notificationclick"');
     expect(worker).toContain("ur-incoming-call");
+    expect(worker).toContain("silent: false");
     expect(worker).toContain('title: "Answer the call"');
+    expect(worker).toContain("ur-video-call-");
+    expect(worker).toContain("getNotifications");
     expect(worker).toContain("ur-answer-call");
     expect(worker).toContain("clients.openWindow");
     expect(worker.indexOf("clients.openWindow")).toBeGreaterThan(worker.indexOf("client.navigate"));

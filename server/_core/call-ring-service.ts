@@ -116,13 +116,14 @@ export function callAnswerPath(roomId: string): string {
   return safe ? `/call/${safe}?pickUp=1` : "/messages";
 }
 
-export function buildCallRingPayload(params: { callerLabel: string; roomId: string }): string {
+export function buildCallRingPayload(params: { callerLabel: string; roomId: string; bump?: number }): string {
   const roomId = params.roomId.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 80);
   return JSON.stringify({
     title: "Incoming video call",
-    body: `${params.callerLabel} is calling you on UR Platform. Tap Answer the call to talk with them.`,
+    body: `${params.callerLabel} is calling you on UR Platform. Tap Answer to pick up.`,
     url: callAnswerPath(roomId),
     roomId,
+    bump: params.bump ?? 0,
   });
 }
 
@@ -222,16 +223,17 @@ export function ringUserForVideoCall(params: {
   roomId: string;
   callerLabel: string;
 }): void {
-  const payload = buildCallRingPayload({
-    callerLabel: callRingCallerLabel(params.callerLabel),
-    roomId: params.roomId,
-  });
   for (const delay of RING_REPEAT_MS) {
     const timer = setTimeout(() => {
       const room = getVideoCallRoom(params.roomId);
       if (!shouldRepeatCallRing(room?.status) && delay !== 0) return;
       if (delay !== 0 && !room) return;
       if (room && room.status !== "ringing") return;
+      const payload = buildCallRingPayload({
+        callerLabel: callRingCallerLabel(params.callerLabel),
+        roomId: params.roomId,
+        bump: delay,
+      });
       void sendOnce(params.calleeUserId, payload);
     }, delay);
     timer.unref?.();

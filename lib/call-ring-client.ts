@@ -73,9 +73,11 @@ export function showForegroundCallNotice(roomId: string, body: string): void {
       .then((registration) =>
         registration.showNotification("Incoming video call", {
           body,
-          requireInteraction: true,
-          tag: "ur-video-call",
+          tag: safeRoom ? `ur-video-call-${safeRoom}-${Date.now()}` : "ur-video-call",
           renotify: true,
+          requireInteraction: true,
+          silent: false,
+          vibrate: [400, 200, 400, 200, 800],
           actions: [
             { action: "answer", title: "Answer the call" },
             { action: "decline", title: "Decline" },

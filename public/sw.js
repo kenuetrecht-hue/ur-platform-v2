@@ -31,6 +31,7 @@ function readPushPayload(event) {
     body: "Someone is calling you on UR Platform. Tap Answer to pick up.",
     url: "/messages",
     roomId: "",
+    bump: 0,
   };
   try {
     if (event.data) {
@@ -43,6 +44,9 @@ function readPushPayload(event) {
           payload.body = parsed.body;
         }
         payload.roomId = safeRoomId(parsed.roomId);
+        if (typeof parsed.bump === "number" && parsed.bump >= 0 && parsed.bump < 60_000) {
+          payload.bump = Math.floor(parsed.bump);
+        }
         if (
           payload.roomId &&
           typeof parsed.url === "string" &&
@@ -84,34 +88,45 @@ async function openCallPage(target, message) {
 self.addEventListener("push", (event) => {
   const payload = readPushPayload(event);
   const isCall = Boolean(payload.roomId);
-  event.waitUntil(
-    self.registration
-      .showNotification(payload.title, {
+  const show = async () => {
+    if (!isCall) {
+      await self.registration.showNotification(payload.title, {
         body: payload.body,
-        tag: isCall ? "ur-video-call" : "ur-social-post",
-        renotify: isCall,
-        requireInteraction: isCall,
-        vibrate: isCall ? [180, 120, 180, 120, 420] : [80, 40, 80],
+        tag: "ur-social-post",
         icon: "/pwa-icon-192.png",
-        actions: isCall
-          ? [
-              { action: "answer", title: "Answer the call" },
-              { action: "decline", title: "Decline" },
-            ]
-          : [],
-        data: {
-          url: isCall ? safeCallPath(payload.url, payload.roomId, false) : "/messages",
-          roomId: payload.roomId,
-        },
-      })
-      .then(() => self.clients.matchAll({ type: "window", includeUncontrolled: true }))
-      .then((list) => {
-        if (!isCall) return;
-        for (const client of list) {
-          client.postMessage({ type: "ur-incoming-call", roomId: payload.roomId });
-        }
-      }),
-  );
+        data: { url: "/messages", roomId: "" },
+      });
+      return;
+    }
+    const existing = await self.registration.getNotifications();
+    for (const note of existing) {
+      if (typeof note.tag === "string" && note.tag.indexOf("ur-video-call") === 0) note.close();
+    }
+    await self.registration.showNotification(payload.title, {
+      body: payload.body,
+      tag: "ur-video-call-" + payload.roomId + "-" + payload.bump,
+      renotify: true,
+      requireInteraction: true,
+      silent: false,
+      vibrate: [400, 200, 400, 200, 800],
+      icon: "/pwa-icon-192.png",
+      badge: "/pwa-icon-192.png",
+      timestamp: Date.now(),
+      actions: [
+        { action: "answer", title: "Answer the call" },
+        { action: "decline", title: "Decline" },
+      ],
+      data: {
+        url: safeCallPath(payload.url, payload.roomId, false),
+        roomId: payload.roomId,
+      },
+    });
+    const list = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of list) {
+      client.postMessage({ type: "ur-incoming-call", roomId: payload.roomId });
+    }
+  };
+  event.waitUntil(show());
 });
 
 self.addEventListener("notificationclick", (event) => {
