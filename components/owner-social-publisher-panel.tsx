@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Platform, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Image, Platform, Text, TextInput, View } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import { AppPressable } from "@/components/app-pressable";
 import { useColors } from "@/hooks/use-colors";
@@ -39,10 +39,38 @@ function ownerSocialUploadUrl(): string {
   return getTrpcApiUrl().replace(/\/api\/trpc\/?$/, "/api/owner-social-upload");
 }
 
+/** Phone cameras often hand back a format the post uploader cannot store. Turn those into a JPEG first. */
+async function photoForPost(file: Blob, fileName: string): Promise<{ blob: Blob; name: string }> {
+  const type = file.type || "";
+  const cameraPhoto = type.startsWith("image/") || /\.(heic|heif|jpg|jpeg|png|webp)$/i.test(fileName);
+  if (!cameraPhoto || type === "image/gif" || typeof document === "undefined" || typeof createImageBitmap !== "function") {
+    return { blob: file, name: fileName };
+  }
+  try {
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement("canvas");
+    const longest = Math.max(bitmap.width, bitmap.height, 1);
+    const scale = Math.min(1, 2048 / longest);
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return { blob: file, name: fileName };
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((next) => resolve(next), "image/jpeg", 0.9));
+    if (!blob) return { blob: file, name: fileName };
+    const stem = fileName.replace(/\.[^.]+$/, "") || "photo";
+    return { blob, name: `${stem}.jpg` };
+  } catch {
+    return { blob: file, name: fileName };
+  }
+}
+
 async function uploadSocialFile(file: Blob, fileName: string): Promise<AttachedPostFile> {
+  const ready = await photoForPost(file, fileName);
   const token = await getAccessToken();
   const form = new FormData();
-  form.append("file", file, fileName);
+  form.append("file", ready.blob, ready.name);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 180_000);
   try {
@@ -53,16 +81,17 @@ async function uploadSocialFile(file: Blob, fileName: string): Promise<AttachedP
       credentials: "include",
       signal: controller.signal,
     });
-    const json = (await response.json()) as {
-      url?: string;
-      kind?: AttachedPostFile["kind"];
-      name?: string;
-      error?: { message?: string };
-    };
+    const raw = await response.text();
+    let json: { url?: string; kind?: AttachedPostFile["kind"]; name?: string; error?: { message?: string } } = {};
+    try {
+      json = JSON.parse(raw) as typeof json;
+    } catch {
+      throw new Error("The picture did not reach the post. Try it again.");
+    }
     if (!response.ok || !json.url || !json.kind) {
       throw new Error(json.error?.message || "That file could not be uploaded.");
     }
-    return { url: json.url, kind: json.kind, name: json.name || fileName };
+    return { url: json.url, kind: json.kind, name: json.name || ready.name };
   } finally {
     clearTimeout(timeout);
   }
@@ -165,22 +194,37 @@ export function OwnerSocialPublisherPanel({
       setHint("That file is over 100 MB.");
       return;
     }
+    const preview =
+      (file.type.startsWith("image/") || /\.(heic|heif|jpg|jpeg|png|webp|gif)$/i.test(fileName)) &&
+      typeof URL !== "undefined"
+        ? URL.createObjectURL(file)
+        : "";
+    if (preview) {
+      setAttachment({ url: preview, kind: "image", name: fileName });
+    }
     setUploading(true);
-    setHint(null);
+    setHint(preview ? "Picture is in the post. Finishing the upload…" : "Adding the file to the post…");
     void uploadSocialFile(file, fileName)
       .then((uploaded) => {
+        if (preview) URL.revokeObjectURL(preview);
         setAttachment(uploaded);
         setHint(
           uploaded.kind === "file"
-            ? "PDF added. It will go out as a link with the caption."
+            ? "PDF is in the post. Post now sends it as a link."
             : uploaded.kind === "image"
-              ? "Picture added. It will go out with the caption."
-              : "Video added. It will go out with the caption.",
+              ? "Picture is in the post. Post now sends it with the caption."
+              : "Video is in the post. Post now sends it with the caption.",
         );
       })
       .catch((error: unknown) => {
+        if (preview) URL.revokeObjectURL(preview);
         setAttachment(null);
-        setHint(error instanceof Error ? plainSocialPostError(error.message) : "That file could not be uploaded.");
+        const message = error instanceof Error ? error.message : "That file could not be uploaded.";
+        setHint(
+          /abort/i.test(message)
+            ? "The upload took too long. Pick the picture again."
+            : plainSocialPostError(message),
+        );
       })
       .finally(() => setUploading(false));
   };
@@ -339,6 +383,14 @@ export function OwnerSocialPublisherPanel({
           </Text>
         </AppPressable>
       )}
+      {attachment?.kind === "image" ? (
+        <Image
+          source={{ uri: attachment.url }}
+          accessibilityLabel={attachment.name}
+          style={{ width: "100%", height: 220, borderRadius: 12, backgroundColor: "#111" }}
+          resizeMode="cover"
+        />
+      ) : null}
       {attachment ? (
         <Text style={{ color: colors.foreground, fontSize: 13 }}>
           {attachment.name}{" "}
@@ -390,7 +442,9 @@ export function OwnerSocialPublisherPanel({
         )}
       </AppPressable>
       {hint ? (
-        <Text style={{ color: publish.isError ? "#dc2626" : colors.muted, fontSize: 12 }}>{hint}</Text>
+        <Text style={{ color: /could not|did not|too long|over 100|Try/i.test(hint) ? "#dc2626" : colors.foreground, fontSize: 14, fontWeight: "700" }}>
+          {hint}
+        </Text>
       ) : null}
     </View>
   );
