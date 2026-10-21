@@ -23,6 +23,14 @@ describe("video call rate limits", () => {
     expect(isIpBlocked(ip)).toBe(false);
   });
 
+  it("lets a signed-in member keep opening the account through an hour of status checks", () => {
+    _resetApiLimitsForTests();
+    for (let i = 0; i < 400; i += 1) {
+      checkUserNamespaceLimit("auth", "member-1");
+    }
+    expect(isIpBlocked("203.0.113.77")).toBe(false);
+  });
+
   it("slows a login flood without locking the member out of the rest of the site", () => {
     _resetApiLimitsForTests();
     const ip = "203.0.113.41";

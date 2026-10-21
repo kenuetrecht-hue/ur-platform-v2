@@ -66,7 +66,8 @@ const NAMESPACE_USER_LIMITS: Record<ApiNamespace, number> = {
   ai3dSpecialist: 80,
   aiRealEstate: 80,
   stamps: 40,
-  auth: 20,
+  // Account status and the rules check run the whole time a member is signed in.
+  auth: 2_000,
   system: 100,
   platformOps: 120,
   equipment: 100,
