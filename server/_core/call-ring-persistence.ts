@@ -23,6 +23,13 @@ const callRingKeys = mysqlTable("callRingKeys", {
   privateKey: varchar("privateKey", { length: 200 }).notNull(),
 });
 
+const callAppTokens = mysqlTable("callAppTokens", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  userId: varchar("userId", { length: 128 }).notNull(),
+  token: varchar("token", { length: 200 }).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 const callNotices = mysqlTable("callNotices", {
   id: varchar("id", { length: 64 }).primaryKey(),
   callerUserId: varchar("callerUserId", { length: 128 }).notNull(),
@@ -167,6 +174,49 @@ export async function deleteCallNotice(id: string): Promise<void> {
     await db.delete(callNotices).where(eq(callNotices.id, id));
   } catch {
     console.warn("[call-ring] could not clear the notice");
+  }
+}
+
+export async function persistAppCallToken(row: { userId: string; token: string }): Promise<void> {
+  if (skipPersistence() || row.token.length > 200) return;
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db
+      .insert(callAppTokens)
+      .values({
+        id: callRingSubscriptionId(row.token),
+        userId: row.userId,
+        token: row.token,
+      })
+      .onDuplicateKeyUpdate({
+        set: { userId: row.userId, token: row.token },
+      });
+  } catch {
+    console.warn("[call-ring] could not save this app phone");
+  }
+}
+
+export async function loadAppCallTokens(userId: string): Promise<string[]> {
+  if (skipPersistence()) return [];
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    const rows = await db.select().from(callAppTokens).where(eq(callAppTokens.userId, userId));
+    return rows.map((row) => row.token);
+  } catch {
+    return [];
+  }
+}
+
+export async function deleteAppCallToken(token: string): Promise<void> {
+  if (skipPersistence()) return;
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.delete(callAppTokens).where(eq(callAppTokens.id, callRingSubscriptionId(token)));
+  } catch {
+    console.warn("[call-ring] could not forget this app phone");
   }
 }
 

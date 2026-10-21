@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   _resetCallRingsForTests,
   buildCallRingPayload,
+  buildAppCallPush,
   callRingCallerLabel,
   listCallNotices,
   listCallRingSubscriptions,
@@ -27,6 +28,15 @@ describe("incoming video call rings the phone", () => {
     expect(payload.body).toContain("Answer");
     expect(payload.body).not.toContain("@");
     expect(payload.url).toBe("/call/room-1?pickUp=1");
+    const appPush = buildAppCallPush("ExponentPushToken[abcdefghijklmnop]", {
+      callerLabel: "Ada",
+      roomId: "room-1",
+    });
+    expect(appPush.channelId).toBe("ur-incoming-call");
+    expect(appPush.categoryId).toBe("incomingCall");
+    expect(appPush.priority).toBe("high");
+    expect(appPush.data.url).toBe("/call/room-1?pickUp=1");
+    expect(appPush.body).toContain("Answer");
   });
 
   it("keeps only https push subscriptions for that person", () => {
@@ -56,6 +66,10 @@ describe("incoming video call rings the phone", () => {
     const worker = readFileSync("public/sw.js", "utf8");
     expect(router).toContain("ringCallee");
     expect(router).toContain("registerCallRing");
+    expect(router).toContain("registerAppCallRing");
+    expect(readFileSync("plugins/with-incoming-call.js", "utf8")).toContain("USE_FULL_SCREEN_INTENT");
+    expect(readFileSync("app.config.ts", "utf8")).toContain("with-incoming-call");
+    expect(readFileSync("app/_layout.tsx", "utf8")).toContain("AppCallAlerts");
     expect(dock).toContain("startCallRingtone");
     expect(dock).toContain("subscribeCallRing");
     expect(worker).toContain('addEventListener("push"');

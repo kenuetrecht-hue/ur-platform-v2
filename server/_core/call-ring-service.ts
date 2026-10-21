@@ -19,6 +19,9 @@ import {
   persistCallNotice,
   persistCallRingKeyPair,
   persistCallRingSubscription,
+  persistAppCallToken,
+  loadAppCallTokens,
+  deleteAppCallToken,
   type StoredCallNotice,
 } from "./call-ring-persistence";
 
@@ -41,6 +44,7 @@ const MAX_SUBS_PER_USER = 5;
 const RING_REPEAT_MS = [0, 4000, 8000, 12000] as const;
 
 const subscriptions = new Map<string, PushSubscription[]>();
+const appCallTokens = new Map<string, string[]>();
 const notices = new Map<string, StoredCallNotice[]>();
 let vapidPublicKey = "";
 let vapidPrivateKey = "";
@@ -218,11 +222,95 @@ export function notifyFriendsOfPost(params: {
   }
 }
 
+const APP_CALL_TOKEN = /^ExponentPushToken\[[A-Za-z0-9_-]{8,140}\]$/;
+const MAX_APP_TOKENS = 5;
+
+export function isAppCallToken(value: string): boolean {
+  return APP_CALL_TOKEN.test(value);
+}
+
+export function buildAppCallPush(
+  token: string,
+  params: { callerLabel: string; roomId: string },
+): {
+  to: string;
+  title: string;
+  body: string;
+  sound: "default";
+  priority: "high";
+  channelId: string;
+  categoryId: string;
+  data: { type: "incoming-call"; roomId: string; url: string };
+} {
+  const roomId = params.roomId.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 80);
+  return {
+    to: token,
+    title: "Incoming video call",
+    body: `${params.callerLabel} is calling you on UR Platform. Tap Answer.`,
+    sound: "default",
+    priority: "high",
+    channelId: "ur-incoming-call",
+    categoryId: "incomingCall",
+    data: { type: "incoming-call", roomId, url: callAnswerPath(roomId) },
+  };
+}
+
+export function saveAppCallToken(userId: string, token: string): void {
+  if (!isAppCallToken(token)) return;
+  const current = (appCallTokens.get(userId) ?? []).filter((row) => row !== token);
+  current.push(token);
+  appCallTokens.set(userId, current.slice(-MAX_APP_TOKENS));
+  void persistAppCallToken({ userId, token });
+}
+
+export function listAppCallTokens(userId: string): string[] {
+  return [...(appCallTokens.get(userId) ?? [])];
+}
+
+function forgetAppCallToken(token: string): void {
+  for (const [userId, rows] of appCallTokens) {
+    appCallTokens.set(userId, rows.filter((row) => row !== token));
+  }
+  void deleteAppCallToken(token);
+}
+
+async function appTokensFor(userId: string): Promise<string[]> {
+  const stored = await loadAppCallTokens(userId);
+  for (const token of stored) saveAppCallToken(userId, token);
+  return listAppCallTokens(userId);
+}
+
+export async function sendAppCallPush(
+  userId: string,
+  params: { callerLabel: string; roomId: string },
+): Promise<void> {
+  const tokens = (await appTokensFor(userId)).filter(isAppCallToken);
+  if (tokens.length === 0) return;
+  try {
+    const response = await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(tokens.map((token) => buildAppCallPush(token, params))),
+    });
+    if (!response.ok) return;
+    const body = (await response.json()) as {
+      data?: Array<{ status?: string; details?: { error?: string } }>;
+    };
+    (body.data ?? []).forEach((row, index) => {
+      if (row.details?.error === "DeviceNotRegistered") forgetAppCallToken(tokens[index] ?? "");
+    });
+  } catch {
+    /* The website ring still goes out. */
+  }
+}
+
 export function ringUserForVideoCall(params: {
   calleeUserId: string;
   roomId: string;
   callerLabel: string;
 }): void {
+  const callerLabel = callRingCallerLabel(params.callerLabel);
+  void sendAppCallPush(params.calleeUserId, { callerLabel, roomId: params.roomId });
   for (const delay of RING_REPEAT_MS) {
     const timer = setTimeout(() => {
       const room = getVideoCallRoom(params.roomId);
@@ -280,5 +368,6 @@ export function dismissCallNotice(userId: string, noticeId: string): void {
 
 export function _resetCallRingsForTests(): void {
   subscriptions.clear();
+  appCallTokens.clear();
   notices.clear();
 }

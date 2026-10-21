@@ -76,12 +76,14 @@ import { CREATOR_VIDEO_CALL_SKU, creatorCallPriceError } from "../../lib/creator
 import { getIceServersForCall } from "../_core/turn-ice-service";
 import {
   callRingCallerLabel,
+  isAppCallToken,
   readyCallRingPublicKey,
   recordCallNotice,
   dismissCallNotice,
   listCallNotices,
   notifyFriendsOfPost,
   ringUserForVideoCall,
+  saveAppCallToken,
   saveCallRingSubscription,
 } from "../_core/call-ring-service";
 import {
@@ -317,7 +319,9 @@ export const socialRouter = router({
       z.object({
         toEmail: z.string().email(),
         subject: z.string().min(1).max(120),
-        body: z.string().min(1).max(2000),
+        body: z.string().max(2000).default(""),
+        imageUrl: z.string().max(2000).optional(),
+        videoUrl: z.string().max(2000).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -338,6 +342,8 @@ export const socialRouter = router({
         toEmail: input.toEmail,
         subject: input.subject,
         body: input.body,
+        imageUrl: input.imageUrl,
+        videoUrl: input.videoUrl,
       });
     }),
 
@@ -645,6 +651,16 @@ export const socialRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Call alerts need a secure address." });
       }
       saveCallRingSubscription(String(ctx.user.id), input);
+      return { ok: true as const };
+    }),
+
+  registerAppCallRing: secureProcedure("social")
+    .input(z.object({ token: z.string().trim().min(20).max(200) }))
+    .mutation(({ ctx, input }) => {
+      if (!isAppCallToken(input.token)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "This phone cannot receive call cards yet." });
+      }
+      saveAppCallToken(String(ctx.user.id), input.token);
       return { ok: true as const };
     }),
 

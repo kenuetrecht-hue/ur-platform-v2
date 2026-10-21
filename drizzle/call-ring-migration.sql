@@ -24,3 +24,11 @@ CREATE TABLE IF NOT EXISTS `callNotices` (
   `createdAt` varchar(40) NOT NULL,
   CONSTRAINT `callNotices_id` PRIMARY KEY(`id`)
 );
+
+CREATE TABLE IF NOT EXISTS `callAppTokens` (
+  `id` char(64) NOT NULL,
+  `userId` varchar(128) NOT NULL,
+  `token` varchar(200) NOT NULL,
+  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT `callAppTokens_id` PRIMARY KEY(`id`)
+);

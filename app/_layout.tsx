@@ -22,6 +22,7 @@ import { VisitorTrailTracker } from "@/components/visitor-trail-tracker";
 import { PlatformDisclosureFrame } from "@/components/platform-disclosure-frame";
 import { OwnerEmergencyAlarm } from "@/components/owner-emergency-alarm";
 import { IncomingVideoCallDock } from "@/components/incoming-video-call-dock";
+import { AppCallAlerts } from "@/components/app-call-alerts";
 import { useRegisterPwaServiceWorker } from "@/hooks/use-register-pwa-service-worker";
 
 import "react-native-safe-area-context/src/SafeAreaContext";
@@ -83,6 +84,7 @@ export default function RootLayout() {
                     />
                   </PlatformDisclosureFrame>
                   <IncomingVideoCallDock />
+                  <AppCallAlerts />
                 </AuthRouteGuard>
               </AuthProvider>
               <StatusBar style="auto" />

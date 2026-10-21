@@ -72,6 +72,10 @@ const config: ExpoConfig = {
     permissions: [
       "POST_NOTIFICATIONS",
       "VIBRATE",
+      "USE_FULL_SCREEN_INTENT",
+      "WAKE_LOCK",
+      "FOREGROUND_SERVICE",
+      "FOREGROUND_SERVICE_PHONE_CALL",
       "RECORD_AUDIO",
       "MODIFY_AUDIO_SETTINGS",
       "CAMERA",
@@ -95,8 +99,10 @@ const config: ExpoConfig = {
         data: [
           { scheme: "https", host: "urplatform.llc", pathPrefix: "/login" },
           { scheme: "https", host: "urplatform.llc", pathPrefix: "/signup" },
+          { scheme: "https", host: "urplatform.llc", pathPrefix: "/call" },
           { scheme: "https", host: "www.urplatform.llc", pathPrefix: "/login" },
           { scheme: "https", host: "www.urplatform.llc", pathPrefix: "/signup" },
+          { scheme: "https", host: "www.urplatform.llc", pathPrefix: "/call" },
         ],
         category: ["BROWSABLE", "DEFAULT"],
       },
@@ -138,6 +144,7 @@ const config: ExpoConfig = {
         mode: "production",
       },
     ],
+    "./plugins/with-incoming-call.js",
     [
       "expo-audio",
       {
