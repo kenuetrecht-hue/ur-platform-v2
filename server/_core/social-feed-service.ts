@@ -109,6 +109,32 @@ const posts = new Map<string, FeedPost>();
 const likes = new Map<string, Set<string>>(); // postId -> userIds
 const comments: FeedComment[] = [];
 const shares = new Map<string, number>();
+
+function queueSocialSave(run: (mod: typeof import("./social-stay-persistence")) => Promise<void>): void {
+  void import("./social-stay-persistence")
+    .then(run)
+    .catch(() => undefined);
+}
+
+/** Loads a saved post without writing it again. */
+export function rememberFeedPost(post: FeedPost): void {
+  if (posts.has(post.id)) return;
+  posts.set(post.id, post);
+  if (!likes.has(post.id)) likes.set(post.id, new Set());
+  shares.set(post.id, post.shareCount);
+}
+
+export function rememberFeedLike(postId: string, userId: string): void {
+  const set = likes.get(postId) ?? new Set<string>();
+  set.add(userId);
+  likes.set(postId, set);
+}
+
+export function rememberFeedComment(comment: FeedComment): void {
+  if (comments.some((row) => row.id === comment.id)) return;
+  comments.push(comment);
+}
+
 const stampReactions: Array<FeedStampReaction & { postId: string; userId: string }> = [];
 const pins = new Map<string, FeedPin>();
 
@@ -385,6 +411,7 @@ export function createFeedPost(params: {
   };
   posts.set(post.id, post);
   likes.set(post.id, new Set());
+  queueSocialSave((mod) => mod.saveFeedPost(post));
   return post;
 }
 
@@ -400,6 +427,7 @@ export function deleteFeedPost(params: { postId: string; userId: string }): bool
   for (let i = comments.length - 1; i >= 0; i--) {
     if (comments[i]!.postId === params.postId) comments.splice(i, 1);
   }
+  queueSocialSave((mod) => mod.deleteFeedPostRow(params.postId));
   return true;
 }
 
@@ -424,6 +452,7 @@ export function togglePostLike(params: { postId: string; userId: string }): { li
     liked = true;
   }
   likes.set(params.postId, set);
+  queueSocialSave((mod) => mod.saveFeedLike(params.postId, params.userId, liked));
   return { liked, likeCount: set.size };
 }
 
@@ -484,6 +513,7 @@ export function addPostComment(params: {
   post.commentCount = comments.filter((c) => c.postId === params.postId).length;
   post.updatedAt = new Date().toISOString();
   posts.set(params.postId, post);
+  queueSocialSave((mod) => mod.saveFeedComment(comment));
   return comment;
 }
 
@@ -508,6 +538,8 @@ export function recordPostShare(postId: string): {
   }
   const count = (shares.get(postId) ?? 0) + 1;
   shares.set(postId, count);
+  post.shareCount = count;
+  queueSocialSave((mod) => mod.saveFeedPost(post));
   const profile = getSocialProfile(post.authorUserId);
   return {
     shareCount: count,

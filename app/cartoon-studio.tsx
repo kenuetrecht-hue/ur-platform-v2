@@ -18,6 +18,7 @@ import { NoRefundPurchaseAck } from "@/components/no-refund-purchase-ack";
 import { PaymentChannelNotice } from "@/components/payment-channel-notice";
 import { PurchaseSummaryCard } from "@/components/purchase-summary-card";
 import { CartoonCreatorPricingPanel } from "@/components/cartoon-creator-pricing-panel";
+import { CartoonSelfUpload } from "@/components/cartoon-self-upload";
 import { useColors } from "@/hooks/use-colors";
 import { useBillingState } from "@/hooks/use-billing-state";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
@@ -154,6 +155,7 @@ export default function CartoonStudioScreen() {
         />
         <View style={{ paddingHorizontal: 16, gap: 12 }}>
           <PaymentChannelNotice />
+          <CartoonSelfUpload isPlatformOwner={isPlatformOwner} />
 
           <View style={[styles.billBox, { borderColor: colors.primary, backgroundColor: colors.surface }]}>
             <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>Billing — read this first</Text>

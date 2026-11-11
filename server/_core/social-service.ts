@@ -14,6 +14,7 @@ import {
   unfollowCreatorChannel,
   _resetCreatorAudienceForTests,
 } from "./creator-audience-service";
+import { isMemberFeedMediaUrl } from "../../lib/member-feed-media-url";
 
 export type FriendshipStatus = "pending" | "accepted" | "blocked";
 
@@ -39,6 +40,8 @@ export type DirectMessage = {
   subject?: string;
   senderEmail?: string;
   recipientEmail?: string;
+  imageUrl?: string;
+  videoUrl?: string;
   createdAt: string;
   readAt?: string;
 };
@@ -98,6 +101,42 @@ function buildOwnerWelcomeMessage(params: {
   };
 }
 
+function queueSocialSave(run: (mod: typeof import("./social-stay-persistence")) => Promise<void>): void {
+  void import("./social-stay-persistence")
+    .then(run)
+    .catch(() => undefined);
+}
+
+function storeFriendship(friendship: Friendship): Friendship {
+  friendships.set(friendship.id, friendship);
+  queueSocialSave((mod) => mod.saveFriendship(friendship));
+  return friendship;
+}
+
+/** Loads a saved friendship without writing it again. */
+export function rememberFriendship(friendship: Friendship): void {
+  if (friendships.has(friendship.id)) return;
+  friendships.set(friendship.id, friendship);
+}
+
+/** Loads a saved message without writing it again. */
+export function rememberDirectMessage(message: DirectMessage): void {
+  if (messages.some((row) => row.id === message.id)) return;
+  messages.push(message);
+}
+
+function memberMediaUrl(url: string | undefined): string | undefined {
+  const trimmed = url?.trim() ?? "";
+  if (!trimmed) return undefined;
+  if (!isMemberFeedMediaUrl(trimmed)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Upload the picture or video on UR first, then send it.",
+    });
+  }
+  return trimmed;
+}
+
 function friendshipExists(userIdA: string, userIdB: string): boolean {
   return [...friendships.values()].some(
     (f) =>
@@ -126,8 +165,7 @@ function establishAcceptedFriendship(params: {
     createdAt: new Date().toISOString(),
     acceptedAt: new Date().toISOString(),
   };
-  friendships.set(friendship.id, friendship);
-  return friendship;
+  return storeFriendship(friendship);
 }
 
 let cachedOwnerUserId: string | null | undefined;
@@ -309,8 +347,7 @@ export function sendFriendRequest(params: {
     initiatedBy: params.fromUserId,
     createdAt: new Date().toISOString(),
   };
-  friendships.set(friendship.id, friendship);
-  return friendship;
+  return storeFriendship(friendship);
 }
 
 export function listFriends(userId: string): Array<
@@ -358,8 +395,7 @@ export function acceptFriendRequest(params: {
   }
   f.status = "accepted";
   f.acceptedAt = new Date().toISOString();
-  friendships.set(f.id, f);
-  return f;
+  return storeFriendship(f);
 }
 
 export function sendDirectMessage(params: {
@@ -369,12 +405,16 @@ export function sendDirectMessage(params: {
   subject?: string;
   senderEmail?: string;
   recipientEmail?: string;
+  imageUrl?: string;
+  videoUrl?: string;
   requireFriend?: boolean;
   deliveredBody?: string;
 }): DirectMessage {
   const body = params.body.trim().slice(0, 2000);
-  if (!body) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Message cannot be empty." });
+  const imageUrl = memberMediaUrl(params.imageUrl);
+  const videoUrl = memberMediaUrl(params.videoUrl);
+  if (!body && !imageUrl && !videoUrl) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Add a message, a picture, or a video." });
   }
 
   const requireFriend = params.requireFriend !== false;
@@ -401,9 +441,12 @@ export function sendDirectMessage(params: {
     subject,
     senderEmail: params.senderEmail,
     recipientEmail: params.recipientEmail,
+    imageUrl,
+    videoUrl,
     createdAt: new Date().toISOString(),
   };
   messages.push(msg);
+  queueSocialSave((mod) => mod.saveDirectMessage(msg));
   return msg;
 }
 
@@ -415,6 +458,8 @@ export function sendPlatformMail(params: {
   toEmail: string;
   subject: string;
   body: string;
+  imageUrl?: string;
+  videoUrl?: string;
 }): DirectMessage {
   const toUserId = resolveUserIdByEmail(params.toEmail);
   if (!toUserId) {
@@ -436,6 +481,8 @@ export function sendPlatformMail(params: {
     subject,
     senderEmail: params.senderEmail.toLowerCase().trim(),
     recipientEmail: params.toEmail.toLowerCase().trim(),
+    imageUrl: params.imageUrl,
+    videoUrl: params.videoUrl,
     requireFriend: false,
   });
 }
@@ -468,6 +515,7 @@ export function markMailRead(params: { userId: string; messageId: string }): Dir
     throw new TRPCError({ code: "NOT_FOUND", message: "Message not found." });
   }
   msg.readAt = new Date().toISOString();
+  queueSocialSave((mod) => mod.saveDirectMessage(msg));
   return msg;
 }
 

@@ -289,6 +289,12 @@ async function startServer() {
 
   const preferredPort = parseInt(process.env.PORT || "3000", 10);
   try {
+    const { hydrateSocialStay } = await import("./social-stay-persistence");
+    await hydrateSocialStay();
+  } catch {
+    console.warn("[social] posts and messages will load when the database is ready");
+  }
+  try {
     await listenOnPort(server, preferredPort);
   } catch (error) {
     const busy = error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "EADDRINUSE";

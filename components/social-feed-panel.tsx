@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -20,6 +20,8 @@ import { useAuth } from "@/lib/auth-context";
 import { getAccessToken } from "@/lib/auth-storage";
 import { trpc } from "@/lib/trpc";
 import { getTrpcApiUrl } from "@/lib/trpc-url";
+import { FEED_VIDEO_MAX_BYTES } from "@/lib/feed-video-size";
+import { feedRecorderMimeType, shrinkFeedVideo } from "@/lib/shrink-feed-video";
 import { LETTERING_ON_WHITE } from "@/lib/gold-lettering";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { SOCIAL_POST_DISCLOSURE, PLATFORM_DISCLOSURE_SHORT } from "@/lib/platform-disclosure-copy";
@@ -273,7 +275,7 @@ function PostCard({
         <>
           {Platform.OS === "web" ? (
             // @ts-expect-error web video
-            <video src={post.videoUrl} controls style={{ width: "100%", borderRadius: 10, maxHeight: 320 }} />
+            <video src={post.videoUrl} controls playsInline style={{ width: "100%", borderRadius: 10, maxHeight: 480, background: "#111" }} />
           ) : (
             <Pressable onPress={() => void Linking.openURL(post.videoUrl!)}>
               <View style={[styles.videoPlaceholder, { backgroundColor: colors.background }]}>
@@ -432,19 +434,74 @@ export function SocialFeedPanel({
   const [postError, setPostError] = useState<string | null>(null);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [mediaName, setMediaName] = useState("");
+  const [mediaPreview, setMediaPreview] = useState("");
+  const [mediaPreviewKind, setMediaPreviewKind] = useState<"image" | "video" | "">("");
   const mediaInputRef = useRef<HTMLInputElement | null>(null);
+  const previewRef = useRef("");
+  const cameraRef = useRef<HTMLVideoElement | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recordStreamRef = useRef<MediaStream | null>(null);
+  const recordChunksRef = useRef<Blob[]>([]);
+  const [recording, setRecording] = useState(false);
 
-  const uploadFeedMedia = async (file: Blob, fileName: string) => {
-    if (file.size > 40 * 1024 * 1024) {
-      setPostError("That file is over 40 MB.");
-      return;
-    }
+  const showPickedMedia = (previewUrl: string, kind: "image" | "video", fileName: string) => {
+    if (previewRef.current.startsWith("blob:")) URL.revokeObjectURL(previewRef.current);
+    previewRef.current = previewUrl;
+    setMediaPreview(previewUrl);
+    setMediaPreviewKind(kind);
+    setMediaName(fileName);
+  };
+
+  const clearPickedMedia = () => {
+    if (previewRef.current.startsWith("blob:")) URL.revokeObjectURL(previewRef.current);
+    previewRef.current = "";
+    setMediaPreview("");
+    setMediaPreviewKind("");
+    setMediaName("");
+  };
+
+  useEffect(() => {
+    return () => {
+      if (previewRef.current.startsWith("blob:")) URL.revokeObjectURL(previewRef.current);
+      recordStreamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!recording) return;
+    const el = cameraRef.current;
+    const stream = recordStreamRef.current;
+    if (!el || !stream) return;
+    el.srcObject = stream;
+    void el.play().catch(() => undefined);
+  }, [recording]);
+
+  const uploadFeedMedia = async (file: Blob, fileName: string, previewUrl?: string) => {
+    const kind: "image" | "video" =
+      file.type.startsWith("video/") || /\.(mp4|mov|webm|m4v)$/i.test(fileName) ? "video" : "image";
+    const localPreview = previewUrl || (typeof URL !== "undefined" && URL.createObjectURL ? URL.createObjectURL(file) : "");
+    if (localPreview) showPickedMedia(localPreview, kind, fileName);
+    setVideoUrl("");
+    setImageUrl("");
     setUploadingMedia(true);
     setPostError(null);
+    let sendFile = file;
+    let sendName = fileName;
     try {
+      if (kind === "video" && file.size > FEED_VIDEO_MAX_BYTES && Platform.OS === "web") {
+        setMediaName("Making this video smaller so the whole clip can post.");
+        const shrunk = await shrinkFeedVideo(file, fileName);
+        sendFile = shrunk.blob;
+        sendName = shrunk.name;
+        showPickedMedia(URL.createObjectURL(shrunk.blob), "video", shrunk.trimmed ? `${sendName} was shortened to fit` : sendName);
+      }
+      if (sendFile.size > FEED_VIDEO_MAX_BYTES) {
+        setPostError("That file is over 250 MB. A shorter clip will post.");
+        return;
+      }
       const token = await getAccessToken();
       const form = new FormData();
-      form.append("file", file, fileName);
+      form.append("file", sendFile, sendName);
       const response = await fetch(getTrpcApiUrl().replace(/\/api\/trpc\/?$/, "/api/member-feed-upload"), {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -463,11 +520,65 @@ export function SocialFeedPanel({
         setImageUrl(payload.url);
         setVideoUrl("");
       }
-      setMediaName(fileName);
-    } catch {
-      setPostError("That picture or video could not be added.");
+      setMediaName(sendName);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      setPostError(message || "That picture or video could not be added.");
     } finally {
       setUploadingMedia(false);
+    }
+  };
+
+  const stopRecording = () => {
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== "inactive") recorder.stop();
+  };
+
+  const startRecording = async () => {
+    if (recording) {
+      stopRecording();
+      return;
+    }
+    setPostError(null);
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setPostError("This browser cannot use the camera. Choose a video from this phone or laptop instead.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: true,
+      });
+      recordStreamRef.current = stream;
+      const mimeType = feedRecorderMimeType();
+      const recorder = new MediaRecorder(stream, {
+        mimeType,
+        videoBitsPerSecond: 2_000_000,
+        audioBitsPerSecond: 64_000,
+      });
+      recordChunksRef.current = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) recordChunksRef.current.push(event.data);
+      };
+      recorder.onstop = () => {
+        const type = (recorder.mimeType || mimeType).split(";")[0] || "video/webm";
+        const blob = new Blob(recordChunksRef.current, { type });
+        stream.getTracks().forEach((track) => track.stop());
+        recordStreamRef.current = null;
+        recorderRef.current = null;
+        setRecording(false);
+        const ext = type.includes("mp4") ? "mp4" : "webm";
+        const file = new File([blob], `camera-${Date.now()}.${ext}`, { type });
+        void uploadFeedMedia(file, file.name);
+      };
+      recorderRef.current = recorder;
+      recorder.start(1000);
+      setRecording(true);
+    } catch {
+      recordStreamRef.current?.getTracks().forEach((track) => track.stop());
+      recordStreamRef.current = null;
+      setRecording(false);
+      setPostError("Allow the camera and microphone, then press Record again.");
     }
   };
 
@@ -492,7 +603,7 @@ export function SocialFeedPanel({
       setBody("");
       setImageUrl("");
       setVideoUrl("");
-      setMediaName("");
+      clearPickedMedia();
       setAiAssisted(false);
       setContentRightsMode("original");
       setAttributionSourceName("");
@@ -639,13 +750,6 @@ export function SocialFeedPanel({
             onAiAssisted={() => setAiAssisted(true)}
           />
 
-          <ChatComposerInput
-            value={body}
-            onChangeText={setBody}
-            placeholder="Share an update, project photo, or promo — free for everyone… #hashtags welcome"
-            placeholderTextColor={colors.muted}
-            style={[styles.composerInput, { borderColor: colors.border, color: colors.foreground }]}
-          />
           {Platform.OS === "web" ? (
             <label
               data-testid="member-feed-add-media"
@@ -663,8 +767,8 @@ export function SocialFeedPanel({
               <input
                 ref={mediaInputRef as never}
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,video/webm"
-                disabled={uploadingMedia}
+                accept="image/*,video/*,.mov,.mp4,.m4v,.webm"
+                disabled={uploadingMedia || recording}
                 style={{ display: "none" }}
                 onChange={(event) => {
                   const file = event.target.files?.[0];
@@ -673,7 +777,7 @@ export function SocialFeedPanel({
                 }}
               />
               <span style={{ color: LETTERING_ON_WHITE, fontWeight: 800, fontSize: 14 }}>
-                {uploadingMedia ? "Uploading…" : "Add a picture or video"}
+                {uploadingMedia ? "Uploading…" : "Choose a picture or video"}
               </span>
             </label>
           ) : (
@@ -689,7 +793,7 @@ export function SocialFeedPanel({
                   const asset = result.assets[0];
                   const response = await fetch(asset.uri);
                   const blob = await response.blob();
-                  await uploadFeedMedia(blob, asset.name || "upload");
+                  await uploadFeedMedia(blob, asset.name || "upload", asset.uri);
                 });
               }}
               style={{
@@ -702,16 +806,120 @@ export function SocialFeedPanel({
               }}
             >
               <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800" }}>
-                {uploadingMedia ? "Uploading…" : "Add a picture or video"}
+                {uploadingMedia ? "Uploading…" : "Choose a picture or video"}
               </Text>
             </Pressable>
           )}
+          {Platform.OS === "web" ? (
+            <button
+              type="button"
+              data-testid="member-feed-record-video"
+              disabled={uploadingMedia}
+              onClick={() => void startRecording()}
+              style={{
+                borderRadius: 12,
+                padding: "10px 12px",
+                background: "#FFFFFF",
+                border: "1px solid #E0E7FF",
+                color: LETTERING_ON_WHITE,
+                fontWeight: 800,
+                fontSize: 14,
+                cursor: uploadingMedia ? "default" : "pointer",
+              }}
+            >
+              {recording ? "Stop and put this video in the box" : "Record with this camera"}
+            </button>
+          ) : (
+            <Pressable
+              testID="member-feed-record-video"
+              disabled={uploadingMedia}
+              onPress={() => {
+                void (async () => {
+                  const ImagePicker = await import("expo-image-picker");
+                  const camera = await ImagePicker.requestCameraPermissionsAsync();
+                  if (!camera.granted) {
+                    setPostError("Allow the camera to record a video.");
+                    return;
+                  }
+                  if (ImagePicker.requestMicrophonePermissionsAsync) {
+                    await ImagePicker.requestMicrophonePermissionsAsync();
+                  }
+                  const result = await ImagePicker.launchCameraAsync({
+                    mediaTypes: ["videos"],
+                    videoMaxDuration: 180,
+                  });
+                  if (result.canceled || !result.assets[0]) return;
+                  const asset = result.assets[0];
+                  const response = await fetch(asset.uri);
+                  const blob = await response.blob();
+                  await uploadFeedMedia(blob, asset.fileName || "camera.mp4", asset.uri);
+                })();
+              }}
+              style={{
+                borderRadius: 12,
+                paddingVertical: 10,
+                alignItems: "center",
+                backgroundColor: "#FFFFFF",
+                borderWidth: 1,
+                borderColor: "#E0E7FF",
+              }}
+            >
+              <Text style={{ color: LETTERING_ON_WHITE, fontWeight: "800" }}>Record with the camera</Text>
+            </Pressable>
+          )}
+          {recording && Platform.OS === "web" ? (
+            // @ts-expect-error web video
+            <video
+              ref={cameraRef}
+              autoPlay
+              muted
+              playsInline
+              style={{ width: "100%", borderRadius: 10, maxHeight: 320, background: "#111" }}
+            />
+          ) : null}
+          {mediaPreview && mediaPreviewKind === "video" ? (
+            Platform.OS === "web" ? (
+              // @ts-expect-error web video
+              <video
+                src={mediaPreview}
+                controls
+                playsInline
+                style={{ width: "100%", borderRadius: 10, maxHeight: 320, background: "#111" }}
+              />
+            ) : (
+              <Pressable onPress={() => void Linking.openURL(mediaPreview)}>
+                <View style={[styles.videoPlaceholder, { backgroundColor: colors.background }]}>
+                  <Text style={{ color: colors.primary, fontWeight: "700" }}>▶ {mediaName || "Video"} is in the box</Text>
+                </View>
+              </Pressable>
+            )
+          ) : null}
+          {mediaPreview && mediaPreviewKind === "image" ? (
+            <Image source={{ uri: mediaPreview }} style={styles.media} resizeMode="cover" />
+          ) : null}
+          <ChatComposerInput
+            value={body}
+            onChangeText={setBody}
+            placeholder={
+              mediaPreview
+                ? "Add a statement if you want. You can leave this blank."
+                : "Share an update, project photo, or promo — free for everyone… #hashtags welcome"
+            }
+            placeholderTextColor={colors.muted}
+            style={[styles.composerInput, { borderColor: colors.border, color: colors.foreground }]}
+          />
           <View style={{ backgroundColor: "#FFFFFF", borderRadius: 10, padding: 8 }}>
-            {mediaName ? (
-              <Text style={{ color: LETTERING_ON_WHITE, fontSize: 13 }}>{mediaName} is ready to post on UR.</Text>
+            {uploadingMedia ? (
+              <Text style={{ color: LETTERING_ON_WHITE, fontSize: 13 }}>
+                {mediaName || "That file"} is in the box. It is still uploading.
+              </Text>
+            ) : mediaName ? (
+              <Text style={{ color: LETTERING_ON_WHITE, fontSize: 13 }}>
+                {mediaName} is in the box. Add a statement if you want, then press Post on UR.
+              </Text>
             ) : (
               <Text style={{ color: LETTERING_ON_WHITE, fontSize: 12, lineHeight: 18 }}>
-                Pictures and videos you add stay on UR Platform. Sending them out to other social networks is a paid creator plan.
+                Choose a video from this phone or laptop, or record one here. It shows in this box. Add a statement if you want, then press Post on UR. A clip over 250 MB is made smaller so it still posts.
               </Text>
             )}
           </View>

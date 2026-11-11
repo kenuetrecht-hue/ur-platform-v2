@@ -7,6 +7,8 @@ import {
   Pressable,
   ActivityIndicator,
   StyleSheet,
+  Image,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -17,6 +19,10 @@ import { brandGradientPair, brandHighlightSurface, withAlpha } from "@/lib/brand
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { ChatComposerActionRow } from "@/components/composer-dock";
 import { CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
+import { getAccessToken } from "@/lib/auth-storage";
+import { getTrpcApiUrl } from "@/lib/trpc-url";
+import { FEED_VIDEO_MAX_BYTES } from "@/lib/feed-video-size";
+import { shrinkFeedVideo } from "@/lib/shrink-feed-video";
 
 type MailFolder = "inbox" | "sent" | "compose" | "read";
 
@@ -30,6 +36,8 @@ type MailItem = {
   recipientUserId: string;
   createdAt: string;
   readAt?: string;
+  imageUrl?: string;
+  videoUrl?: string;
 };
 
 function formatMailDate(iso: string): string {
@@ -63,6 +71,11 @@ export function InternetCenterMailPanel({
   const [toEmail, setToEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [attachName, setAttachName] = useState("");
+  const [attaching, setAttaching] = useState(false);
+  const [attachError, setAttachError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!initialComposeTo) return;
@@ -79,6 +92,9 @@ export function InternetCenterMailPanel({
       setToEmail("");
       setSubject("");
       setBody("");
+      setImageUrl("");
+      setVideoUrl("");
+      setAttachName("");
       setFolder("sent");
       void utils.social.listSent.invalidate();
       void utils.social.listInbox.invalidate();
@@ -193,13 +209,97 @@ export function InternetCenterMailPanel({
               { borderColor: colors.border, color: colors.gold, backgroundColor: "transparent" },
             ]}
           />
+          {Platform.OS === "web" ? (
+            <label
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                borderRadius: 12,
+                padding: "10px 12px",
+                marginTop: 8,
+                border: "1px solid #E0E7FF",
+                cursor: attaching ? "default" : "pointer",
+                textAlign: "center",
+              }}
+            >
+              <input
+                type="file"
+                accept="image/*,video/*,.mov,.mp4,.m4v,.webm"
+                disabled={attaching}
+                style={{ display: "none" }}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (!file) return;
+                  void (async () => {
+                    setAttaching(true);
+                    setAttachError(null);
+                    try {
+                      let sendFile: Blob = file;
+                      let sendName = file.name;
+                      const isVideo = file.type.startsWith("video/") || /\.(mp4|mov|webm|m4v)$/i.test(file.name);
+                      if (isVideo && file.size > FEED_VIDEO_MAX_BYTES) {
+                        const shrunk = await shrinkFeedVideo(file, file.name);
+                        sendFile = shrunk.blob;
+                        sendName = shrunk.name;
+                      }
+                      if (sendFile.size > FEED_VIDEO_MAX_BYTES) {
+                        setAttachError("That file is over 250 MB. A shorter clip will send.");
+                        return;
+                      }
+                      const token = await getAccessToken();
+                      const form = new FormData();
+                      form.append("file", sendFile, sendName);
+                      const response = await fetch(getTrpcApiUrl().replace(/\/api\/trpc\/?$/, "/api/member-feed-upload"), {
+                        method: "POST",
+                        headers: token ? { Authorization: `Bearer ${token}` } : {},
+                        body: form,
+                        credentials: "include",
+                      });
+                      const payload = (await response.json()) as { url?: string; kind?: string; error?: { message?: string } };
+                      if (!response.ok || !payload.url) {
+                        setAttachError(payload.error?.message || "That picture or video could not be added.");
+                        return;
+                      }
+                      if (payload.kind === "video") {
+                        setVideoUrl(payload.url);
+                        setImageUrl("");
+                      } else {
+                        setImageUrl(payload.url);
+                        setVideoUrl("");
+                      }
+                      setAttachName(sendName);
+                    } catch (error) {
+                      setAttachError(error instanceof Error ? error.message : "That picture or video could not be added.");
+                    } finally {
+                      setAttaching(false);
+                    }
+                  })();
+                }}
+              />
+              <span style={{ fontWeight: 800 }}>{attaching ? "Adding…" : "Add a picture or video"}</span>
+            </label>
+          ) : null}
+          {attachName ? (
+            <Text style={{ color: colors.gold, fontSize: 12, marginTop: 6 }}>{attachName} will send with this message.</Text>
+          ) : null}
+          {attachError ? (
+            <Text style={{ color: colors.error, fontSize: 12, marginTop: 6 }}>{attachError}</Text>
+          ) : null}
           <Pressable
-            disabled={!toEmail.includes("@") || !subject.trim() || !body.trim() || sendMail.isPending}
+            disabled={
+              !toEmail.includes("@") ||
+              (!body.trim() && !imageUrl && !videoUrl) ||
+              attaching ||
+              sendMail.isPending
+            }
             onPress={() =>
               sendMail.mutate({
                 toEmail: toEmail.trim(),
-                subject: subject.trim(),
+                subject: subject.trim() || (videoUrl ? "Video" : imageUrl ? "Picture" : "Message"),
                 body: body.trim(),
+                imageUrl: imageUrl || undefined,
+                videoUrl: videoUrl || undefined,
               })
             }
             style={[CHAT_COMPOSER_SEND, styles.sendBtn, { opacity: sendMail.isPending ? 0.6 : 1 }]}
@@ -251,7 +351,14 @@ export function InternetCenterMailPanel({
               </Text>
             </View>
             <View style={[styles.bodyDivider, { borderTopColor: withAlpha(colors.secondary, 0.15) }]} />
-            <Text style={[styles.readBody, { color: colors.gold }]}>{selected.body}</Text>
+            {selected.body ? <Text style={[styles.readBody, { color: colors.gold }]}>{selected.body}</Text> : null}
+            {selected.imageUrl ? (
+              <Image source={{ uri: selected.imageUrl }} style={{ width: "100%", height: 220, borderRadius: 10, marginTop: 8 }} resizeMode="cover" />
+            ) : null}
+            {selected.videoUrl && Platform.OS === "web" ? (
+              // @ts-expect-error web video
+              <video src={selected.videoUrl} controls playsInline style={{ width: "100%", borderRadius: 10, maxHeight: 360, marginTop: 8 }} />
+            ) : null}
           </View>
         </ScrollView>
       ) : (

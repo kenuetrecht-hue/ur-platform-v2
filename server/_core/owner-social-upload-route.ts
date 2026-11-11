@@ -7,6 +7,9 @@ import { isPlatformOwner } from "./owner-auth";
 import { getContentCreatorProfile } from "./partner-program-service";
 import { sdk } from "./sdk";
 import { uploadViaAyrshare } from "./ayrshare-client";
+import { buildPlatformPublicUrl } from "../../lib/platform-urls";
+import { FEED_VIDEO_MAX_BYTES } from "../../lib/feed-video-size";
+import { saveMemberFeedMediaFromPath, serveMemberFeedMedia } from "./member-feed-media";
 
 const MAX_BYTES = 100 * 1024 * 1024;
 
@@ -45,9 +48,10 @@ export function sniffSocialUpload(bytes: Buffer): { kind: MediaKind; contentType
   if (bytes.length >= 4 && bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) {
     return { kind: "video", contentType: "video/webm", extension: "webm" };
   }
-  const brand = bytes.length >= 12 ? bytes.subarray(4, 8).toString("ascii") : "";
-  if (brand === "ftyp") {
-    const major = bytes.subarray(8, 12).toString("ascii");
+  const head = bytes.subarray(0, Math.min(bytes.length, 4096));
+  const ftypAt = head.indexOf(Buffer.from("ftyp"));
+  if (ftypAt >= 0 && bytes.length >= ftypAt + 8) {
+    const major = bytes.subarray(ftypAt + 4, ftypAt + 8).toString("ascii");
     if (major.startsWith("qt")) return { kind: "video", contentType: "video/quicktime", extension: "mov" };
     return { kind: "video", contentType: "video/mp4", extension: "mp4" };
   }
@@ -60,7 +64,8 @@ function safeFileName(original: string, extension: string): string {
   return `${stem}.${extension}`;
 }
 
-const MEMBER_FEED_MAX_BYTES = 40 * 1024 * 1024;
+const MEMBER_FEED_MAX_BYTES = FEED_VIDEO_MAX_BYTES;
+const MEMBER_FEED_MAX_LABEL = `${Math.round(FEED_VIDEO_MAX_BYTES / (1024 * 1024))} MB`;
 const MEMBER_FEED_DAILY_CAP = 20;
 const memberFeedUploads = new Map<string, { day: string; count: number }>();
 
@@ -101,12 +106,17 @@ function recordMemberFeedUpload(userId: string): void {
 }
 
 export function registerMemberFeedUploadRoute(app: Express): void {
+  app.get("/api/member-feed-media/:id", (req, res) => {
+    serveMemberFeedMedia(req, res);
+  });
   app.post("/api/member-feed-upload", (req, res) => {
+    req.setTimeout(20 * 60 * 1000);
+    res.setTimeout(20 * 60 * 1000);
     memberUpload.single("file")(req, res, (error) => {
       if (error) {
         const tooBig = error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE";
         res.status(tooBig ? 413 : 400).json({
-          error: { message: tooBig ? "That file is over 40 MB." : "That file could not be read." },
+          error: { message: tooBig ? `That file is over ${MEMBER_FEED_MAX_LABEL}.` : "That file could not be read." },
         });
         return;
       }
@@ -138,20 +148,26 @@ async function handleMemberFeedUpload(req: Request, res: Response): Promise<void
       res.status(400).json({ error: { message: "Choose a picture or video first." } });
       return;
     }
-    const bytes = await fs.promises.readFile(storedPath);
-    const sniffed = sniffSocialUpload(bytes);
+    const header = Buffer.alloc(8192);
+    const opened = await fs.promises.open(storedPath, "r");
+    try {
+      await opened.read(header, 0, header.length, 0);
+    } finally {
+      await opened.close();
+    }
+    const sniffed = sniffSocialUpload(header);
     if (!sniffed || sniffed.kind === "file") {
       res.status(400).json({ error: { message: "Use a JPEG, PNG, WebP, GIF, MP4, MOV, or WebM." } });
       return;
     }
-    const uploaded = await uploadViaAyrshare({
-      bytes,
-      fileName: safeFileName(req.file?.originalname ?? "upload", sniffed.extension),
+    const saved = await saveMemberFeedMediaFromPath({
+      sourcePath: storedPath,
       contentType: sniffed.contentType,
+      extension: sniffed.extension,
     });
     recordMemberFeedUpload(String(user.id));
     res.status(200).json({
-      url: uploaded.url,
+      url: buildPlatformPublicUrl(`/api/member-feed-media/${saved.id}`),
       kind: sniffed.kind,
       name: safeFileName(req.file?.originalname ?? "upload", sniffed.extension),
     });

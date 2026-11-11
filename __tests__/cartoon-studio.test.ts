@@ -24,6 +24,7 @@ import {
 } from "../server/_core/cartoon-studio-service";
 import { saveCartoonSelf, _resetCartoonSelfForTests } from "../server/_core/cartoon-self-service";
 import { CARTOON_SELF_RULE } from "../lib/cartoon-self";
+import { posterizeChannel } from "../lib/cartoonify-photo";
 
 describe("UR Cartoon Studio", () => {
   beforeEach(() => {
@@ -277,6 +278,20 @@ describe("Cartoon Studio prepaid billing", () => {
     expect(summary.importantNotes.join(" ")).toMatch(/must be happy/i);
     expect(CARTOON_STUDIO_NO_REFUND_POLICY.toLowerCase()).toContain("no return policy");
     expect(CARTOON_STUDIO_PAY_FIRST_RULE.toLowerCase()).toContain("pay before");
+  });
+
+  it("lets a member upload a picture or video and draw a cartoon from it", () => {
+    expect(posterizeChannel(0)).toBe(0);
+    expect(posterizeChannel(255)).toBe(255);
+    expect(posterizeChannel(100)).toBeGreaterThan(0);
+    const page = readFileSync("app/cartoon-studio.tsx", "utf8");
+    const upload = readFileSync("components/cartoon-self-upload.tsx", "utf8");
+    expect(page).toContain("CartoonSelfUpload");
+    expect(upload).toContain("Upload a picture or video of yourself");
+    expect(upload).toContain("Choose a picture or video");
+    expect(upload).toContain("Post this cartoon on UR");
+    expect(upload).toContain("Send this cartoon to Facebook");
+    expect(upload).toContain("cartoonifyFromFile");
   });
 
   it("uses gold writing on the blue page and purplish blue inside the white lesson box", () => {

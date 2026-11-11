@@ -73,7 +73,7 @@ describe("lettering on white vs colored backgrounds", () => {
 
   it("keeps Social, Profile, AIs, and Administration white-card copy on the purple token", () => {
     const social = readFileSync("components/social-feed-panel.tsx", "utf8");
-    expect(social).toContain("Hide composer");
+    expect(social).toContain("Hide the post box");
     expect(social).toMatch(/composerInput[\s\S]{0,80}colors\.foreground/);
 
     const profile = readFileSync("app/(tabs)/profile.tsx", "utf8");

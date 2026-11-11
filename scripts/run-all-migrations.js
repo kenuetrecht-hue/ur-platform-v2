@@ -27,6 +27,7 @@ const SUPPLEMENTAL_MIGRATIONS = [
   { file: "drizzle/social-money-migration.sql", label: "social-money" },
   { file: "drizzle/face-filter-passes-migration.sql", label: "face-filter-passes" },
   { file: "drizzle/0006_creator_video_call_prices.sql", label: "creator-video-call-prices" },
+  { file: "drizzle/social-stay-migration.sql", label: "social-stay" },
 ];
 
 async function ensureDatabase() {
