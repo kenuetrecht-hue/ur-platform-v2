@@ -9,6 +9,7 @@ import {
   presentLocalEmergencySignal,
   showWebEmergencyNotice,
 } from "@/lib/owner-emergency-client";
+import { isOwnerAuditClearanceRequest } from "@/lib/owner-audit-clearance";
 
 export function OwnerEmergencyAlarm() {
   const router = useRouter();
@@ -44,7 +45,10 @@ export function OwnerEmergencyAlarm() {
   }, [isAuthenticated, isPlatformOwner]);
 
   const state = emergency.data;
-  const needsAttention = Boolean(isPlatformOwner && state?.active && state.incidentId);
+  const auditClearance = isOwnerAuditClearanceRequest(`${state?.title ?? ""}\n${state?.problem ?? ""}`);
+  const needsAttention = Boolean(
+    isPlatformOwner && state?.active && state.incidentId && !auditClearance,
+  );
   const showModal = Boolean(needsAttention && state?.incidentId !== snoozedId);
 
   useEffect(() => {

@@ -3,6 +3,7 @@
  */
 
 import { shouldWakeOwner } from "../../lib/owner-emergency";
+import { isOwnerAuditClearanceRequest } from "../../lib/owner-audit-clearance";
 import { listOpsIncidents } from "./platform-ops-service";
 
 export type OwnerEmergencyState = {
@@ -22,6 +23,7 @@ export function getOwnerEmergencyState(phoneAlarmArmed: boolean): OwnerEmergency
       i.status !== "resolved" &&
       i.status !== "rejected" &&
       i.status !== "deploy_executed" &&
+      !isOwnerAuditClearanceRequest(`${i.title}\n${i.problem}\n${i.proposedFix}`) &&
       shouldWakeOwner({
         severity: i.severity,
         autoIsolated: i.autoIsolated,

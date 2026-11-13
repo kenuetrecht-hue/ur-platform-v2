@@ -46,6 +46,7 @@ import {
   markOpsNotificationsReadInDb,
 } from "../db-platform-ops";
 import { CHECKOUT_PROBE_INCIDENT_TITLE } from "../../lib/checkout-probe-policy";
+import { isOwnerAuditClearanceRequest } from "../../lib/owner-audit-clearance";
 
 export type OpsIncidentSeverity = "low" | "medium" | "high" | "critical";
 export type OpsIncidentCategory =
@@ -135,6 +136,30 @@ const ownerNotifications: Array<{
 let hydrated = false;
 let hydratePromise: Promise<void> | null = null;
 
+/** Drop the red banner when the owner only asked for a code review. */
+export function closeOwnerAuditClearanceIncidents(): number {
+  let closed = 0;
+  for (const incident of incidents.values()) {
+    if (incident.status === "resolved" || incident.status === "rejected") continue;
+    const text = `${incident.title}\n${incident.problem}\n${incident.proposedFix}`;
+    if (!isOwnerAuditClearanceRequest(text)) continue;
+    if (incident.autoIsolated && incident.affectedSectionId) {
+      enablePlatformSection({
+        sectionId: incident.affectedSectionId,
+        ownerNote: "Reopened. The security-audit request was not an attack.",
+      });
+    }
+    incident.status = "resolved";
+    incident.updatedAt = new Date().toISOString();
+    incident.ownerNote =
+      "Closed automatically. You asked for a code review. That is not a live attack, so the red banner should not stay up.";
+    incident.actionsTaken.push("Closed false alarm: owner asked for a security review, not a live incident.");
+    rememberIncident(incident);
+    closed += 1;
+  }
+  return closed;
+}
+
 function collapseDuplicateCheckoutProbeIncidents(): void {
   const matches = [...incidents.values()]
     .filter((item) => item.title === CHECKOUT_PROBE_INCIDENT_TITLE && item.affectedSectionId === "commerce")
@@ -179,6 +204,7 @@ export async function hydratePlatformOpsState(): Promise<void> {
         ownerNotifications.push(...notes);
       }
       collapseDuplicateCheckoutProbeIncidents();
+      closeOwnerAuditClearanceIncidents();
       hydrated = true;
     })();
   }
@@ -825,6 +851,7 @@ export function inferIncidentFromOpsChat(
 } | null {
   if (!isOwnerOnlyPlatformAi(creatorId)) return null;
   if (creatorId === "platform-business-steward-ai") return null;
+  if (isOwnerAuditClearanceRequest(`${userMessage}\n${aiReply}`)) return null;
 
   const text = `${userMessage}\n${aiReply}`.toLowerCase();
   const trouble =
