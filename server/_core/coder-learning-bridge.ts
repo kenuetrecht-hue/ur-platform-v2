@@ -10,7 +10,7 @@ import {
   type ICoderAILearningMatrix,
   type UserDesignPreferences,
 } from "../coder-ai-learning-core";
-import { loadLearningJson, saveLearningJson } from "../db-coder-sandbox";
+import { SANDBOX_LAYER_PRICE_LINE } from "../../lib/sandbox-layers";
 
 const matrixStore = new Map<string, ICoderAILearningMatrix>();
 const matrixHydrated = new Set<string>();
@@ -53,9 +53,9 @@ export function buildCoderLearningContext(userId: string): string {
     .slice(0, 5);
 
   const lines: string[] = [
-    "You are TechBuilder — full parity: chat, learn, hive, web search, voice, 3D workspace, sandbox build/test.",
-    "Build tab: autonomous agent, templates, GitHub sync, preview, CI, ephemeral cloud execution (wiped on end/TTL).",
-    "When users build apps, suggest file paths and structure suitable for their sandbox project.",
+    "You are TechBuilder — you teach people to write websites, apps, and SVG logos, and you save the code in their sandbox.",
+    SANDBOX_LAYER_PRICE_LINE,
+    "Small fits a simple page or logo. Medium fits a multi-page site. Large fits a big app you can build and test. Website, logo, and crypto teaching share this code sandbox.",
   ];
 
   if (profile) {

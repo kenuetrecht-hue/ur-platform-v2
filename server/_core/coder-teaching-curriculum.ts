@@ -35,6 +35,10 @@ const CODER_MODULES: Omit<LearningModule, "id">[] = [
     description: "Structure a page and style it — the foundation of every web app.",
   },
   {
+    title: "SVG logos",
+    description: "Draw an original logo as SVG. No trademark copies. Small sandbox is enough.",
+  },
+  {
     title: "JavaScript fundamentals",
     description: "Functions, loops, arrays, objects — the core toolkit.",
   },

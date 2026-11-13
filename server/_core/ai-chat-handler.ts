@@ -51,6 +51,17 @@ import {
   truncateLandingDemoReply,
 } from "../../lib/landing-demo-policy";
 import { isOwnerOnlyPlatformAi, canChatOwnerOpsAi } from "./platform-ops-ai";
+import {
+  isApplySitePatchCommand,
+  isOwnerSiteEngineer,
+  isOwnerSiteRepairRequest,
+  parseSitePatches,
+} from "../../lib/owner-site-repair";
+import {
+  isMemberBuilder,
+  isMemberBuildRequest,
+} from "../../lib/member-builder";
+import { promptForMemberBuild, saveMemberBuild } from "./member-builder-service";
 import { assertAiEntitled } from "./access-entitlements";
 import { canUseFreeTaste, FREE_TASTE_MAX_INPUT_CHARS, FREE_TASTE_MAX_OUTPUT_TOKENS, FREE_TASTE_SHORT_REPLY_RULE } from "../../lib/free-taste-policy";
 import { claimFreeTaste } from "./free-taste-service";
@@ -300,6 +311,24 @@ export async function handleCreatorAiChat(params: {
     }
 
     if (
+      isOwnerSiteEngineer(params.creatorId) &&
+      params.ctx.isPlatformOwner &&
+      !params.ctx.landingDemo &&
+      isApplySitePatchCommand(message)
+    ) {
+      const reply = await applyStagedSitePatches({
+        ownerUserId: userId,
+        isPlatformOwner: true,
+      });
+      return {
+        reply,
+        model: "owner-site-repair",
+        creatorId: def.id,
+        creatorName: def.name,
+      };
+    }
+
+    if (
       params.creatorId === "platform-world-director-ai" &&
       params.ctx.isPlatformOwner &&
       !params.ctx.landingDemo
@@ -530,12 +559,38 @@ export async function handleCreatorAiChat(params: {
 
       systemPrompt = withChatVisionInstruction(systemPrompt, visionAttachments);
 
+      const ownerSiteRepair =
+        isOwnerSiteEngineer(params.creatorId) &&
+        params.ctx.isPlatformOwner &&
+        !params.ctx.landingDemo &&
+        isOwnerSiteRepairRequest(message);
+      if (ownerSiteRepair) {
+        systemPrompt += await loadOwnerRepairContext({ message }).catch(() => "");
+        systemPrompt +=
+          "\n\nThe owner asked for a website code change. Draft the patch block. Do not file an incident.";
+      }
+
+      const memberBuild =
+        isMemberBuilder(params.creatorId) &&
+        !params.ctx.landingDemo &&
+        isMemberBuildRequest(message);
+      if (memberBuild) {
+        systemPrompt += promptForMemberBuild(params.creatorId, message);
+      }
+
       const result = await generateGoogleChatReply({
         systemPrompt,
         history: params.ctx.landingDemo || freeTaste ? [] : history,
         message,
-        maxOutputTokens: freeTaste ? FREE_TASTE_MAX_OUTPUT_TOKENS : params.ctx.landingDemo ? 80 : undefined,
+        maxOutputTokens: freeTaste
+          ? FREE_TASTE_MAX_OUTPUT_TOKENS
+          : params.ctx.landingDemo
+            ? 80
+            : ownerSiteRepair || memberBuild
+              ? 8192
+              : undefined,
         temperature: params.ctx.landingDemo ? 0.85 : undefined,
+        thinkingLevel: ownerSiteRepair || memberBuild ? "HIGH" : undefined,
         attachments: visionAttachments.length ? visionAttachments : undefined,
         responseLanguage: nativeReplyLanguage,
       });
@@ -616,6 +671,33 @@ export async function handleCreatorAiChat(params: {
           reply += `\n\n🔔 **Incident filed** (${incident.id.slice(0, 8)}…) — review in Owner Ops and approve the fix plan when ready.`;
         }
       }
+    }
+
+    if (
+      isOwnerSiteEngineer(params.creatorId) &&
+      params.ctx.isPlatformOwner &&
+      !params.ctx.landingDemo
+    ) {
+      const patches = parseSitePatches(reply);
+      if (patches.length > 0) {
+        stageSitePatches(userId, patches);
+        reply +=
+          "\n\nType APPLY SITE PATCH on its own to write these files. Nothing is written until you do.";
+      }
+    }
+
+    if (
+      isMemberBuilder(params.creatorId) &&
+      !params.ctx.landingDemo &&
+      isMemberBuildRequest(message)
+    ) {
+      const saved = await saveMemberBuild({
+        creatorId: params.creatorId,
+        message,
+        userId,
+        isPlatformOwner: params.ctx.isPlatformOwner,
+      }).catch(() => null);
+      if (saved?.note) reply += saved.note;
     }
 
     if (!params.ctx.landingDemo) {

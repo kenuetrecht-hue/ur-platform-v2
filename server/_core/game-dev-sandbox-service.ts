@@ -3,6 +3,7 @@
  */
 
 import { TRPCError } from "@trpc/server";
+import { GAME_SANDBOX_LIMITS, SANDBOX_LAYER_PRICE_USD } from "../../lib/sandbox-layers";
 import { storagePut } from "../storage";
 import { assertGameSandboxFileSecure, scanGameSandboxContent } from "./game-dev-security";
 import type { SandboxFile, SandboxProject, SandboxTier, SandboxTierId, UserSandbox } from "./coder-sandbox-service";
@@ -19,43 +20,34 @@ export type { SandboxFile, SandboxProject, SandboxTier, SandboxTierId, UserSandb
 export const GAME_SANDBOX_TIERS: Record<SandboxTierId, SandboxTier> = {
   starter: {
     id: "starter",
-    label: "Indie Starter",
-    storageBytes: 100 * 1024 * 1024,
-    maxProjects: 5,
-    maxFilesPerProject: 200,
-    maxFileBytes: 5 * 1024 * 1024,
-    description: "Small prototypes and game jams.",
-    upgradePriceUsd: null,
+    label: "Small",
+    ...GAME_SANDBOX_LIMITS.small,
+    description: "Free. A simple playable game.",
+    upgradePriceUsd: SANDBOX_LAYER_PRICE_USD.small === 0 ? null : SANDBOX_LAYER_PRICE_USD.small,
   },
   builder: {
     id: "builder",
-    label: "Studio Builder",
-    storageBytes: 1024 * 1024 * 1024,
-    maxProjects: 20,
-    maxFilesPerProject: 2000,
-    maxFileBytes: 25 * 1024 * 1024,
-    description: "Full indie games with assets and scripts.",
-    upgradePriceUsd: 24.99,
+    label: "Medium",
+    ...GAME_SANDBOX_LIMITS.medium,
+    description: "One-time $9.99. A full small game with art and scripts.",
+    upgradePriceUsd: SANDBOX_LAYER_PRICE_USD.medium,
   },
   studio: {
     id: "studio",
-    label: "AA Studio",
-    storageBytes: 5 * 1024 * 1024 * 1024,
-    maxProjects: 50,
-    maxFilesPerProject: 10_000,
-    maxFileBytes: 50 * 1024 * 1024,
-    description: "Large worlds, many levels, multiplayer modules.",
-    upgradePriceUsd: 59.99,
+    label: "Large",
+    ...GAME_SANDBOX_LIMITS.large,
+    description: "One-time $24.99. A large game world with room to build and test.",
+    upgradePriceUsd: SANDBOX_LAYER_PRICE_USD.large,
   },
   enterprise: {
     id: "enterprise",
-    label: "AAA Enterprise",
-    storageBytes: 25 * 1024 * 1024 * 1024,
-    maxProjects: 999,
-    maxFilesPerProject: 100_000,
-    maxFileBytes: 200 * 1024 * 1024,
-    description: "Massive video games — maximum secure sandbox storage.",
-    upgradePriceUsd: 199.99,
+    label: "Large",
+    storageBytes: GAME_SANDBOX_LIMITS.large.storageBytes * 2,
+    maxProjects: 100,
+    maxFilesPerProject: 30_000,
+    maxFileBytes: GAME_SANDBOX_LIMITS.large.maxFileBytes * 2,
+    description: "Owner sandbox. Same kind of room as Large, kept for the platform owner.",
+    upgradePriceUsd: null,
   },
 };
 

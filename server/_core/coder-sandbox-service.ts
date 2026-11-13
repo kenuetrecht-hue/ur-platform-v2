@@ -3,6 +3,7 @@
  */
 
 import { TRPCError } from "@trpc/server";
+import { CODE_SANDBOX_LIMITS, SANDBOX_LAYER_PRICE_USD } from "../../lib/sandbox-layers";
 import { storagePut } from "../storage";
 import {
   deleteSandboxFileFromDb,
@@ -27,43 +28,36 @@ export type SandboxTier = {
 export const SANDBOX_TIERS: Record<SandboxTierId, SandboxTier> = {
   starter: {
     id: "starter",
-    label: "Starter",
-    storageBytes: 50 * 1024 * 1024,
-    maxProjects: 3,
-    maxFilesPerProject: 100,
-    maxFileBytes: 2 * 1024 * 1024,
-    description: "Small prototypes and learning projects.",
-    upgradePriceUsd: null,
+    label: "Small",
+    ...CODE_SANDBOX_LIMITS.small,
+    description:
+      "Free. A simple website, logo, or teaching chain. Included with TechBuilder, Logo & Brand, and ChainSmith.",
+    upgradePriceUsd: SANDBOX_LAYER_PRICE_USD.small === 0 ? null : SANDBOX_LAYER_PRICE_USD.small,
   },
   builder: {
     id: "builder",
-    label: "Builder",
-    storageBytes: 500 * 1024 * 1024,
-    maxProjects: 15,
-    maxFilesPerProject: 1000,
-    maxFileBytes: 10 * 1024 * 1024,
-    description: "Full-stack apps with hundreds of files.",
-    upgradePriceUsd: 29.99,
+    label: "Medium",
+    ...CODE_SANDBOX_LIMITS.medium,
+    description: "One-time $9.99. A multi-page site, a brand kit, or a longer teaching project.",
+    upgradePriceUsd: SANDBOX_LAYER_PRICE_USD.medium,
   },
   studio: {
     id: "studio",
-    label: "Studio",
-    storageBytes: 2 * 1024 * 1024 * 1024,
-    maxProjects: 50,
-    maxFilesPerProject: 5000,
-    maxFileBytes: 25 * 1024 * 1024,
-    description: "Large monorepos, multi-service apps, heavy assets.",
-    upgradePriceUsd: 64.99,
+    label: "Large",
+    ...CODE_SANDBOX_LIMITS.large,
+    description:
+      "One-time $24.99. A large app with room to build and test. Website, logo, and crypto teaching share this sandbox.",
+    upgradePriceUsd: SANDBOX_LAYER_PRICE_USD.large,
   },
   enterprise: {
     id: "enterprise",
-    label: "Enterprise",
-    storageBytes: 10 * 1024 * 1024 * 1024,
-    maxProjects: 999,
-    maxFilesPerProject: 50_000,
-    maxFileBytes: 100 * 1024 * 1024,
-    description: "Massive apps — maximum sandbox storage for build & test.",
-    upgradePriceUsd: 149.99,
+    label: "Large",
+    storageBytes: CODE_SANDBOX_LIMITS.large.storageBytes * 2,
+    maxProjects: 100,
+    maxFilesPerProject: 20_000,
+    maxFileBytes: CODE_SANDBOX_LIMITS.large.maxFileBytes * 2,
+    description: "Owner sandbox. Same kind of room as Large, kept for the platform owner.",
+    upgradePriceUsd: null,
   },
 };
 

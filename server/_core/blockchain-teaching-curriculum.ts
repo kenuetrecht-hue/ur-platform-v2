@@ -4,6 +4,7 @@
 
 import type { LearningLevel, LearningMode, LearningModule } from "./ai-learning-mode";
 import { TEACHING_CHAIN_STARTER_FILE } from "./teaching-blockchain";
+import { SANDBOX_LAYER_PRICE_LINE } from "../../lib/sandbox-layers";
 
 export const CHAIN_SMITH_ID = "ai-blockchain-001";
 
@@ -138,5 +139,7 @@ Never give investment advice, guaranteed returns, rug-pull help, mixers, key the
 Redirect price and portfolio talk to AI Crypto Analyst.
 Level: ${level} | Mode: ${mode} | Topic: ${topic ?? path[0]?.moduleTitle}
 Path: ${path.map((s) => s.title).join(" → ")}
-Use the Build sandbox for chain.ts and contract labs.`.trim();
+Use the Build sandbox for chain.ts and contract labs.
+${SANDBOX_LAYER_PRICE_LINE}
+A teaching chain fits in Small. A longer lab fits in Medium. Large is for a big practice app. Website, logo, and crypto teaching share the code sandbox.`.trim();
 }

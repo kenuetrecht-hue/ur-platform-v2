@@ -189,6 +189,18 @@ const SELF_PACED: Record<string, Record<LearningLevel, SelfPacedStep[]>> = {
       { order: 2, title: "Publish plan", description: "Query or self-pub roadmap.", estimatedMinutes: 45, moduleTitle: "Query letters & self-publishing" },
     ],
   },
+  "ai-logo-brand-001": {
+    beginner: [
+      { order: 1, title: "Draw a simple mark", description: "One shape, one word, original only.", estimatedMinutes: 15, moduleTitle: "Logos, color, type, and full brand kits" },
+      { order: 2, title: "Write the SVG", description: "Open logo.svg and change one path by hand.", estimatedMinutes: 20, moduleTitle: "Logos, color, type, and full brand kits" },
+    ],
+    intermediate: [
+      { order: 1, title: "Color and type", description: "Pick two colors and one font for brand.html.", estimatedMinutes: 20, moduleTitle: "Logos, color, type, and full brand kits" },
+    ],
+    advanced: [
+      { order: 1, title: "Brand sheet", description: "Finish logo.svg and brand.html in the sandbox.", estimatedMinutes: 40, moduleTitle: "Logos, color, type, and full brand kits" },
+    ],
+  },
 };
 
 function modulesFor(creatorId: string): Omit<LearningModule, "id">[] {

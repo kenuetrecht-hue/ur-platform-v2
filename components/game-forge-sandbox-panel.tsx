@@ -207,7 +207,7 @@ export function GameForgeSandboxPanel({
           <Text style={{ color: colors.primary, fontSize: 11, marginTop: 4, fontWeight: "600" }}>
             Owner: Enterprise sandbox unlocked
           </Text>
-        ) : nextTier ? (
+        ) : nextTier && nextTier.upgradePriceUsd != null ? (
           <Pressable
             onPress={handleUpgrade}
             disabled={createCheckout.isPending || confirmPayment.isPending || upgradeTier.isPending}

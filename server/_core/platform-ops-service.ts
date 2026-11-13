@@ -47,6 +47,7 @@ import {
 } from "../db-platform-ops";
 import { CHECKOUT_PROBE_INCIDENT_TITLE } from "../../lib/checkout-probe-policy";
 import { isOwnerAuditClearanceRequest } from "../../lib/owner-audit-clearance";
+import { isOwnerSiteRepairRequest } from "../../lib/owner-site-repair";
 
 export type OpsIncidentSeverity = "low" | "medium" | "high" | "critical";
 export type OpsIncidentCategory =
@@ -851,6 +852,7 @@ export function inferIncidentFromOpsChat(
 } | null {
   if (!isOwnerOnlyPlatformAi(creatorId)) return null;
   if (creatorId === "platform-business-steward-ai") return null;
+  if (isOwnerSiteRepairRequest(userMessage)) return null;
   if (isOwnerAuditClearanceRequest(`${userMessage}\n${aiReply}`)) return null;
 
   const text = `${userMessage}\n${aiReply}`.toLowerCase();
