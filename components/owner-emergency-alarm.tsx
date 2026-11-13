@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Modal, Platform, Pressable, StyleSheet, Text, Vibration, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, Vibration, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
@@ -10,6 +10,26 @@ import {
   showWebEmergencyNotice,
 } from "@/lib/owner-emergency-client";
 import { isOwnerAuditClearanceRequest } from "@/lib/owner-audit-clearance";
+
+const CLOSED_KEY = "ur-owner-emergency-closed";
+
+function readClosedId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage.getItem(CLOSED_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeClosedId(id: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(CLOSED_KEY, id);
+  } catch {
+    /* private browsing */
+  }
+}
 
 export function OwnerEmergencyAlarm() {
   const router = useRouter();
@@ -25,6 +45,10 @@ export function OwnerEmergencyAlarm() {
     refetchOnMount: "always",
     refetchOnReconnect: true,
   });
+
+  useEffect(() => {
+    setSnoozedId(readClosedId());
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated || !isPlatformOwner) {
@@ -49,10 +73,20 @@ export function OwnerEmergencyAlarm() {
   const needsAttention = Boolean(
     isPlatformOwner && state?.active && state.incidentId && !auditClearance,
   );
-  const showModal = Boolean(needsAttention && state?.incidentId !== snoozedId);
+  const showing = Boolean(needsAttention && state?.incidentId !== snoozedId);
+
+  function closeAlarm() {
+    const id = state?.incidentId;
+    if (!id) return;
+    writeClosedId(id);
+    setSnoozedId(id);
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      document.title = "UR Platform";
+    }
+  }
 
   useEffect(() => {
-    if (!needsAttention || !state?.incidentId || state.incidentId === lastSignaled.current) return;
+    if (!showing || !state?.incidentId || state.incidentId === lastSignaled.current) return;
     lastSignaled.current = state.incidentId;
     const title = "UR website needs attention";
     const body = state.english;
@@ -64,46 +98,31 @@ export function OwnerEmergencyAlarm() {
     if (Platform.OS === "web" && typeof document !== "undefined") {
       document.title = "🚨 UR website needs attention";
     }
-  }, [needsAttention, state?.incidentId, state?.english]);
+  }, [showing, state?.incidentId, state?.english]);
 
-  if (!isPlatformOwner) return null;
+  if (!isPlatformOwner || !showing) return null;
 
   return (
-    <>
-      {needsAttention ? (
-        <Pressable
-          onPress={() => router.push("/(tabs)/admin")}
-          style={[styles.banner, { paddingTop: Math.max(insets.top, 8) }]}
-        >
-          <Text style={styles.bannerText}>
-            🚨 Website needs attention — {state?.title ?? "open Command Center"}
-          </Text>
+    <View style={[styles.banner, { paddingTop: Math.max(insets.top, 8) }]}>
+      <Text style={styles.bannerText}>
+        Website needs attention — {state?.title ?? "open Command Center"}
+      </Text>
+      <View style={styles.actions}>
+        <Pressable accessibilityRole="button" onPress={closeAlarm} style={styles.closeBtn}>
+          <Text style={styles.closeText}>Close</Text>
         </Pressable>
-      ) : null}
-
-      <Modal visible={showModal} animationType="fade" transparent>
-        <View style={styles.overlay}>
-          <View style={styles.card}>
-            <Text style={styles.siren}>🚨</Text>
-            <Text style={styles.headline}>Website needs your attention</Text>
-            <Text style={styles.title}>{state?.title}</Text>
-            <Text style={styles.body}>{state?.english}</Text>
-            <Pressable
-              onPress={() => {
-                setSnoozedId(state?.incidentId ?? null);
-                router.push("/(tabs)/admin");
-              }}
-              style={styles.primary}
-            >
-              <Text style={styles.primaryText}>Open Command Center</Text>
-            </Pressable>
-            <Pressable onPress={() => setSnoozedId(state?.incidentId ?? null)} style={styles.secondary}>
-              <Text style={styles.secondaryText}>Keep the red banner — I’ll handle it</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
-    </>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            closeAlarm();
+            router.push("/(tabs)/admin");
+          }}
+          style={styles.openBtn}
+        >
+          <Text style={styles.openText}>Open Command Center</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -111,36 +130,45 @@ const styles = StyleSheet.create({
   banner: {
     backgroundColor: "#991b1b",
     paddingHorizontal: 14,
-    paddingBottom: 10,
+    paddingBottom: 12,
     zIndex: 50,
+    gap: 10,
   },
   bannerText: {
     color: "#fff",
     fontWeight: "800",
-    fontSize: 13,
+    fontSize: 14,
     textAlign: "center",
   },
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(127, 29, 29, 0.94)",
-    alignItems: "center",
+  actions: {
+    flexDirection: "row",
     justifyContent: "center",
-    padding: 20,
-  },
-  card: {
-    width: "100%",
-    maxWidth: 420,
-    backgroundColor: "#111827",
-    borderRadius: 16,
-    padding: 20,
     gap: 10,
   },
-  siren: { fontSize: 40, textAlign: "center" },
-  headline: { color: "#fecaca", fontSize: 18, fontWeight: "800", textAlign: "center" },
-  title: { color: "#fff", fontSize: 16, fontWeight: "700", textAlign: "center" },
-  body: { color: "#e5e7eb", fontSize: 14, lineHeight: 20 },
-  primary: { backgroundColor: "#dc2626", borderRadius: 10, paddingVertical: 12, alignItems: "center" },
-  primaryText: { color: "#fff", fontWeight: "800", fontSize: 15 },
-  secondary: { paddingVertical: 8, alignItems: "center" },
-  secondaryText: { color: "#fca5a5", fontSize: 13 },
+  closeBtn: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+    minWidth: 120,
+    alignItems: "center",
+  },
+  closeText: {
+    color: "#991b1b",
+    fontWeight: "800",
+    fontSize: 16,
+  },
+  openBtn: {
+    backgroundColor: "#7f1d1d",
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  openText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
+  },
 });
