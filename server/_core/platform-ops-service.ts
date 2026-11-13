@@ -3,7 +3,8 @@ import { TRPCError } from "@trpc/server";
 import { ENV } from "./env";
 import { isGoogleCloudAiConfigured } from "./google-ai";
 import { notifyOwner } from "./notification";
-import { shouldWakeOwner } from "../../lib/owner-emergency";
+import { isQuietOpsCategory, shouldWakeOwner } from "../../lib/owner-emergency";
+import { runOwnerCodeTamperScan } from "./owner-tamper-scan";
 import { sendOwnerEmergencyPush } from "./owner-push-service";
 import { writeOwnerComplianceSnapshot } from "./owner-compliance-archive-service";
 import {
@@ -82,6 +83,9 @@ export function shouldAutoIsolateIncident(input: {
   if (input.autoIsolateSection === false) return false;
   if (!input.affectedSectionId) return false;
   if (input.sectionAction === "reopen") return false;
+  if (isQuietOpsCategory(input.category, input.severity) && input.autoIsolateSection !== true) {
+    return false;
+  }
   const securityEvent =
     input.category === "security" ||
     input.category === "malware" ||
@@ -161,6 +165,39 @@ export function closeOwnerAuditClearanceIncidents(): number {
   return closed;
 }
 
+function isSetupNoteIncident(incident: OpsIncident): boolean {
+  if (incident.category === "config" || incident.category === "monitoring" || incident.category === "performance") {
+    return true;
+  }
+  if (incident.category !== "compliance") return false;
+  return /not configured|placeholder|not set|notifications not configured/i.test(
+    `${incident.title}\n${incident.problem}`,
+  );
+}
+
+/** Drop setup reminders (missing keys, notices) so they cannot hold the red banner up. */
+export function closeQuietOpsIncidents(): number {
+  let closed = 0;
+  for (const incident of incidents.values()) {
+    if (incident.status === "resolved" || incident.status === "rejected") continue;
+    if (!isSetupNoteIncident(incident)) continue;
+    if (incident.autoIsolated && incident.affectedSectionId) {
+      enablePlatformSection({
+        sectionId: incident.affectedSectionId,
+        ownerNote: "Reopened. A missing setup item is not an attack.",
+      });
+    }
+    incident.status = "resolved";
+    incident.updatedAt = new Date().toISOString();
+    incident.ownerNote =
+      "Closed automatically. A setup note is not a live attack, so the red banner stays down.";
+    incident.actionsTaken.push("Closed setup note. It does not keep the red banner up.");
+    rememberIncident(incident);
+    closed += 1;
+  }
+  return closed;
+}
+
 function collapseDuplicateCheckoutProbeIncidents(): void {
   const matches = [...incidents.values()]
     .filter((item) => item.title === CHECKOUT_PROBE_INCIDENT_TITLE && item.affectedSectionId === "commerce")
@@ -206,6 +243,7 @@ export async function hydratePlatformOpsState(): Promise<void> {
       }
       collapseDuplicateCheckoutProbeIncidents();
       closeOwnerAuditClearanceIncidents();
+      closeQuietOpsIncidents();
       hydrated = true;
     })();
   }
@@ -781,12 +819,38 @@ export function runPlatformHealthChecks(): HealthCheckFinding[] {
 export async function runPlatformHealthScan(): Promise<{
   findings: HealthCheckFinding[];
   incidentsCreated: OpsIncident[];
+  summary: string;
+  raisedIncidentId: string | null;
 }> {
+  closeQuietOpsIncidents();
   const findings = runPlatformHealthChecks();
   const incidentsCreated: OpsIncident[] = [];
+  let raisedIncidentId: string | null = null;
+
+  const tamper = runOwnerCodeTamperScan();
+  if (tamper.hits.length > 0) {
+    const listed = tamper.hits
+      .slice(0, 8)
+      .map((hit) => `${hit.path} line ${hit.line}: ${hit.reason}`)
+      .join(" ");
+    const incident = await createOpsIncident({
+      sourceAi: "platform-security-ai",
+      severity: "high",
+      category: "malware",
+      title: "Code check found a planted door",
+      problem: listed,
+      proposedFix:
+        "Read the listed lines in Command Center before you approve anything. The red banner stays up until this is closed.",
+      autoIsolateSection: false,
+      actionsTaken: ["Security AI scanned the code for a planted door"],
+    });
+    incidentsCreated.push(incident);
+    raisedIncidentId = incident.id;
+  }
 
   for (const finding of findings) {
     if (finding.severity === "low") continue;
+    if (isQuietOpsCategory(finding.category, finding.severity)) continue;
     const incident = await createOpsIncident({
       sourceAi: finding.sourceAi,
       severity: finding.severity,
@@ -810,21 +874,35 @@ export async function runPlatformHealthScan(): Promise<{
       ],
     });
     incidentsCreated.push(incident);
+    raisedIncidentId ??= incident.id;
   }
 
-  const actionable = findings.filter((finding) => finding.severity !== "low");
-  const english =
-    actionable.length === 0
-      ? findings.length === 0
-        ? "Health scan finished. Doctor AI found no new issues. Website and app checks look clear."
-        : "Health scan finished. No new incidents. Optional note: phone/email owner alerts (Forge) are not set — you still see alerts here in Owner Ops."
-      : `Health scan finished. Doctor AI found ${actionable.length} issue(s) and opened ${incidentsCreated.length} incident(s) for your review.`;
+  const notes = findings.filter(
+    (finding) => isQuietOpsCategory(finding.category, finding.severity) || finding.severity === "low",
+  );
+  const loud = findings.filter(
+    (finding) => !isQuietOpsCategory(finding.category, finding.severity) && finding.severity !== "low",
+  );
+  const noteText = notes.map((finding) => finding.title).join("; ");
+  const summary =
+    tamper.hits.length > 0
+      ? `Security scan found ${tamper.hits.length} problem(s) in the code. The red banner is on because something is wrong.`
+      : loud.length > 0
+        ? `Security scan found a live problem: ${loud.map((finding) => finding.title).join("; ")}. The red banner is on.`
+        : tamper.where === "none"
+          ? notes.length > 0
+            ? `I checked the live website. No attack is open, so the red banner stays off. This running copy does not include the source files, so I could not read every line of code. Setup notes, not alarms: ${noteText}.`
+            : "I checked the live website. No attack is open, so the red banner stays off. This running copy does not include the source files, so I could not read every line of code."
+          : notes.length > 0
+            ? `Scan finished. No one has tapped the code or the website. The red banner stays off. Setup notes, not alarms: ${noteText}.`
+            : "Scan finished. No one has tapped the code or the website. The red banner stays off.";
+  const english = summary;
 
   const lastScan = latestOwnerCommandEventByKind("health_scan");
   if (lastScan?.english !== english) {
     recordOwnerCommandEvent({
       kind: "health_scan",
-      severity: actionable.some((f) => f.severity === "high" || f.severity === "critical")
+      severity: tamper.hits.length > 0 || loud.some((f) => f.severity === "high" || f.severity === "critical")
         ? "high"
         : "info",
       sourceAiId: "platform-doctor-ai",
@@ -833,7 +911,7 @@ export async function runPlatformHealthScan(): Promise<{
     });
   }
 
-  return { findings, incidentsCreated };
+  return { findings, incidentsCreated, summary, raisedIncidentId };
 }
 
 export function inferIncidentFromOpsChat(

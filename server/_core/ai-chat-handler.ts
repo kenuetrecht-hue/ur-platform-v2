@@ -87,10 +87,11 @@ import {
 } from "./owner-price-catalog-service";
 import { tryApplyWorldDirectorCommand } from "./ur-world-locker-service";
 import { tryApplyLookFundOwnerCommand } from "./ur-world-look-fund-service";
+import { isOwnerProtectionScanRequest } from "../../lib/owner-audit-clearance";
 import {
   createOpsIncident,
   inferIncidentFromOpsChat,
-  runPlatformHealthChecks,
+  runPlatformHealthScan,
 } from "./platform-ops-service";
 import { processPitchConsentFlow } from "./ai-pitch-consent-service";
 import {
@@ -645,12 +646,15 @@ export async function handleCreatorAiChat(params: {
 
     let opsIncidentId: string | undefined;
     if (isOwnerOnlyPlatformAi(params.creatorId) && params.ctx.isPlatformOwner) {
-      const healthContext = runPlatformHealthChecks();
-      if (healthContext.length > 0 && /scan|status|health|check|monitor/.test(message.toLowerCase())) {
-        reply += `\n\n📊 **Live health scan:** ${healthContext.length} issue(s) detected. See Owner Ops Console for incidents awaiting your approval.`;
+      if (isOwnerProtectionScanRequest(message)) {
+        const scan = await runPlatformHealthScan();
+        reply += `\n\n${scan.summary}`;
+        if (scan.raisedIncidentId) opsIncidentId = scan.raisedIncidentId;
       }
 
-      const inferred = inferIncidentFromOpsChat(params.creatorId, message, reply);
+      const inferred = isOwnerProtectionScanRequest(message)
+        ? null
+        : inferIncidentFromOpsChat(params.creatorId, message, reply);
       if (inferred?.shouldFile) {
         const incident = await createOpsIncident({
           sourceAi: params.creatorId as import("./platform-ops-ai").OwnerPlatformAiId,

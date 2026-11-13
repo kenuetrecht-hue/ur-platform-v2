@@ -3,6 +3,8 @@ import os from "os";
 import path from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { shouldWakeOwner } from "../lib/owner-emergency";
+import { isOwnerProtectionScanRequest } from "../lib/owner-audit-clearance";
+import { scanSourceForTamper } from "../lib/owner-tamper-scan";
 import {
   buildOwnerComplianceArchive,
   writeOwnerComplianceSnapshot,
@@ -12,7 +14,9 @@ import { isOwnerAuditClearanceRequest } from "../lib/owner-audit-clearance";
 import { getOwnerEmergencyState } from "../server/_core/owner-emergency-service";
 import {
   closeOwnerAuditClearanceIncidents,
+  closeQuietOpsIncidents,
   createOpsIncident,
+  runPlatformHealthScan,
   inferIncidentFromOpsChat,
   _resetOpsStateForTests,
 } from "../server/_core/platform-ops-service";
@@ -31,6 +35,9 @@ describe("owner emergency wake rules", () => {
     expect(shouldWakeOwner({ severity: "critical" })).toBe(true);
     expect(shouldWakeOwner({ severity: "low", autoIsolated: true })).toBe(true);
     expect(shouldWakeOwner({ severity: "low", category: "malware" })).toBe(true);
+    expect(shouldWakeOwner({ severity: "high", category: "config" })).toBe(false);
+    expect(shouldWakeOwner({ severity: "high", category: "compliance" })).toBe(false);
+    expect(shouldWakeOwner({ severity: "high", category: "config", autoIsolated: true })).toBe(false);
   });
 });
 
@@ -165,5 +172,52 @@ describe("owner emergency state", () => {
     );
     expect(filed?.shouldFile).toBe(true);
     expect(filed?.category).toBe("malware");
+  });
+
+  it("keeps the red banner down for a missing setup key", async () => {
+    await createOpsIncident({
+      sourceAi: "platform-doctor-ai",
+      severity: "high",
+      category: "config",
+      title: "Gemini AI not configured",
+      problem: "CONTENTMATE_GEMINI_API_KEY is missing.",
+      proposedFix: "Add the key in Railway.",
+      affectedSectionId: "ai_chat",
+    });
+    expect(getPlatformSectionState("ai_chat").enabled).toBe(true);
+    expect(getOwnerEmergencyState(true).active).toBe(false);
+  });
+
+  it("closes an old setup alarm and reopens the section it shut off", async () => {
+    await createOpsIncident({
+      sourceAi: "platform-doctor-ai",
+      severity: "high",
+      category: "config",
+      title: "Gemini AI not configured",
+      problem: "CONTENTMATE_GEMINI_API_KEY is missing.",
+      proposedFix: "Add the key in Railway.",
+      affectedSectionId: "ai_chat",
+      autoIsolateSection: true,
+    });
+    expect(getPlatformSectionState("ai_chat").enabled).toBe(false);
+    expect(closeQuietOpsIncidents()).toBe(1);
+    expect(getPlatformSectionState("ai_chat").enabled).toBe(true);
+    expect(getOwnerEmergencyState(true).active).toBe(false);
+  });
+
+  it("runs a code scan without raising the banner when nothing is planted", async () => {
+    expect(isOwnerProtectionScanRequest("Please scan the website and the code for anyone who tapped in")).toBe(
+      true,
+    );
+    const planted = scanSourceForTamper([
+      { path: "server/routers/evil.ts", text: "function door(){ eval(userText) }" },
+      { path: "server/_core/coder-sandbox-execution.ts", text: 'if (file.content.includes("eval(")) {}' },
+    ]);
+    expect(planted).toHaveLength(1);
+    expect(planted[0]?.path).toBe("server/routers/evil.ts");
+
+    const scan = await runPlatformHealthScan();
+    expect(scan.summary).toMatch(/red banner stays off/i);
+    expect(getOwnerEmergencyState(true).active).toBe(false);
   });
 });

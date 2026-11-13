@@ -98,7 +98,7 @@ describe("social video posts", () => {
       visibility: "friends",
       rightsConfirmed: true,
     });
-    expect(() => recordPostShare(privatePost.id)).toThrow(/public free posts/);
+    expect(() => recordPostShare(privatePost.id)).toThrow(/Only a public post can be shared/);
     expect(() => assertVideoPostForRating(privatePost.id)).toThrow(/only videos/i);
   });
 });

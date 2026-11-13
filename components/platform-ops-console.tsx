@@ -67,6 +67,7 @@ export function PlatformOpsConsole({
   const [approveIncidentId, setApproveIncidentId] = useState<string | null>(null);
   const [assignBrief, setAssignBrief] = useState("");
   const [assignHint, setAssignHint] = useState<string | null>(null);
+  const [scanNote, setScanNote] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialAiId && OWNER_PLATFORM_OPS_CATALOG.some((c) => c.id === initialAiId)) {
@@ -108,7 +109,8 @@ export function PlatformOpsConsole({
     enabled: hasAdminPermission("view_notifications"),
   });
   const runScan = trpc.platformOps.runHealthScan.useMutation({
-    onSuccess: () => {
+    onSuccess: (result) => {
+      setScanNote(result.summary);
       void utils.platformOps.listIncidents.invalidate();
       void utils.platformOps.dashboard.invalidate();
     },
@@ -322,6 +324,9 @@ export function PlatformOpsConsole({
           <Text style={styles.scanBtnText}>Run security & health scan</Text>
         )}
       </Pressable>
+      ) : null}
+      {show("sections") && scanNote ? (
+        <Text style={{ color: colors.foreground, fontSize: 14, lineHeight: 20 }}>{scanNote}</Text>
       ) : null}
 
       {show("staff") ? <OwnerComplimentaryTextAccessPanel /> : null}

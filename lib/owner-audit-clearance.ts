@@ -18,9 +18,18 @@ export function isOwnerAuditClearanceRequest(text: string): boolean {
     /red alert banner/.test(lower);
 
   const wantsAudit =
-    /security audit|full security scan|scan for backdoors?|check(ing)? for backdoors?|no backdoors?|deep dive|tamper|static analy/.test(
+    /security audit|full security scan|scan for backdoors?|check(ing)? for backdoors?|no backdoors?|deep dive|tamper|static analy|tapped into|tap into/.test(
       lower,
-    ) && /user requested|please |run a |check (the )?(code|website|site)|make sure|go in and/.test(lower);
+    ) && /user requested|please |run a |check|make sure|go in and|scan/.test(lower);
 
-  return wantsBannerOff || wantsAudit;
+  const wantsScan =
+    /scan/.test(lower) && /code|website|site|backdoor|tamper|tapped|security|health/.test(lower);
+
+  return wantsBannerOff || wantsAudit || wantsScan;
+}
+
+/** Owner asking Doctor, Administration, or Security to look for a tap-in. */
+export function isOwnerProtectionScanRequest(text: string): boolean {
+  const lower = text.toLowerCase();
+  return /scan/.test(lower) && /code|website|site|backdoor|tamper|tapped|security|health/.test(lower);
 }

@@ -9,9 +9,9 @@ describe("website and app friendliness", () => {
     const home = readFileSync("components/techno-futurist-experience.tsx", "utf8");
     const signup = readFileSync("app/(auth)/signup.tsx", "utf8");
     expect(home).toContain(">Login<");
+    expect(home).toContain(">Sign up<");
     expect(home).toContain("HomepageSignIn");
-    expect(home).toContain("RETURNING_LOGIN_HREF");
-    expect(home).toContain("JOIN_ACCOUNT_HREF");
+    expect(home).toContain('landing-page-tab-${tab.id}');
     expect(home).not.toContain("Create account →");
     expect(signup).toContain("FinishAccountAfterIdPass");
     expect(SIGNUP_PAGE_TITLE).toBe("Sign up");
