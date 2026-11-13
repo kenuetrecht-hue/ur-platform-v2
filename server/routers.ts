@@ -26,6 +26,7 @@ import { coderSandboxRouter } from "./routers/coder-sandbox-router";
 import { gameDevSandboxRouter } from "./routers/game-dev-sandbox-router";
 import { forgeAgentRouter } from "./routers/forge-agent-router";
 import { aiLiveSessionRouter } from "./routers/ai-live-session-router";
+import { liveFeedRouter } from "./routers/live-feed-router";
 import { partnerDashboardRouter } from "./routers/partner-dashboard-router";
 import { socialRouter } from "./routers/social-router";
 import { faceFilterRouter } from "./routers/face-filter-router";
@@ -250,6 +251,7 @@ export const appRouter = router({
   gameDevSandbox: gameDevSandboxRouter,
   forgeAgent: forgeAgentRouter,
   aiLiveSessions: aiLiveSessionRouter,
+  liveFeed: liveFeedRouter,
   partnerDashboard: partnerDashboardRouter,
   social: socialRouter,
   faceFilters: faceFilterRouter,

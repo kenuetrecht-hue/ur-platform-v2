@@ -951,6 +951,7 @@ export const socialRouter = router({
           authorUserId: z.string().optional(),
           limit: z.number().int().min(1).max(50).optional(),
           cursor: z.string().optional(),
+          publicOnly: z.boolean().optional(),
         })
         .optional(),
     )
@@ -963,6 +964,7 @@ export const socialRouter = router({
         interests: getMemberInterests(socialUser(ctx)),
         limit: input?.limit,
         cursor: input?.cursor,
+        publicOnly: input?.publicOnly,
       }),
     ),
 
@@ -1156,7 +1158,7 @@ export const socialRouter = router({
 
   listComments: secureProcedure("social")
     .input(z.object({ postId: z.string().uuid(), limit: z.number().int().min(1).max(100).optional() }))
-    .query(({ input }) => listPostComments(input.postId, input.limit)),
+    .query(({ ctx, input }) => listPostComments(input.postId, input.limit, socialUser(ctx))),
 
   sharePost: secureProcedure("social")
     .input(z.object({ postId: z.string().uuid() }))
@@ -1174,7 +1176,7 @@ export const socialRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       await assertUserIsAgeVerified(ctx.user.id);
-      assertVideoPostForRating(input.postId);
+      assertVideoPostForRating(input.postId, socialUser(ctx));
       return rateVideo({
         contentId: input.postId,
         kind: "social_video",

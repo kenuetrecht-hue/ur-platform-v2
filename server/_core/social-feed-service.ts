@@ -28,7 +28,7 @@ import { getVideoRating, type VideoRatingSummary } from "./video-rating-service"
 import { CREATOR_FREE_VIDEO_SHARE_NOTICE } from "../../lib/creator-free-content-policy";
 import { rankForMemberInterests } from "../../lib/content-rank";
 import { FEED_PIN_HOURS } from "../../lib/social-money";
-import { hasPaidChannelSubscription } from "./creator-audience-service";
+import { hasPaidChannelSubscription, isFollowingCreator } from "./creator-audience-service";
 
 export type PostVisibility = "public" | "friends" | "members";
 export type PostKind = "text" | "photo" | "video" | "link";
@@ -286,7 +286,8 @@ function canViewPost(post: FeedPost, viewerUserId: string): boolean {
     return hasPaidChannelSubscription(viewerUserId, post.authorUserId);
   }
   const friends = listFriends(viewerUserId);
-  return friends.some((f) => f.peerUserId === post.authorUserId);
+  if (friends.some((f) => f.peerUserId === post.authorUserId)) return true;
+  return isFollowingCreator(viewerUserId, post.authorUserId);
 }
 
 export function createFeedPost(params: {
@@ -431,17 +432,25 @@ export function deleteFeedPost(params: { postId: string; userId: string }): bool
   return true;
 }
 
-export function assertVideoPostForRating(postId: string): void {
+export function assertVideoPostForRating(postId: string, viewerUserId?: string): void {
   const post = posts.get(postId);
   if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found." });
+  if (viewerUserId) assertCanViewPost(post, viewerUserId);
   if (post.kind !== "video" && !post.videoUrl) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Only videos can be star-rated." });
+  }
+}
+
+function assertCanViewPost(post: FeedPost, viewerUserId: string): void {
+  if (!canViewPost(post, viewerUserId)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "You cannot see this post." });
   }
 }
 
 export function togglePostLike(params: { postId: string; userId: string }): { liked: boolean; likeCount: number } {
   const post = posts.get(params.postId);
   if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found." });
+  assertCanViewPost(post, params.userId);
   const set = likes.get(params.postId) ?? new Set<string>();
   let liked: boolean;
   if (set.has(params.userId)) {
@@ -496,6 +505,7 @@ export function addPostComment(params: {
 }): FeedComment {
   const post = posts.get(params.postId);
   if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found." });
+  assertCanViewPost(post, params.authorUserId);
   const body = params.body.trim().slice(0, 1000);
   if (!body) throw new TRPCError({ code: "BAD_REQUEST", message: "Comment cannot be empty." });
 
@@ -517,7 +527,10 @@ export function addPostComment(params: {
   return comment;
 }
 
-export function listPostComments(postId: string, limit = 50): FeedComment[] {
+export function listPostComments(postId: string, limit = 50, viewerUserId?: string): FeedComment[] {
+  const post = posts.get(postId);
+  if (!post) return [];
+  if (viewerUserId && !canViewPost(post, viewerUserId)) return [];
   return comments
     .filter((c) => c.postId === postId)
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
@@ -533,7 +546,7 @@ export function recordPostShare(postId: string): {
   if (post.visibility !== "public") {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only public free posts can be shared. Friends-only posts stay with friends.",
+      message: "Only a public post can be shared. A private post stays with friends and followers.",
     });
   }
   const count = (shares.get(postId) ?? 0) + 1;
@@ -562,9 +575,14 @@ export function getFeed(params: {
   interests?: string[];
   limit?: number;
   cursor?: string;
+  /** Home browse: only posts the creator marked free for everyone. */
+  publicOnly?: boolean;
 }): { posts: FeedPostView[]; nextCursor: string | null } {
   const limit = Math.min(params.limit ?? 30, 50);
   let list = [...posts.values()].filter((p) => canViewPost(p, params.viewerUserId));
+  if (params.publicOnly) {
+    list = list.filter((p) => p.visibility === "public");
+  }
 
   if (params.authorUserId) {
     list = list.filter((p) => p.authorUserId === params.authorUserId);

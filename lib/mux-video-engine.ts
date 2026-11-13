@@ -11,6 +11,9 @@ export const MUX_VIDEO_PURPOSES = [
 
 export type MuxVideoPurpose = (typeof MUX_VIDEO_PURPOSES)[number];
 
+/** Low-latency live ingest. The stream key stays on the server until the host asks for it. */
+export const MUX_LIVE_RTMP_URL = "rtmps://global-live.mux.com:443/app";
+
 export const MUX_PLAYBACK_TOKEN_TTL = "2h";
 export const MUX_DIRECT_UPLOAD_MAX_BYTES = 5 * 1024 * 1024 * 1024;
 export const MUX_UPLOAD_TIMEOUT_SECONDS = 3600;

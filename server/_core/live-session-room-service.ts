@@ -80,7 +80,8 @@ function assertRoomAccess(params: {
 }): NonNullable<ReturnType<typeof getLiveSession>> {
   const session = getLiveSession(params.sessionId);
   if (!session) throw new TRPCError({ code: "NOT_FOUND", message: "Session not found." });
-  if (!params.isPlatformOwner && !userHasSessionAccess(params.sessionId, params.userId)) {
+  const isHost = session.hostUserId === params.userId;
+  if (!params.isPlatformOwner && !isHost && !userHasSessionAccess(params.sessionId, params.userId)) {
     throw new TRPCError({ code: "FORBIDDEN", message: "Ticket required to join this room." });
   }
   return session;
@@ -194,6 +195,7 @@ export function getLiveSessionRoomState(params: {
 
   return {
     sessionId: session.id,
+    isHost: params.isPlatformOwner || session.hostUserId === params.userId,
     phase: phaseInfo.phase,
     showOvertimeNotice: phaseInfo.showOvertimeNotice,
     overtimeNotice: phaseInfo.showOvertimeNotice

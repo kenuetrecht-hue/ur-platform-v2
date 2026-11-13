@@ -7,6 +7,7 @@ import { createHmac, createPrivateKey, timingSafeEqual, randomUUID } from "crypt
 import { SignJWT } from "jose";
 import { TRPCError } from "@trpc/server";
 import {
+  MUX_LIVE_RTMP_URL,
   MUX_PLAYBACK_TOKEN_TTL,
   MUX_UPLOAD_TIMEOUT_SECONDS,
   muxHlsUrl,
@@ -66,6 +67,20 @@ const uploads = new Map<string, MuxUploadRecord>();
 const uploadsByMuxId = new Map<string, string>();
 const uploadsByAssetId = new Map<string, string>();
 
+export type MuxLiveRecord = {
+  id: string;
+  muxLiveStreamId: string;
+  streamKey: string;
+  ownerUserId: string;
+  sessionId: string;
+  playbackId?: string;
+  status: "idle" | "active" | "disabled";
+  createdAt: string;
+};
+
+const liveStreams = new Map<string, MuxLiveRecord>();
+const liveBySession = new Map<string, string>();
+
 export function getMuxEnginePublicStatus() {
   return {
     engine: "mux" as const,
@@ -83,6 +98,8 @@ export function _resetMuxEngineForTests(): void {
   uploads.clear();
   uploadsByMuxId.clear();
   uploadsByAssetId.clear();
+  liveStreams.clear();
+  liveBySession.clear();
   muxFetch = fetch;
 }
 
@@ -207,6 +224,107 @@ export async function createMuxDirectUpload(params: {
   uploads.set(record.id, record);
   uploadsByMuxId.set(record.muxUploadId, record.id);
   return record;
+}
+
+export async function createOrGetMuxLiveStream(params: {
+  ownerUserId: string;
+  sessionId: string;
+}): Promise<MuxLiveRecord> {
+  const existingId = liveBySession.get(params.sessionId);
+  const existing = existingId ? liveStreams.get(existingId) : null;
+  if (existing) {
+    return refreshMuxLiveStream(existing);
+  }
+
+  const created = await muxRequest<{
+    data: {
+      id: string;
+      stream_key: string;
+      status?: string;
+      playback_ids?: Array<{ id?: string; policy?: string }>;
+    };
+  }>("/live-streams", {
+    method: "POST",
+    body: JSON.stringify({
+      playback_policy: ["signed"],
+      latency_mode: "low",
+      reconnect_window: 60,
+      new_asset_settings: { playback_policy: ["signed"] },
+      passthrough: JSON.stringify({
+        purpose: "ai_class",
+        ownerUserId: params.ownerUserId,
+        sessionId: params.sessionId,
+      }),
+    }),
+  });
+
+  const playbackId =
+    created.data.playback_ids?.find((item) => item.policy === "signed")?.id ??
+    created.data.playback_ids?.[0]?.id;
+  const record: MuxLiveRecord = {
+    id: randomUUID(),
+    muxLiveStreamId: created.data.id,
+    streamKey: created.data.stream_key,
+    ownerUserId: params.ownerUserId,
+    sessionId: params.sessionId,
+    playbackId,
+    status: created.data.status === "active" ? "active" : "idle",
+    createdAt: new Date().toISOString(),
+  };
+  liveStreams.set(record.id, record);
+  liveBySession.set(params.sessionId, record.id);
+  return record;
+}
+
+export function getMuxLiveForSession(sessionId: string): MuxLiveRecord | null {
+  const id = liveBySession.get(sessionId);
+  return id ? liveStreams.get(id) ?? null : null;
+}
+
+async function refreshMuxLiveStream(record: MuxLiveRecord): Promise<MuxLiveRecord> {
+  try {
+    const latest = await muxRequest<{
+      data: { status?: string; playback_ids?: Array<{ id?: string; policy?: string }> };
+    }>(`/live-streams/${record.muxLiveStreamId}`);
+    if (latest.data.status === "active" || latest.data.status === "idle" || latest.data.status === "disabled") {
+      record.status = latest.data.status;
+    }
+    const playbackId =
+      latest.data.playback_ids?.find((item) => item.policy === "signed")?.id ??
+      latest.data.playback_ids?.[0]?.id;
+    if (playbackId) record.playbackId = playbackId;
+    liveStreams.set(record.id, record);
+  } catch {
+    /* Keep the last known status if Mux is briefly unreachable. */
+  }
+  return record;
+}
+
+export async function refreshMuxLiveForSession(sessionId: string): Promise<MuxLiveRecord | null> {
+  const record = getMuxLiveForSession(sessionId);
+  if (!record) return null;
+  return refreshMuxLiveStream(record);
+}
+
+export function publicMuxLiveHost(record: MuxLiveRecord) {
+  return {
+    id: record.id,
+    sessionId: record.sessionId,
+    status: record.status,
+    playbackId: record.playbackId ?? null,
+    rtmpUrl: MUX_LIVE_RTMP_URL,
+    streamKey: record.streamKey,
+  };
+}
+
+/** Ticket holders see status and a playback id. The stream key is not included. */
+export function publicMuxLiveViewer(record: MuxLiveRecord) {
+  return {
+    id: record.id,
+    sessionId: record.sessionId,
+    status: record.status,
+    playbackId: record.playbackId ?? null,
+  };
 }
 
 export function publicMuxUpload(record: MuxUploadRecord) {

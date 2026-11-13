@@ -67,14 +67,20 @@ export const AGE_VERIFY_TITLE = "ID front, ID back, and a live selfie";
 export const AGE_VERIFY_WHAT_TO_DO =
   "Photograph a government ID (front and back) and a live selfie of your face. Use your own ID. The selfie must be your face — not a picture of the ID.";
 
+export const AGE_VERIFY_UPFRONT = [
+  "UR does not keep the ID pictures or the selfie. A third party (Google) checks them.",
+  "Everyone on UR has to be 18 or older.",
+  "This stops bots from taking over the site, and from stealing your content and posting it again.",
+] as const;
+
 export const AGE_VERIFY_WHY = [
-  "We do this to keep fraud off the website — fake names, stolen accounts, and people pretending to be someone else.",
-  "We also do this so creator content stays with the creator who made it. After this check, your creator name is locked. Other people cannot republish your work as their own and farm your views.",
-  "UR Platform is also for adults 18 and older. AI chat, social features, and payments are not for minors.",
+  "Everyone on this website has to be 18 or older.",
+  "This stops bots from taking over the website.",
+  "It also stops bots from stealing your content and posting it again as if it were theirs.",
 ] as const;
 
 export const AGE_VERIFY_THIRD_PARTY =
-  "UR Platform does not keep the ID pictures. A third party — Google’s AI checker — looks at the three photos only long enough to confirm you are 18+ and that the selfie is the same person as the ID. It is told not to write down ID numbers or your address.";
+  "UR Platform does not keep the ID pictures. A third party (Google) collects and checks them, only long enough to confirm you are 18 or older and that the selfie is the same person as the ID. It is told not to write down ID numbers or your address. This also stops bots from taking over the website and from stealing your content and posting it again.";
 
 export const AGE_VERIFY_WHAT_WE_KEEP =
   "After the check, UR keeps only: pass or fail, the time it passed, and a one-way fingerprint (hash) of the three files so we know the check happened. We do not store a reusable copy of your ID or selfie on this website.";

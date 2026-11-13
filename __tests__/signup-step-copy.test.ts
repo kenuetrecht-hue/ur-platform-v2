@@ -1,3 +1,4 @@
+import { readFileSync } from "fs";
 import { describe, expect, it } from "vitest";
 import {
   AGE_VERIFY_PHOTO_HINTS,
@@ -67,11 +68,26 @@ describe("Signup and ID-check customer copy", () => {
   it("says UR does not keep the ID pictures and names the third-party checker", () => {
     const text = haystack();
     expect(text).toContain("does not keep the id pictures");
+    expect(text).toContain("third party");
     expect(text).toContain("google");
+    expect(text).toContain("18 or older");
+    expect(text).toContain("bots");
+    expect(text).toContain("posting it again");
     expect(text).toContain("hash");
     expect(text).not.toContain("jumio");
     expect(text).not.toContain("persona");
     expect(text).not.toContain("stripe identity");
+  });
+
+  it("shows that notice on the ID page, the selfie page, and Sign up", () => {
+    const id = readFileSync("components/signup-id-pictures.tsx", "utf8");
+    const selfie = readFileSync("components/signup-selfie-check.tsx", "utf8");
+    const welcome = readFileSync("components/techno-futurist-experience.tsx", "utf8");
+    expect(id).toContain("AgeVerifyUpfrontNotice");
+    expect(selfie).toContain("AgeVerifyUpfrontNotice");
+    expect(welcome).toContain("AgeVerifyUpfrontNotice");
+    expect(readFileSync("components/age-kyc-photo-capture.tsx", "utf8")).toContain("AgeVerifyUpfrontNotice");
+    expect(readFileSync("components/native-age-kyc-camera.tsx", "utf8")).toContain("AgeVerifyUpfrontNotice");
   });
 
   it("lists what stays on the website and what does not", () => {

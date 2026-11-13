@@ -15,6 +15,7 @@ import { BillingStatePicker } from "@/components/billing-state-picker";
 import { getClientPlatform, openExternalCheckoutUrl } from "@/lib/web-checkout";
 import { ChatSideComposer } from "@/components/chat-side-composer";
 import { ChatComposerInput } from "@/components/chat-composer-input";
+import { LiveClassBroadcast } from "@/components/live-class-broadcast";
 import { CHAT_COMPOSER_SEND } from "@/lib/chat-composer-layout";
 
 export type LiveSessionRoomPanelProps = {
@@ -99,24 +100,31 @@ export function LiveSessionRoomPanel({ sessionId, creatorName, onLeft }: LiveSes
     );
   }
 
+  const broadcast = <LiveClassBroadcast sessionId={sessionId} isHost={data.isHost} />;
+
   if (data.overtime.leftAt) {
     return (
-      <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+      <View style={{ gap: 10 }}>
+        {broadcast}
+        <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
         <Text style={[styles.title, { color: colors.foreground }]}>You left the session</Text>
         <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>
           Overtime total: {data.overtime.accruedDisplay}. Thanks for joining {creatorName}&apos;s
           class.
         </Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.scrollContent}
-      keyboardShouldPersistTaps="handled"
-    >
+    <View style={{ gap: 10 }}>
+      {broadcast}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
       {data.showOvertimeNotice && data.overtimeNotice ? (
         <View style={[styles.notice, { backgroundColor: "#f39c1218", borderColor: "#f39c12" }]}>
           <Text style={[styles.noticeTitle, { color: colors.foreground }]}>Overtime Q&A coming up</Text>
@@ -384,7 +392,8 @@ export function LiveSessionRoomPanel({ sessionId, creatorName, onLeft }: LiveSes
             optIn.error?.message}
         </Text>
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 

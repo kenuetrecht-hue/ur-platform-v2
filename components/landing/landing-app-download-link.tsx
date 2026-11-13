@@ -48,8 +48,9 @@ export function LandingAppDownloadLink({ variant }: { variant: "top" | "hero" | 
         accessibilityRole="button"
         accessibilityLabel="Download the UR app from this website"
       >
-        <Text style={textStyle}>{standalone ? APP_ALREADY_INSTALLED : label}</Text>
+        <Text style={textStyle}>{label}</Text>
       </Pressable>
+      {standalone ? <Text style={styles.ready}>{APP_ALREADY_INSTALLED}</Text> : null}
       {iphoneBrowser || showIphoneSteps ? (
         <Text style={styles.failNote}>{IPHONE_HOME_SCREEN_NOTE}</Text>
       ) : null}
@@ -63,8 +64,7 @@ export function LandingDeviceDownloadLinks({
   variant?: "hero" | "footer" | "login";
 }) {
   const { install, standalone, failedSurface, showIphoneSteps } = useAppInstallActions();
-  const rowStyle =
-    variant === "login" ? styles.loginRow : variant === "hero" ? styles.heroRow : styles.footerRow;
+  const rowStyle = styles.stack;
   const btnStyle = variant === "login" ? styles.login : variant === "hero" ? styles.hero : styles.footer;
   const textStyle =
     variant === "login" ? styles.loginText : variant === "hero" ? styles.heroText : styles.footerText;
@@ -175,27 +175,30 @@ const styles = StyleSheet.create({
   hero: {
     borderWidth: 1,
     borderColor: T.gold,
-    borderRadius: 999,
+    borderRadius: 14,
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 14,
+    width: "100%",
+    alignItems: "center",
     ...webPointer,
   },
-  heroText: { color: T.gold, fontWeight: "800", fontSize: 15 },
-  footer: { paddingVertical: 4, ...webPointer },
-  footerText: { color: T.electric, fontWeight: "700", fontSize: 14 },
+  heroText: { color: T.gold, fontWeight: "800", fontSize: 15, textAlign: "center" },
+  footer: {
+    borderWidth: 1,
+    borderColor: T.electric,
+    borderRadius: 14,
+    paddingVertical: 14,
+    width: "100%",
+    alignItems: "center",
+    ...webPointer,
+  },
+  footerText: { color: T.electric, fontWeight: "700", fontSize: 15, textAlign: "center" },
   inline: { paddingVertical: 2, ...webPointer },
   inlineText: { color: T.electric, fontWeight: "800", fontSize: 14 },
-  heroRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  stack: {
+    width: "100%",
     gap: 10,
-    width: "100%",
-  },
-  footerRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-    width: "100%",
+    alignItems: "stretch",
   },
   loginRow: {
     width: "100%",

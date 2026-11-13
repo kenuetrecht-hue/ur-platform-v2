@@ -64,7 +64,7 @@ const BEATS: Array<{
     id: "privacy",
     title: "We are not keeping the album",
     narration:
-      "Promise. UR does not keep the ID pictures. A checker looks only to confirm you are 18 or older, and that the selfie matches. We keep pass or fail, and a one-way fingerprint. Not a reusable copy. After you pass, your creator name locks so your work stays yours. That is the thank-you gift.",
+      "Promise. UR does not keep the ID pictures. A third party, Google, checks them. Everyone here has to be 18 or older. It also stops bots from taking over the site and from stealing your content and posting it again. We keep pass or fail, and a one-way fingerprint. Not a reusable copy.",
     caption: "Pictures are not stored",
   },
   {

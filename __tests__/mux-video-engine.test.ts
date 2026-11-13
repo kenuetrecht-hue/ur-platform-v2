@@ -3,8 +3,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   applyMuxAssetEvent,
   createMuxDirectUpload,
+  createOrGetMuxLiveStream,
   getMuxEnginePublicStatus,
   parseMuxWebhookEvent,
+  publicMuxLiveHost,
+  publicMuxLiveViewer,
   publicMuxUpload,
   signMuxPlayback,
   verifyMuxWebhookSignature,
@@ -205,6 +208,67 @@ describe("mux video engine", () => {
     expect(signed.playbackId).toBe("playbackABC123");
     expect(signed.hlsUrl).toContain("stream.mux.com/playbackABC123.m3u8");
     expect(signed.token.length).toBeGreaterThan(20);
+  });
+
+  it("refuses a live broadcast when Mux tokens are missing", async () => {
+    await expect(
+      createOrGetMuxLiveStream({ ownerUserId: "host-1", sessionId: "00000000-0000-4000-8000-000000000099" }),
+    ).rejects.toThrow(/not configured/);
+  });
+
+  it("opens one low-latency signed live stream and keeps the key off the viewer view", async () => {
+    process.env.MUX_TOKEN_ID = "tid";
+    process.env.MUX_TOKEN_SECRET = "tsec";
+    let posts = 0;
+    _setMuxFetchForTests(async (url, init) => {
+      if (init?.method === "POST") {
+        posts += 1;
+        const body = JSON.parse(String(init.body ?? "{}")) as {
+          playback_policy?: string[];
+          latency_mode?: string;
+          new_asset_settings?: { playback_policy?: string[] };
+        };
+        expect(body.playback_policy).toEqual(["signed"]);
+        expect(body.latency_mode).toBe("low");
+        expect(body.new_asset_settings?.playback_policy).toEqual(["signed"]);
+        expect(String(url)).toContain("/live-streams");
+        return new Response(
+          JSON.stringify({
+            data: {
+              id: "live_1",
+              stream_key: "secret-stream-key",
+              status: "idle",
+              playback_ids: [{ id: "play_live_1", policy: "signed" }],
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          data: { status: "active", playback_ids: [{ id: "play_live_1", policy: "signed" }] },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    });
+
+    const first = await createOrGetMuxLiveStream({
+      ownerUserId: "host-1",
+      sessionId: "00000000-0000-4000-8000-000000000099",
+    });
+    const second = await createOrGetMuxLiveStream({
+      ownerUserId: "host-1",
+      sessionId: "00000000-0000-4000-8000-000000000099",
+    });
+    expect(posts).toBe(1);
+    expect(second.streamKey).toBe(first.streamKey);
+    expect(second.status).toBe("active");
+    const host = publicMuxLiveHost(second);
+    const viewer = publicMuxLiveViewer(second);
+    expect(host.rtmpUrl).toBe("rtmps://global-live.mux.com:443/app");
+    expect(host.streamKey).toBe("secret-stream-key");
+    expect(viewer).not.toHaveProperty("streamKey");
+    expect(JSON.stringify(viewer)).not.toContain("secret-stream-key");
   });
 });
 

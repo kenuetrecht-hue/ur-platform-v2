@@ -7,6 +7,7 @@ import { guideBoxInView, type GuideBox } from "@/lib/age-kyc-camera-guide";
 import { photoFromNativeCapture } from "@/lib/age-kyc-photo-picker";
 import type { AgeKycPickedPhoto } from "@/lib/age-kyc-photo-picker";
 import type { AgeKycSlot } from "@/components/age-kyc-photo-capture";
+import { AgeVerifyUpfrontNotice } from "@/components/age-verify-upfront-notice";
 
 let stopOpenNativeCamera: (() => void) | null = null;
 let openNativeSlot: AgeKycSlot | null = null;
@@ -108,6 +109,7 @@ export function NativeAgeKycCamera({ slot, kind, cameraLabel, onPicked, onError 
   if (!live) {
     return (
       <View style={{ gap: 10 }}>
+        <AgeVerifyUpfrontNotice />
         <PrimaryActionButton
           testID={`age-kyc-live-${slot}`}
           label={cameraLabel}
@@ -194,6 +196,7 @@ export function NativeAgeKycCamera({ slot, kind, cameraLabel, onPicked, onError 
           ? `Fit the whole ${boxLabel.toLowerCase()} inside the yellow box. All four corners.`
           : "Put your face inside the yellow circle."}
       </Text>
+      <AgeVerifyUpfrontNotice />
       <PrimaryActionButton
         testID={`age-kyc-snap-${slot}`}
         label={ready ? (snapping ? "Saving picture…" : "Take this picture") : "Camera opening…"}

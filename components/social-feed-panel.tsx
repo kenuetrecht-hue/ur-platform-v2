@@ -179,7 +179,11 @@ function PostCard({
           </Text>
           <Text style={{ color: colors.muted, fontSize: 11 }}>
             {timeAgo(post.createdAt)} · {post.kind}
-            {post.membersOnly ? " · Members" : ""}
+            {post.visibility === "public"
+              ? " · Everyone"
+              : post.visibility === "members"
+                ? " · Paid members"
+                : " · Friends and followers"}
             {post.pinnedUntil ? " · Pinned" : ""}
           </Text>
         </View>
@@ -1027,11 +1031,18 @@ export function SocialFeedPanel({
                 ]}
               >
                 <Text style={{ color: visibility === v ? "#fff" : colors.foreground, fontSize: 12, fontWeight: "600" }}>
-                  {v === "public" ? "🌍 Public" : v === "friends" ? "👥 Friends only" : "Members"}
+                  {v === "public" ? "Everyone" : v === "friends" ? "Friends and followers" : "Paid members"}
                 </Text>
               </Pressable>
             ))}
           </View>
+          <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18, marginBottom: 8 }}>
+            {visibility === "public"
+              ? "Everyone on UR can see this post."
+              : visibility === "friends"
+                ? "Only your friends and followers can see this post."
+                : "Only people who pay for your channel can see this post."}
+          </Text>
           <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16, marginBottom: 8 }}>
             {CREATOR_CONTENT_PROTECTION_NOTICE}
           </Text>

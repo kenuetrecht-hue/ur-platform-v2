@@ -7,6 +7,7 @@ import { PrimaryActionButton } from "@/components/primary-action-button";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { TapToRead } from "@/components/tap-to-read";
 import { SignupKycCartoonSample } from "@/components/signup-kyc-cartoon-sample";
+import { AgeVerifyUpfrontNotice } from "@/components/age-verify-upfront-notice";
 import { JOIN_ID_PHOTOS_HREF } from "@/lib/after-sign-in";
 import { countFilledAgeKycSlots, prepareAgeKycPhoto, type AgeKycPickedPhoto } from "@/lib/age-kyc-photo-picker";
 import { fastCheckSelfieMatch } from "@/lib/age-kyc-fast-precheck";
@@ -139,6 +140,7 @@ export function SignupSelfieCheck({ onPassed, onReset }: Props) {
 
   return (
     <View style={{ gap: 14, width: "100%" }} testID="signup-selfie-check">
+      <AgeVerifyUpfrontNotice />
       <Text style={{ color: colors.foreground, fontSize: 15, lineHeight: 22 }}>
         This selfie must match the face on that ID.
       </Text>

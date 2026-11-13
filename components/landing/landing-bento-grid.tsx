@@ -96,7 +96,7 @@ function LoopingLines({ lines, accent }: { lines: string[]; accent: string }) {
   }, [fade, lines.length]);
 
   return (
-    <Animated.Text style={[styles.line, { color: accent, opacity: fade }]}>
+    <Animated.Text numberOfLines={3} style={[styles.line, { color: accent, opacity: fade }]}>
       {lines[index]}
     </Animated.Text>
   );
@@ -152,7 +152,9 @@ function BentoTile({ card, wide }: { card: BentoCard; wide?: boolean }) {
         </View>
       </View>
       <Text style={styles.tileTitle}>{card.title}</Text>
-      <LoopingLines lines={card.lines} accent={card.accent} />
+      <View style={styles.lineSlot}>
+        <LoopingLines lines={card.lines} accent={card.accent} />
+      </View>
     </Animated.View>
   );
 }
@@ -187,12 +189,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { color: T.text, fontSize: 22, fontWeight: "900", marginBottom: 6 },
   sectionSub: { color: T.muted, fontSize: 14, lineHeight: 21, marginBottom: 14, maxWidth: 640 },
-  grid: { gap: 12 },
-  gridWide: { flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start" },
+  grid: { gap: 12, width: "100%" },
+  gridWide: { flexDirection: "row", flexWrap: "wrap", alignItems: "stretch" },
   tile: {
-    flexGrow: 1,
-    flexBasis: "100%",
-    minHeight: 148,
+    width: "100%",
+    minHeight: 168,
+    overflow: "hidden",
     borderRadius: 16,
     borderWidth: 1,
     backgroundColor: T.bgElevated,
@@ -206,12 +208,12 @@ const styles = StyleSheet.create({
       : {}),
   },
   tileWide: {
-    flexBasis: Platform.OS === "web" ? ("auto" as const) : ("48%" as const),
-    minWidth: Platform.OS === "web" ? 280 : undefined,
-    maxWidth: "48%",
+    width: "47%",
+    maxWidth: "47%",
+    flexGrow: 0,
     flexShrink: 0,
-    flexGrow: 1,
   },
+  lineSlot: { minHeight: 60, overflow: "hidden" },
   tileHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   tileAvatar: { fontSize: 26 },
   livePill: {

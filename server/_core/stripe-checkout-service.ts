@@ -33,6 +33,7 @@ import { CREATOR_VIDEO_CALL_SKU } from "../../lib/creator-call-pricing";
 import { fulfillPlatformPurchase } from "./platform-purchase-fulfillment";
 import { startPaidChannelSubscription } from "./creator-audience-service";
 import { CREATOR_CHANNEL_CENTS, CREATOR_CHANNEL_PRODUCT } from "../../lib/social-money";
+import { grantLiveFeedTicket, LIVE_FEED_PRODUCT } from "./live-feed-service";
 
 export const STRIPE_TALK_PACK_KIND = "talk_pack";
 export const STRIPE_CREATOR_SALE_KIND = "creator_sale";
@@ -443,6 +444,13 @@ export function fulfillStripeCheckoutSession(session: {
           /* The sale is booked even if the member month could not be extended. */
         }
       }
+    }
+    if (metadata.product === LIVE_FEED_PRODUCT && metadata.feedId && metadata.userId) {
+      grantLiveFeedTicket({
+        feedId: metadata.feedId,
+        userId: metadata.userId.trim(),
+        priceCents,
+      });
     }
     fulfilledSessionIds.add(session.id);
     return { handled: true, ignored: false };

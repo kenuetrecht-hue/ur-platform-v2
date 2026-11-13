@@ -1,0 +1,13 @@
+---
+description: Remind the owner once per work session about missing video keys and key rotation
+alwaysApply: true
+---
+
+# Remind the owner about API keys
+
+At the start of the first reply in a work session, before other work, remind Kenneth in plain words:
+
+- The live picture still needs the Mux video keys on the Railway website service only. The names are MUX_TOKEN_ID, MUX_TOKEN_SECRET, MUX_WEBHOOK_SECRET, MUX_SIGNING_KEY_ID, and MUX_SIGNING_PRIVATE_KEY. He believes these are not in there yet. Until they are, live video will not broadcast.
+- The other server keys that have not been replaced yet still need new values so the site stays safe. Do not list secret values. Do not ask him to paste keys into chat. He sets them in the Railway website service and in the local .env, which stays gitignored.
+- Say this once per session. Do not repeat it on later messages in the same session.
+- Delete this rule after he says the video keys are in and the other keys have been replaced.

@@ -10,6 +10,7 @@ import {
   reactToPostWithStamp,
 } from "../server/_core/social-feed-service";
 import { registerSocialUser } from "../server/_core/social-service";
+import { followCreatorChannel } from "../server/_core/creator-audience-service";
 import { purchaseThanksStampPack, getThanksStampsWallet } from "../server/_core/ur-thanks-stamps-service";
 import { enrollContentCreator } from "../server/_core/partner-program-service";
 
@@ -65,6 +66,56 @@ describe("Social feed", () => {
     expect(found?.likeCount).toBe(1);
     expect(found?.commentCount).toBe(1);
     expect(found?.likedByMe).toBe(true);
+  });
+
+  it("shows a creator's free post to a basic member and hides members-only posts", () => {
+    enrollContentCreator({
+      userId: authorId,
+      userEmail: "author@test.com",
+      displayName: "Author",
+    });
+    const free = createFeedPost({
+      authorUserId: authorId,
+      authorEmail: "author@test.com",
+      authorName: "Author",
+      body: "Free look at today's work",
+      visibility: "public",
+      rightsConfirmed: true,
+    });
+    const members = createFeedPost({
+      authorUserId: authorId,
+      authorEmail: "author@test.com",
+      authorName: "Author",
+      body: "Members only class notes",
+      visibility: "members",
+      rightsConfirmed: true,
+    });
+    const browse = getFeed({ viewerUserId: viewerId, sort: "latest", publicOnly: true });
+    expect(browse.posts.some((p) => p.id === free.id)).toBe(true);
+    expect(browse.posts.some((p) => p.id === members.id)).toBe(false);
+    expect(browse.posts.every((p) => p.visibility === "public")).toBe(true);
+  });
+
+  it("lets a follower read a private post and keeps a stranger out", () => {
+    const followerId = "feed-follower-private";
+    registerSocialUser({
+      userId: followerId,
+      email: "follower-private@test.com",
+      displayName: "Follower",
+    });
+    followCreatorChannel({ followerUserId: followerId, creatorUserId: authorId });
+    const post = createFeedPost({
+      authorUserId: authorId,
+      authorEmail: "author@test.com",
+      authorName: "Author",
+      body: "Private note for friends and followers",
+      visibility: "friends",
+      rightsConfirmed: true,
+    });
+    const followerFeed = getFeed({ viewerUserId: followerId, sort: "latest" });
+    const strangerFeed = getFeed({ viewerUserId: "feed-stranger-private", sort: "latest" });
+    expect(followerFeed.posts.some((p) => p.id === post.id)).toBe(true);
+    expect(strangerFeed.posts.some((p) => p.id === post.id)).toBe(false);
   });
 
   it("hides friends-only posts from non-friends and tracks trending hashtags", () => {

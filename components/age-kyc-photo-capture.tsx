@@ -10,6 +10,7 @@ import {
   type AgeKycPickedPhoto,
 } from "@/lib/age-kyc-photo-picker";
 import { NativeAgeKycCamera } from "@/components/native-age-kyc-camera";
+import { AgeVerifyUpfrontNotice } from "@/components/age-verify-upfront-notice";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { chooseAgeKycCaptureRect, guideBoxInView, ID_CARD_ASPECT, type GuideBox } from "@/lib/age-kyc-camera-guide";
 import {
@@ -435,6 +436,7 @@ function WebCameraCard({
               ? `Fit the whole ${boxLabel.toLowerCase()} inside the yellow box. All four corners.`
               : "Put your face inside the yellow circle."}
           </Text>
+          <AgeVerifyUpfrontNotice />
           <PrimaryActionButton
             testID={`age-kyc-snap-${slot}`}
             label={ready ? "Take this picture" : "Camera opening…"}
@@ -448,12 +450,15 @@ function WebCameraCard({
           </Pressable>
         </View>
       ) : (
-        <PrimaryActionButton
-          testID={`age-kyc-live-${slot}`}
-          label={cameraLabel}
-          onPress={() => void openLiveCamera()}
-          backgroundColor={kind === "selfie" ? "#15803d" : slot === "back" ? "#b45309" : "#1d4ed8"}
-        />
+        <View style={{ gap: 10 }}>
+          <AgeVerifyUpfrontNotice />
+          <PrimaryActionButton
+            testID={`age-kyc-live-${slot}`}
+            label={cameraLabel}
+            onPress={() => void openLiveCamera()}
+            backgroundColor={kind === "selfie" ? "#15803d" : slot === "back" ? "#b45309" : "#1d4ed8"}
+          />
+        </View>
       )}
     </View>
   );

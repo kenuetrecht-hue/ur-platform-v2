@@ -6,7 +6,6 @@ import {
   getLandingPlatformPassPriceDisplay,
 } from "@/lib/landing-checkout-pricing";
 import { PricingComingSoonPanel } from "@/components/pricing-coming-soon-panel";
-import { LandingAppDownloadLink } from "@/components/landing/landing-app-download-link";
 import { PUBLIC_PRICING_ENABLED } from "@/lib/pricing-visibility";
 import { PLATFORM_PASS_CENTS } from "@/lib/ai-subscription-pricing";
 import { MESSAGE_ALLOWANCE_BY_TIER } from "@/lib/usage-caps-catalog";
@@ -83,9 +82,6 @@ export function LandingCheckoutCta() {
             </Pressable>
           </Link>
         ))}
-      </View>
-      <View style={{ alignItems: "center", marginTop: 8 }}>
-        <LandingAppDownloadLink variant="inline" />
       </View>
     </View>
   );

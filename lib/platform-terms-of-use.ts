@@ -95,7 +95,7 @@ export const PLATFORM_TERMS_SECTIONS: TermsSection[] = [
     bullets: [
       "UR Platform is for adults 18 years or older. Nobody under 18 may join, enter the app, or use the website product.",
       "Before you can enter you must photograph a government ID (front and back) and a live selfie that matches the ID photo. This is mandatory.",
-      "This check keeps fraud off the website and locks creator identity so videos, classes, and posts stay with the creator who made them — not anyone who copies them.",
+      "This check stops bots from taking over the website and from stealing your content and posting it again.",
       "This gate also exists because AI chat, social features, and paid access can be addictive for minors.",
       "UR Platform does not keep the ID pictures. Google’s AI checker looks at the photos only to confirm you are 18+ and that the selfie matches the ID. We store pass/fail and one-way image hashes, not reusable copies of your ID.",
       "UR Platform LLC does not sell your information and does not give it away to marketers. We share it only when the law requires it.",
@@ -237,7 +237,7 @@ export const TERMS_CHECKOUT_ACKNOWLEDGMENT =
 
 export const TERMS_SIGNUP_ACKNOWLEDGMENT =
   "I agree to the UR Terms of Use — I am 18 or older and will complete ID front, ID back, and selfie verification before entering. " +
-  "That check is to stop fraud and to keep creator content with the creator who made it. UR does not keep the ID pictures. " +
+  "A third party checks those pictures. UR does not keep the ID pictures. Everyone must be 18 or older. The check stops bots from taking over the site and from posting your content again. " +
   "UR does not sell my information. If account information is stolen, UR notifies me on this website. " +
   "We are here to have fun, learn, educate each other, and be friendly. No hate groups and no harassment. " +
   "If I break these rules I will be asked to leave and all money invested is forfeited with no refunds. " +

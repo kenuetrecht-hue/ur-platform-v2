@@ -22,7 +22,6 @@ import {
   getLaunchDate,
   launchFeeKeepOn100,
   parseAffiliateRefFromInput,
-  buildCreatorSignupHref,
 } from "@/lib/launch-promotion-config";
 import { BETA_BASIC_DISCOUNT_PERCENT, isBetaTestingOpen } from "@/lib/beta-test-offer";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
@@ -87,7 +86,10 @@ export function LandingPromoBanner() {
       setAffiliateError("Enter a valid affiliate code or paste your referral link.");
       return;
     }
-    router.push(buildCreatorSignupHref(parsedRef) as never);
+    const params = new URLSearchParams();
+    if (parsedRef) params.set("ref", parsedRef);
+    const query = params.toString();
+    router.push((query ? `/signup?${query}` : "/signup") as never);
   };
 
   return (
@@ -214,13 +216,8 @@ export function LandingPromoBanner() {
         {affiliateError ? <Text style={styles.affiliateErr}>{affiliateError}</Text> : null}
       </View>
 
-      <Pressable onPress={join} style={styles.cta}>
-        <Text style={styles.ctaText}>
-          {parsedRef ? `Join as a creator with ${parsedRef} →` : "Sign up as a creator →"}
-        </Text>
-      </Pressable>
-      <Pressable onPress={() => router.push("/signup")} style={styles.cta}>
-        <Text style={styles.ctaText}>Join free as a follower →</Text>
+      <Pressable onPress={join} style={styles.cta} testID="landing-signup">
+        <Text style={styles.ctaText}>{parsedRef ? `Sign up with ${parsedRef}` : "Sign up"}</Text>
       </Pressable>
       <Pressable onPress={() => router.push("/e-manual")}>
         <Text style={styles.footerNote}>

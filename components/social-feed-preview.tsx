@@ -17,14 +17,15 @@ function timeAgo(iso: string): string {
 export function SocialFeedPreview() {
   const colors = useColors();
   const router = useRouter();
-  const feed = trpc.social.feed.useQuery({ sort: "latest", limit: 3 });
+  const feed = trpc.social.feed.useQuery({ sort: "latest", limit: 5, publicOnly: true });
   const trending = trpc.social.trendingHashtags.useQuery();
 
   return (
     <View style={{ gap: 10 }}>
+      <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>Free posts</Text>
       <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 20 }}>
-        Share updates, photos, and videos for free — like Facebook and TikTok. Subscribe to Social Post Assistant
-        if you want AI help writing posts (no creator account required).
+        Creators post photos, videos, and notes here for free. Looking is free. You do not need a subscription
+        to read them.
       </Text>
 
       {(trending.data ?? []).length > 0 ? (
@@ -40,7 +41,9 @@ export function SocialFeedPreview() {
       {feed.isLoading ? (
         <ActivityIndicator color={colors.primary} />
       ) : (feed.data?.posts ?? []).length === 0 ? (
-        <Text style={{ color: colors.muted, fontSize: 13 }}>No posts yet — start the conversation!</Text>
+        <Text style={{ color: colors.muted, fontSize: 13 }}>
+          No free posts yet. When a creator shares one, it shows up here.
+        </Text>
       ) : (
         feed.data!.posts.map((post) => (
           <View
@@ -86,7 +89,7 @@ export function SocialFeedPreview() {
           alignItems: "center",
         }}
       >
-        <Text style={{ color: "#fff", fontWeight: "700" }}>Open Social Feed →</Text>
+        <Text style={{ color: "#fff", fontWeight: "700" }}>Open the free feed</Text>
       </Pressable>
     </View>
   );

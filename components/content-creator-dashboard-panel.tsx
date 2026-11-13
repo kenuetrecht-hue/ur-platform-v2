@@ -42,6 +42,8 @@ import { CartoonCreatorPricingPanel } from "@/components/cartoon-creator-pricing
 import { FOUNDING_AUDIENCE_YEAR_RULE } from "@/lib/founding-audience-year-discount";
 import { CREATOR_AUDIENCE_FOLLOW_RULE, CREATOR_FOLLOWER_VS_SUBSCRIBER_RULE } from "@/lib/creator-audience-policy";
 import { CREATOR_FREE_CONTENT_INCOME_RULE } from "@/lib/creator-free-content-policy";
+import { CreatorFreePostBox } from "@/components/creator-free-post-box";
+import { LiveFeedStartCard } from "@/components/live-feed-start-card";
 
 type Tab = "overview" | "classes" | "promote" | "store" | "ai";
 
@@ -239,6 +241,8 @@ export function ContentCreatorDashboardPanel() {
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}>
         {tab === "overview" ? (
           <>
+            <CreatorFreePostBox />
+            <LiveFeedStartCard />
             {dash.data.payoutStatus ? (
               <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
                 <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 14 }}>

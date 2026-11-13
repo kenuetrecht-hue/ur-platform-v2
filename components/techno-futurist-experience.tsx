@@ -10,7 +10,7 @@ import {
 import { Link, Redirect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth-context";
-import { AFTER_ID_PASS_HREF, JOIN_ACCOUNT_HREF, RETURNING_LOGIN_HREF } from "@/lib/after-sign-in";
+import { AFTER_ID_PASS_HREF } from "@/lib/after-sign-in";
 import { useTypewriter } from "@/hooks/use-typewriter";
 import { useStableWindowWidth } from "@/hooks/use-stable-window-width";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
@@ -22,41 +22,31 @@ import { LandingDemoChat } from "@/components/landing/landing-demo-chat";
 import { LandingTownHallCarousel } from "@/components/landing/landing-town-hall-carousel";
 import { LandingSocialProof } from "@/components/landing/landing-social-proof";
 import { LandingCheckoutCta } from "@/components/landing/landing-checkout-cta";
-import { LandingAppDownloadLink, LandingDeviceDownloadLinks } from "@/components/landing/landing-app-download-link";
+import { LandingDeviceDownloadLinks } from "@/components/landing/landing-app-download-link";
 import { LandingPromoBanner } from "@/components/landing/landing-promo-banner";
 import { LandingAiCategoryHub } from "@/components/landing/landing-ai-category-hub";
 import { LANDING_DEMO_CREATOR_IDS } from "@/lib/landing-demo-policy";
 import { PLATFORM_DISCLOSURE_SHORT } from "@/lib/platform-disclosure-copy";
 import { PUBLIC_LEGAL_NAV } from "@/lib/public-legal-routes";
-import { TapToRead } from "@/components/tap-to-read";
+import { AgeVerifyUpfrontNotice } from "@/components/age-verify-upfront-notice";
 import { HomepageSignIn } from "@/components/homepage-sign-in";
 
 const HEADLINE = "Join UR. One website, one app, one login.";
 
 const DEFAULT_DEMO_CREATOR = LANDING_DEMO_CREATOR_IDS[0];
 
-function LandingSignInButton({ variant }: { variant: "top" | "hero" }) {
-  const buttonStyle = variant === "top" ? styles.signInBtn : styles.heroSignIn;
-  const textStyle = variant === "top" ? styles.signInBtnText : styles.heroSignInText;
+const LANDING_PAGE_TABS = [
+  { id: "signup", label: "Sign up" },
+  { id: "login", label: "Login" },
+  { id: "offers", label: "Offers" },
+  { id: "ais", label: "AIs" },
+  { id: "examples", label: "Examples" },
+  { id: "community", label: "Community" },
+  { id: "price", label: "Price" },
+  { id: "download", label: "Download" },
+] as const;
 
-  return (
-    <Link href={RETURNING_LOGIN_HREF} asChild>
-      <Pressable style={buttonStyle} accessibilityRole="link">
-        <Text style={textStyle}>Login</Text>
-      </Pressable>
-    </Link>
-  );
-}
-
-function LandingSignUpButton() {
-  return (
-    <Link href={JOIN_ACCOUNT_HREF} asChild>
-      <Pressable style={styles.signUpBtn} accessibilityRole="link">
-        <Text style={styles.signUpBtnText}>Sign up</Text>
-      </Pressable>
-    </Link>
-  );
-}
+type LandingPageTabId = (typeof LANDING_PAGE_TABS)[number]["id"];
 
 export function TechnoFuturistExperience() {
   const width = useStableWindowWidth();
@@ -65,6 +55,7 @@ export function TechnoFuturistExperience() {
   const isWide = width >= 900;
   const contentMaxWidth = Math.min(width, 1100);
   const [demoCreatorId, setDemoCreatorId] = useState<string>(DEFAULT_DEMO_CREATOR);
+  const [pageTab, setPageTab] = useState<LandingPageTabId>("signup");
 
   if (!isLoading && isAuthenticated) {
     return <Redirect href={AFTER_ID_PASS_HREF} />;
@@ -91,9 +82,30 @@ export function TechnoFuturistExperience() {
             <View style={styles.topBar}>
               <Text style={styles.logo}>UR PLATFORM</Text>
               <View style={styles.topLinks}>
-                <LandingAppDownloadLink variant="top" />
-                <LandingSignInButton variant="top" />
-                <LandingSignUpButton />
+                <Pressable
+                  onPress={() => setPageTab("signup")}
+                  style={pageTab === "signup" ? styles.signUpBtn : styles.signInBtn}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: pageTab === "signup" }}
+                >
+                  <Text style={pageTab === "signup" ? styles.signUpBtnText : styles.signInBtnText}>Sign up</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setPageTab("login")}
+                  style={pageTab === "login" ? styles.signUpBtn : styles.signInBtn}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: pageTab === "login" }}
+                >
+                  <Text style={pageTab === "login" ? styles.signUpBtnText : styles.signInBtnText}>Login</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setPageTab("download")}
+                  style={styles.signInBtn}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: pageTab === "download" }}
+                >
+                  <Text style={styles.signInBtnText}>Download</Text>
+                </Pressable>
               </View>
             </View>
 
@@ -103,41 +115,81 @@ export function TechnoFuturistExperience() {
               {!done ? <Text style={styles.cursor}>|</Text> : null}
             </Text>
             <Text style={styles.lede}>
-              {LANDING_PLATFORM_UNITY_LINE} For adults 18 and older.
+              {LANDING_PLATFORM_UNITY_LINE} For adults 18 and older. Pick a tab to see that part.
             </Text>
-            <LandingPromoBanner />
-            <LandingWhatWeOffer />
-            <TapToRead title="Why we require ID and a selfie">
-              You photograph a government ID (front and back) and a matching selfie before you
-              can enter the app, website, or AI demo. That keeps minors and fraud off the site.
-              AI, social, and paid features can be addictive under 18. UR does not keep the ID
-              pictures after the check.
-            </TapToRead>
 
-            <HomepageSignIn />
-
-            <View style={styles.heroCtaRow}>
-              <LandingDeviceDownloadLinks variant="hero" />
+            <View style={styles.tabRow} accessibilityRole="tablist">
+              {LANDING_PAGE_TABS.map((tab) => {
+                const active = pageTab === tab.id;
+                return (
+                  <Pressable
+                    key={tab.id}
+                    onPress={() => setPageTab(tab.id)}
+                    style={[styles.tab, active ? styles.tabActive : null]}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: active }}
+                    testID={`landing-page-tab-${tab.id}`}
+                  >
+                    <Text style={[styles.tabLabel, active ? styles.tabLabelActive : null]}>{tab.label}</Text>
+                  </Pressable>
+                );
+              })}
             </View>
 
-            <LandingAiCategoryHub
-              selectedCreatorId={demoCreatorId}
-              onSelectCreator={setDemoCreatorId}
-            />
+            <View style={styles.panel} testID={`landing-page-panel-${pageTab}`}>
+              {pageTab === "signup" ? (
+                <>
+                  <LandingPromoBanner />
+                  <AgeVerifyUpfrontNotice />
+                  <Text style={styles.tabHint}>Already have an account? Open the Login tab.</Text>
+                </>
+              ) : null}
 
-            <LandingDemoChat creatorId={demoCreatorId} onCreatorIdChange={setDemoCreatorId} />
-            <LandingBentoGrid isWide={isWide} />
-            <LandingTownHallCarousel />
-            <LandingSocialProof />
-            <LandingCheckoutCta />
+              {pageTab === "login" ? (
+                <>
+                  <Text style={styles.tabHint}>New here? Open the Sign up tab.</Text>
+                  <HomepageSignIn />
+                </>
+              ) : null}
+
+              {pageTab === "offers" ? <LandingWhatWeOffer /> : null}
+
+              {pageTab === "ais" ? (
+                <>
+                  <LandingAiCategoryHub
+                    selectedCreatorId={demoCreatorId}
+                    onSelectCreator={setDemoCreatorId}
+                  />
+                  <LandingDemoChat creatorId={demoCreatorId} onCreatorIdChange={setDemoCreatorId} />
+                </>
+              ) : null}
+
+              {pageTab === "examples" ? <LandingBentoGrid isWide={isWide} /> : null}
+
+              {pageTab === "community" ? (
+                <>
+                  <LandingTownHallCarousel />
+                  <LandingSocialProof />
+                </>
+              ) : null}
+
+              {pageTab === "price" ? <LandingCheckoutCta /> : null}
+
+              {pageTab === "download" ? (
+                <View style={styles.downloadPanel}>
+                  <Text style={styles.downloadTitle}>Get the app</Text>
+                  <Text style={styles.downloadLede}>
+                    Pick your phone or computer. Each button is on its own line.
+                  </Text>
+                  <LandingDeviceDownloadLinks variant="hero" />
+                </View>
+              ) : null}
+            </View>
 
             <View style={styles.footer}>
-              <LandingDeviceDownloadLinks variant="footer" />
-              <Link href="/login" asChild>
-                <Pressable accessibilityRole="link">
-                  <Text style={styles.link}>Login</Text>
-                </Pressable>
-              </Link>
+              <Pressable onPress={() => setPageTab("login")} accessibilityRole="tab">
+                <Text style={styles.link}>Login</Text>
+              </Pressable>
               <View style={styles.legalRow}>
                 {PUBLIC_LEGAL_NAV.map((item) => (
                   <Link key={item.href} href={item.href} asChild>
@@ -170,13 +222,15 @@ const styles = StyleSheet.create({
   },
   topBar: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: 10,
     marginBottom: 28,
     width: "100%",
   },
   logo: { color: T.electric, fontWeight: "900", letterSpacing: 2, fontSize: 13 },
-  topLinks: { flexDirection: "row", gap: 12, alignItems: "center" },
+  topLinks: { flexDirection: "row", flexWrap: "wrap", gap: 12, alignItems: "center" },
   link: { color: T.electric, fontWeight: "700", fontSize: 14 },
   signInBtn: {
     borderWidth: 1,
@@ -221,14 +275,33 @@ const styles = StyleSheet.create({
     maxWidth: 640,
     width: "100%",
   },
-  heroCtaRow: {
+  tabRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
-    marginBottom: 24,
-    alignItems: "center",
+    gap: 8,
     width: "100%",
+    marginBottom: 18,
   },
+  tab: {
+    borderWidth: 1,
+    borderColor: T.border,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: T.bgElevated,
+    ...(Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null),
+  },
+  tabActive: {
+    borderColor: T.electric,
+    backgroundColor: "rgba(0, 212, 255, 0.16)",
+  },
+  tabLabel: { color: T.muted, fontWeight: "800", fontSize: 14 },
+  tabLabelActive: { color: T.text },
+  panel: { width: "100%", gap: 16, marginBottom: 28 },
+  downloadPanel: { width: "100%", gap: 12 },
+  downloadTitle: { color: T.text, fontSize: 22, fontWeight: "900" },
+  downloadLede: { color: T.muted, fontSize: 15, lineHeight: 22, marginBottom: 4 },
+  tabHint: { color: T.muted, fontSize: 14, lineHeight: 20 },
   heroSignIn: {
     borderWidth: 1,
     borderColor: T.electric,

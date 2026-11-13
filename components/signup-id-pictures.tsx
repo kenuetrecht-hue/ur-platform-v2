@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { AgeKycPhotoCapture } from "@/components/age-kyc-photo-capture";
 import { SignupKycCartoonSample } from "@/components/signup-kyc-cartoon-sample";
+import { AgeVerifyUpfrontNotice } from "@/components/age-verify-upfront-notice";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { TapToRead } from "@/components/tap-to-read";
 import { JOIN_SELFIE_HREF } from "@/lib/after-sign-in";
@@ -91,6 +92,7 @@ export function SignupIdPictures() {
 
   return (
     <View style={{ gap: 14, width: "100%" }} testID="signup-id-pictures">
+      <AgeVerifyUpfrontNotice />
       <Text style={{ color: colors.foreground, fontSize: 15, lineHeight: 22 }}>
         Photograph the ID front, then the back.
       </Text>

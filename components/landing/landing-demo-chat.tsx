@@ -112,9 +112,10 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
       <Text style={styles.sectionTag}>18+ INTERACTIVE DEMO</Text>
       <Text style={styles.title}>Try a specialist after ID verification</Text>
       <Text style={styles.sub}>
-        Adults only. Create an account, photograph your ID front and back plus a selfie (to stop
-        fraud and keep creator content with the creator), then send one demo message ({messageMax}{" "}
-        characters in). UR does not keep the ID pictures.
+        Adults only. Create an account, then photograph your ID front and back plus a selfie.
+        UR does not keep the ID pictures. A third party checks them. Everyone here has to be 18 or
+        older. This also stops bots from taking over the site or posting your content again. Then
+        send one demo message ({messageMax} characters in).
       </Text>
 
       {!isAuthenticated ? (
