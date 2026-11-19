@@ -6,7 +6,7 @@ import { PrimaryActionButton } from "@/components/primary-action-button";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { AFTER_ID_PASS_HREF } from "@/lib/after-sign-in";
 import { ID_MUST_PASS_FIRST, signupPrivacyBlock } from "@/lib/signup-step-copy";
-import { TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
+import { AGE_OVER_18_CHECKBOX_LABEL, TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
 import { TapToRead } from "@/components/tap-to-read";
 import {
   canContinueToIdPictures,
@@ -30,6 +30,7 @@ export function FinishAccountAfterIdPass() {
   const [password, setPassword] = useState(saved.password);
   const [confirmPassword, setConfirmPassword] = useState(saved.confirmPassword);
   const [acceptedTerms, setAcceptedTerms] = useState(saved.acceptedTerms);
+  const [confirmedAdult, setConfirmedAdult] = useState(saved.confirmedAdult);
   const [turnstileToken, setTurnstileToken] = useState(saved.turnstileToken);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -37,8 +38,16 @@ export function FinishAccountAfterIdPass() {
   const [stayLoggedIn, setStayLoggedInBox] = useState(() => getStayLoggedIn());
 
   useEffect(() => {
-    saveJoinAccountDraft({ name, email, password, confirmPassword, acceptedTerms, turnstileToken });
-  }, [name, email, password, confirmPassword, acceptedTerms, turnstileToken]);
+    saveJoinAccountDraft({
+      name,
+      email,
+      password,
+      confirmPassword,
+      acceptedTerms,
+      confirmedAdult,
+      turnstileToken,
+    });
+  }, [name, email, password, confirmPassword, acceptedTerms, confirmedAdult, turnstileToken]);
 
   const onContinueToId = () => {
     const emptyRef = { current: null };
@@ -53,6 +62,7 @@ export function FinishAccountAfterIdPass() {
       password: passwordValue,
       confirmPassword: confirmValue,
       acceptedTerms,
+      confirmedAdult,
       turnstileToken,
     };
     saveJoinAccountDraft(draft);
@@ -69,7 +79,11 @@ export function FinishAccountAfterIdPass() {
         setError("The two password lines must match.");
         return;
       }
-      setError("Read the Terms, then tap OK.");
+      if (!draft.acceptedTerms) {
+        setError("Read the Terms, then tap OK.");
+        return;
+      }
+      setError("Check the box that says you are over the age of 18.");
       return;
     }
     setError(null);
@@ -238,6 +252,35 @@ export function FinishAccountAfterIdPass() {
       </TapToRead>
 
       <TurnstileWidget action="signup" onToken={setTurnstileToken} />
+
+      <Pressable
+        onPress={() => setConfirmedAdult((value) => !value)}
+        style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 4 }}
+        testID="confirm-over-18"
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: confirmedAdult }}
+      >
+        <View
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: 6,
+            borderWidth: 2,
+            borderColor: confirmedAdult ? colors.primary : colors.border,
+            backgroundColor: confirmedAdult ? colors.primary : "transparent",
+            marginTop: 2,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {confirmedAdult ? (
+            <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>✓</Text>
+          ) : null}
+        </View>
+        <Text style={{ color: colors.foreground, fontSize: 16, lineHeight: 22, fontWeight: "800", flex: 1 }}>
+          {AGE_OVER_18_CHECKBOX_LABEL}
+        </Text>
+      </Pressable>
 
       {error ? (
         <Text style={{ color: "#c0392b", fontSize: 14, lineHeight: 20 }}>{error}</Text>

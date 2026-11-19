@@ -96,6 +96,7 @@ export const PLATFORM_TERMS_SECTIONS: TermsSection[] = [
       "UR Platform is for adults 18 years or older. Nobody under 18 may join, enter the app, or use the website product.",
       "You join with your name, email, and password. You do not photograph an ID or take a selfie to enter.",
       "You agree you are 18 or older when you accept these Terms.",
+      "You must check the box that says you are over the age of 18 before you enter the website. If you lie about your age, UR Platform LLC is not responsible.",
       "This rule exists because AI chat, social features, and paid access are for adults.",
       "UR Platform LLC does not sell your information and does not give it away to marketers. We share it only when the law requires it.",
       "If we learn that someone stole account information, we notify you immediately on this website and queue the same notice for the email on your account.",
@@ -233,9 +234,12 @@ export const TERMS_CHECKOUT_ACKNOWLEDGMENT =
   "This check is saved and timestamped. Harassment, hate groups, or breaking UR rules means I am asked to leave and all money invested is forfeited, with no refund. " +
   "Creator purchases are between me and the creator — UR Platform LLC is not responsible.";
 
+export const AGE_OVER_18_CHECKBOX_LABEL =
+  "I am over the age of 18. If I lie about my age, UR Platform is not responsible.";
+
 export const TERMS_SIGNUP_ACKNOWLEDGMENT =
   "I agree to the UR Terms of Use — I am 18 or older. I do not have to photograph an ID or take a selfie to join. " +
-  "Everyone must be 18 or older. " +
+  "Everyone must be 18 or older. I check the box that I am over the age of 18 before I enter. If I lie about my age, UR Platform is not responsible. " +
   "UR does not sell my information. If account information is stolen, UR notifies me on this website. " +
   "We are here to have fun, learn, educate each other, and be friendly. No hate groups and no harassment. " +
   "If I break these rules I will be asked to leave and all money invested is forfeited with no refunds. " +

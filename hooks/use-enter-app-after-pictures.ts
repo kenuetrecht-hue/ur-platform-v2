@@ -98,12 +98,16 @@ export function useEnterAppAfterPictures() {
         }
       }
 
-      if (!nameValue || !draft.acceptedTerms) {
+      if (!nameValue || !draft.acceptedTerms || !draft.confirmedAdult) {
         if (!nameValue) {
           setError("Pictures passed. Type your name on Sign up so we can create the account and log you in.");
           return;
         }
-        setError("Pictures passed. Tap OK on the Terms on Sign up. We will log you in after that.");
+        if (!draft.acceptedTerms) {
+          setError("Pictures passed. Tap OK on the Terms on Sign up. We will log you in after that.");
+          return;
+        }
+        setError("Check the box that says you are over the age of 18.");
         return;
       }
 

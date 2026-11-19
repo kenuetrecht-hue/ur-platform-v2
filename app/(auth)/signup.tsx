@@ -14,7 +14,7 @@ export default function SignupScreen() {
   return (
     <SignupDoorShell
       title="Sign up"
-      lede="Name, email, password, then type the password again. Read the Terms and tap OK. No ID photo and no selfie."
+      lede="Name, email, password, then type the password again. Read the Terms and tap OK. Check the box that you are over the age of 18. No ID photo and no selfie."
       testID="signup-form"
       backHref={RETURNING_LOGIN_HREF}
       backLabel="← Back to login"

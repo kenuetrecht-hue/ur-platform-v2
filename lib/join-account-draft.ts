@@ -6,6 +6,7 @@ export type JoinAccountDraft = {
   password: string;
   confirmPassword: string;
   acceptedTerms: boolean;
+  confirmedAdult: boolean;
   turnstileToken: string;
 };
 
@@ -15,6 +16,7 @@ const emptyDraft = (): JoinAccountDraft => ({
   password: "",
   confirmPassword: "",
   acceptedTerms: false,
+  confirmedAdult: false,
   turnstileToken: "",
 });
 
@@ -32,6 +34,7 @@ function readSessionDraft(): JoinAccountDraft | null {
       password: typeof parsed.password === "string" ? parsed.password : "",
       confirmPassword: typeof parsed.confirmPassword === "string" ? parsed.confirmPassword : "",
       acceptedTerms: parsed.acceptedTerms === true,
+      confirmedAdult: parsed.confirmedAdult === true,
       turnstileToken: typeof parsed.turnstileToken === "string" ? parsed.turnstileToken : "",
     };
   } catch {
@@ -78,6 +81,7 @@ export function canContinueToIdPictures(draft: JoinAccountDraft): boolean {
     draft.name.trim().length > 0 &&
     draft.email.trim().length > 0 &&
     passwordsMatch(draft.password, draft.confirmPassword) &&
-    draft.acceptedTerms
+    draft.acceptedTerms &&
+    draft.confirmedAdult
   );
 }

@@ -33,6 +33,7 @@ describe("join account draft", () => {
       password: "secret1",
       confirmPassword: "secret1",
       acceptedTerms: true,
+      confirmedAdult: true,
       turnstileToken: "",
     });
     expect(loadJoinAccountDraft()).toEqual({
@@ -41,6 +42,7 @@ describe("join account draft", () => {
       password: "secret1",
       confirmPassword: "secret1",
       acceptedTerms: true,
+      confirmedAdult: true,
       turnstileToken: "",
     });
   });

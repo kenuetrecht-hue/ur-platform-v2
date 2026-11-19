@@ -34,5 +34,7 @@ describe("age-kyc terms", () => {
     expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("do not have to photograph an id");
     expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("selfie");
     expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("stolen");
+    expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("if i lie about my age");
+    expect(TERMS_SIGNUP_ACKNOWLEDGMENT.toLowerCase()).toContain("not responsible");
   });
 });
