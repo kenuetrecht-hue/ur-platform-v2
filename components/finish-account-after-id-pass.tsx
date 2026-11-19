@@ -132,8 +132,36 @@ export function FinishAccountAfterIdPass() {
         Name, email, and password
       </Text>
       <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>
-        Type your name, email, and password. You must be 18 or older. No ID photo and no selfie. Then you are in.
+        Type your name, email, and password. Check the box before Sign up. No ID photo and no selfie.
       </Text>
+      <Pressable
+        onPress={() => setConfirmedAdult((value) => !value)}
+        style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 4 }}
+        testID="confirm-over-18"
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: confirmedAdult }}
+      >
+        <View
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: 6,
+            borderWidth: 2,
+            borderColor: confirmedAdult ? colors.primary : colors.border,
+            backgroundColor: confirmedAdult ? colors.primary : "transparent",
+            marginTop: 2,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {confirmedAdult ? (
+            <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>✓</Text>
+          ) : null}
+        </View>
+        <Text style={{ color: colors.foreground, fontSize: 16, lineHeight: 22, fontWeight: "800", flex: 1 }}>
+          {AGE_OVER_18_CHECKBOX_LABEL}
+        </Text>
+      </Pressable>
 
       <Text style={{ color: colors.foreground, fontWeight: "600" }}>Name</Text>
       <TextInput
@@ -252,35 +280,6 @@ export function FinishAccountAfterIdPass() {
       </TapToRead>
 
       <TurnstileWidget action="signup" onToken={setTurnstileToken} />
-
-      <Pressable
-        onPress={() => setConfirmedAdult((value) => !value)}
-        style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 4 }}
-        testID="confirm-over-18"
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: confirmedAdult }}
-      >
-        <View
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: 6,
-            borderWidth: 2,
-            borderColor: confirmedAdult ? colors.primary : colors.border,
-            backgroundColor: confirmedAdult ? colors.primary : "transparent",
-            marginTop: 2,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {confirmedAdult ? (
-            <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>✓</Text>
-          ) : null}
-        </View>
-        <Text style={{ color: colors.foreground, fontSize: 16, lineHeight: 22, fontWeight: "800", flex: 1 }}>
-          {AGE_OVER_18_CHECKBOX_LABEL}
-        </Text>
-      </Pressable>
 
       {error ? (
         <Text style={{ color: "#c0392b", fontSize: 14, lineHeight: 20 }}>{error}</Text>

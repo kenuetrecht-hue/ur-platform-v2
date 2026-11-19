@@ -235,11 +235,11 @@ export const TERMS_CHECKOUT_ACKNOWLEDGMENT =
   "Creator purchases are between me and the creator — UR Platform LLC is not responsible.";
 
 export const AGE_OVER_18_CHECKBOX_LABEL =
-  "I am over the age of 18. If I lie about my age, UR Platform is not responsible.";
+  "I am over the age of eighteen. If I lie about my age, UR Platform is not responsible.";
 
 export const TERMS_SIGNUP_ACKNOWLEDGMENT =
   "I agree to the UR Terms of Use — I am 18 or older. I do not have to photograph an ID or take a selfie to join. " +
-  "Everyone must be 18 or older. I check the box that I am over the age of 18 before I enter. If I lie about my age, UR Platform is not responsible. " +
+  "Everyone must be 18 or older. I check the box: I am over the age of eighteen. If I lie about my age, UR Platform is not responsible. " +
   "UR does not sell my information. If account information is stolen, UR notifies me on this website. " +
   "We are here to have fun, learn, educate each other, and be friendly. No hate groups and no harassment. " +
   "If I break these rules I will be asked to leave and all money invested is forfeited with no refunds. " +
