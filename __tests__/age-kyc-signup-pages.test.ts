@@ -16,15 +16,12 @@ describe("signup account / ID / selfie pages", () => {
     const idRoute = readFileSync("app/(auth)/signup-id.tsx", "utf8");
     const selfieRoute = readFileSync("app/(auth)/signup-selfie.tsx", "utf8");
     expect(signup).toContain("FinishAccountAfterIdPass");
-    expect(signup).toContain("Step 1 of 3");
+    expect(signup).toContain("No ID photo and no selfie");
     expect(signup).not.toContain("AgeKycPhotoCapture");
-    expect(idRoute).toContain("Step 2 of 3");
-    expect(selfieRoute).toContain("Step 3 of 3");
-    expect(idRoute).toContain("SignupIdPictures");
-    expect(readFileSync("components/signup-id-pictures.tsx", "utf8")).toContain("JOIN_SELFIE_HREF");
-    expect(selfieRoute).toContain("SignupSelfieCheck");
-    expect(selfieRoute).toContain("useEnterAppAfterPictures");
-    expect(selfieRoute).not.toContain("SignupIdPictures");
+    expect(idRoute).toContain("Redirect");
+    expect(selfieRoute).toContain("Redirect");
+    expect(idRoute).not.toContain("SignupIdPictures");
+    expect(selfieRoute).not.toContain("SignupSelfieCheck");
   });
 
   it("does not let people skip the account form or the ID page", () => {
@@ -60,8 +57,8 @@ describe("signup account / ID / selfie pages", () => {
     ).toBe(false);
     const idRoute = readFileSync("app/(auth)/signup-id.tsx", "utf8");
     const selfieRoute = readFileSync("app/(auth)/signup-selfie.tsx", "utf8");
-    expect(idRoute).toContain("canContinueToIdPictures");
-    expect(selfieRoute).toContain("canOpenSelfieAfterIdCheck");
+    expect(idRoute).toContain("JOIN_ACCOUNT_HREF");
+    expect(selfieRoute).toContain("JOIN_ACCOUNT_HREF");
   });
 
   it("keeps Login and Sign up wording", () => {

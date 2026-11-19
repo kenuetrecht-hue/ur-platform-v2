@@ -17,7 +17,6 @@ import { LANDING_DEMO_MESSAGE_MAX, LANDING_DEMO_REPLY_MAX } from "@/lib/landing-
 import { saveLandingDemoAttributionId } from "@/lib/landing-demo-attribution-storage";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "expo-router";
-import { AGE_KYC_REQUIRED_MESSAGE } from "@/lib/age-kyc-policy";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { ChatComposerInput } from "@/components/chat-composer-input";
 import { MarkdownMessage } from "@/components/markdown-message";
@@ -110,29 +109,27 @@ export function LandingDemoChat({ onReply, creatorId: controlledCreatorId, onCre
   return (
     <View style={styles.wrap}>
       <Text style={styles.sectionTag}>18+ INTERACTIVE DEMO</Text>
-      <Text style={styles.title}>Try a specialist after ID verification</Text>
+      <Text style={styles.title}>Try a specialist</Text>
       <Text style={styles.sub}>
-        Adults only. Create an account, then photograph your ID front and back plus a selfie.
-        UR does not keep the ID pictures. A third party checks them. Everyone here has to be 18 or
-        older. This also stops bots from taking over the site or posting your content again. Then
-        send one demo message ({messageMax} characters in).
+        Adults only. Sign up with your name, email, and password. No ID photo and no selfie.
+        Everyone here has to be 18 or older. Then send one demo message ({messageMax} characters in).
       </Text>
 
       {!isAuthenticated ? (
         <View style={{ marginBottom: 12 }}>
-          <Text style={styles.sub}>{AGE_KYC_REQUIRED_MESSAGE}</Text>
+          <Text style={styles.sub}>Tap Sign up. No ID photo and no selfie.</Text>
           <Link href="/signup" asChild>
             <Pressable style={styles.sendBtn}>
-              <Text style={styles.sendText}>Sign up to verify age</Text>
+              <Text style={styles.sendText}>Sign up</Text>
             </Pressable>
           </Link>
         </View>
       ) : !kycVerified ? (
         <View style={{ marginBottom: 12 }}>
-          <Text style={styles.sub}>Finish the ID and selfie check before this demo will send.</Text>
-          <Link href="/age-verify" asChild>
+          <Text style={styles.sub}>Sign up to send this demo. No ID photo and no selfie.</Text>
+          <Link href="/signup" asChild>
             <Pressable style={styles.sendBtn}>
-              <Text style={styles.sendText}>Open 18+ ID check</Text>
+              <Text style={styles.sendText}>Sign up</Text>
             </Pressable>
           </Link>
         </View>

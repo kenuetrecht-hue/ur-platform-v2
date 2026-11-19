@@ -10,7 +10,7 @@ import {
 import { Link, Redirect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth-context";
-import { AFTER_ID_PASS_HREF } from "@/lib/after-sign-in";
+import { AFTER_ID_PASS_HREF, JOIN_ACCOUNT_HREF } from "@/lib/after-sign-in";
 import { useTypewriter } from "@/hooks/use-typewriter";
 import { useStableWindowWidth } from "@/hooks/use-stable-window-width";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
@@ -28,7 +28,6 @@ import { LandingAiCategoryHub } from "@/components/landing/landing-ai-category-h
 import { LANDING_DEMO_CREATOR_IDS } from "@/lib/landing-demo-policy";
 import { PLATFORM_DISCLOSURE_SHORT } from "@/lib/platform-disclosure-copy";
 import { PUBLIC_LEGAL_NAV } from "@/lib/public-legal-routes";
-import { AgeVerifyUpfrontNotice } from "@/components/age-verify-upfront-notice";
 import { HomepageSignIn } from "@/components/homepage-sign-in";
 
 const HEADLINE = "Join UR. One website, one app, one login.";
@@ -82,14 +81,14 @@ export function TechnoFuturistExperience() {
             <View style={styles.topBar}>
               <Text style={styles.logo}>UR PLATFORM</Text>
               <View style={styles.topLinks}>
-                <Pressable
-                  onPress={() => setPageTab("signup")}
-                  style={pageTab === "signup" ? styles.signUpBtn : styles.signInBtn}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: pageTab === "signup" }}
-                >
-                  <Text style={pageTab === "signup" ? styles.signUpBtnText : styles.signInBtnText}>Sign up</Text>
-                </Pressable>
+                <Link href={JOIN_ACCOUNT_HREF} asChild>
+                  <Pressable
+                    style={styles.signUpBtn}
+                    accessibilityRole="link"
+                  >
+                    <Text style={styles.signUpBtnText}>Sign up</Text>
+                  </Pressable>
+                </Link>
                 <Pressable
                   onPress={() => setPageTab("login")}
                   style={pageTab === "login" ? styles.signUpBtn : styles.signInBtn}
@@ -109,7 +108,7 @@ export function TechnoFuturistExperience() {
               </View>
             </View>
 
-            <Text style={styles.kicker}>18+ ONLY · ID + SELFIE REQUIRED TO ENTER</Text>
+            <Text style={styles.kicker}>18+ ONLY · NO ID PHOTO · NO SELFIE</Text>
             <Text style={styles.headline}>
               {display}
               {!done ? <Text style={styles.cursor}>|</Text> : null}
@@ -140,7 +139,14 @@ export function TechnoFuturistExperience() {
               {pageTab === "signup" ? (
                 <>
                   <LandingPromoBanner />
-                  <AgeVerifyUpfrontNotice />
+                  <Text style={styles.tabHint}>
+                    Type your name, email, and password. You must be 18 or older. No ID photo and no selfie.
+                  </Text>
+                  <Link href={JOIN_ACCOUNT_HREF} asChild>
+                    <Pressable style={styles.signUpBtn} accessibilityRole="link">
+                      <Text style={styles.signUpBtnText}>Sign up</Text>
+                    </Pressable>
+                  </Link>
                   <Text style={styles.tabHint}>Already have an account? Open the Login tab.</Text>
                 </>
               ) : null}

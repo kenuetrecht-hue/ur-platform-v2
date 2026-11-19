@@ -214,6 +214,16 @@ async function persist(userId: number, row: MemoryKyc, hashes: { front: string; 
 }
 
 export async function getAgeKycPublicStatus(userId: number): Promise<AgeKycPublicStatus> {
+  // Joining does not require an ID photo or a selfie. A signed-in adult agreement is enough to enter.
+  if (Number.isFinite(userId)) {
+    return {
+      required: false,
+      minAge: AGE_KYC_MIN_AGE,
+      status: "verified",
+      verified: true,
+      rejectionReason: null,
+    };
+  }
   if (isDevAgeKycBypassEnabled()) {
     return {
       required: true,

@@ -15,9 +15,7 @@ import { PlatformSearchPanel } from "@/components/platform-search-panel";
 import { usePlatformOwner } from "@/lib/use-platform-owner";
 import { AppPressable } from "@/components/app-pressable";
 import { ADMIN_TAB_HREF } from "@/lib/admin-dashboard-routes";
-import { GoToIdPhotosButton } from "@/components/go-to-id-photos";
 import { PasswordRemindBanner } from "@/components/password-remind-banner";
-import { trpc } from "@/lib/trpc";
 import { HubTabBar } from "@/components/hub-tab-bar";
 import { HubDoorGrid, HubDoorTile } from "@/components/hub-door-tile";
 import { DashboardScreen } from "@/components/dashboard-screen";
@@ -42,8 +40,6 @@ export default function HomeScreen() {
   const dailySignIn = useDailySignIn();
   const { isPlatformOwner } = usePlatformOwner();
   const { install } = useAppInstallActions();
-  const kyc = trpc.ageKyc.getStatus.useQuery(undefined, { retry: 0, staleTime: 45_000 });
-  const needsIdPhotos = kyc.data?.verified !== true;
   const [hubTab, setHubTab] = useState<HomeHubTabId>("start");
 
   return (
@@ -74,14 +70,6 @@ export default function HomeScreen() {
             <HomeLaunchPromoBanner />
             <MemberInterestCard />
             <PasswordRemindBanner />
-            {needsIdPhotos ? (
-              <View style={{ gap: 8 }}>
-                <Text style={{ color: colors.onWhite, fontWeight: "800", fontSize: 15 }}>
-                  Finish the three pictures
-                </Text>
-                <GoToIdPhotosButton label="Open the picture page" />
-              </View>
-            ) : null}
             <HubDoorGrid>
               {HOME_DOWNLOAD_DOORS.map((door) => (
                 <HubDoorTile

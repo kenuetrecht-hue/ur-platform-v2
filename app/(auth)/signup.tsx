@@ -13,8 +13,8 @@ export default function SignupScreen() {
 
   return (
     <SignupDoorShell
-      title="Sign up · Step 1 of 3"
-      lede="Name, email, password, then type the password again. Read the Terms and tap OK. No camera on this page."
+      title="Sign up"
+      lede="Name, email, password, then type the password again. Read the Terms and tap OK. No ID photo and no selfie."
       testID="signup-form"
       backHref={RETURNING_LOGIN_HREF}
       backLabel="← Back to login"

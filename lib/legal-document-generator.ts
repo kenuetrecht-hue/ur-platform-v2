@@ -233,7 +233,7 @@ export function generateLegalHTML(config: LegalDocumentConfig): string {
     </ul>
 
     <h2>3. VERIFICATION OF AGE & JUVENILE PROTECTIONS</h2>
-    <p>UR Platform is for adults eighteen (18) years of age or older. Every registrant must photograph a government ID (front and back) and a live selfie matching that ID before entering the application or website product. This gate exists because AI, social, and paid features can be addictive for minors. If records indicate a person under 18 has attempted to join, ${config.companyName} shall refuse entry and purge associated account and verification data. COPPA still applies: we do not knowingly collect personal information from children.</p>
+    <p>UR Platform is for adults eighteen (18) years of age or older. Registrants agree they are 18 or older. Joining does not require a government ID photo or a selfie. If records indicate a person under 18 has attempted to join, ${config.companyName} shall refuse entry and purge associated account data. COPPA still applies: we do not knowingly collect personal information from children.</p>
 
     <div class="signature-section">
         <p><em>The provisions above have been compiled strictly to serve as a comprehensive operational outline reflecting current system design files. They await final execution by legal counsel.</em></p>

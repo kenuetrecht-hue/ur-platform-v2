@@ -20,7 +20,7 @@ export const WHAT_UR_SELLS_POLICY =
   "We also host human creators who may sell their own classes, shop items, or tips. Those creator sales are between you and that creator.";
 
 export const LEGAL_RESTRICTIONS_POLICY =
-  "UR Platform is for adults 18 or older in the United States. Nobody under 18 may join or buy. You must complete ID front, ID back, and a live selfie before entering the product. AI output is entertainment and education — not licensed medical, legal, tax, or financial advice. Do not use UR to plan or hide crime.";
+  "UR Platform is for adults 18 or older in the United States. Nobody under 18 may join or buy. Joining does not require an ID photo or a selfie. AI output is entertainment and education — not licensed medical, legal, tax, or financial advice. Do not use UR to plan or hide crime.";
 
 export const PAYMENT_SECURITY_POLICY =
   "Card payments are processed by Stripe. UR Platform LLC does not see, store, or write down your full card number. Checkout uses HTTPS. Stripe is a PCI Service Provider. Completing checkout means you agree to these public policies and the no-refund checkbox shown before you pay.";

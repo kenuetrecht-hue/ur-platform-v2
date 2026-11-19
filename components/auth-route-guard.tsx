@@ -82,7 +82,7 @@ function isPublicRoute(segments: string[]): boolean {
 /**
  * Redirects users based on auth + 18+ KYC:
  * - Unauthenticated users cannot access the product
- * - Authenticated users cannot enter until ID front/back + selfie pass
+ * - A signed-in member can enter. Joining does not require an ID photo or a selfie.
  */
 export function AuthRouteGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();

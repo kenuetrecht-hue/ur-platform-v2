@@ -20,10 +20,9 @@ This file is the contract for the **live website**. Railway has been serving an 
 
 Same product for phone and website (Expo). Words are **Login** and **Sign up** only. Not “Sign in.”
 
-1. **`/login`** — returning members: email + password. **Show password** is next to Password. Already 18+ on the account? They go in. No pictures.
-2. **`/signup`** — **Step 1 of 3.** Name, email, password, **type the password again**. Read Terms, tap **OK**. Then **Continue to ID pictures**. **No camera on this page.**
-3. **`/signup-id`** — **Step 2 of 3.** Live camera, yellow box, ID **front** then **back**. Then **Continue to selfie**. No selfie camera here.
-4. **`/signup-selfie`** — **Step 3 of 3.** One selfie so the face matches the ID. **Check my ID and selfie**. If it passes, create/login the account and open the app.
+1. **`/login`** — returning members: email + password. **Show password** is next to Password. They go in. No pictures.
+2. **`/signup`** — Name, email, password, **type the password again**. Read Terms, tap **OK**. Then **Sign up**. **No ID photo and no selfie.**
+3. **`/signup-id`** and **`/signup-selfie`** — old addresses. They redirect to **`/signup`**. They are not cameras.
 
 Leftover `/age-verify` is a **redirect only**. It is not the join form.
 
@@ -61,9 +60,8 @@ If Sign up still shows cameras on the **same** page as name/email/password, you 
 Open a **fresh** browser (or hard-refresh). Do not use an old “Add to Home Screen” icon.
 
 1. Go to `/login`. You should see Login + a **Sign up** bubble.
-2. Tap **Sign up**. The title must say **Sign up · Step 1 of 3**. You must see **two** password lines and **OK — I agree to the Terms**. You must **not** see a live camera.
-3. After Continue, the URL must become `/signup-id` and the title **ID pictures · Step 2 of 3**.
-4. After Continue, the URL must become `/signup-selfie` and the title **Selfie · Step 3 of 3**.
+2. Tap **Sign up**. The title must say **Sign up**. You must see **two** password lines and **OK — I agree to the Terms**, then a **Sign up** button. You must **not** see a live camera, an ID photo step, or a selfie step.
+3. Opening `/signup-id` or `/signup-selfie` must send you back to **`/signup`**.
 
 If those titles are missing, Railway is still serving the previous deployment. Redeploy **latest `main`**, then wait for a new Success.
 

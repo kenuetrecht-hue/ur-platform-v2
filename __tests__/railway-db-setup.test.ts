@@ -27,7 +27,7 @@ describe("Railway MySQL table setup", () => {
     expect(brief).toContain("/signup");
     expect(brief).toContain("/signup-id");
     expect(brief).toContain("/signup-selfie");
-    expect(brief).toContain("Step 1 of 3");
+    expect(brief).toContain("No ID photo and no selfie");
     expect(brief).toContain("id-check-during-signin.tsx");
   });
 });

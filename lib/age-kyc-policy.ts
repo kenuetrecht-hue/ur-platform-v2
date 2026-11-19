@@ -6,7 +6,7 @@
 export const AGE_KYC_MIN_AGE = 18;
 
 export const AGE_KYC_REQUIRED_MESSAGE =
-  "UR Platform is for adults 18 and older. Take a photo of a government ID (front and back) and a selfie that matches the ID. You cannot enter until this check passes.";
+  "UR Platform is for adults 18 and older. Agree that you are 18 or older to join. No ID photo and no selfie.";
 
 export const AGE_KYC_UNDERAGE_MESSAGE =
   "You must be 18 or older to use UR Platform. Accounts that fail this check cannot enter.";

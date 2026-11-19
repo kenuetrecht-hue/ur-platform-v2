@@ -56,13 +56,12 @@ describe("Signup and ID-check customer copy", () => {
   it("explains what to do and why on signup, login, ID, and conduct", () => {
     const text = haystack();
     expect(SIGNUP_FIELDS).toHaveLength(7);
-    expect(text).toContain("keep fraud off");
+    expect(text).toContain("18 or older");
     expect(text).toContain("creator");
     expect(text).toContain("what to do");
-    expect(text).toContain("photograph a government id");
-    expect(text).toContain("live selfie");
+    expect(text).toContain("no id photo");
+    expect(text).toContain("no selfie");
     expect(text).toContain("check the box");
-    expect(text).toContain("only let you enter after they pass");
   });
 
   it("says UR does not keep the ID pictures and names the third-party checker", () => {
@@ -79,15 +78,15 @@ describe("Signup and ID-check customer copy", () => {
     expect(text).not.toContain("stripe identity");
   });
 
-  it("shows that notice on the ID page, the selfie page, and Sign up", () => {
-    const id = readFileSync("components/signup-id-pictures.tsx", "utf8");
-    const selfie = readFileSync("components/signup-selfie-check.tsx", "utf8");
+  it("does not ask for an ID or selfie on the join page", () => {
     const welcome = readFileSync("components/techno-futurist-experience.tsx", "utf8");
-    expect(id).toContain("AgeVerifyUpfrontNotice");
-    expect(selfie).toContain("AgeVerifyUpfrontNotice");
-    expect(welcome).toContain("AgeVerifyUpfrontNotice");
-    expect(readFileSync("components/age-kyc-photo-capture.tsx", "utf8")).toContain("AgeVerifyUpfrontNotice");
-    expect(readFileSync("components/native-age-kyc-camera.tsx", "utf8")).toContain("AgeVerifyUpfrontNotice");
+    const signup = readFileSync("app/(auth)/signup.tsx", "utf8");
+    expect(welcome).not.toContain("AgeVerifyUpfrontNotice");
+    expect(welcome).not.toContain("ID + SELFIE REQUIRED");
+    expect(welcome).toContain("NO ID PHOTO");
+    expect(signup).toContain("No ID photo and no selfie");
+    expect(readFileSync("app/(auth)/signup-id.tsx", "utf8")).toContain("Redirect");
+    expect(readFileSync("app/(auth)/signup-selfie.tsx", "utf8")).toContain("Redirect");
   });
 
   it("lists what stays on the website and what does not", () => {

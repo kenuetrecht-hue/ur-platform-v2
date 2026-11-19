@@ -6,13 +6,13 @@
 export const SIGNUP_PAGE_TITLE = "Sign up";
 
 export const SIGNUP_PAGE_WHY =
-  "This is how you join. Type your name, email, and password first. Check the Terms on that page. Then take the ID pictures on the next page, then a live selfie on the page after that. After they pass, we log you in so we can keep fraud off the website and so a creator’s videos, classes, and posts stay theirs — not anyone who copies them.";
+  "This is how you join. Type your name, email, and password. Check the Terms on that page. You must be 18 or older. No ID photo and no selfie. After you tap Sign up, we log you in.";
 
 export const LOGIN_PAGE_WHY =
   "Welcome back. Type your email and password. If this phone or computer remembers you, you go straight into the app. New here? Tap Sign up.";
 
 export const ID_MUST_PASS_FIRST =
-  "If you are new, tap Sign up. Type your name, email, and password first. Then take the ID pictures, then the selfie. Sign-up will only let you enter after they pass.";
+  "If you are new, tap Sign up. Type your name, email, and password. Agree that you are 18 or older. Sign-up lets you enter. No ID photo and no selfie.";
 
 export const PICTURES_PASSED_SIGN_IN_NEXT =
   "Your pictures passed. We are logging you in with the email and password you already typed. You do not need to take the pictures again.";

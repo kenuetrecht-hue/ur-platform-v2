@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { TurnstileWidget } from "@/components/turnstile-widget";
-import { JOIN_ID_PHOTOS_HREF } from "@/lib/after-sign-in";
+import { AFTER_ID_PASS_HREF } from "@/lib/after-sign-in";
 import { ID_MUST_PASS_FIRST, signupPrivacyBlock } from "@/lib/signup-step-copy";
 import { TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
 import { TapToRead } from "@/components/tap-to-read";
@@ -87,7 +87,11 @@ export function FinishAccountAfterIdPass() {
           setError(EXISTING_ACCOUNT_LOGIN_HINT);
           return;
         }
-        router.replace(JOIN_ID_PHOTOS_HREF);
+        if (saved.status === "needs_confirm") {
+          setError("Open the email we sent, confirm it, then use Login. No ID photo and no selfie.");
+          return;
+        }
+        router.replace(AFTER_ID_PASS_HREF);
       } catch (err) {
         setError(explainAuthFailure(err));
       } finally {
@@ -114,7 +118,7 @@ export function FinishAccountAfterIdPass() {
         Name, email, and password
       </Text>
       <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>
-        Fill these in first. We save this email and password now, then pictures are on the next pages. After they pass, we log you in.
+        Type your name, email, and password. You must be 18 or older. No ID photo and no selfie. Then you are in.
       </Text>
 
       <Text style={{ color: colors.foreground, fontWeight: "600" }}>Name</Text>
@@ -198,7 +202,7 @@ export function FinishAccountAfterIdPass() {
       />
       <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
         {acceptedTerms
-          ? "You pressed OK. You can continue to the ID pictures."
+          ? "You pressed OK. Tap Sign up to enter."
           : "Read the Terms, then tap OK on this page. You do not leave this page."}
       </Text>
       <Pressable
@@ -240,7 +244,7 @@ export function FinishAccountAfterIdPass() {
       ) : null}
 
       <PrimaryActionButton
-        label="Continue to ID pictures"
+        label="Sign up"
         loadingLabel="Saving your email and password…"
         loading={busy}
         onPress={onContinueToId}

@@ -9,7 +9,8 @@ describe("tap-to-read disclosures", () => {
     expect(join).toContain("Type the password again");
     expect(join).toContain("Show password");
     expect(join).toContain('testID="show-password"');
-    expect(join).toContain("Continue to ID pictures");
+    expect(join).toContain("Sign up");
+    expect(join).not.toContain("Continue to ID pictures");
     expect(join).not.toContain("AgeKycPhotoCapture");
     expect(join).not.toContain("IdCheckDuringSignin");
   });

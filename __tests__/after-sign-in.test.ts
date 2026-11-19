@@ -26,14 +26,14 @@ import {
 
 describe("after sign-in", () => {
   it("sends signed-in people to the photo page only when the account is known unverified", () => {
-    expect(AFTER_SIGN_IN_HREF).toBe("/age-verify");
+    expect(AFTER_SIGN_IN_HREF).toBe("/home");
     expect(shouldOpenAgeVerifyPage({ isAuthenticated: true, kycVerified: undefined })).toBe(false);
-    expect(shouldOpenAgeVerifyPage({ isAuthenticated: true, kycVerified: false })).toBe(true);
+    expect(shouldOpenAgeVerifyPage({ isAuthenticated: true, kycVerified: false })).toBe(false);
     expect(shouldOpenAgeVerifyPage({ isAuthenticated: true, kycVerified: true })).toBe(false);
     expect(shouldOpenAgeVerifyPage({ isAuthenticated: false, kycVerified: false })).toBe(false);
     expect(
       shouldOpenAgeVerifyPage({ isAuthenticated: true, kycVerified: false, hasPhotoPass: true }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("does not treat a failed or in-flight KYC fetch as needs-pictures", () => {
@@ -46,7 +46,7 @@ describe("after sign-in", () => {
     ).toBe(false);
     expect(
       shouldSendAuthenticatedUserToJoinPictures({ kycStatusKnown: true, kycVerified: false }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       shouldSendAuthenticatedUserToJoinPictures({ kycStatusKnown: true, kycVerified: true }),
     ).toBe(false);
@@ -64,7 +64,7 @@ describe("after sign-in", () => {
   });
 
   it("keeps the photo page path as a tap target people can open by hand", () => {
-    expect(AFTER_SIGN_IN_HREF.includes("age-verify")).toBe(true);
+    expect(AFTER_SIGN_IN_HREF.includes("age-verify")).toBe(false);
   });
 
   it("sends a signed-out person from the leftover ID page to Login", () => {
