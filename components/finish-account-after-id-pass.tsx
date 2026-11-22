@@ -1,51 +1,63 @@
 import { useEffect, useState } from "react";
-import { Platform, Pressable, Text, TextInput, View } from "react-native";
+import { Platform, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { PrimaryActionButton } from "@/components/primary-action-button";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { AFTER_ID_PASS_HREF } from "@/lib/after-sign-in";
-import { ID_MUST_PASS_FIRST, signupPrivacyBlock } from "@/lib/signup-step-copy";
-import { AGE_OVER_18_CHECKBOX_LABEL, TERMS_SIGNUP_ACKNOWLEDGMENT } from "@/lib/platform-terms-of-use";
-import { TapToRead } from "@/components/tap-to-read";
+import { AGE_OVER_18_CHECKBOX_LABEL, CONDUCT_RULES_VERSION } from "@/lib/platform-terms-of-use";
+import { rememberJoinRulesAgreement } from "@/lib/join-rules-agreement";
+import { trpc } from "@/lib/trpc";
+import { AgreeAndReadRow } from "@/components/agree-and-read-row";
 import {
   canContinueToIdPictures,
   loadJoinAccountDraft,
   saveJoinAccountDraft,
 } from "@/lib/join-account-draft";
-import { getStayLoggedIn, setStayLoggedIn } from "@/lib/stay-logged-in";
+import { setStayLoggedIn } from "@/lib/stay-logged-in";
 import { getSupabaseClientAsync } from "@/lib/supabase";
 import { persistJoinPassword } from "@/lib/persist-join-password";
 import { EXISTING_ACCOUNT_LOGIN_HINT } from "@/lib/existing-join-login";
 import { explainAuthFailure } from "@/lib/auth-network-error";
 import { readWebTextInputValue } from "@/lib/read-web-input-value";
 
-/** Sign up page 1: name, email, password, terms. No cameras. */
+function nameFromEmail(email: string): string {
+  const local = email.split("@")[0]?.replace(/[._+-]+/g, " ").trim();
+  return (local || "Member").slice(0, 40);
+}
+
+const ONE_AGREEMENT_LABEL = `I agree to the Terms of Use, rules, and regulations. ${AGE_OVER_18_CHECKBOX_LABEL}`;
+
+/** Fast join: one password box, then a second box after Submit to verify it. */
 export function FinishAccountAfterIdPass() {
   const colors = useColors();
   const router = useRouter();
   const saved = loadJoinAccountDraft();
-  const [name, setName] = useState(saved.name);
   const [email, setEmail] = useState(saved.email);
   const [password, setPassword] = useState(saved.password);
-  const [confirmedAdult, setConfirmedAdult] = useState(saved.confirmedAdult);
+  const [verifyPassword, setVerifyPassword] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [agreed, setAgreed] = useState(saved.confirmedAdult && saved.acceptedTerms);
   const [turnstileToken, setTurnstileToken] = useState(saved.turnstileToken);
   const [error, setError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [stayLoggedIn, setStayLoggedInBox] = useState(() => getStayLoggedIn());
+  const acceptRules = trpc.conduct.accept.useMutation();
+
+  useEffect(() => {
+    setStayLoggedIn(true);
+  }, []);
 
   useEffect(() => {
     saveJoinAccountDraft({
-      name,
+      name: nameFromEmail(email),
       email,
       password,
       confirmPassword: password,
-      acceptedTerms: confirmedAdult,
-      confirmedAdult,
+      acceptedTerms: agreed,
+      confirmedAdult: agreed,
       turnstileToken,
     });
-  }, [name, email, password, confirmedAdult, turnstileToken]);
+  }, [email, password, agreed, turnstileToken]);
 
   const onContinueToId = () => {
     const emptyRef = { current: null };
@@ -53,28 +65,53 @@ export function FinishAccountAfterIdPass() {
     const passwordValue = (
       password.trim() || readWebTextInputValue(emptyRef, "login-password")
     ).trim();
-    const draft = {
-      name: name.trim(),
-      email: emailValue,
-      password: passwordValue,
-      confirmPassword: passwordValue,
-      acceptedTerms: confirmedAdult,
-      confirmedAdult,
-      turnstileToken,
-    };
-    saveJoinAccountDraft(draft);
-    if (!canContinueToIdPictures(draft)) {
-      if (!draft.name || !draft.email || !draft.password) {
-        setError("Type your name, email, and password first.");
+    const typedVerify = (
+      verifyPassword.trim() || readWebTextInputValue(emptyRef, "verify-password")
+    ).trim();
+    if (!verifying) {
+      if (!emailValue || !passwordValue) {
+        setError("Type your email and password, then tap Submit.");
         return;
       }
-      if (draft.password.length < 6) {
+      if (passwordValue.length < 6) {
         setError("Password needs at least 6 characters.");
         return;
       }
-      setError("Check the box: I am over the age of eighteen.");
+      if (!agreed) {
+        setError("Check the box: I agree to the Terms of Use, rules, and regulations.");
+        return;
+      }
+      rememberJoinRulesAgreement();
+      setPassword(passwordValue);
+      setEmail(emailValue);
+      setVerifyPassword("");
+      setError(null);
+      setVerifying(true);
       return;
     }
+    const draft = {
+      name: nameFromEmail(emailValue),
+      email: emailValue,
+      password: passwordValue,
+      confirmPassword: typedVerify,
+      acceptedTerms: agreed,
+      confirmedAdult: agreed,
+      turnstileToken,
+    };
+    saveJoinAccountDraft(draft);
+    if (!typedVerify) {
+      setError("Type the password again to verify it, then tap Submit.");
+      return;
+    }
+    if (typedVerify !== passwordValue) {
+      setError("That does not match. Type the same password, then tap Submit.");
+      return;
+    }
+    if (!agreed || !canContinueToIdPictures(draft)) {
+      setError("Check the box: I agree to the Terms of Use, rules, and regulations.");
+      return;
+    }
+    rememberJoinRulesAgreement();
     setError(null);
     setBusy(true);
     void (async () => {
@@ -93,6 +130,11 @@ export function FinishAccountAfterIdPass() {
         if (saved.status === "needs_confirm") {
           setError("Open the email we sent, confirm it, then use Login. No ID photo and no selfie.");
           return;
+        }
+        try {
+          await acceptRules.mutateAsync({ accepted: true, version: CONDUCT_RULES_VERSION });
+        } catch {
+          /* The same box is already saved on this browser. */
         }
         router.replace(AFTER_ID_PASS_HREF);
       } catch (err) {
@@ -116,134 +158,68 @@ export function FinishAccountAfterIdPass() {
   };
 
   return (
-    <View style={{ gap: 12, width: "100%" }} testID="finish-account-after-id-pass">
-      <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18 }}>
-        Name, email, and password
-      </Text>
-      <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>
-        Name, email, and one password. Check the box, then tap Sign up. No ID photo and no selfie.
-      </Text>
-      <Pressable
-        onPress={() => setConfirmedAdult((value) => !value)}
-        style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 4 }}
-        testID="confirm-over-18"
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: confirmedAdult }}
-      >
-        <View
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: 6,
-            borderWidth: 2,
-            borderColor: confirmedAdult ? colors.primary : colors.border,
-            backgroundColor: confirmedAdult ? colors.primary : "transparent",
-            marginTop: 2,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {confirmedAdult ? (
-            <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>✓</Text>
-          ) : null}
-        </View>
-        <Text style={{ color: colors.foreground, fontSize: 16, lineHeight: 22, fontWeight: "800", flex: 1 }}>
-          {AGE_OVER_18_CHECKBOX_LABEL}
-        </Text>
-      </Pressable>
-
-      <Text style={{ color: colors.foreground, fontWeight: "600" }}>Name</Text>
-      <TextInput
-        value={name}
-        onChangeText={setName}
-        placeholder="Your name"
-        placeholderTextColor={colors.muted}
-        autoCapitalize="words"
-        editable={!busy}
-        style={inputStyle}
-        testID="finish-account-name"
-      />
-
-      <Text style={{ color: colors.foreground, fontWeight: "600" }}>Email</Text>
+    <View style={{ gap: 10, width: "100%" }} testID="finish-account-after-id-pass">
       <TextInput
         value={email}
         onChangeText={setEmail}
-        placeholder="you@example.com"
+        placeholder="Email"
         placeholderTextColor={colors.muted}
         keyboardType="email-address"
         autoCapitalize="none"
         autoComplete="username"
         textContentType="username"
         autoCorrect={false}
+        autoFocus={!verifying}
         nativeID="login-email"
         editable={!busy}
         style={inputStyle}
         testID="login-email"
       />
-
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={{ color: colors.foreground, fontWeight: "600" }}>Password</Text>
-        <Pressable
-          onPress={() => setShowPassword((value) => !value)}
-          hitSlop={10}
-          testID="show-password"
-          accessibilityRole="button"
-          style={{ paddingVertical: 6, paddingHorizontal: 8 }}
-        >
-          <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 14 }}>
-            {showPassword ? "Hide password" : "Show password"}
-          </Text>
-        </Pressable>
-      </View>
       <TextInput
         value={password}
         onChangeText={setPassword}
-        placeholder="At least 6 characters"
+        placeholder="Password"
         placeholderTextColor={colors.muted}
-        secureTextEntry={!showPassword}
+        secureTextEntry={verifying}
         autoComplete="new-password"
         textContentType="newPassword"
         nativeID="login-password"
-        editable={!busy}
+        returnKeyType="go"
+        onSubmitEditing={onContinueToId}
+        editable={!busy && !verifying}
         style={inputStyle}
         testID="login-password"
       />
-
-      <TapToRead title="Read the Terms" testID="join-terms-tab">
-        {TERMS_SIGNUP_ACKNOWLEDGMENT}
-      </TapToRead>
-      <Pressable
-        onPress={() => {
-          setStayLoggedInBox((value) => {
-            const next = !value;
-            setStayLoggedIn(next);
-            return next;
-          });
-        }}
-        style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 4 }}
-        testID="stay-logged-in"
-      >
-        <View
-          style={{
-            width: 22,
-            height: 22,
-            borderRadius: 6,
-            borderWidth: 2,
-            borderColor: stayLoggedIn ? colors.primary : colors.border,
-            backgroundColor: stayLoggedIn ? colors.primary : "transparent",
-            marginTop: 2,
-          }}
-        />
-        <Text style={{ color: colors.foreground, fontSize: 14, lineHeight: 20, flex: 1 }}>
-          Stay logged in. Next time you open the app, you will already be signed in.
-        </Text>
-      </Pressable>
-      <TapToRead title="Why we ask and what we keep" testID="join-why-tab">
-        {ID_MUST_PASS_FIRST}
-        {"\n\n"}
-        {signupPrivacyBlock()}
-      </TapToRead>
-
+      {verifying ? (
+        <>
+          <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
+            Verify your password
+          </Text>
+          <TextInput
+            value={verifyPassword}
+            onChangeText={setVerifyPassword}
+            placeholder="Verify your password"
+            placeholderTextColor={colors.muted}
+            secureTextEntry={false}
+            autoComplete="new-password"
+            textContentType="newPassword"
+            autoFocus
+            nativeID="verify-password"
+            returnKeyType="go"
+            onSubmitEditing={onContinueToId}
+            editable={!busy}
+            style={inputStyle}
+            testID="verify-password"
+          />
+        </>
+      ) : null}
+      <AgreeAndReadRow
+        checked={agreed}
+        onToggle={() => setAgreed((value) => !value)}
+        label={ONE_AGREEMENT_LABEL}
+        href="/terms"
+        testID="confirm-over-18"
+      />
       <TurnstileWidget action="signup" onToken={setTurnstileToken} />
 
       {error ? (
@@ -251,7 +227,7 @@ export function FinishAccountAfterIdPass() {
       ) : null}
 
       <PrimaryActionButton
-        label="Sign up"
+        label="Submit"
         loadingLabel="Saving your email and password…"
         loading={busy}
         onPress={onContinueToId}

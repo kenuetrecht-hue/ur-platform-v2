@@ -1,11 +1,13 @@
-import { useState } from "react";
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
-import { CONDUCT_CHECKBOX_LABEL } from "@/lib/platform-terms-of-use";
-import { CONDUCT_PAGE_WHY } from "@/lib/signup-step-copy";
+import { AgreeAndReadRow } from "@/components/agree-and-read-row";
+import { hasRememberedJoinAgreement } from "@/lib/join-rules-agreement";
 
-/** Blocks the product until the member signs the current conduct rules. */
+const ONE_RULES_LABEL = "I agree to the Terms of Use, rules, and regulations.";
+
+/** One box for the rules. Skipped when Sign up already recorded that same check. */
 export function ConductAgreementGate() {
   const colors = useColors();
   const utils = trpc.useUtils();
@@ -16,94 +18,58 @@ export function ConductAgreementGate() {
       await utils.conduct.status.invalidate();
     },
   });
+  const started = useRef(false);
+  const version = status.data?.version;
 
-  const bullets = status.data?.bullets ?? [];
+  useEffect(() => {
+    if (!version || started.current || accept.isPending) return;
+    if (!hasRememberedJoinAgreement(version)) return;
+    started.current = true;
+    accept.mutate({ accepted: true, version });
+  }, [accept, version]);
+
+  if (status.isLoading || (version && hasRememberedJoinAgreement(version) && !accept.isError)) {
+    return (
+      <View style={[styles.root, styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator color={colors.primary} />
+        <Text style={{ color: colors.muted, fontSize: 15 }}>Opening UR…</Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={[styles.title, { color: colors.foreground }]}>UR Platform rules — sign to enter</Text>
-        <Text style={[styles.sub, { color: colors.muted }]}>
-          Version {status.data?.version ?? "…"} · Effective {status.data?.effectiveDate ?? ""}
-        </Text>
-        <Text style={[styles.body, { color: colors.foreground }]}>
-          {status.data?.purpose ?? "We are here to have fun, to learn, to educate each other, and to be friendly."}
-        </Text>
-        <Text style={[styles.body, { color: colors.muted }]}>{CONDUCT_PAGE_WHY}</Text>
-        {bullets.map((bullet) => (
-          <Text key={bullet.slice(0, 48)} style={[styles.bullet, { color: colors.muted }]}>
-            • {bullet}
-          </Text>
-        ))}
-
-        <Pressable
-          onPress={() => setChecked((v) => !v)}
-          style={styles.checkRow}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked }}
-        >
-          <View
-            style={[
-              styles.box,
-              {
-                borderColor: checked ? colors.primary : colors.border,
-                backgroundColor: checked ? colors.primary : "transparent",
-              },
-            ]}
-          >
-            {checked ? <Text style={styles.mark}>✓</Text> : null}
-          </View>
-          <Text style={[styles.checkLabel, { color: colors.foreground }]}>
-            {status.data?.checkboxLabel ?? CONDUCT_CHECKBOX_LABEL}
-          </Text>
-        </Pressable>
-
-        {accept.error ? (
-          <Text style={styles.error}>{accept.error.message}</Text>
-        ) : null}
-
-        <Pressable
-          disabled={!checked || accept.isPending || !status.data?.version}
-          onPress={() => {
-            if (!status.data?.version || !checked) return;
-            accept.mutate({ accepted: true, version: status.data.version });
-          }}
-          style={[
-            styles.cta,
-            { backgroundColor: colors.primary, opacity: !checked || accept.isPending ? 0.55 : 1 },
-          ]}
-        >
-          {accept.isPending ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.ctaText}>I sign these rules</Text>
-          )}
-        </Pressable>
-      </ScrollView>
+    <View style={[styles.root, styles.center, { backgroundColor: colors.background }]}>
+      <Text style={[styles.title, { color: colors.foreground }]}>Agree to the rules</Text>
+      <AgreeAndReadRow
+        checked={checked}
+        onToggle={() => setChecked((value) => !value)}
+        label={ONE_RULES_LABEL}
+        href="/terms"
+        testID="conduct-agree"
+      />
+      {accept.error ? <Text style={styles.error}>{accept.error.message}</Text> : null}
+      <Pressable
+        disabled={!version || !checked || accept.isPending}
+        onPress={() => {
+          if (!version || !checked || accept.isPending) return;
+          accept.mutate({ accepted: true, version });
+        }}
+        style={[
+          styles.cta,
+          { backgroundColor: colors.primary, opacity: !checked || accept.isPending ? 0.55 : 1 },
+        ]}
+      >
+        <Text style={styles.ctaText}>{accept.isPending ? "Saving…" : "Submit"}</Text>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  scroll: { padding: 20, paddingBottom: 40, gap: 10 },
+  root: { flex: 1, padding: 24, gap: 16 },
+  center: { justifyContent: "center" },
   title: { fontSize: 22, fontWeight: "900" },
-  sub: { fontSize: 12, marginBottom: 6 },
-  body: { fontSize: 14, lineHeight: 21, fontWeight: "600" },
-  bullet: { fontSize: 13, lineHeight: 20 },
-  checkRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginTop: 12 },
-  box: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 2,
-  },
-  mark: { color: "#fff", fontSize: 14, fontWeight: "800" },
-  checkLabel: { flex: 1, fontSize: 13, lineHeight: 19, fontWeight: "600" },
-  error: { color: "#ef4444", fontSize: 13 },
-  cta: { borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 8 },
-  ctaText: { color: "#fff", fontWeight: "800", fontSize: 15 },
+  error: { color: "#ef4444", fontSize: 14 },
+  cta: { borderRadius: 12, paddingVertical: 14, alignItems: "center" },
+  ctaText: { color: "#fff", fontWeight: "800", fontSize: 16 },
 });

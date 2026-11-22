@@ -109,6 +109,9 @@ export function TechnoFuturistExperience() {
               </View>
             </View>
 
+            {pageTab === "signup" ? <FinishAccountAfterIdPass /> : null}
+            {pageTab === "login" ? <HomepageSignIn /> : null}
+
             <Text style={styles.kicker}>18+ ONLY · NO ID PHOTO · NO SELFIE</Text>
             <Text style={styles.headline}>
               {display}
@@ -139,17 +142,13 @@ export function TechnoFuturistExperience() {
             <View style={styles.panel} testID={`landing-page-panel-${pageTab}`}>
               {pageTab === "signup" ? (
                 <>
-                  <FinishAccountAfterIdPass />
                   <Text style={styles.tabHint}>Already have an account? Open the Login tab.</Text>
                   <LandingPromoBanner />
                 </>
               ) : null}
 
               {pageTab === "login" ? (
-                <>
-                  <Text style={styles.tabHint}>New here? Open the Sign up tab.</Text>
-                  <HomepageSignIn />
-                </>
+                <Text style={styles.tabHint}>New here? Open the Sign up tab.</Text>
               ) : null}
 
               {pageTab === "offers" ? <LandingWhatWeOffer /> : null}

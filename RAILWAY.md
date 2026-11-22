@@ -60,7 +60,7 @@ If Sign up still shows cameras on the **same** page as name/email/password, you 
 Open a **fresh** browser (or hard-refresh). Do not use an old “Add to Home Screen” icon.
 
 1. Go to `/login`. You should see Login + a **Sign up** bubble.
-2. Tap **Sign up**. The title must say **Sign up**. You must see one password line, the box “I am over the age of eighteen,” and a **Sign up** button. You must **not** see a second password line, a live camera, an ID photo step, or a selfie step.
+2. Tap **Sign up**. The title must say **Sign up**. You must see email, one password line, one box that says “I agree to the Terms of Use, rules, and regulations” and “I am over the age of eighteen,” and a **Submit** button. After Submit, a second box must say **Verify your password**. You must **not** see a live camera, an ID photo step, or a selfie step.
 3. Opening `/signup-id` or `/signup-selfie` must send you back to **`/signup`**.
 
 If those titles are missing, Railway is still serving the previous deployment. Redeploy **latest `main`**, then wait for a new Success.
@@ -73,7 +73,7 @@ The app uses **MySQL** (drizzle mysql2), not Postgres.
 - On the website service, a `mysql://…` URL must exist as `MYSQL_URL` or `MYSQL_DATABASE_URL`, or as Railway’s `MYSQLHOST` / `MYSQLUSER` / `MYSQLPASSWORD` / `MYSQLDATABASE` / `MYSQLPORT`.
 - On Railway, the **internal** host (`mysql.railway.internal`) is correct for the website. Do not use `localhost`.
 - Ignore a `postgresql://` `DATABASE_URL` if Railway injected Postgres. The app already skips that.
-- Leave **`DEV_SKIP_AGE_KYC` off**. Testers must do the real 18+ pictures. No bypass.
+- Leave **`DEV_SKIP_AGE_KYC` off**. Joining is the 18+ checkbox. There is no ID photo and no selfie.
 
 A Doctor AI log line about `ownerCommandCenterEvents` is **not** the Sign up flow. If that insert fails, check that table setup ran on this website’s MySQL. It does not mean you should roll back the three-page Sign up.
 

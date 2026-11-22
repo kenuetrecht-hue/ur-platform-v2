@@ -4,12 +4,13 @@ import { readFileSync } from "fs";
 describe("tap-to-read disclosures", () => {
   it("keeps long join legal text behind a tap, not on the checkbox", () => {
     const join = readFileSync("components/finish-account-after-id-pass.tsx", "utf8");
-    expect(join).toContain("TapToRead");
+    expect(join).toContain("AgreeAndReadRow");
+    expect(join).toContain('href="/terms"');
     expect(join).not.toContain("OK — I agree to the Terms");
-    expect(join).not.toContain("Type the password again");
-    expect(join).toContain("Show password");
-    expect(join).toContain('testID="show-password"');
-    expect(join).toContain("Sign up");
+    expect(join).toContain("Verify your password");
+    expect(join).toContain('testID="verify-password"');
+    expect(join).toContain("Submit");
+    expect(join).toContain("I agree to the Terms of Use, rules, and regulations.");
     expect(join).toContain("AGE_OVER_18_CHECKBOX_LABEL");
     expect(join).toContain('testID="confirm-over-18"');
     expect(readFileSync("lib/platform-terms-of-use.ts", "utf8")).toContain(

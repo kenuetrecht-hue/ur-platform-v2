@@ -104,7 +104,7 @@ describe("ai-talk-time-tracker", () => {
   });
 
   it("tracks remaining time and lose-by date on each purchase lot", () => {
-    const purchasedAt = Date.parse("2026-08-21T18:00:00.000Z");
+    const purchasedAt = Date.now() - 24 * 60 * 60 * 1000;
     const lot = createTalkTimeLot({
       userId: "tracker-user",
       packId: "talk_200",
