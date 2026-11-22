@@ -60,7 +60,7 @@ If Sign up still shows cameras on the **same** page as name/email/password, you 
 Open a **fresh** browser (or hard-refresh). Do not use an old “Add to Home Screen” icon.
 
 1. Go to `/login`. You should see Login + a **Sign up** bubble.
-2. Tap **Sign up**. The title must say **Sign up**. You must see **two** password lines and **OK — I agree to the Terms**, then a **Sign up** button. You must **not** see a live camera, an ID photo step, or a selfie step.
+2. Tap **Sign up**. The title must say **Sign up**. You must see one password line, the box “I am over the age of eighteen,” and a **Sign up** button. You must **not** see a second password line, a live camera, an ID photo step, or a selfie step.
 3. Opening `/signup-id` or `/signup-selfie` must send you back to **`/signup`**.
 
 If those titles are missing, Railway is still serving the previous deployment. Redeploy **latest `main`**, then wait for a new Success.

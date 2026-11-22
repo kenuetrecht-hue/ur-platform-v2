@@ -11,6 +11,7 @@ import { Link, Redirect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth-context";
 import { AFTER_ID_PASS_HREF, JOIN_ACCOUNT_HREF } from "@/lib/after-sign-in";
+import { FinishAccountAfterIdPass } from "@/components/finish-account-after-id-pass";
 import { useTypewriter } from "@/hooks/use-typewriter";
 import { useStableWindowWidth } from "@/hooks/use-stable-window-width";
 import { LANDING_THEME as T } from "@/lib/landing-theme";
@@ -138,16 +139,9 @@ export function TechnoFuturistExperience() {
             <View style={styles.panel} testID={`landing-page-panel-${pageTab}`}>
               {pageTab === "signup" ? (
                 <>
-                  <LandingPromoBanner />
-                  <Text style={styles.tabHint}>
-                    Type your name, email, and password. You must be 18 or older. No ID photo and no selfie.
-                  </Text>
-                  <Link href={JOIN_ACCOUNT_HREF} asChild>
-                    <Pressable style={styles.signUpBtn} accessibilityRole="link">
-                      <Text style={styles.signUpBtnText}>Sign up</Text>
-                    </Pressable>
-                  </Link>
+                  <FinishAccountAfterIdPass />
                   <Text style={styles.tabHint}>Already have an account? Open the Login tab.</Text>
+                  <LandingPromoBanner />
                 </>
               ) : null}
 

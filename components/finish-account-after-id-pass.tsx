@@ -28,12 +28,10 @@ export function FinishAccountAfterIdPass() {
   const [name, setName] = useState(saved.name);
   const [email, setEmail] = useState(saved.email);
   const [password, setPassword] = useState(saved.password);
-  const [confirmPassword, setConfirmPassword] = useState(saved.confirmPassword);
-  const [acceptedTerms, setAcceptedTerms] = useState(saved.acceptedTerms);
   const [confirmedAdult, setConfirmedAdult] = useState(saved.confirmedAdult);
   const [turnstileToken, setTurnstileToken] = useState(saved.turnstileToken);
   const [error, setError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(true);
   const [busy, setBusy] = useState(false);
   const [stayLoggedIn, setStayLoggedInBox] = useState(() => getStayLoggedIn());
 
@@ -42,12 +40,12 @@ export function FinishAccountAfterIdPass() {
       name,
       email,
       password,
-      confirmPassword,
-      acceptedTerms,
+      confirmPassword: password,
+      acceptedTerms: confirmedAdult,
       confirmedAdult,
       turnstileToken,
     });
-  }, [name, email, password, confirmPassword, acceptedTerms, confirmedAdult, turnstileToken]);
+  }, [name, email, password, confirmedAdult, turnstileToken]);
 
   const onContinueToId = () => {
     const emptyRef = { current: null };
@@ -55,13 +53,12 @@ export function FinishAccountAfterIdPass() {
     const passwordValue = (
       password.trim() || readWebTextInputValue(emptyRef, "login-password")
     ).trim();
-    const confirmValue = confirmPassword.trim() || passwordValue;
     const draft = {
       name: name.trim(),
       email: emailValue,
       password: passwordValue,
-      confirmPassword: confirmValue,
-      acceptedTerms,
+      confirmPassword: passwordValue,
+      acceptedTerms: confirmedAdult,
       confirmedAdult,
       turnstileToken,
     };
@@ -75,15 +72,7 @@ export function FinishAccountAfterIdPass() {
         setError("Password needs at least 6 characters.");
         return;
       }
-      if (draft.password !== draft.confirmPassword) {
-        setError("The two password lines must match.");
-        return;
-      }
-      if (!draft.acceptedTerms) {
-        setError("Read the Terms, then tap OK.");
-        return;
-      }
-      setError("Check the box that says you are over the age of 18.");
+      setError("Check the box: I am over the age of eighteen.");
       return;
     }
     setError(null);
@@ -132,7 +121,7 @@ export function FinishAccountAfterIdPass() {
         Name, email, and password
       </Text>
       <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>
-        Type your name, email, and password. Check the box before Sign up. No ID photo and no selfie.
+        Name, email, and one password. Check the box, then tap Sign up. No ID photo and no selfie.
       </Text>
       <Pressable
         onPress={() => setConfirmedAdult((value) => !value)}
@@ -219,34 +208,10 @@ export function FinishAccountAfterIdPass() {
         style={inputStyle}
         testID="login-password"
       />
-      <Text style={{ color: colors.foreground, fontWeight: "600" }}>Type the password again</Text>
-      <TextInput
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        placeholder="Same password as above"
-        placeholderTextColor={colors.muted}
-        secureTextEntry={!showPassword}
-        autoComplete="new-password"
-        textContentType="newPassword"
-        editable={!busy}
-        style={inputStyle}
-        testID="confirm-password"
-      />
 
-      <TapToRead title="Read the Terms, rules, and regulations" testID="join-terms-tab">
+      <TapToRead title="Read the Terms" testID="join-terms-tab">
         {TERMS_SIGNUP_ACKNOWLEDGMENT}
       </TapToRead>
-      <PrimaryActionButton
-        label={acceptedTerms ? "OK — Terms accepted" : "OK — I agree to the Terms"}
-        onPress={() => setAcceptedTerms(true)}
-        backgroundColor={acceptedTerms ? "#2f6f4e" : colors.primary}
-        testID="accept-terms-ok"
-      />
-      <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
-        {acceptedTerms
-          ? "You pressed OK. Tap Sign up to enter."
-          : "Read the Terms, then tap OK on this page. You do not leave this page."}
-      </Text>
       <Pressable
         onPress={() => {
           setStayLoggedInBox((value) => {

@@ -17,7 +17,7 @@ describe("signup account / ID / selfie pages", () => {
     const selfieRoute = readFileSync("app/(auth)/signup-selfie.tsx", "utf8");
     expect(signup).toContain("FinishAccountAfterIdPass");
     expect(signup).toContain("No ID photo and no selfie");
-    expect(signup).toContain("over the age of eighteen");
+    expect(signup).toContain("one password");
     expect(signup).not.toContain("AgeKycPhotoCapture");
     expect(idRoute).toContain("Redirect");
     expect(selfieRoute).toContain("Redirect");
